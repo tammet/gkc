@@ -1,0 +1,16 @@
+Authors
+=======
+
+The author and owner of GKC is Tanel Tammet (tanel.tammet@gmail.com).
+
+The authors and owners of the WhiteDB memory database library used by 
+GKC are Tanel Tammet (tanel.tammet@gmail.com) and Priit Järv (priit@whitedb.org)
+
+Additional programming for the WhiteDB library:
+E.Reilent (t-tree) A.Puusepp (java bindings), 
+A.Rebane (dump/log parts), M.Puju (prototype version)
+
+WhiteDB uses several packages developed
+by other people. Information can be found
+in README and AUTHORS files in corresponding
+folders.
