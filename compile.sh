@@ -30,8 +30,8 @@ ${CC} -O2 -Wall -static -o Main/gkc_01 Main/wgdb.c Db/dbmem.c \
   Reasoner/resolve.c Reasoner/simp.c Reasoner/strat.c Reasoner/history.c Reasoner/prob.c Reasoner/hash.c \
   Reasoner/clmeta.c Reasoner/guide.c  Reasoner/propagate.c\
   Printer/dbotterprint.c \
-  Builtparser/dbotter.tab.c  Builtparser/dbotter.yy.c  Builtparser/dbparse.c  Builtparser/dbprolog.tab.c  Builtparser/dbprolog.yy.c \
-  Builtparser/dbclausify.c \
+  Parser/dbotter.tab.c  Parser/dbotter.yy.c  Parser/dbparse.c  Parser/dbprolog.tab.c  Parser/dbprolog.yy.c \
+  Parser/dbclausify.c \
   -lm  
 
   
