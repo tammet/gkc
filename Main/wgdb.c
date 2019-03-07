@@ -455,8 +455,11 @@ int main(int argc, char **argv) {
     }
     else if(argc>(i+1) && !strcmp(argv[i],"importotter")){
       wg_int err;
-
-      shmsize=2000000000; // 2000 meg
+#ifdef _WIN32
+      shmsize=1000000000; // 2000 meg
+#else
+      shmsize=2000000000; 
+#endif      
       shmptr=wg_attach_database(shmname, shmsize);
       if(!shmptr) {
         fprintf(stderr, "Failed to attach to database.\n");
@@ -490,8 +493,11 @@ int main(int argc, char **argv) {
       break;
     } else if(argc>i && !strcmp(argv[i],"lrunreasoner")){
       wg_int err;
-
-      shmsize=2000000000; // 2000 meg
+#ifdef _WIN32
+      shmsize=1000000000; // 2000 meg
+#else
+      shmsize=2000000000; 
+#endif
       //shmsize=20000000;
       shmptr=wg_attach_local_database(shmsize);
       if(!shmptr) {

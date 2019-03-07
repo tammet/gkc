@@ -135,7 +135,7 @@ int wr_import_json_file(glb* g, char* filename, char* strasfile, cvec clvec, int
   void* db=g->db;
   parse_parm  pp;
   char* fnamestr;  
-  FILE* fp __attribute__((unused));    
+  FILE* fp;    
   //char* buf; 
   int pres=1;
   void* preprocessed=NULL;
@@ -325,7 +325,7 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, in
   void* db=g->db;
   parse_parm  pp;
   char* fnamestr;  
-  FILE* fp __attribute__((unused));    
+  FILE* fp;    
   //char* buf; 
   int pres=1;
   void* preprocessed=NULL;
@@ -460,7 +460,7 @@ int wr_import_prolog_file(glb* g, char* filename, char* strasfile, cvec clvec) {
   void *db=g->db;
   parse_parm  pp;
   char* fnamestr;  
-  FILE* fp __attribute__((unused));    
+  FILE* fp;    
   
   DPRINTF("Hello from dbprologparse!\n"); 
 
