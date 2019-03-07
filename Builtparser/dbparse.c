@@ -1,25 +1,23 @@
 /*
-* $Id:  $
-* $Version: $
 *
-* Copyright (c) Tanel Tammet 2004,2005,2006,2007,2008,2009,2010
+* Copyright (c) Tanel Tammet 2004-2019
 *
 * Contact: tanel.tammet@gmail.com                 
 *
-* This file is part of WhiteDB
+* This file is part of GKC
 *
-* WhiteDB is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
+* GKC is free software: you can redistribute it and/or modify
+* it under the terms of the GNU Affero General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
 * 
-* WhiteDB is distributed in the hope that it will be useful,
+* GKC is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
 * 
-* You should have received a copy of the GNU General Public License
-* along with WhiteDB.  If not, see <http://www.gnu.org/licenses/>.
+* You should have received a copy of the GNU Affero General Public License
+* along with GKC.  If not, see <http://www.gnu.org/licenses/>.
 *
 */
 
@@ -60,17 +58,29 @@
 
 #define MAX_URI_SCHEME 10
 #define VARDATALEN 1000
-
+#define MARK_IMPORTED_NAMES
+#define IMPORTED_NAME_PREFIX "$imp::"
 
 //#define DEBUG
 #undef DEBUG
 
+/*
 #ifdef DEBUG
 #define DPRINTF(...) { printf(__VA_ARGS__); }
 #else
 #define DPRINTF(...) ;
 #endif
+*/
+#define DPRINTF(...) 
 
+#define json_get(obj,name) cJSON_GetObjectItemCaseSensitive(obj,name)
+#define json_isstring(name) cJSON_IsString(name)
+#define json_isnumber(name) cJSON_IsNumber(name)
+#define json_isarray(name) cJSON_IsArray(name)
+#define json_isobject(name) cJSON_IsObject(name)
+#define json_key(obj) ((obj)->string)
+#define json_valuestring(obj) ((obj)->valuestring)
+#define json_valueint(obj) ((obj)->valueint)
 
 //static void otter_escaped_str(void *db, char *iptr, char *buf, int buflen);
 
@@ -100,22 +110,222 @@ struct uri_scheme_info {
 
 /* ====== Private protos ======== */
 
+cJSON* wr_parse_json_infile(char* filename,char** guidebuf);
+cJSON* wr_parse_json_infile_str(char* buf);
+int wr_parse_injson_data(glb* g, cJSON* jdata);
+void* wr_parse_injson_clause(glb* g, cJSON* clause);
+void* wr_parse_injson_term(glb* g, cJSON* term);
+
 int wr_is_tptp_cnf_clause(void* db, void* cl);
 int wr_is_tptp_fof_clause(void* db, void* cl);
 int wr_is_tptp_import_clause(void* db, void* cl);
+
 
 void* wr_preprocess_tptp_cnf_clause(glb* g, void* mpool, void* cl);
 void* wr_preprocess_tptp_fof_clause(glb* g, void* mpool, void* cl);
 void* wr_process_tptp_import_clause(glb* g, void* mpool, void* cl);
 
 
+
 /* ====== Functions ============== */
 
-int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec) {
+/* ====== Parse json ============== */
+
+int wr_import_json_file(glb* g, char* filename, char* strasfile, cvec clvec, int isincluded) {
   void* db=g->db;
   parse_parm  pp;
   char* fnamestr;  
-  FILE* fp;   
+  FILE* fp __attribute__((unused));    
+  //char* buf; 
+  int pres=1;
+  void* preprocessed=NULL;
+  void* pres2=NULL;
+  void *mpool;  
+  int tmp_comp_funs;
+  int tmp;
+
+
+  char* jbuf=NULL;
+  cJSON *jdata=NULL;
+  int clause_count=0;
+
+#ifdef DEBUG
+  DPRINTF("wr_import_json_file called\n");
+  printf("\n filename %s \n",filename);
+  printf("\n strasfile %s \n",strasfile);
+  printf("\n isincluded %d \n",isincluded);
+  (g->print_initial_parser_result)=1;
+  (g->print_generic_parser_result)=1;
+#endif    
+
+  /*
+    dprintf("\nargc %d\n",argc);
+    for(i=0;i<argc;i++) {
+      dprintf("arg %d is %s\n",i,argv[i]);
+    }
+  */
+  
+  printf("\nCP0\n");
+  jdata=wr_parse_json_infile(filename,&jbuf);
+  printf("\nCP1\n");
+
+  if (jdata==NULL) {
+    if (jbuf!=NULL) free(jbuf);
+    return -1;
+  }
+  
+  // set globals for parsing
+  (g->parse_is_included_file)=isincluded;
+  (g->parse_skolem_prefix)=wr_str_new(g,100);
+  strncpy((g->parse_skolem_prefix),DEFAULT_SKOLEM_PREFIX,99);
+  //(g->parse_skolem_nr)=0;
+  (g->parse_newpred_prefix)=wr_str_new(g,100);
+  strncpy((g->parse_newpred_prefix),DEFAULT_NEWPRED_PREFIX,99);
+  //(g->parse_newpred_nr)=0;
+  (g->parse_errmsg)=NULL;
+  (g->parse_errflag)=0;
+
+  tmp_comp_funs=(g->use_comp_funs);
+  (g->use_comp_funs)=0;
+  
+  printf("\nCP2\n");
+    
+  tmp=wr_parse_injson_data(g,jdata);
+
+  printf("\nCP3\n");
+
+  (g->use_comp_funs)=tmp_comp_funs;
+  
+  //if (pres2==NULL) return 1;
+  //else return 0;  
+  return 0;
+}
+
+
+
+cJSON* wr_parse_json_infile(char* filename,char** guidebuf) { 
+  char* buf=NULL;
+  FILE* fp=NULL;  
+  cJSON *data=NULL;
+  int len;
+  int tmp;
+
+#ifdef _WIN32
+  if(fopen_s(&fp, filename, "rb")) {
+#else
+  if(!(fp = fopen(filename, "rb"))) {
+#endif    
+    wr_errprint2("cannot open file", filename);
+    return NULL;
+  }     
+  // get the length
+  fseek(fp, 0, SEEK_END);
+  len = ftell(fp);
+  fseek(fp, 0, SEEK_SET);
+  // read and proceed
+  buf = (char*)malloc(len + 10);
+  *guidebuf=buf;
+  if (!buf) {
+    wr_errprint2("failed to allocate memory for the guide file", filename);
+    return NULL;
+  }
+  if (fread(buf, 1, len, fp)<len) {
+    fclose(fp);
+    wr_errprint2("cannot read the guide file", filename);
+    return NULL;
+  }
+  buf[len] = '\0';
+  if (fp!=NULL) fclose(fp);
+  data=wr_parse_json_infile_str(buf);    
+
+  printf("\n json parsed");
+  return data; 
+}
+
+
+cJSON* wr_parse_json_infile_str(char* buf) {
+  cJSON *guide=NULL;
+  char *errorptr=NULL;
+
+  printf("\nbuf:\n%s\n",buf);
+  guide=cJSON_Parse(buf);
+  if (guide==NULL) {
+    errorptr=(char*)cJSON_GetErrorPtr();
+    if (errorptr!=NULL) {      
+      wr_errprint2("Incorrect json in guide before ",errorptr);
+      return NULL;
+    }
+    wr_errprint("Empty guide");
+    return NULL;
+  }
+  return guide;
+}
+
+int wr_parse_injson_data(glb* g, cJSON* jdata) {
+ 
+  cJSON *elem=NULL, *run=NULL, *lit=NULL;
+  char *key, *errstr, *valuestr;
+  int valueint,i,tmp;
+  int runcount=0, runfound=0, runnr=0;
+
+  printf("\nwr_parse_injson_data called\n");
+
+  if (!json_isarray(jdata)) {
+     show_parse_error(g->db,"json input file is not an array\n");
+     return 0;
+  }
+  // here obj s an array
+  cJSON_ArrayForEach(elem,jdata) {
+    if (!json_isarray(elem)) {
+      show_parse_error(g->db,"a clause in the json input array is not an array\n");
+      return 0;
+    }
+    // here elem is an array
+    if (!json_isarray(elem->child)) {
+      wr_parse_injson_term(g,elem);
+    } else {
+      wr_parse_injson_clause(g,elem);
+    }  
+  }
+  return 0;
+}
+
+void* wr_parse_injson_clause(glb* g, cJSON* clause) {
+  cJSON *lit=NULL;
+
+  cJSON_ArrayForEach(lit,clause) {
+    if (json_isarray(lit)) {
+      wr_parse_injson_term(g,lit);
+    } else {
+      show_parse_error(g->db,"a literal in the json input clause is not an array\n");
+      return NULL;
+    }
+  } 
+  return NULL;
+}
+
+
+void* wr_parse_injson_term(glb* g, cJSON* term) {
+  cJSON *elem=NULL;
+
+  cJSON_ArrayForEach(elem,term) {
+    if (json_isarray(elem)) {
+      wr_parse_injson_term(g,elem);
+    } else {
+      printf("\nterm elem %s\n",json_valuestring(elem));
+    }
+  }
+  return NULL;
+}
+
+
+/* ====== Parse otter and tptp ============== */
+
+int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, int isincluded) {
+  void* db=g->db;
+  parse_parm  pp;
+  char* fnamestr;  
+  FILE* fp __attribute__((unused));    
   //char* buf; 
   int pres=1;
   void* preprocessed=NULL;
@@ -127,10 +337,12 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec) {
   DPRINTF("wr_import_otter_file called\n");
   printf("\n filename %s \n",filename);
   printf("\n strasfile %s \n",strasfile);
+  printf("\n isincluded %d \n",isincluded);
   (g->print_initial_parser_result)=1;
   (g->print_generic_parser_result)=1;
 #endif        
   // set globals for parsing
+  (g->parse_is_included_file)=isincluded;
   (g->parse_skolem_prefix)=wr_str_new(g,100);
   strncpy((g->parse_skolem_prefix),DEFAULT_SKOLEM_PREFIX,99);
   //(g->parse_skolem_nr)=0;
@@ -190,7 +402,7 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec) {
       printf("\nOtter parser result:\n");    
       wg_mpool_print(db,pp.result);
     }        
-    preprocessed=wr_preprocess_clauselist(g,mpool,clvec,pp.result);
+    preprocessed=wr_preprocess_clauselist(g,mpool,clvec,pp.result,isincluded);
     //printf("\nwr_preprocess_clauselist finished\n");
     //preprocessed=wr_clausify_clauselist(g,mpool,clvec,pp.result);
     pres2=wr_parse_clauselist(g,mpool,clvec,preprocessed);
@@ -248,7 +460,7 @@ int wr_import_prolog_file(glb* g, char* filename, char* strasfile, cvec clvec) {
   void *db=g->db;
   parse_parm  pp;
   char* fnamestr;  
-  FILE* fp;    
+  FILE* fp __attribute__((unused));    
   
   DPRINTF("Hello from dbprologparse!\n"); 
 
@@ -274,13 +486,14 @@ int wr_import_prolog_file(glb* g, char* filename, char* strasfile, cvec clvec) {
 
 
 void* wr_preprocess_clauselist
-        (glb* g,void* mpool,cvec clvec,void* clauselist) {
+        (glb* g,void* mpool,cvec clvec,void* clauselist, int isincluded) {
   void* db=g->db;
   void* lpart;
   void *cl, *clname, *clrole;
   void* resultclause=NULL;
   void* resultlist=NULL;
   int clnr=0;
+  char namebuf[1000];
 #ifdef DEBUG  
   printf("wr_preprocess_clauselist starting with clauselist\n");  
   wg_mpool_print(db,clauselist);
@@ -320,6 +533,15 @@ void* wr_preprocess_clauselist
     } else if (wr_is_tptp_fof_clause(db,cl)) {
       // tptp fof clause
       clname=wg_nth(db,cl,1);
+#ifdef MARK_IMPORTED_NAMES      
+      //printf("\n!!! clname %s\n",wg_atomstr1(db,clname));
+      if (g->parse_is_included_file) {
+        strncpy(namebuf,IMPORTED_NAME_PREFIX,900);
+        strncat(namebuf,wg_atomstr1(db,clname),900);
+        clname=wg_mkatom(db,mpool,WG_URITYPE,namebuf, NULL);
+      }        
+      //printf("\n!!! clnamenew %s\n",wg_atomstr1(db,clname));
+#endif      
       clrole=wg_nth(db,cl,2);
       resultclause=wr_preprocess_tptp_fof_clause(g,mpool,cl); 
       resultclause=wg_mklist3(db,mpool,clname,clrole,resultclause);     
@@ -513,7 +735,7 @@ void* wr_process_tptp_import_clause(glb* g, void* mpool, void* cl) {
 #ifdef DEBUG
   printf("\nfilename %s\n",filename);
 #endif   
-  wr_import_otter_file(g,filename,NULL,NULL);  
+  wr_import_otter_file(g,filename,NULL,NULL,1);  
   return NULL;
 }
 
@@ -805,12 +1027,59 @@ void* wr_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
     namestr=NULL;
   }  
   if (role && wg_isatom(db,role) && wg_atomtype(db,role)==WG_URITYPE) {
-    rolestr=wg_atomstr1(db,role);
-    if (!strcmp("conjecture",rolestr)) rolenr=PARSER_GOAL_ROLENR;    
-    else if (!strcmp("negated_conjecture",rolestr)) rolenr=PARSER_GOAL_ROLENR; 
-    else if (!strcmp("hypothesis",rolestr)) rolenr=PARSER_ASSUMPTION_ROLENR;  
-    else if (!strcmp("assumption",rolestr)) rolenr=PARSER_ASSUMPTION_ROLENR;
-    else rolenr=PARSER_AXIOM_ROLENR;
+    rolestr=wg_atomstr1(db,role);    
+    /*
+    printf("\n rolestr %s \n",rolestr);
+    wr_print_clause(g,record);
+    printf("\n is positive %d\n",wr_is_positive_unit_cl(g,record));
+    */
+    
+    if (!strcmp("conjecture",rolestr) || !strcmp("negated_conjecture",rolestr)) {       
+      rolenr=PARSER_GOAL_ROLENR;          
+    } else if (!strcmp("hypothesis",rolestr) || !strcmp("assumption",rolestr)) {     
+      rolenr=PARSER_ASSUMPTION_ROLENR;  
+    } else if (!strcmp("axiom",rolestr) && 
+             //  (g->parse_is_included_file) &&
+             namestr!=NULL &&
+             !strncmp(namestr,IMPORTED_NAME_PREFIX,strlen(IMPORTED_NAME_PREFIX)) ) {  
+      rolenr=PARSER_EXTAXIOM_ROLENR;   
+    } else {
+      rolenr=PARSER_AXIOM_ROLENR; 
+    }  
+    //printf("\n rolenr %d\n",rolenr);
+
+    /* old stuff, delete later    
+
+    if (!strcmp("conjecture",rolestr) || !strcmp("negated_conjecture",rolestr)) {
+      if (((g->cl_pick_queue_strategy)==2)
+          && wr_is_positive_unit_cl(g,record)) rolenr=PARSER_ASSUMPTION_ROLENR;   
+      else if (((g->cl_pick_queue_strategy)==3)
+          && !wr_is_fully_negative_cl(g,record)) rolenr=PARSER_AXIOM_ROLENR;     
+      else rolenr=PARSER_GOAL_ROLENR;          
+    } else if (!strcmp("hypothesis",rolestr) || !strcmp("assumption",rolestr)) {
+      if ((g->cl_pick_queue_strategy)==3)
+        rolenr=PARSER_AXIOM_ROLENR;  
+      else
+        rolenr=PARSER_ASSUMPTION_ROLENR;  
+    }     
+    else if ((g->cl_pick_queue_strategy)==2 &&
+             !strcmp("axiom",rolestr) && 
+             (g->parse_is_included_file) &&
+             namestr!=NULL &&
+             strncmp(namestr,IMPORTED_NAME_PREFIX,strlen(IMPORTED_NAME_PREFIX)) ) {  
+      rolenr=PARSER_ASSUMPTION_ROLENR; 
+      //printf("\n !!!! detected nonimported axiom, made assumption for %s\n",namestr);
+    } else if ((g->cl_pick_queue_strategy)==2 &&
+             !strcmp("axiom",rolestr) && 
+             (g->parse_is_included_file) &&
+             namestr!=NULL &&
+             strncmp(namestr,IMPORTED_NAME_PREFIX,strlen(IMPORTED_NAME_PREFIX)) ) {  
+      rolenr=PARSER_EXTAXIOM_ROLENR; 
+      //printf("\n !!!! detected nonimported axiom, made assumption for %s\n",namestr);
+    } else rolenr=PARSER_AXIOM_ROLENR;
+
+    */
+
   } else {
     rolenr=PARSER_AXIOM_ROLENR;
   }    
@@ -820,6 +1089,12 @@ void* wr_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
     //return NULL;          
   }   
   wr_set_history(g,record,history);
+  /*
+  printf("\n built a record with rolenr: %d and (g->cl_pick_queue_strategy) %d\n",rolenr,(g->cl_pick_queue_strategy));
+  wg_print_record(db,record);
+  printf("\n");
+  */
+ 
 #ifdef DEBUG
   printf("\n built a record:\n");
   wg_print_record(db,record);

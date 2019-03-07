@@ -14,13 +14,9 @@ if [ config-gcc.h -nt config.h ]; then
   echo "Warning: config.h is older than config-gcc.h, consider updating it"
 fi
 
-# see https://fastcompression.blogspot.com/2019/01/compiler-warnings.html
-# -Wall -Wextra -Wcast-qual -Wcast-align -Wstrict-aliasing -Wpointer-arith -Winit-self 
-# -Wshadow -Wswitch-enum -Wstrict-prototypes -Wmissing-prototypes -Wredundant-decls
-# -Wfloat-equal -Wundef -Wvla -Wdeclaration-after-statement -Wc++-compat
-
 # With reasoner and profiling (add -pg switch for profiling):
-${CC} -O2 -Wall -static -o Main/gkc_01 Main/wgdb.c Db/dbmem.c \
+
+${CC} -O2 -Wall -static -o gkc Main/wgdb.c Db/dbmem.c \
   Db/dballoc.c Db/dbdata.c Db/dblock.c Db/dbindex.c Db/dbdump.c  \
   Db/dblog.c Db/dbhash.c Db/dbcompare.c Db/dbquery.c Db/dbutil.c Db/dbmpool.c \
   Db/dbjson.c Db/dbschema.c json/yajl_all.c \
@@ -30,17 +26,11 @@ ${CC} -O2 -Wall -static -o Main/gkc_01 Main/wgdb.c Db/dbmem.c \
   Reasoner/resolve.c Reasoner/simp.c Reasoner/strat.c Reasoner/history.c Reasoner/prob.c Reasoner/hash.c \
   Reasoner/clmeta.c Reasoner/guide.c  Reasoner/propagate.c\
   Printer/dbotterprint.c \
-  Parser/dbotter.tab.c  Parser/dbotter.yy.c  Parser/dbparse.c  Parser/dbprolog.tab.c  Parser/dbprolog.yy.c \
+  Builtparser/dbotter.tab.c  Builtparser/dbotter.yy.c  Builtparser/dbparse.c  Builtparser/dbprolog.tab.c  Builtparser/dbprolog.yy.c \
   Parser/dbclausify.c \
   -lm  
 
-  
-# debug and testing programs: uncomment as needed
-#$CC  -O2 -Wall -o Main/indextool  Main/indextool.c Db/dbmem.c \
-#  Db/dballoc.c Db/dbdata.c Db/dblock.c Db/dbindex.c Db/dblog.c \
-#  Db/dbhash.c Db/dbcompare.c Db/dbquery.c Db/dbutil.c Db/dbmpool.c \
-#  Db/dbjson.c Db/dbschema.c json/yajl_all.c -lm
-#$CC  -O2 -Wall -o Main/selftest Main/selftest.c Db/dbmem.c \
-#  Db/dballoc.c Db/dbdata.c Db/dblock.c Db/dbindex.c Test/dbtest.c Db/dbdump.c \
-#  Db/dblog.c Db/dbhash.c Db/dbcompare.c Db/dbquery.c Db/dbutil.c Db/dbmpool.c \
-#  Db/dbjson.c Db/dbschema.c json/yajl_all.c -lm
+# see https://fastcompression.blogspot.com/2019/01/compiler-warnings.html
+# -Wall -Wextra -Wcast-qual -Wcast-align -Wstrict-aliasing -Wpointer-arith -Winit-self 
+# -Wshadow -Wswitch-enum -Wstrict-prototypes -Wmissing-prototypes -Wredundant-decls
+# -Wfloat-equal -Wundef -Wvla -Wdeclaration-after-statement -Wc++-compat

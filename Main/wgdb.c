@@ -425,7 +425,7 @@ int main(int argc, char **argv) {
       err = wg_import_db_csv(shmptr,argv[i+1]);
       WULOCK(shmptr, wlock);
       if(!err)
-        printf("Data imported from file.\n");
+        printf("Data imported.\n");
       else if(err<-1)
         fprintf(stderr, "Fatal error when importing, data may be partially"\
           " imported\n");
@@ -445,7 +445,7 @@ int main(int argc, char **argv) {
       }
       err = wg_import_prolog_file(shmptr,argv[i+1]);
       if(!err)
-        printf("Data imported from prolog file.\n");
+        printf("Data imported.\n");
       else if(err<-1)
         fprintf(stderr, "Fatal error when importing, data may be partially"\
           " imported\n");
@@ -464,7 +464,7 @@ int main(int argc, char **argv) {
       }
       err = wg_import_otter_file(shmptr,argv[i+1]);
       if(!err)
-        printf("Data imported from otter file.\n");
+        printf("Data imported.\n");
       else if(err<-1)
         fprintf(stderr, "Fatal error when importing otter file, data may be partially"\
           " imported\n");
@@ -501,14 +501,14 @@ int main(int argc, char **argv) {
       islocaldb=1;
       err = wg_import_otter_file(shmptr,argv[i+1]);
       if(!err)
-        printf("Data imported from otter file.\n");
+        printf("Data imported.\n");
       else if(err<-1)
         fprintf(stderr, "Fatal error when importing otter file, data may be partially"\
           " imported\n");
       else
         fprintf(stderr, "Import failed.\n");      
     
-      printf("about to call wg_run_reasoner\n");
+      //printf("about to call wg_run_reasoner\n");
       err = wg_run_reasoner(shmptr,argc-1,argv+1);
       //if(!err);
         //printf("wg_run_reasoner finished ok.\n");
@@ -557,7 +557,7 @@ int main(int argc, char **argv) {
         wg_rdfparse_default_callback, argv[i+3]);
       WULOCK(shmptr, wlock);
       if(!err)
-        printf("Data imported from file.\n");
+        printf("Data imported.\n");
       else if(err<-1)
         fprintf(stderr, "Fatal error when importing, data may be partially"\
           " imported\n");

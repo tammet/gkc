@@ -88,9 +88,9 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
   */
 
 #ifdef CHECK
-  printf("\ndb CHECK macro is on\n");
+  //printf("\ndb CHECK macro is on\n");
 #else
- printf("\ndb CHECK macro is off\n");
+ //printf("\ndb CHECK macro is off\n");
 #endif
   guide=wr_parse_guide_file(argc,argv,&guidebuf);
   if (guide==NULL) {
@@ -242,7 +242,7 @@ int wg_import_otter_file(void *db, char* filename) {
     }
   } else {
     //wg_mpool_print(db,pres2);
-    if (1) { //((g->print_flag) && (g->print_generic_parser_result)>0) {    
+    if (0) { //((g->print_flag) && (g->print_generic_parser_result)>0) {    
       printf("\nGeneric parser result:\n");
       //wr_print_db_otter(g,(g->print_clause_detaillevel));
     }  
