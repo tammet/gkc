@@ -1092,6 +1092,7 @@ void segment_stats(void *db) {
   wg_pretty_print_memsize(dbh->size - dbh->free, buf2, 40);
   printf("free space: %s (of %s)\n", buf2, buf1);
 #ifndef _WIN32
+  /*
   pwd = getpwuid(wg_memowner(db));
   if(pwd) {
     printf("owner: %s\n", pwd->pw_name);
@@ -1101,6 +1102,7 @@ void segment_stats(void *db) {
     printf("group: %s\n", grp->gr_name);
   }
   printf("permissions: %o\n", wg_memmode(db));
+  */
 #endif
 #ifdef USE_DBLOG
   if(dbh->logging.active) {
