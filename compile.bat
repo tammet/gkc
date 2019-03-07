@@ -1,16 +1,4 @@
-@rem current version does not build reasoner: added later
+@rem build a gkc prover under Windows
 
-@rem build DLL.
-@rem unlike gcc build, it is necessary to have all functions declared in
-@rem wgdb.def file. Make sure it's up to date (should list same functions as
-@rem Db/dbapi.h)
-cl /Ox /W3 /MT /Fewgdb /LD Db\dbmem.c Db\dballoc.c Db\dbdata.c Db\dblock.c DB\dbdump.c Db\dblog.c Db\dbhash.c  Db\dbindex.c Db\dbcompare.c Db\dbquery.c Db\dbutil.c Db\dbmpool.c Db\dbjson.c Db\dbschema.c json\yajl_all.c /link /def:wgdb.def /incremental:no /MANIFEST:NO
+cl /O2 /W3 /Fegkc Main/wgdb.c Db/dbmem.c Db/dballoc.c Db/dbdata.c Db/dblock.c Db/dbindex.c Db/dbdump.c Db/dblog.c Db/dbhash.c Db/dbcompare.c Db/dbquery.c Db/dbutil.c Db/dbmpool.c Db/dbjson.c Db/dbschema.c json/yajl_all.c cjson/cjson.c Reasoner/build.c  Reasoner/clstore.c  Reasoner/clterm.c  Reasoner/derive.c  Reasoner/glb.c  Reasoner/mem.c Reasoner/printerrutils.c  Reasoner/rgenloop.c  Reasoner/rmain.c  Reasoner/subsume.c  Reasoner/unify.c Reasoner/resolve.c Reasoner/simp.c Reasoner/strat.c Reasoner/history.c Reasoner/prob.c Reasoner/hash.c Reasoner/clmeta.c Reasoner/guide.c  Reasoner/propagate.c Printer/dbotterprint.c Builtparser/dbotter.tab.c  Builtparser/dbotter.yy.c  Builtparser/dbparse.c  Builtparser/dbprolog.tab.c  Builtparser/dbprolog.yy.c Builtparser/dbclausify.c 
 
-@rem Link executables against wgdb.dll
-@rem cl /Ox /W3 Main\stresstest.c wgdb.lib
-cl /Ox /W3 Main\wgdb.c wgdb.lib
-@rem cl /Ox /W3 Main\indextool.c wgdb.lib
-
-@rem Example of building without the DLL
-@rem the test module depends on many symbols not part of the API
-cl /Ox /W3 Main\selftest.c Db\dbmem.c Db\dballoc.c Db\dbdata.c Db\dblock.c Test\dbtest.c DB\dbdump.c Db\dblog.c Db\dbhash.c Db\dbindex.c Db\dbcompare.c Db\dbquery.c Db\dbutil.c Db\dbmpool.c Db\dbjson.c Db\dbschema.c json\yajl_all.c
