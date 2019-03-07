@@ -1,4 +1,5 @@
-# gkc
+gkc
+===
 
 GKC is a reasoning system for large knowledge bases.
 
@@ -8,50 +9,63 @@ see the release v0.1-alpha:
 
 https://github.com/tammet/gkc/releases/tag/v0.1-alpha
 
-GKC is licenced under AGPL v3.
-
-## Compiling
+Compiling
+---------
 
 To compile the Linux binary yourself, use the 
-compile.sh
-script creating a static binary gkc. 
+
+    compile.sh
+  
+script in the top folder creating a static binary gkc. 
 This script calls gcc once and does nothing else.
 
 To compile the Windows binary yourself, use the
-compile.bat
-script creating an executable gkc.exe. 
-The windows binary has been tested under
-the 64-bit Windows 10 with the 2017 Visual Studio C
-community edition command-line tool cl.
+
+    compile.bat
+
+script in the top folder creating an executable gkc.exe. 
+We have tested compilation under the 64-bit Windows
+10 with the 2017 Visual Studio C community edition 
+command-line tool cl.
 
 Instructions for compilation with autotools will be
 given in future.
 
+Notice that GKC is licenced under AGPL v3.
 
-## Running
+Running
+-------
 
 Run gkc as 
 
-gkc lrunreasoner problem_file_name strategy_file_name
+    gkc lrunreasoner problem_file_name strategy_file_name
 
 example:
 
-gkc_01 lrunreasoner /opt/TPTP/Problems/NUM/NUM925+5.p runs.txt
+    gkc lrunreasoner /opt/TPTP/Problems/NUM/NUM925+5.p runs.txt
 
 where
 * lrunreasoner is a command to gkc
-* problem_file_name is a problem file in TPTP syntax, possibly containing include commands like include('Axioms/CSR002+5.ax'). The included files are searched either from the local folder or a fixed
-path /opt/TPTP/ . For this example the file /opt/TPTP/Axioms/CSR002+5.ax would be looked up.
-* strategy_file_name is a json-syntax file for giving options and strategies to gkc. See and use the
-examples in the following Experimental results chapter.
+* problem_file_name is a problem file in TPTP syntax, possibly containing
+include commands like `include('Axioms/CSR002+5.ax')'. 
+The included files are searched either from the local folder or a fixed
+path /opt/TPTP/ . For this example the file /opt/TPTP/Axioms/CSR002+5.ax 
+would be looked up.
+* strategy_file_name is a json-syntax file for giving options and strategies
+to gkc. See and use the examples in the following Experimental results chapter.
 
-## Experimental results
+Experimental results
+--------------------
 
 You can find experiment logs in the release v0.1-alpha:
 
 https://github.com/tammet/gkc/releases/tag/v0.1-alpha
 
-* The file gkc_v01_on_cascj9fof.tar.gz contains the full logs for the CASC-j9 FOF division problems, see the readme.txt in the unpacked file. 
-* The gkc_v01_on_cascj9fof.tar.gz contains separate one-run-only logs for the seven largest problems from the previous set.
-* The runs.txt strategy file was used for proof search as logged in gkc_v01_on_cascj9fof.tar.gz
-* The query.txt strategy file was used for proof search logged in gkc_v01_on_cascj9fof.tar.gz
+* The file gkc_v01_on_cascj9fof.tar.gz contains the full logs for the CASC-j9 FOF 
+division problems, see the readme.txt in the unpacked file. 
+* The gkc_v01_on_cascj9fof.tar.gz contains separate one-run-only logs
+for the seven largest problems from the previous set.
+* The runs.txt strategy file was used for proof search as logged 
+in gkc_v01_on_cascj9fof.tar.gz
+* The query.txt strategy file was used for proof search logged 
+in gkc_v01_on_cascj9fof.tar.gz
