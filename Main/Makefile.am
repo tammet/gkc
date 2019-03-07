@@ -1,7 +1,7 @@
 # $Id:  $
 # $Source:  $
 #
-# Creating the WhiteDB binaries
+# Creating the GKC binaries
 
 
 # ---- options ----
@@ -18,7 +18,7 @@ testdir=../Test
 # ---- targets ----
 
 lib_LTLIBRARIES = libwgdb.la
-bin_PROGRAMS = wgdb
+bin_PROGRAMS = gkc
 noinst_PROGRAMS = stresstest selftest gendata indextool
 pkginclude_HEADERS = $(dbdir)/dbapi.h  $(dbdir)/rdfapi.h $(dbdir)/indexapi.h
 
@@ -47,8 +47,8 @@ libwgdb_la_LIBADD += $(parserdir)/libParser.la \
   $(printerdir)/libPrinter.la $(reasonerdir)/libReasoner.la
 endif
 
-wgdb_SOURCES = wgdb.c
-wgdb_LDADD = libwgdb.la
+gkc_SOURCES = gkc.c
+gkc_LDADD = libwgdb.la
 
 stresstest_SOURCES = stresstest.c
 stresstest_LDADD = libwgdb.la

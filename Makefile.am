@@ -9,14 +9,11 @@ AUTOMAKE_OPTIONS = subdir-objects
 
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = Db json Parser Reasoner Printer Test Main Examples
-if PYTHON
-SUBDIRS += Python
-endif
+SUBDIRS = Db json Parser Printer Reasoner Test Main
 
 # --- man ---
 
-man_MANS = Doc/gkc.7
+# man_MANS = Doc/gkc.7
 
 # --- optional components ----
 
@@ -30,15 +27,12 @@ Test/log.log: Test/common.log
 
 
 EXTRA_DIST = Bootstrap README README.md INSTALL MANIFEST GPLLICENCE NEWS AUTHORS \
- Doc/whitedb.7 Doc/python.txt Doc/Manual.txt \
- Doc/Install.txt Doc/Utilities.txt Doc/Tutorial.txt \
- wgdb.def config-w32.h config-gcc.h Doxyfile compile.sh compile.bat \
- unite.sh \
+ config-w32.h config-gcc.h compile.sh compile.bat \
  Db/dbapi.h Db/rdfapi.h Db/indexapi.h \
- Python/compile.bat Python/compile.sh Python/tests.py \
  Parser/dbotter.y Parser/dbotter.l Parser/dbprolog.y Parser/dbprolog.l \
+ Examples/steam.txt Examples.steam.p \
  Test/common.test Test/log.test \
- whitedb.pc.in
+ gkc.pc.in
 
 # this conflicts with the distcheck target, so disabled for now.
 #dist-hook:
@@ -47,4 +41,4 @@ EXTRA_DIST = Bootstrap README README.md INSTALL MANIFEST GPLLICENCE NEWS AUTHORS
 # -------- Pkg-config ---------------
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = whitedb.pc
+pkgconfig_DATA = gkc.pc
