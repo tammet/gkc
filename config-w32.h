@@ -1,5 +1,5 @@
 /*
- * XXX: put this file under license if needed
+ *
  *
  */
 
@@ -9,8 +9,6 @@
  * Based on auto-generated config.h. Should be manually synced whenever
  * additional configuration parameters are added.
  */
-
-#define USE_REASONER
 
 /* Use additional validation checks */
 #define CHECK 1
@@ -38,22 +36,22 @@
 /* #undef NO_MINUS_C_MINUS_O */
 
 /* Name of package */
-#define PACKAGE "whitedb"
+#define PACKAGE "GKC"
 
 /* Define to the address where bug reports for this package should be sent. */
 #define PACKAGE_BUGREPORT ""
 
 /* Define to the full name of this package. */
-#define PACKAGE_NAME "WhiteDB"
+#define PACKAGE_NAME "GKC"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "WhiteDB 0.8-alpha"
+#define PACKAGE_STRING "GKC 0.2-alpha"
 
 /* Define to the one symbol short name of this package. */
-#define PACKAGE_TARNAME "whitedb"
+#define PACKAGE_TARNAME "gkc"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "0.8-alpha"
+#define PACKAGE_VERSION "0.2-alpha"
 
 /* Define to necessary symbol if this constant uses a non-standard name on
    your system. */
@@ -81,16 +79,16 @@
 #define USE_INDEX_TEMPLATE 1
 
 /* Enable reasoner */
-/* #undef USE_REASONER */
+#define USE_REASONER 1
 
 /* Version number of package */
-#define VERSION "0.8-alpha"
+#define VERSION "0.2-alpha"
 
 /* Package major version */
 #define VERSION_MAJOR 0
 
 /* Package minor version */
-#define VERSION_MINOR 8
+#define VERSION_MINOR 2
 
 /* Package revision number */
 #define VERSION_REV 0
