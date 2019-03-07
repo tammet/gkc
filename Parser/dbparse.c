@@ -61,14 +61,17 @@
 #define MARK_IMPORTED_NAMES
 #define IMPORTED_NAME_PREFIX "$imp::"
 
-#define DEBUG
-//#undef DEBUG
+//#define DEBUG
+#undef DEBUG
 
+/*
 #ifdef DEBUG
 #define DPRINTF(...) { printf(__VA_ARGS__); }
 #else
 #define DPRINTF(...) ;
 #endif
+*/
+#define DPRINTF(...) 
 
 #define json_get(obj,name) cJSON_GetObjectItemCaseSensitive(obj,name)
 #define json_isstring(name) cJSON_IsString(name)
