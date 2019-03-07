@@ -5,19 +5,19 @@
 
 # ------- Initialisation -------
 
-m4_define([WHITEDB_MAJOR], [0])
-m4_define([WHITEDB_MINOR], [8])
-m4_define([WHITEDB_REV], [0])
+m4_define([GKC_MAJOR], [0])
+m4_define([GKC_MINOR], [8])
+m4_define([GKC_REV], [0])
 
 # standard release
-#m4_define([WHITEDB_VERSION],
-#  m4_defn([WHITEDB_MAJOR]).m4_defn([WHITEDB_MINOR]).m4_defn([WHITEDB_REV]))
+#m4_define([GKC_VERSION],
+#  m4_defn([GKC_MAJOR]).m4_defn([GKC_MINOR]).m4_defn([GKC_REV]))
 # release candidate; fill in manually
-m4_define([WHITEDB_VERSION], [0.8-alpha]))
+m4_define([GKC_VERSION], [0.8-alpha]))
 
 AC_CONFIG_MACRO_DIRS([m4])
 
-AC_INIT(WhiteDB, [WHITEDB_VERSION])
+AC_INIT(GKC, [GKC_VERSION])
 
 AC_MSG_NOTICE([====== initialising ======])
 
@@ -275,11 +275,11 @@ AC_SUBST([AM_CFLAGS], ["$auto_cflags"])
 
 AC_MSG_NOTICE([====== final steps ======])
 
-AC_DEFINE([VERSION_MAJOR], [WHITEDB_MAJOR], [Package major version])
-AC_DEFINE([VERSION_MINOR], [WHITEDB_MINOR], [Package minor version])
-AC_DEFINE([VERSION_REV], [WHITEDB_REV], [Package revision number])
+AC_DEFINE([VERSION_MAJOR], [GKC_MAJOR], [Package major version])
+AC_DEFINE([VERSION_MINOR], [GKC_MINOR], [Package minor version])
+AC_DEFINE([VERSION_REV], [GKC_REV], [Package revision number])
 
-AC_CONFIG_FILES([whitedb.pc])
+AC_CONFIG_FILES([gkc.pc])
 
 AC_OUTPUT([
 Makefile
@@ -287,8 +287,6 @@ Db/Makefile
 json/Makefile
 Test/Makefile
 Main/Makefile
-Examples/Makefile
-Python/Makefile
 Parser/Makefile
 Printer/Makefile
 Reasoner/Makefile
