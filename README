@@ -45,27 +45,26 @@ example:
     gkc lrunreasoner /opt/TPTP/Problems/NUM/NUM925+5.p runs.txt
 
 where
-* lrunreasoner is a command to gkc
-* problem_file_name is a problem file in TPTP syntax, possibly containing
-include commands like `include('Axioms/CSR002+5.ax')'. 
+* *lrunreasoner* is a command to gkc
+* *problem_file_name* is a problem file in TPTP syntax, possibly containing
+include commands like `include('Axioms/CSR002+5.ax')`. 
 The included files are searched either from the local folder or a fixed
-path /opt/TPTP/ . For this example the file /opt/TPTP/Axioms/CSR002+5.ax 
+path `/opt/TPTP/` . For this example the file `/opt/TPTP/Axioms/CSR002+5.ax`
 would be looked up.
-* strategy_file_name is a json-syntax file for giving options and strategies
+* *strategy_file_name* is a json-syntax file for giving options and strategies
 to gkc. See and use the examples in the following Experimental results chapter.
 
 Experimental results
 --------------------
 
-You can find experiment logs in the release v0.1-alpha:
-
+You can find experiment logs in the following release:
 https://github.com/tammet/gkc/releases/tag/v0.1-alpha
 
-* The file gkc_v01_on_cascj9fof.tar.gz contains the full logs for the CASC-j9 FOF 
+* The file `gkc_v01_on_cascj9fof.tar.gz` contains the full logs for the CASC-J9 FOF 
 division problems, see the readme.txt in the unpacked file. 
-* The gkc_v01_on_cascj9fof.tar.gz contains separate one-run-only logs
+* The `gkc_v01_on_cascj9fof.tar.gz` contains separate one-run-only logs
 for the seven largest problems from the previous set.
 * The runs.txt strategy file was used for proof search as logged 
-in gkc_v01_on_cascj9fof.tar.gz
+in `gkc_v01_on_cascj9fof.tar.gz`
 * The query.txt strategy file was used for proof search logged 
-in gkc_v01_on_cascj9fof.tar.gz
+in `gkc_v01_on_cascj9fof.tar.gz`
