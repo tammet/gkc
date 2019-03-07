@@ -285,7 +285,6 @@ AC_OUTPUT([
 Makefile
 Db/Makefile
 json/Makefile
-Test/Makefile
 Main/Makefile
 Parser/Makefile
 Printer/Makefile

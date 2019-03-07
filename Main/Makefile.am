@@ -13,13 +13,13 @@ printerdir=../Printer
 parserdir=../Parser
 reasonerdir=../Reasoner
 jsondir=../json
-testdir=../Test
+#testdir=../Test
 
 # ---- targets ----
 
 lib_LTLIBRARIES = libwgdb.la
 bin_PROGRAMS = gkc
-noinst_PROGRAMS = stresstest selftest gendata indextool
+noinst_PROGRAMS = indextool
 pkginclude_HEADERS = $(dbdir)/dbapi.h  $(dbdir)/rdfapi.h $(dbdir)/indexapi.h
 
 # ---- extra dependencies, flags, etc -----
@@ -31,10 +31,10 @@ endif
 
 AM_LDFLAGS = $(LIBDEPS)
 
-stresstest_LIBS=$(PTHREAD_LIBS)
-stresstest_CFLAGS=$(AM_CFLAGS) $(PTHREAD_CFLAGS)
-stresstest_LDFLAGS= -static $(PTHREAD_CFLAGS) $(LIBDEPS)
-stresstest_CC=$(PTHREAD_CC)
+#stresstest_LIBS=$(PTHREAD_LIBS)
+#stresstest_CFLAGS=$(AM_CFLAGS) $(PTHREAD_CFLAGS)
+#stresstest_LDFLAGS= -static $(PTHREAD_CFLAGS) $(LIBDEPS)
+#stresstest_CC=$(PTHREAD_CC)
 
 libwgdb_la_LDFLAGS =
 
@@ -50,14 +50,14 @@ endif
 gkc_SOURCES = gkc.c
 gkc_LDADD = libwgdb.la
 
-stresstest_SOURCES = stresstest.c
-stresstest_LDADD = libwgdb.la
+#stresstest_SOURCES = stresstest.c
+#stresstest_LDADD = libwgdb.la
 
 indextool_SOURCES = indextool.c
 indextool_LDADD = libwgdb.la
 
-selftest_SOURCES = selftest.c
-selftest_LDADD = $(testdir)/libTest.la libwgdb.la
+#selftest_SOURCES = selftest.c
+#selftest_LDADD = $(testdir)/libTest.la libwgdb.la
 
-gendata_SOURCES = gendata.c
-gendata_LDADD = $(testdir)/libTest.la libwgdb.la
+#gendata_SOURCES = gendata.c
+#gendata_LDADD = $(testdir)/libTest.la libwgdb.la

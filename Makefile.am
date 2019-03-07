@@ -9,7 +9,7 @@ AUTOMAKE_OPTIONS = subdir-objects
 
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = Db json Parser Printer Reasoner Test Main
+SUBDIRS = Db json Parser Printer Reasoner Main  
 
 # --- man ---
 
