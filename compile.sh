@@ -16,7 +16,7 @@ fi
 
 # With reasoner and profiling (add -pg switch for profiling):
 
-${CC} -O2 -Wall -static -o gkc Main/wgdb.c Db/dbmem.c \
+${CC} -O2 -Wall -static -o gkc Main/gkc.c Db/dbmem.c \
   Db/dballoc.c Db/dbdata.c Db/dblock.c Db/dbindex.c Db/dbdump.c  \
   Db/dblog.c Db/dbhash.c Db/dbcompare.c Db/dbquery.c Db/dbutil.c Db/dbmpool.c \
   Db/dbjson.c Db/dbschema.c json/yajl_all.c \

@@ -14,7 +14,7 @@ Compiling
 
 To compile the Linux binary yourself, use the 
 
-    compile.sh
+    ./compile.sh
   
 script in the top folder creating a static binary gkc. 
 This script calls gcc once and does nothing else.
@@ -28,8 +28,18 @@ We have tested compilation under the 64-bit Windows
 10 with the 2017 Visual Studio C community edition 
 command-line tool cl.
 
-Instructions for compilation with autotools will be
-given in future.
+To compile with autotools under Linux, do
+
+    ./Bootstrap
+    ./configure
+    make
+
+creating an executable `Main/wgc`
+and optionally do
+
+    sudo make install
+
+to make gkc available on the system
 
 Notice that GKC is licenced under AGPL v3.
 
