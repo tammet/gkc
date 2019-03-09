@@ -16,17 +16,19 @@ To compile the Linux binary yourself, use the
 
     compile.sh
   
-script in the top folder creating a static binary gkc. 
-This script calls gcc once and does nothing else.
+script in the top folder creating a static binary gkc 
+in the top folder. This script copies one header file,
+calls gcc once and does nothing else. The result 
+is the binary `gkc` in the top folder.
 
 To compile the Windows binary yourself, use the
 
     compile.bat
 
-script in the top folder creating an executable gkc.exe. 
-We have tested compilation under the 64-bit Windows 
-10 with the 2017 Visual Studio C community edition 
-command-line tool cl.
+script in the top folder creating an executable `gkc.exe`
+in the fop folder. We have tested compilation under 
+the 64-bit Windows  10 with the 2017 Visual Studio C
+community edition command-line tool cl.
 
 To compile with autotools under Linux, do
 
