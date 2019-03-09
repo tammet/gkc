@@ -24,7 +24,7 @@ To compile the Windows binary yourself, use the
     compile.bat
 
 script in the top folder creating an executable gkc.exe. 
-We have tested compilation under the 64-bit Windows
+We have tested compilation under the 64-bit Windows 
 10 with the 2017 Visual Studio C community edition 
 command-line tool cl.
 
