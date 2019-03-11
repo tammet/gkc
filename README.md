@@ -52,9 +52,10 @@ Run gkc as
 
     gkc lrunreasoner problem_file_name strategy_file_name
 
-example:
+examples:
 
-    gkc lrunreasoner /opt/TPTP/Problems/NUM/NUM925+5.p runs.txt
+    gkc lrunreasoner Examples/steam.txt Examples/unit.txt
+    gkc lrunreasoner /opt/TPTP/Problems/NUM/NUM925+5.p Examples/runs.txt
 
 where
 * *lrunreasoner* is a command to gkc
@@ -64,7 +65,7 @@ The included files are searched either from the local folder or a fixed
 path `/opt/TPTP/` . For this example the file `/opt/TPTP/Axioms/CSR002+5.ax`
 would be looked up.
 * *strategy_file_name* is a json-syntax file for giving options and strategies
-to gkc. See and use the examples in the following Experimental results chapter.
+to gkc. See the examples in the following Experimental results chapter.
 
 Experimental results
 --------------------
