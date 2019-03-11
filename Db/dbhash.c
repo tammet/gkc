@@ -3,7 +3,7 @@
 * $Version: $
 *
 * Copyright (c) Tanel Tammet 2004,2005,2006,2007,2008,2009
-* Copyright (c) Priit Järv 2013,2014
+* Copyright (c) Priit Jï¿½rv 2013,2014
 *
 * Contact: tanel.tammet@gmail.com
 *
@@ -157,7 +157,28 @@ int wg_hash_typedstr(void* db, char* data, char* extrastr, gint type, gint lengt
   return (int)(hash % (dbmemsegh(db)->strhash_area_header).arraylength);
 }
 
+#ifdef USE_REASONER
 
+unsigned long wg_hash_typedstr_sum(char* data, char* extrastr, gint length) {
+  char* endp;
+  unsigned long hash = 0;
+  int c;
+ 
+  if (data!=NULL) {
+    for(endp=data+length; data<endp; data++) {
+      c = (int)(*data);
+      hash = c + (hash << 6) + (hash << 16) - hash;
+    }
+  }
+  if (extrastr!=NULL) {
+    while ((c = *extrastr++))
+      hash = c + (hash << 6) + (hash << 16) - hash;
+  }
+
+  return hash;
+}
+
+#endif
 
 /* Find longstr from strhash bucket chain
 *

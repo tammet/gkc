@@ -77,7 +77,6 @@ extern "C" {
 #define FLAGS_FORCE 0x1
 #define FLAGS_LOGGING 0x2
 
-
 /* Helper macros for database lock management */
 
 #define RLOCK(d,i) i = wg_start_read(d); \
@@ -115,9 +114,11 @@ int add_row(void *db, char **argv, int argc);
 wg_json_query_arg *make_json_arglist(void *db, char *json, int *sz,
  void **doc);
 void findjson(void *db, char *json);
-void segment_stats(void *db);
 void print_indexes(void *db, FILE *f);
 
+void wg_set_kb_db(void* db, void* kb);
+void segment_stats(void *db);
+static void wg_show_strhash(void* db);
 
 /* ====== Functions ============== */
 
@@ -265,8 +266,9 @@ int main(int argc, char **argv) {
 
   char *shmname = NULL;
   void *shmptr = NULL;
+  void *shmptrlocal = NULL;
   int i, scan_to;
-  gint shmsize;
+  gint shmsize, shmsize2;
   wg_int rlock = 0;
   wg_int wlock = 0;
   int islocaldb=0; // lreasoner sets to 1 to avoid detaching db at the end
@@ -463,9 +465,13 @@ int main(int argc, char **argv) {
           " imported\n");
       else
         fprintf(stderr, "Import failed.\n");
+
+
+      wg_show_database(shmptr);
+
       break;
-    }
-    else if(argc>i && !strcmp(argv[i],"runreasoner")){
+
+    } else if(argc>i && !strcmp(argv[i],"runreasoner")){
       wg_int err;
 
       shmptr=wg_attach_existing_database(shmname);
@@ -474,13 +480,64 @@ int main(int argc, char **argv) {
         exit(1);
       }
       //printf("about to call wg_run_reasoner\n");
+      wg_show_database(shmptr);
       err = wg_run_reasoner(shmptr,argc,argv);
       //if(!err);
         //printf("wg_run_reasoner finished ok.\n");
       //else
         //fprintf(stderr, "wg_run_reasoner finished with an error %d.\n",err);
       //break;
+      wg_show_database(shmptr);
       break;
+
+    } else if(argc>i && !strcmp(argv[i],"qrun")){
+      wg_int err;
+
+      printf("\nqrun starts\n");
+      shmptr=wg_attach_existing_database(shmname);
+      if(!shmptr) {
+        fprintf(stderr, "Failed to attach to database.\n");
+        exit(1);
+      }
+      printf("\ndb attached, showing attached shared memory db\n");
+      //printf("about to call wg_run_reasoner\n");
+      wg_show_database(shmptr);
+
+      // --- create a new temporary local db ---
+      shmsize2=100000000;
+      shmptrlocal=wg_attach_local_database_with_kb(shmsize2,shmptr);
+      if(!shmptrlocal) {
+        fprintf(stderr, "Failed to attach local database.\n");
+        exit(1);
+      }
+      //wg_set_kb_db(shmptrlocal,shmptr); // set the kb field of local db to shared db    
+      islocaldb=1;
+      err=0;
+      err = wg_import_otter_file(shmptrlocal,argv[i+1]);
+      if(!err)
+        printf("Data imported.\n");
+      else if(err<-1)
+        fprintf(stderr, "Fatal error when importing otter file, data may be partially"\
+          " imported\n");
+      else
+        fprintf(stderr, "Import failed.\n");      
+      printf("\nshowing local db\n");  
+      wg_show_database(shmptrlocal);
+      // ---- local db created ------
+
+      printf("\nto call wg_run_reasoner\n");
+      err = wg_run_reasoner(shmptr,argc,argv);
+      //if(!err);
+        //printf("wg_run_reasoner finished ok.\n");
+      //else
+        //fprintf(stderr, "wg_run_reasoner finished with an error %d.\n",err);
+      //break;
+      printf("\nwg_run_reasoner returned\n");
+      printf("\nshowing shared memory db\n"); 
+      wg_show_database(shmptr);
+      printf("\nqrun exits\n");
+      break;
+
     } else if(argc>i && !strcmp(argv[i],"lrunreasoner")){
       wg_int err;
 #ifdef _WIN32
@@ -503,9 +560,10 @@ int main(int argc, char **argv) {
           " imported\n");
       else
         fprintf(stderr, "Import failed.\n");      
-    
+      //wg_show_database(shmptr);
       //printf("about to call wg_run_reasoner\n");
       err = wg_run_reasoner(shmptr,argc-1,argv+1);
+      //wg_show_database(shmptr);
       //if(!err);
         //printf("wg_run_reasoner finished ok.\n");
       //else
@@ -1175,6 +1233,77 @@ void print_indexes(void *db, FILE *f) {
   }
 }
 
+/*
+
+
+
+void wg_set_kb_db(void* db, void* kb) {
+  db_memsegment_header* dbh = dbmemsegh(db);
+  dbh->kb_db=kb;
+}
+*/
+// ============ showing database contents for development ============
+
+void wg_show_database(void* db) {
+  printf("\nwg_show_database called\n");
+
+  segment_stats(db);
+  //wg_show_strhash(db);
+
+  printf("\nwg_show_database exited\n");
+}
+
+/*
+static void wg_show_strhash(void* db) {
+  db_memsegment_header* dbh = dbmemsegh(db);
+  gint i;
+  gint hashchain;
+  // lasthashchain;
+  gint type;
+  //gint offset;
+  //gint refc;
+  //int encoffset;
+
+  printf("\nshowing strhash table and buckets\n");
+  printf("-----------------------------------\n");
+  printf("configured strhash size %d (%% of db size)\n",STRHASH_SIZE);
+  printf("size %d\n", (int) (dbh->strhash_area_header).size);
+  printf("offset %d\n", (int) (dbh->strhash_area_header).offset);
+  printf("arraystart %d\n", (int) (dbh->strhash_area_header).arraystart);
+  printf("arraylength %d\n", (int) (dbh->strhash_area_header).arraylength);
+  printf("nonempty hash buckets:\n");
+  for(i=0;i<(dbh->strhash_area_header).arraylength;i++) {
+    hashchain=dbfetch(db,(dbh->strhash_area_header).arraystart+(sizeof(gint)*i));
+    //lasthashchain=hashchain;   
+    if (hashchain!=0) {
+      printf("%d: contains %d encoded offset to chain\n",
+        (int) i, (int) hashchain);
+      for(;hashchain!=0;
+          hashchain=dbfetch(db,decode_longstr_offset(hashchain)+LONGSTR_HASHCHAIN_POS*sizeof(gint))) {
+          //printf("hashchain %d decode_longstr_offset(hashchain) %d fulladr %d contents %d\n",
+          //       hashchain,
+          //       decode_longstr_offset(hashchain),
+          //       (decode_longstr_offset(hashchain)+LONGSTR_HASHCHAIN_POS*sizeof(gint)),
+          //       dbfetch(db,decode_longstr_offset(hashchain)+LONGSTR_HASHCHAIN_POS*sizeof(gint)));
+          type=wg_get_encoded_type(db,hashchain);
+          printf("  ");
+          wg_debug_print_value(db,hashchain);
+          printf("\n");
+          //printf("  type %s",wg_get_type_name(db,type));
+          if (type==WG_BLOBTYPE) {
+            //printf(" len %d\n",wg_decode_str_len(db,hashchain));
+          } else if (type==WG_STRTYPE || type==WG_XMLLITERALTYPE ||
+                     type==WG_URITYPE || type== WG_ANONCONSTTYPE) {
+          } else {
+            printf("ERROR: wrong type in strhash bucket\n");
+            exit(0);
+          }
+          //lasthashchain=hashchain;
+      }
+    }
+  }
+}
+*/
 
 #ifdef __cplusplus
 }

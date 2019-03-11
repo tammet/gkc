@@ -41,5 +41,4 @@ glb* wg_init_reasoner(void *db, int argc, char **argv);
 int wr_init_active_passive_lists_std(glb* g);
 void wr_show_stats(glb* g);
 
-
 #endif

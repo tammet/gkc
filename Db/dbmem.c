@@ -309,7 +309,7 @@ void* wg_attach_memsegment(char* dbasename, gint minsize,
     } else {
 #ifdef USE_DATABASE_HANDLE
       ((db_handle *) dbhandle)->db = shm;
-      err=wg_init_db_memsegment(dbhandle, key, size);
+      err=wg_init_db_memsegment_with_kb(dbhandle, key, size, NULL);
 #ifdef USE_DBLOG
       wg_log_umask(dbhandle, ~mode);
       if(!err && logging) {
@@ -317,7 +317,7 @@ void* wg_attach_memsegment(char* dbasename, gint minsize,
       }
 #endif
 #else
-      err=wg_init_db_memsegment(shm,key,size);
+      err=wg_init_db_memsegment_with_kb(shm,key,size,NULL);
 #endif
       if(err) {
         show_memory_error("Database initialization failed");
@@ -391,9 +391,9 @@ void* wg_attach_local_database(gint size) {
     /* key=0 - no shared memory associated */
 #ifdef USE_DATABASE_HANDLE
     ((db_handle *) dbhandle)->db = shm;
-    if(wg_init_db_memsegment(dbhandle, 0, size)) {
+    if(wg_init_db_memsegment_with_kb(dbhandle, 0, size, NULL)) {
 #else
-    if(wg_init_db_memsegment(shm, 0, size)) {
+    if(wg_init_db_memsegment_with_kb(shm, 0, size, NULL)) {
 #endif
       show_memory_error("Database initialization failed");
       free(shm);
@@ -409,6 +409,52 @@ void* wg_attach_local_database(gint size) {
   return shm;
 #endif
 }
+
+
+/** Create a database in local memory and store the external kb pointer
+ * returns a pointer to the database, NULL if failure.
+ */
+
+#ifdef USE_REASONER
+
+void* wg_attach_local_database_with_kb(gint size, void* kb) {
+  void* shm;
+#ifdef USE_DATABASE_HANDLE
+  void *dbhandle = init_dbhandle();
+  if(!dbhandle)
+    return NULL;
+#endif
+
+  if (size<=0) size=DEFAULT_MEMDBASE_SIZE;
+
+  shm = (void *) malloc(size);
+  if (shm==NULL) {
+    show_memory_error("malloc failed");
+    return NULL;
+  } else {
+    /* key=0 - no shared memory associated */
+#ifdef USE_DATABASE_HANDLE
+    ((db_handle *) dbhandle)->db = shm;
+    if(wg_init_db_memsegment_with_kb(dbhandle, 0, size, kb)) {
+#else
+    if(wg_init_db_memsegment_with_kb(shm, 0, size, kb)) {
+#endif
+      show_memory_error("Database initialization failed");
+      free(shm);
+#ifdef USE_DATABASE_HANDLE
+      free_dbhandle(dbhandle);
+#endif
+      return NULL;
+    }
+  }
+#ifdef USE_DATABASE_HANDLE
+  return dbhandle;
+#else
+  return shm;
+#endif
+}
+
+#endif
 
 /** Free a database in local memory
  * frees the allocated memory.

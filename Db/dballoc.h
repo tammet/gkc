@@ -3,7 +3,7 @@
 * $Version: $
 *
 * Copyright (c) Tanel Tammet 2004,2005,2006,2007,2008,2009
-* Copyright (c) Priit Järv 2013
+* Copyright (c) Priit Jï¿½rv 2013
 *
 * Contact: tanel.tammet@gmail.com
 *
@@ -475,6 +475,9 @@ typedef struct _db_memsegment_header {
   gint free;       /** pointer to first free area in segment (aligned) */
   gint initialadr; /** initial segment address, only valid for creator */
   gint key;        /** global shared mem key */
+#ifdef USE_REASONER
+  void* kb_db; /** pointer to the knowledge base shared mem db, if available */
+#endif  
   // areas
   db_area_header datarec_area_header;
   db_area_header longstr_area_header;
@@ -570,7 +573,7 @@ typedef struct {
 
 /* ==== Protos ==== */
 
-gint wg_init_db_memsegment(void* db, gint key, gint size); // creates initial memory structures for a new db
+gint wg_init_db_memsegment_with_kb(void* db, gint key, gint size, void* kb); // creates initial memory structures for a new db
 
 gint wg_alloc_fixlen_object(void* db, void* area_header);
 gint wg_alloc_gints(void* db, void* area_header, gint nr);

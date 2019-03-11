@@ -3,7 +3,7 @@
 * $Version: $
 *
 * Copyright (c) Tanel Tammet 2004,2005,2006,2007,2008,2009
-* Copyright (c) Priit Järv 2013
+* Copyright (c) Priit Jï¿½rv 2013
 *
 * Contact: tanel.tammet@gmail.com
 *
@@ -96,7 +96,7 @@ static gint show_dballoc_error(void* db, char* errmsg);
 * should be called after new memsegment is allocated
 */
 
-gint wg_init_db_memsegment(void* db, gint key, gint size) {
+gint wg_init_db_memsegment_with_kb(void* db, gint key, gint size, void* kb) {
   db_memsegment_header* dbh = dbmemsegh(db);
   gint tmp;
   gint free;
@@ -112,6 +112,9 @@ gint wg_init_db_memsegment(void* db, gint key, gint size) {
                              * because initialadr isn't used much. */
   dbh->key=key;  /* might be 0 if local memory used */
 
+#ifdef USE_REASONER
+  dbh->kb_db=kb;
+#endif
 #ifdef CHECK
   if(((gint) dbh)%SUBAREA_ALIGNMENT_BYTES)
     show_dballoc_error(dbh,"db base pointer has bad alignment (ignoring)");
@@ -1328,20 +1331,6 @@ gint wg_free_object(void* db, void* area_header, gint object) {
 }
 
 
-/*
-Tanel Tammet
-http://www.epl.ee/?i=112121212
-Kuiv tn 9, Tallinn, Estonia
-+3725524876
-
-len |  refcount |   xsd:type |  namespace |  contents .... |
-
-header: 4*4=16 bytes
-
-128 bytes
-
-*/
-
 /***************** Child database functions ******************/
 
 
@@ -1418,6 +1407,8 @@ gint wg_database_size(void *db) {
   db_memsegment_header* dbh = dbmemsegh(db);
   return dbh->size;
 }
+
+
 
 
 /* --------------- error handling ------------------------------*/

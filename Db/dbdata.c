@@ -76,6 +76,8 @@ static struct tm * localtime_r (const time_t *timer, struct tm *result);
 
 /* ======= Private protos ================ */
 
+static void tmp_wg_show_strhash(void* db);
+
 #ifdef USE_BACKLINKING
 static gint remove_backlink_index_entries(void *db, gint *record,
   gint value, gint depth);
@@ -2151,6 +2153,7 @@ wg_int wg_encode_uri(void* db, char* str, char* prefix) {
   char* sptr;
   char* dendptr;
 
+  //printf("\nCP0 wg_encode_uri called with str %s \n",str);
 #ifdef CHECK
   if (!dbcheck(db)) {
     show_data_error(db,"wrong database pointer given to wg_encode_uri");
@@ -2729,18 +2732,46 @@ static gint find_create_longstr(void* db, char* data, char* extrastr, gint type,
   int hash;
   gint hasharrel;
   gint res;
+#ifdef USE_REASONER
+  db_memsegment_header* kb_dbh;
+  unsigned long hashsum;
+#endif
+  //printf("\nCP1 find_create_longstr called with data %s \n",data);
+  //printf("\nCP2 dbh->kb_db %d \n",(int)(dbh->kb_db));
 
-  if (0) {
+  // find hash
+  
+#ifdef USE_REASONER 
+  hashsum=wg_hash_typedstr_sum(data,extrastr,length);
+  if ((dbh->kb_db)!=NULL) {    
+    // check if str present in external kb db: is yes, return value from external    
+    kb_dbh = dbmemsegh(dbh->kb_db);       
+    //hash=wg_hash_typedstr((dbh->kb_db),data,extrastr,type,length);
+    hash=(int)(hashsum % (kb_dbh->strhash_area_header).arraylength);
+    hasharrel=dbfetch((dbh->kb_db),((kb_dbh->strhash_area_header).arraystart)+(sizeof(gint)*hash));
+    if (hasharrel) old=wg_find_strhash_bucket((dbh->kb_db),data,extrastr,type,length,hasharrel);
+    if (old) {
+      //printf("\nCP2 str found in kb_db hash\n");
+      return old;
+    } else {
+      //printf("\nCP2 str NOT found in kb_db hash\n");    
+    }
+  }
+#endif
+  if (0) {    
   } else {
-
-    // find hash, check if exists and use if found
+    // check if hash exists and use if found 
+#ifdef USE_REASONER     
+    hash=(int)(hashsum % (dbh->strhash_area_header).arraylength);
+#else
     hash=wg_hash_typedstr(db,data,extrastr,type,length);
+#endif    
     //hasharrel=((gint*)(offsettoptr(db,((db->strhash_area_header).arraystart))))[hash];
     hasharrel=dbfetch(db,((dbh->strhash_area_header).arraystart)+(sizeof(gint)*hash));
     //printf("hash %d((dbh->strhash_area_header).arraystart)+(sizeof(gint)*hash) %d hasharrel %d\n",
     //        hash,((dbh->strhash_area_header).arraystart)+(sizeof(gint)*hash), hasharrel);
-    if (hasharrel) old=wg_find_strhash_bucket(db,data,extrastr,type,length,hasharrel);
-    //printf("old %d \n",old);
+    if (hasharrel) old=wg_find_strhash_bucket(db,data,extrastr,type,length,hasharrel);    
+    //printf("\nCP3 old %d \n",old);
     if (old) {
       //printf("str found in hash\n");
       return old;
@@ -2810,6 +2841,56 @@ static gint find_create_longstr(void* db, char* data, char* extrastr, gint type,
 
 }
 
+
+static void tmp_wg_show_strhash(void* db) {
+  db_memsegment_header* dbh = dbmemsegh(db);
+  gint i;
+  gint hashchain;
+  /*gint lasthashchain;*/
+  gint type;
+  //gint offset;
+  //gint refc;
+  //int encoffset;
+
+  printf("\nshowing strhash table and buckets\n");
+  printf("-----------------------------------\n");
+  printf("configured strhash size %d (%% of db size)\n",STRHASH_SIZE);
+  printf("size %d\n", (int) (dbh->strhash_area_header).size);
+  printf("offset %d\n", (int) (dbh->strhash_area_header).offset);
+  printf("arraystart %d\n", (int) (dbh->strhash_area_header).arraystart);
+  printf("arraylength %d\n", (int) (dbh->strhash_area_header).arraylength);
+  printf("nonempty hash buckets:\n");
+  for(i=0;i<(dbh->strhash_area_header).arraylength;i++) {
+    hashchain=dbfetch(db,(dbh->strhash_area_header).arraystart+(sizeof(gint)*i));
+    /*lasthashchain=hashchain;    */
+    if (hashchain!=0) {
+      printf("%d: contains %d encoded offset to chain\n",
+        (int) i, (int) hashchain);
+      for(;hashchain!=0;
+          hashchain=dbfetch(db,decode_longstr_offset(hashchain)+LONGSTR_HASHCHAIN_POS*sizeof(gint))) {
+          //printf("hashchain %d decode_longstr_offset(hashchain) %d fulladr %d contents %d\n",
+          //       hashchain,
+          //       decode_longstr_offset(hashchain),
+          //       (decode_longstr_offset(hashchain)+LONGSTR_HASHCHAIN_POS*sizeof(gint)),
+          //       dbfetch(db,decode_longstr_offset(hashchain)+LONGSTR_HASHCHAIN_POS*sizeof(gint)));
+          type=wg_get_encoded_type(db,hashchain);
+          printf("  ");
+          wg_debug_print_value(db,hashchain);
+          printf("\n");
+          //printf("  type %s",wg_get_type_name(db,type));
+          if (type==WG_BLOBTYPE) {
+            //printf(" len %d\n",wg_decode_str_len(db,hashchain));
+          } else if (type==WG_STRTYPE || type==WG_XMLLITERALTYPE ||
+                     type==WG_URITYPE || type== WG_ANONCONSTTYPE) {
+          } else {
+            printf("ERROR: wrong type in strhash bucket\n");
+            exit(0);
+          }
+          /*lasthashchain=hashchain;*/
+      }
+    }
+  }
+}
 
 
 char* wg_decode_unistr(void* db, gint data, gint type) {

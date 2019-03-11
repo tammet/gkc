@@ -3,7 +3,7 @@
 * $Version: $
 *
 * Copyright (c) Tanel Tammet 2004,2005,2006,2007,2008,2009
-* Copyright (c) Priit Järv 2013,2014
+* Copyright (c) Priit Jï¿½rv 2013,2014
 *
 * Contact: tanel.tammet@gmail.com
 *
@@ -48,6 +48,9 @@
 /* ==== Protos ==== */
 
 int wg_hash_typedstr(void* db, char* data, char* extrastr, gint type, gint length);
+#ifdef USE_REASONER
+unsigned long wg_hash_typedstr_sum(char* data, char* extrastr, gint length);
+#endif
 gint wg_find_strhash_bucket(void* db, char* data, char* extrastr, gint type, gint size, gint hashchain);
 int wg_right_strhash_bucket
             (void* db, gint longstr, char* cstr, char* cextrastr, gint ctype, gint cstrsize);
