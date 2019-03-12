@@ -193,7 +193,9 @@ void* wr_convert_atom_fact_clause(glb* g, void* atom, int isneg);
 int wr_set_rule_clause_atom(glb* g, void* clause, int litnr, gint atom);
 int wr_set_rule_clause_atom_meta(glb* g, void* clause, int litnr, gint meta);
 int wr_set_atom_subterm(glb* g, void* atom, int termnr, gint subterm);
+int wr_set_kb_atom_subterm(glb* g, void* atom, int termnr, gint subterm);
 int wr_set_term_subterm(glb* g, void* term, int termnr, gint subterm);
+int wr_set_kb_term_subterm(glb* g, void* term, int termnr, gint subterm);
 
 int wr_blocked_clause(glb* g, gptr clause);
 void wr_mark_clause_blocked(glb* g, gptr clause);

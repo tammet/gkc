@@ -38,7 +38,8 @@ int wg_run_reasoner(void *db, int argc, char **argv);
 int wg_import_otter_file(void *db, char* filename);
 int wg_import_prolog_file(void *db, char* filename);
 glb* wg_init_reasoner(void *db, int argc, char **argv);
-int wr_init_active_passive_lists_std(glb* g);
+int wr_init_active_passive_lists_from_all(glb* g);
+int wr_init_active_passive_lists_from_one(glb* g, void* db, void* kb_db);
 void wr_show_stats(glb* g);
 
 #endif

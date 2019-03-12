@@ -114,6 +114,7 @@ gint wg_init_db_memsegment_with_kb(void* db, gint key, gint size, void* kb) {
 
 #ifdef USE_REASONER
   dbh->kb_db=kb;
+  //printf("\n in wg_init_db_memsegment_with_kb  dbh->kb_db is %d\n",(int)dbh->kb_db);
 #endif
 #ifdef CHECK
   if(((gint) dbh)%SUBAREA_ALIGNMENT_BYTES)
@@ -258,7 +259,15 @@ gint wg_init_db_memsegment_with_kb(void* db, gint key, gint size, void* kb) {
   return 0;
 }
 
+// get a pointer to the parent kb from db
 
+/*
+void* db_get_kb_db(void* db) {
+  db_memsegment_header* dbh = dbmemsegh(db);
+
+  return (dbh->kb_db);
+}
+*/
 
 
 /** initializes a subarea. subarea is used for actual data obs allocation

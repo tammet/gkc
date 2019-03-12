@@ -86,8 +86,9 @@ cJSON* wr_parse_guide_file(int argc, char **argv, char** guidebuf) {
   cJSON *guide=NULL;
   int len;
 
-  //printf("\n!!! to wr_parse_guide_file \n");
-  if (argc<3) {
+  //printf("\nto wr_parse_guide_file %s\n",argv[3]);
+
+  if (argc<4) {
     // default case
     len=strlen(DEFAULT_GUIDE);
     buf = (char*)malloc(len + 10);
@@ -102,7 +103,7 @@ cJSON* wr_parse_guide_file(int argc, char **argv, char** guidebuf) {
   } 
   // file case
   
-  filename=argv[2];
+  filename=argv[3];
 #ifdef _WIN32
   if(fopen_s(&fp, filename, "rb")) {
 #else

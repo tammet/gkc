@@ -157,18 +157,8 @@ int wr_import_json_file(glb* g, char* filename, char* strasfile, cvec clvec, int
   (g->print_initial_parser_result)=1;
   (g->print_generic_parser_result)=1;
 #endif    
-
-  /*
-    dprintf("\nargc %d\n",argc);
-    for(i=0;i<argc;i++) {
-      dprintf("arg %d is %s\n",i,argv[i]);
-    }
-  */
   
-  printf("\nCP0\n");
   jdata=wr_parse_json_infile(filename,&jbuf);
-  printf("\nCP1\n");
-
   if (jdata==NULL) {
     if (jbuf!=NULL) free(jbuf);
     return -1;
@@ -187,13 +177,7 @@ int wr_import_json_file(glb* g, char* filename, char* strasfile, cvec clvec, int
 
   tmp_comp_funs=(g->use_comp_funs);
   (g->use_comp_funs)=0;
-  
-  printf("\nCP2\n");
-    
   tmp=wr_parse_injson_data(g,jdata);
-
-  printf("\nCP3\n");
-
   (g->use_comp_funs)=tmp_comp_funs;
   
   //if (pres2==NULL) return 1;
@@ -421,8 +405,6 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, in
   } 
   */ 
   wg_free_mpool(db,mpool);
-  //exit(0);
-
   (g->use_comp_funs)=tmp_comp_funs;
   if (pres || pres2==NULL) return 1;
   else return 0;  
@@ -861,19 +843,19 @@ void* wr_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
     cl=wg_mklist1(db,mpool,cl);
 #ifdef DEBUG      
     wg_mpool_print(db,cl); 
-    printf("\n");
+    printf("\n");    
+    printf("\nCP1X\n");
 #endif      
     //return NULL;
   }  
   
   // examine clause: find clause length and check if simple clause    
-
   issimple=1;
   litnr=0;
   for(clpart=cl;wg_ispair(db,clpart);clpart=wg_rest(db,clpart),litnr++) {
     lit=wg_first(db,clpart); 
 #ifdef DEBUG      
-    DPRINTF("lit: ");
+    printf("\nlit: ");
     wg_mpool_print(db,lit); 
     printf("\n");      
 #endif      
@@ -883,7 +865,7 @@ void* wr_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
     for(termpart=lit;wg_ispair(db,termpart);termpart=wg_rest(db,termpart)) {
       subterm=wg_first(db,termpart);
 #ifdef DEBUG        
-      DPRINTF("subterm: ");
+      printf("\nsubterm: ");
       wg_mpool_print(db,subterm); 
       printf("\n");
 #endif        
@@ -894,8 +876,7 @@ void* wr_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
             (g->parse_question_as_var && wg_atomstr1(db,subterm)[0]=='?') )) {issimple=0; break;} 
     }      
   }        
-  if (litnr>1) issimple=0;
-  DPRINTF("\nclause issimple res %d length %d\n",issimple,litnr);    
+  if (litnr>1) issimple=0;   
   // create record for a rule clause
   if (!issimple) {
     record=wr_create_rule_clause(g,litnr);   
@@ -914,7 +895,7 @@ void* wr_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
   for(clpart=cl,litnr=0;wg_ispair(db,clpart);clpart=wg_rest(db,clpart),litnr++) {      
     lit=wg_first(db,clpart);
 #ifdef DEBUG    
-    DPRINTF("\nlit nr  %d:",litnr);    
+    printf("\nlit nr  %d:",litnr);    
     wg_mpool_print(db,lit); 
     printf("\n");
 #endif      
@@ -1027,13 +1008,7 @@ void* wr_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
     namestr=NULL;
   }  
   if (role && wg_isatom(db,role) && wg_atomtype(db,role)==WG_URITYPE) {
-    rolestr=wg_atomstr1(db,role);    
-    /*
-    printf("\n rolestr %s \n",rolestr);
-    wr_print_clause(g,record);
-    printf("\n is positive %d\n",wr_is_positive_unit_cl(g,record));
-    */
-    
+    rolestr=wg_atomstr1(db,role);        
     if (!strcmp("conjecture",rolestr) || !strcmp("negated_conjecture",rolestr)) {       
       rolenr=PARSER_GOAL_ROLENR;          
     } else if (!strcmp("hypothesis",rolestr) || !strcmp("assumption",rolestr)) {     
@@ -1046,58 +1021,18 @@ void* wr_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
     } else {
       rolenr=PARSER_AXIOM_ROLENR; 
     }  
-    //printf("\n rolenr %d\n",rolenr);
-
-    /* old stuff, delete later    
-
-    if (!strcmp("conjecture",rolestr) || !strcmp("negated_conjecture",rolestr)) {
-      if (((g->cl_pick_queue_strategy)==2)
-          && wr_is_positive_unit_cl(g,record)) rolenr=PARSER_ASSUMPTION_ROLENR;   
-      else if (((g->cl_pick_queue_strategy)==3)
-          && !wr_is_fully_negative_cl(g,record)) rolenr=PARSER_AXIOM_ROLENR;     
-      else rolenr=PARSER_GOAL_ROLENR;          
-    } else if (!strcmp("hypothesis",rolestr) || !strcmp("assumption",rolestr)) {
-      if ((g->cl_pick_queue_strategy)==3)
-        rolenr=PARSER_AXIOM_ROLENR;  
-      else
-        rolenr=PARSER_ASSUMPTION_ROLENR;  
-    }     
-    else if ((g->cl_pick_queue_strategy)==2 &&
-             !strcmp("axiom",rolestr) && 
-             (g->parse_is_included_file) &&
-             namestr!=NULL &&
-             strncmp(namestr,IMPORTED_NAME_PREFIX,strlen(IMPORTED_NAME_PREFIX)) ) {  
-      rolenr=PARSER_ASSUMPTION_ROLENR; 
-      //printf("\n !!!! detected nonimported axiom, made assumption for %s\n",namestr);
-    } else if ((g->cl_pick_queue_strategy)==2 &&
-             !strcmp("axiom",rolestr) && 
-             (g->parse_is_included_file) &&
-             namestr!=NULL &&
-             strncmp(namestr,IMPORTED_NAME_PREFIX,strlen(IMPORTED_NAME_PREFIX)) ) {  
-      rolenr=PARSER_EXTAXIOM_ROLENR; 
-      //printf("\n !!!! detected nonimported axiom, made assumption for %s\n",namestr);
-    } else rolenr=PARSER_AXIOM_ROLENR;
-
-    */
-
   } else {
     rolenr=PARSER_AXIOM_ROLENR;
-  }    
+  }      
   history=wr_build_input_history(g,record,namestr,rolenr);
   if (!history) {
     //show_parse_warning(db,"failed to make history"); 
     //return NULL;          
-  }   
-  wr_set_history(g,record,history);
-  /*
-  printf("\n built a record with rolenr: %d and (g->cl_pick_queue_strategy) %d\n",rolenr,(g->cl_pick_queue_strategy));
-  wg_print_record(db,record);
-  printf("\n");
-  */
- 
+  } 
+  wr_set_history(g,record,history); 
 #ifdef DEBUG
   printf("\n built a record:\n");
-  wg_print_record(db,record);
+  wg_print_record(db_to_kb(db),record);
   printf("\n");
 #endif
   return record;
@@ -1144,7 +1079,7 @@ void* wr_parse_atom(glb* g,void* mpool,void* term, int isneg, int issimple, char
     term=wg_first(db,termpart);
     
 #ifdef DEBUG    
-    DPRINTF("\nterm nr  %d:",termnr);    
+    printf("\nterm nr  %d:",termnr);    
     wg_mpool_print(db,term); 
     printf("\n");
 #endif    
@@ -1161,18 +1096,17 @@ void* wr_parse_atom(glb* g,void* mpool,void* term, int isneg, int issimple, char
       if (tmpres==NULL) {
         wg_delete_record(db,record);
         return NULL;
-      } 
+      }       
       tmpres2=wg_encode_record(db,tmpres);       
     }     
-    if (!tmpres2 || tmpres2==WG_ILLEGAL) return NULL;
-    setres=wr_set_atom_subterm(g,record,termnr,tmpres2);
+    if (!tmpres2 || tmpres2==WG_ILLEGAL) return NULL;        
+    setres=wr_set_kb_atom_subterm(g,record,termnr,tmpres2);    
     if (setres!=0) {
       wg_delete_record(db,record);
       return NULL; 
     }  
   }    
-  ret=record;
-  DPRINTF("\nwg_parse_atom ending\n");
+  ret=record;  
   if (ret==NULL) DPRINTF("\nwg_parse_atom returns NULL\n");
   return ret;
 }
@@ -1242,16 +1176,15 @@ void* wr_parse_term(glb* g,void* mpool,void* term, char** vardata) {
       tmpres2=wg_encode_record(db,tmpres);  
     }       
     if (tmpres2==WG_ILLEGAL) return NULL;
-    setres=wr_set_term_subterm(g,record,termnr,tmpres2);
+    //setres=wr_set_term_subterm(g,record,termnr,tmpres2);
+    setres=wr_set_kb_term_subterm(g,record,termnr,tmpres2);
     if (setres!=0) {
       wg_delete_record(db,record);
       return NULL; 
     }  
-  }
-    
-  ret=record;
-  DPRINTF("\nwg_parse_term ending \n");  
-  if (ret==NULL) DPRINTF("\nwg_parse_term returns NULL\n");
+  }    
+  ret=record; 
+  //if (ret==NULL) printf("\nwg_parse_term returns NULL\n");
   return ret;  
 }
 
@@ -1266,7 +1199,7 @@ gint wr_parse_primitive(glb* g,void* mpool,void* atomptr, char** vardata, int po
   int i;
 
 #ifdef DEBUG  
-  DPRINTF("\nwg_parse_primitive starting with ");
+  printf("\nwg_parse_primitive starting with ");
   wg_mpool_print(db,atomptr); 
   printf("\n");  
 #endif  
@@ -1398,8 +1331,7 @@ gint wr_parse_primitive(glb* g,void* mpool,void* atomptr, char** vardata, int po
       default: 
         ret=wg_encode_null(db,NULL);
     }      
-  }      
-  DPRINTF("\nwg_parse_term ending with %d\n",(int)ret);
+  }
   return ret;
 }
 
@@ -1554,6 +1486,9 @@ prefix_marked:
   }
   return encoded;
 }
+
+/* ----------- db clones of object creation funs ---------- */
+
 
 
 /* ------------ errors ---------------- */

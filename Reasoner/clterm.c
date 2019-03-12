@@ -159,10 +159,21 @@ int wr_set_atom_subterm(glb* g, void* atom, int termnr, gint subterm) {
   return 0;
 } 
 
+int wr_set_kb_atom_subterm(glb* g, void* atom, int termnr, gint subterm) {
+  
+  wg_set_new_field(g_to_kb_db(g),atom,(g->unify_firstuseterm)+termnr,subterm);  
+  return 0;
+}  
 
 int wr_set_term_subterm(glb* g, void* term, int termnr, gint subterm) {
   
   wg_set_new_field(g->db,term,(g->unify_firstuseterm)+termnr,subterm);  
+  return 0;
+}
+
+int wr_set_kb_term_subterm(glb* g, void* term, int termnr, gint subterm) {
+  
+  wg_set_new_field(g_to_kb_db(g),term,(g->unify_firstuseterm)+termnr,subterm);  
   return 0;
 }
 

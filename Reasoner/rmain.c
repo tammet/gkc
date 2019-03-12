@@ -66,6 +66,7 @@ static void wr_set_detailed_printout(glb* g);
 /* ======= Private protos ================ */
 
 //#define DEBUG
+#undef DEBUG
 
 /* ====== Functions ============== */
 
@@ -161,7 +162,7 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
       return -1; 
     } 
 
-    clause_count=wr_init_active_passive_lists_std(g);
+    clause_count=wr_init_active_passive_lists_from_all(g);
     if (clause_count<0) {
       // error
       printf("\nError initializing clause lists.\n");
@@ -265,9 +266,23 @@ int wg_import_prolog_file(void *db, char* filename) {
   return res;  
 }
 
-int wr_init_active_passive_lists_std(glb* g) {
+int wr_init_active_passive_lists_from_all(glb* g) {
+  void* db=g->db;
+  void* kb_db;
+
+  kb_db=db_get_kb_db(db);
+  wr_init_active_passive_lists_from_one(g,db,kb_db);
+  if (kb_db!=NULL) {
+    printf("\n external kb found, using\n");
+    wr_init_active_passive_lists_from_one(g,kb_db,kb_db);
+  } else {
+    //printf("\n external kb NOT found\n");
+  } 
+}  
+
+int wr_init_active_passive_lists_from_one(glb* g, void* db, void* kb_db) {
   void *rec;
-  void* db=(g->db);
+  //void* db=(g->db);
   //int i;
   gint clmeta;
   gptr given_cl_as_active, given_cl;
@@ -277,15 +292,30 @@ int wr_init_active_passive_lists_std(glb* g) {
   gint weight;
 
   (g->proof_found)=0;
+
+  //printf("\n!!! to wr_init_active_passive_lists_std on db %d\n",(int)db);
+
   //for(i=0;i<10;i++) printf(" %d ",(int)((rotp(g,g->clqueue))[i])); printf("\n");
   rec = wg_get_first_raw_record(db);
 
   wr_clear_all_varbanks(g); 
-  wr_process_given_cl_setupsubst(g,g->given_termbuf,1,1);
-
-  //printf("\n!!! to wr_init_active_passive_lists_std \n");
-
+  wr_process_given_cl_setupsubst(g,g->given_termbuf,1,1); 
+  /*
   while(rec) {     
+    printf("\n next rec from db: ");
+    wg_print_record(db,rec);
+    printf("\n");
+    if (kb_db) wg_print_record(kb_db,rec);
+    printf("\n");
+
+    rec = wg_get_next_raw_record(db,rec);    
+  }
+  return;
+  */
+  while(rec) {     
+    //printf("\n next rec from db: ");
+    //wg_print_record(db,rec);
+    //printf("\n");
     if (g->alloc_err) {
       wr_errprint("\nbuffer overflow, terminating\n");
       wr_show_stats(g);      
@@ -301,7 +331,7 @@ int wr_init_active_passive_lists_std(glb* g) {
       printf("\n"); 
 
       printf("\nraw clause: ");
-      wg_print_record(g->db,rec);
+      wg_print_record(db,rec);
       printf("\n");
       wr_print_clause(g,rec);
       printf("\n");
@@ -350,7 +380,7 @@ int wr_init_active_passive_lists_std(glb* g) {
       printf("\n"); 
 
       printf("\nraw clause: ");
-      wg_print_record(g->db,rec);
+      wg_print_record(db,rec);
       printf("\n");
       wr_print_clause(g,rec);
       printf("\n");
@@ -392,7 +422,7 @@ int wr_init_active_passive_lists_std(glb* g) {
     }  else {
 #ifdef DEBUG            
       printf("\nrec is not a rule nor a fact: "); 
-      wg_print_record(g->db,rec);
+      wg_print_record(db,rec);
       printf("\n");
 #endif  
     }             

@@ -538,6 +538,59 @@ int main(int argc, char **argv) {
       printf("\nqrun exits\n");
       break;
 
+    } else if(argc>i && !strcmp(argv[i],"qrun1")){
+      wg_int err;
+
+      printf("\nqrun1 starts with external shmname %s\n",shmname);
+      shmptr=wg_attach_existing_database(shmname);
+      if(!shmptr) {
+        fprintf(stderr, "Failed to attach to database.\n");
+        exit(1);
+      }
+      printf("\ndb attached, showing attached shared memory db shmptr %d\n",shmptr);
+      //printf("about to call wg_run_reasoner\n");
+      wg_show_database(shmptr);
+
+      // --- create a new temporary local db ---
+      shmsize2=100000000;     
+      printf("\nto wg_attach_local_database_with_kb with shmptr %d\n",(int)shmptr);
+      shmptrlocal=wg_attach_local_database_with_kb(shmsize2,shmptr);
+      //shmptrlocal=wg_attach_local_database(shmsize2);
+      printf("\nshmptrlocal is %d\n",(int)shmptrlocal);
+      //shmptrlocal=wg_attach_local_database(shmsize2);
+      if(!shmptrlocal) {
+        fprintf(stderr, "Failed to attach local database.\n");
+        exit(1);
+      }
+      //wg_set_kb_db(shmptrlocal,shmptr); // set the kb field of local db to shared db    
+      islocaldb=1;
+      err=0;
+      printf("\nqrun1 to wg_import_otter_file from argv[i+1] %s\n",argv[i+1]);
+      err = wg_import_otter_file(shmptrlocal,argv[i+1]);
+      if(!err)
+        printf("Data imported from %s.\n",argv[i+1]);
+      else if(err<-1)
+        fprintf(stderr, "Fatal error when importing otter file, data may be partially"\
+          " imported\n");
+      else
+        fprintf(stderr, "Import failed.\n");      
+      printf("\nshowing local db\n");  
+      wg_show_database(shmptrlocal);
+      // ---- local db created ------
+
+      printf("\nto call wg_run_reasoner\n");
+      err = wg_run_reasoner(shmptrlocal,argc,argv);
+      //if(!err);
+        //printf("wg_run_reasoner finished ok.\n");
+      //else
+        //fprintf(stderr, "wg_run_reasoner finished with an error %d.\n",err);
+      //break;
+      printf("\nwg_run_reasoner returned\n");
+      printf("\nshowing shared memory db\n"); 
+      wg_show_database(shmptr);
+      printf("\nqrun exits\n");
+      break;  
+
     } else if(argc>i && !strcmp(argv[i],"lrunreasoner")){
       wg_int err;
 #ifdef _WIN32
@@ -562,7 +615,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Import failed.\n");      
       //wg_show_database(shmptr);
       //printf("about to call wg_run_reasoner\n");
-      err = wg_run_reasoner(shmptr,argc-1,argv+1);
+      err = wg_run_reasoner(shmptr,argc,argv);
       //wg_show_database(shmptr);
       //if(!err);
         //printf("wg_run_reasoner finished ok.\n");

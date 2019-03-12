@@ -43,7 +43,7 @@
 #include "../config.h"
 #endif
 
-#define USE_DATABASE_HANDLE
+#define USE_DATABASE_HANDLE 1
 /*
 
 

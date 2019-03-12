@@ -334,7 +334,7 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, in
   int tmp_comp_funs;
   
 #ifdef DEBUG
-  DPRINTF("wr_import_otter_file called\n");
+  //DPRINTF("wr_import_otter_file called\n");
   printf("\n filename %s \n",filename);
   printf("\n strasfile %s \n",strasfile);
   printf("\n isincluded %d \n",isincluded);

@@ -73,6 +73,7 @@ static struct tm * localtime_r (const time_t *timer, struct tm *result);
 #define snprintf sprintf_s
 #endif
 
+//#define CHECK 1
 
 /* ======= Private protos ================ */
 
@@ -161,11 +162,10 @@ void* wg_create_raw_record(void* db, wg_int length) {
     if(wg_log_create_record(db, length))
       return 0;
   }
-#endif
-
+#endif  
   offset=wg_alloc_gints(db,
                      &(dbmemsegh(db)->datarec_area_header),
-                    length+RECORD_HEADER_GINTS);
+                    length+RECORD_HEADER_GINTS);                
   if (!offset) {
     show_data_error_nr(db,"cannot create a record of size ",length);
 #ifdef USE_DBLOG
@@ -190,7 +190,7 @@ void* wg_create_raw_record(void* db, wg_int length) {
       return 0; /* journal error */
   }
 #endif
-
+  
   return offsettoptr(db,offset);
 }
 
@@ -1384,7 +1384,6 @@ wg_int wg_get_encoded_type(void* db, wg_int data) {
   // here we know data must be of ptr type
   // takes last three bits to decide the type
   // fullint is represented by two options: 001 and 101
-  //printf("cp0\n");
   switch(data&NORMALPTRMASK) {
     case DATARECBITS: return (gint)WG_RECORDTYPE;
     case LONGSTRBITS:
@@ -1499,7 +1498,8 @@ wg_int wg_encode_int(void* db, wg_int data) {
         return WG_ILLEGAL; /* journal error */
     }
 #endif
-    return encode_fullint_offset(offset);
+    return encode_fullint_offset(encode_kb_offset(db,offset));    
+    //return encode_fullint_offset(offset);
   }
 }
 
@@ -1584,7 +1584,8 @@ wg_int wg_encode_double(void* db, double data) {
         return WG_ILLEGAL; /* journal error */
     }
 #endif
-    return encode_fulldouble_offset(offset);
+    return encode_fulldouble_offset(encode_kb_offset(db,offset));
+    //return encode_fulldouble_offset(offset);
   }
 }
 
@@ -1860,7 +1861,9 @@ wg_int wg_encode_record(void* db, void* data) {
   }
 */
 #endif
-  return (wg_int)(encode_datarec_offset(ptrtooffset(db,data)));
+   
+  return encode_kb_offset(db,ptrtooffset(db,data));  
+  //return (wg_int)(encode_datarec_offset(ptrtooffset(db,data)));
 }
 
 
@@ -2153,7 +2156,6 @@ wg_int wg_encode_uri(void* db, char* str, char* prefix) {
   char* sptr;
   char* dendptr;
 
-  //printf("\nCP0 wg_encode_uri called with str %s \n",str);
 #ifdef CHECK
   if (!dbcheck(db)) {
     show_data_error(db,"wrong database pointer given to wg_encode_uri");
@@ -2185,8 +2187,7 @@ wg_int wg_encode_uri(void* db, char* str, char* prefix) {
       return WG_ILLEGAL; /* journal error */
   }
 #endif
-  return encode_longstr_offset(offset);
-
+  return offset;
 }
 
 
@@ -2680,8 +2681,8 @@ gint wg_encode_unistr(void* db, char* str, char* lang, gint type) {
       if(wg_log_encval(db, encode_shortstr_offset(offset)))
         return WG_ILLEGAL; /* journal error */
     }
-#endif
-    return encode_shortstr_offset(offset);
+#endif    
+    return encode_shortstr_offset(encode_kb_offset(db,offset));
     //dbstore(db,ptrtoffset(record)+RECORD_HEADER_GINTS+fieldnr,encode_shortstr_offset(offset));
   } else {
     offset=find_create_longstr(db,str,lang,type,len+1);
@@ -2700,7 +2701,9 @@ gint wg_encode_unistr(void* db, char* str, char* lang, gint type) {
         return WG_ILLEGAL; /* journal error */
     }
 #endif
-    return encode_longstr_offset(offset);
+    
+    //offset=encode_kb_offset(db,offset);
+    return offset;
   }
 }
 
@@ -2735,12 +2738,9 @@ static gint find_create_longstr(void* db, char* data, char* extrastr, gint type,
 #ifdef USE_REASONER
   db_memsegment_header* kb_dbh;
   unsigned long hashsum;
+  char* cbuf[100]; // for debugprint
 #endif
-  //printf("\nCP1 find_create_longstr called with data %s \n",data);
-  //printf("\nCP2 dbh->kb_db %d \n",(int)(dbh->kb_db));
-
   // find hash
-  
 #ifdef USE_REASONER 
   hashsum=wg_hash_typedstr_sum(data,extrastr,length);
   if ((dbh->kb_db)!=NULL) {    
@@ -2751,13 +2751,14 @@ static gint find_create_longstr(void* db, char* data, char* extrastr, gint type,
     hasharrel=dbfetch((dbh->kb_db),((kb_dbh->strhash_area_header).arraystart)+(sizeof(gint)*hash));
     if (hasharrel) old=wg_find_strhash_bucket((dbh->kb_db),data,extrastr,type,length,hasharrel);
     if (old) {
-      //printf("\nCP2 str found in kb_db hash\n");
+      //printf("\nCP2 find_create_longstr str found in kb_db hash\n");
       return old;
     } else {
-      //printf("\nCP2 str NOT found in kb_db hash\n");    
+      //printf("\nCP2 find_create_longstr str NOT found in kb_db hash\n");    
     }
   }
 #endif
+
   if (0) {    
   } else {
     // check if hash exists and use if found 
@@ -2773,8 +2774,11 @@ static gint find_create_longstr(void* db, char* data, char* extrastr, gint type,
     if (hasharrel) old=wg_find_strhash_bucket(db,data,extrastr,type,length,hasharrel);    
     //printf("\nCP3 old %d \n",old);
     if (old) {
-      //printf("str found in hash\n");
-      return old;
+      //printf("\nCP10 old str found in hash\n");
+      wg_snprint_value(dbmemsegh(db)->kb_db,res, cbuf,90);
+      //printf("\n value %s\n",cbuf);
+      return encode_kb_offset(db,old);
+      //return old;
     }
     //printf("str not found in hash\n");
     //printf("hasharrel 1 %d \n",hasharrel);
@@ -2836,7 +2840,20 @@ static gint find_create_longstr(void* db, char* data, char* extrastr, gint type,
     //printf("hasharrel 2 %d \n",hasharrel);
     dbstore(db,offset+LONGSTR_HASHCHAIN_POS*sizeof(gint),hasharrel); // store old hash array el
     // return result
-    return res;
+    /*
+    printf("\nCP3 find_create_longstr terminating with\n");    
+    wg_snprint_value(db,res, cbuf,90);
+    printf("\n value1 %s\n",cbuf);
+    wg_snprint_value(db,encode_longstr_offset(offset), cbuf,90);
+    printf("\n value2 %s\n",cbuf);
+    wg_snprint_value(db_get_kb_db(db),encode_longstr_offset(encode_kb_offset(db,offset)), cbuf,90);
+    printf("\n value3 %s\n",cbuf);
+    printf("\n db_get_kb_db(db) is %d\n", (int)db_get_kb_db(db));
+    printf("\n offset is %d\n", (int)offset);
+    printf("\n encode_kb_offset(db,offset) is %d\n", (int)encode_kb_offset(db,offset));
+    */
+    return encode_longstr_offset(encode_kb_offset(db,offset));   
+    //return res;
   }
 
 }
