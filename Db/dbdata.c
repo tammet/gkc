@@ -2155,7 +2155,7 @@ wg_int wg_encode_uri(void* db, char* str, char* prefix) {
   char* dptr;
   char* sptr;
   char* dendptr;
-
+  
 #ifdef CHECK
   if (!dbcheck(db)) {
     show_data_error(db,"wrong database pointer given to wg_encode_uri");
@@ -2774,9 +2774,17 @@ static gint find_create_longstr(void* db, char* data, char* extrastr, gint type,
     if (hasharrel) old=wg_find_strhash_bucket(db,data,extrastr,type,length,hasharrel);    
     //printf("\nCP3 old %d \n",old);
     if (old) {
-      //printf("\nCP10 old str found in hash\n");
-      wg_snprint_value(dbmemsegh(db)->kb_db,res, cbuf,90);
-      //printf("\n value %s\n",cbuf);
+      /*
+      printf("\nCP10 old str found in hash\n");
+      if (0) { //(dbmemsegh(db)->kb_db) {
+        printf("\nCP10a kb_db case\n");
+        wg_snprint_value(dbmemsegh(db)->kb_db,res, cbuf,90);
+      } else {
+        printf("\nCP10b db case\n");
+        wg_snprint_value(db,res, cbuf,90);  
+      }  
+      printf("\n value %s\n",cbuf);
+      */
       return encode_kb_offset(db,old);
       //return old;
     }
@@ -2789,7 +2797,7 @@ static gint find_create_longstr(void* db, char* data, char* extrastr, gint type,
     if (lenrest) lengints++;
     offset=wg_alloc_gints(db,
                      &(dbmemsegh(db)->longstr_area_header),
-                    lengints+LONGSTR_HEADER_GINTS);
+                    lengints+LONGSTR_HEADER_GINTS);                
     if (!offset) {
       //show_data_error_nr(db,"cannot create a data string/blob of size ",length);
       return 0;

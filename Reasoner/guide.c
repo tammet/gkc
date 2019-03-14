@@ -293,15 +293,16 @@ int wr_parse_guide_strategy_set(glb* g, char* stratname) {
 
 ------------*/
 
+/*
 void cjson_test(glb* g) {
   // json test start 
   char* jstr=create_monitor_with_helpers();
   printf("\njstr %s\n",jstr);
   int jres=supports_full_hd(jstr);
-  printf("\njres %d\n",jres);
-  return 0;
+  printf("\njres %d\n",jres);  
   // json test end
 }
+*/
 
 //create a monitor with a list of supported resolutions
 //NOTE: Returns a heap allocated string, you are required to free it after use.

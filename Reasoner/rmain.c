@@ -269,15 +269,17 @@ int wg_import_prolog_file(void *db, char* filename) {
 int wr_init_active_passive_lists_from_all(glb* g) {
   void* db=g->db;
   void* kb_db;
+  int count=0;
 
   kb_db=db_get_kb_db(db);
-  wr_init_active_passive_lists_from_one(g,db,kb_db);
+  count=wr_init_active_passive_lists_from_one(g,db,kb_db);
   if (kb_db!=NULL) {
     printf("\n external kb found, using\n");
-    wr_init_active_passive_lists_from_one(g,kb_db,kb_db);
+    count+=wr_init_active_passive_lists_from_one(g,kb_db,kb_db);
   } else {
     //printf("\n external kb NOT found\n");
   } 
+  return count;
 }  
 
 int wr_init_active_passive_lists_from_one(glb* g, void* db, void* kb_db) {
@@ -321,6 +323,18 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* kb_db) {
       wr_show_stats(g);      
       exit(0);
     }     
+
+#ifdef DEBUG
+    // #define wg_rec_is_rule_clause(db,rec) (*((gint*)(rec)+RECORD_META_POS) & RECORD_META_RULE_CLAUSE)
+    printf("\n next rec from db: ");
+    wg_print_record(db,rec);
+    printf("\n");
+
+    printf("\RECORD_META_POS %d RECORD_META_RULE_CLAUSE %d\n",RECORD_META_POS,RECORD_META_RULE_CLAUSE);
+    printf("\n at *((gint*)(rec)+RECORD_META_POS) %d\n",(int)(*((gint*)(rec)+RECORD_META_POS)));
+
+    printf("\n & RECORD_META_RULE_CLAUSE with  *((gint*)(rec)+RECORD_META_POS) %d\n",(int)(*((gint*)(rec)+RECORD_META_POS) & RECORD_META_RULE_CLAUSE));
+#endif
 
     if (wg_rec_is_rule_clause(db,rec)) {
       rules_found++;
@@ -429,6 +443,9 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* kb_db) {
     //for(i=0;i<10;i++) printf(" %d ",(int)((rotp(g,g->clqueue))[i])); printf("\n");
     rec = wg_get_next_raw_record(db,rec);    
   }
+#ifdef DEBUG            
+  printf("\nrules_found %d facts_found %d \n",rules_found,facts_found); 
+#endif   
   return rules_found+facts_found;
 }
 

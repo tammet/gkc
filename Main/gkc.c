@@ -120,6 +120,8 @@ void wg_set_kb_db(void* db, void* kb);
 void segment_stats(void *db);
 static void wg_show_strhash(void* db);
 
+void wg_show_database(void* db);
+
 /* ====== Functions ============== */
 
 

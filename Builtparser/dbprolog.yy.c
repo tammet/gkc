@@ -497,34 +497,32 @@ static yyconst flex_int32_t yy_rule_can_match_eol[21] =
 #define YY_RESTORE_YY_MORE_OFFSET
 #line 1 "dbprolog.l"
 /*
-* $Id:  $
-* $Version: $
 *
-* Copyright (c) Tanel Tammet 2004,2005,2006,2007,2008,2009,2010
+* Copyright (c) Tanel Tammet 2004-2019
 *
 * Contact: tanel.tammet@gmail.com                 
 *
-* This file is part of WhiteDB
+* This file is part of GKC
 *
-* WhiteDB is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
+* GKC is free software: you can redistribute it and/or modify
+* it under the terms of the GNU Affero General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
 * 
-* WhiteDB is distributed in the hope that it will be useful,
+* GKC is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
 * 
-* You should have received a copy of the GNU General Public License
-* along with WhiteDB.  If not, see <http://www.gnu.org/licenses/>.
+* You should have received a copy of the GNU Affero General Public License
+* along with GKC.  If not, see <http://www.gnu.org/licenses/>.
 *
 */
 /** @file dbprolog.l
 *  Lexer rules for prolog parser
 *
 */
-#line 32 "dbprolog.l"
+#line 30 "dbprolog.l"
 #include <math.h>
 #include <stdio.h>
 #include "dbprologparse.h"
@@ -558,7 +556,7 @@ char *s;
 #define YY_NO_INPUT 1
 
  
-#line 562 "dbprolog.yy.c"
+#line 560 "dbprolog.yy.c"
 
 #define INITIAL 0
 #define SQLSTATE 1
@@ -833,11 +831,11 @@ YY_DECL
 		}
 
 	{
-#line 78 "dbprolog.l"
+#line 76 "dbprolog.l"
 
 
 
-#line 841 "dbprolog.yy.c"
+#line 839 "dbprolog.yy.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -909,14 +907,14 @@ do_action:	/* This label is used only to access EOF actions. */
 case 1:
 /* rule 1 can match eol */
 YY_RULE_SETUP
-#line 81 "dbprolog.l"
+#line 79 "dbprolog.l"
 {
 	parseprintf("A lineful of comment.\n"); /* eat line comments */
 	}
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 85 "dbprolog.l"
+#line 83 "dbprolog.l"
 {
 	parseprintf("A :- , \"IS\"\n");
 	return IS;
@@ -924,7 +922,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 91 "dbprolog.l"
+#line 89 "dbprolog.l"
 {
 	parseprintf("A \"not\".\n");
 	return NOT;
@@ -932,7 +930,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 96 "dbprolog.l"
+#line 94 "dbprolog.l"
 {
 	parseprintf("An atom: %s\n", yytext);
 	*yylval=strdup(yytext);
@@ -941,7 +939,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 102 "dbprolog.l"
+#line 100 "dbprolog.l"
 {
 	parseprintf("A variable: %s\n", yytext);
 	*yylval=strdup(yytext);
@@ -950,7 +948,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 108 "dbprolog.l"
+#line 106 "dbprolog.l"
 { parseprintf( "An integer: %s (%d)\n", yytext, atoi(yytext));
 	*yylval=strdup(yytext);
 	return TINT;
@@ -958,7 +956,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 113 "dbprolog.l"
+#line 111 "dbprolog.l"
 {
 		parseprintf( "A float: %s (%lf)\n", yytext, atof(yytext));
 		*yylval=strdup(yytext);
@@ -968,7 +966,7 @@ YY_RULE_SETUP
 case 8:
 /* rule 8 can match eol */
 YY_RULE_SETUP
-#line 120 "dbprolog.l"
+#line 118 "dbprolog.l"
 {
 		parseprintf("A \'-quoted string, basically an atom: %s\n", yytext);
 		*yylval = strdup(yytext) + 1; // erase the first character
@@ -979,7 +977,7 @@ YY_RULE_SETUP
 case 9:
 /* rule 9 can match eol */
 YY_RULE_SETUP
-#line 127 "dbprolog.l"
+#line 125 "dbprolog.l"
 {
 		parseprintf("A quoted string, basically an atom: %s\n", yytext);
 	   *yylval = strdup(yytext); // erase the first character
@@ -990,43 +988,43 @@ YY_RULE_SETUP
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 136 "dbprolog.l"
+#line 134 "dbprolog.l"
 return ')';
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 137 "dbprolog.l"
+#line 135 "dbprolog.l"
 return '(';
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 138 "dbprolog.l"
+#line 136 "dbprolog.l"
 return ',';
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 139 "dbprolog.l"
+#line 137 "dbprolog.l"
 return '.';
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 140 "dbprolog.l"
+#line 138 "dbprolog.l"
 return ';';
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 141 "dbprolog.l"
+#line 139 "dbprolog.l"
 return '!';
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 142 "dbprolog.l"
+#line 140 "dbprolog.l"
 return '~';
 	YY_BREAK
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(SQLSTATE):
 case YY_STATE_EOF(STRSTATE):
-#line 144 "dbprolog.l"
+#line 142 "dbprolog.l"
 {
 		parseprintf("file end. Read %d lines.\n", yylineno);
 		yyterminate();
@@ -1036,25 +1034,25 @@ case YY_STATE_EOF(STRSTATE):
 case 17:
 /* rule 17 can match eol */
 YY_RULE_SETUP
-#line 151 "dbprolog.l"
+#line 149 "dbprolog.l"
 { yylineno++; }  
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 152 "dbprolog.l"
+#line 150 "dbprolog.l"
 ;/* eat up whitespace */
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 153 "dbprolog.l"
+#line 151 "dbprolog.l"
 { parseprintf( "Unrecognized character: %s\n", yytext ); }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 156 "dbprolog.l"
+#line 154 "dbprolog.l"
 ECHO;
 	YY_BREAK
-#line 1058 "dbprolog.yy.c"
+#line 1056 "dbprolog.yy.c"
 
 	case YY_END_OF_BUFFER:
 		{
@@ -2202,7 +2200,7 @@ void wg_yyprologfree (void * ptr , yyscan_t yyscanner)
 
 #define YYTABLES_NAME "yytables"
 
-#line 156 "dbprolog.l"
+#line 154 "dbprolog.l"
 
 
 

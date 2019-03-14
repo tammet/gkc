@@ -20,6 +20,8 @@ script in the top folder creating a static binary gkc
 in the top folder. This script copies one header file,
 calls gcc once and does nothing else. The result 
 is the binary `gkc` in the top folder.
+We have tested compilation with gcc 5.4 and clang 3.8
+under Ubuntu 16_04.
 
 To compile the Windows binary yourself, use the
 

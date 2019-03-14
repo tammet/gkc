@@ -68,7 +68,7 @@
 
 
 /* Copy the first part of user declarations.  */
-#line 21 "dbotter.y" /* yacc.c:339  */
+#line 25 "dbotter.y" /* yacc.c:339  */
 
 
 #include <stdio.h>
@@ -450,12 +450,12 @@ static const yytype_uint8 yytranslate[] =
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_uint16 yyrline[] =
 {
-       0,    79,    79,    80,    85,    88,    89,    93,    97,    98,
-     103,   104,   105,   106,   107,   108,   115,   122,   123,   124,
-     125,   126,   127,   128,   129,   130,   131,   135,   136,   139,
-     140,   144,   145,   156,   174,   186,   204,   215,   226,   237,
-     255,   266,   276,   277,   283,   284,   289,   290,   291,   292,
-     293,   294,   295,   296,   297
+       0,    83,    83,    84,    89,    92,    93,    97,   101,   102,
+     107,   108,   109,   110,   111,   112,   119,   126,   127,   128,
+     129,   130,   131,   132,   133,   134,   135,   139,   140,   143,
+     144,   148,   149,   160,   178,   190,   208,   219,   230,   241,
+     259,   270,   280,   281,   287,   288,   293,   294,   295,   296,
+     297,   298,   299,   300,   301
 };
 #endif
 
@@ -1326,7 +1326,7 @@ yyreduce:
   switch (yyn)
     {
         case 3:
-#line 80 "dbotter.y" /* yacc.c:1646  */
+#line 84 "dbotter.y" /* yacc.c:1646  */
     { 
 			       (parm->result)=(yyvsp[0]);             
 			     }
@@ -1334,73 +1334,73 @@ yyreduce:
     break;
 
   case 4:
-#line 85 "dbotter.y" /* yacc.c:1646  */
+#line 89 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = (yyvsp[0]); }
 #line 1340 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 5:
-#line 88 "dbotter.y" /* yacc.c:1646  */
+#line 92 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(PP,(yyvsp[0]),MKWGNIL); }
 #line 1346 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 6:
-#line 89 "dbotter.y" /* yacc.c:1646  */
+#line 93 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(PP,(yyvsp[0]),(yyvsp[-1])); }
 #line 1352 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 7:
-#line 93 "dbotter.y" /* yacc.c:1646  */
+#line 97 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = (yyvsp[-1]); }
 #line 1358 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 8:
-#line 97 "dbotter.y" /* yacc.c:1646  */
+#line 101 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = (yyvsp[0]); }
 #line 1364 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 9:
-#line 98 "dbotter.y" /* yacc.c:1646  */
+#line 102 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = (yyvsp[0]); }
 #line 1370 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 10:
-#line 103 "dbotter.y" /* yacc.c:1646  */
+#line 107 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = (yyvsp[0]); }
 #line 1376 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 11:
-#line 104 "dbotter.y" /* yacc.c:1646  */
+#line 108 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(PP,(yyvsp[-2]),MKWGNIL); }
 #line 1382 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 12:
-#line 105 "dbotter.y" /* yacc.c:1646  */
+#line 109 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(PP,(yyvsp[-3]),(yyvsp[-1])); }
 #line 1388 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 13:
-#line 106 "dbotter.y" /* yacc.c:1646  */
+#line 110 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = (yyvsp[-1]); }
 #line 1394 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 14:
-#line 107 "dbotter.y" /* yacc.c:1646  */
+#line 111 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(PP,MKWGCONST(PP,"="),(yyvsp[-1])); }
 #line 1400 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 15:
-#line 108 "dbotter.y" /* yacc.c:1646  */
+#line 112 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(
                                              PP,
                                              MKWGCONST(PP,"not"),
@@ -1412,7 +1412,7 @@ yyreduce:
     break;
 
   case 16:
-#line 115 "dbotter.y" /* yacc.c:1646  */
+#line 119 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(
                                              PP,
                                              MKWGCONST(PP,"not"),
@@ -1424,91 +1424,91 @@ yyreduce:
     break;
 
   case 17:
-#line 122 "dbotter.y" /* yacc.c:1646  */
+#line 126 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(PP,MKWGCONST(PP,"="),MKWGPAIR(PP,(yyvsp[-2]),MKWGPAIR(PP,(yyvsp[0]),MKWGNIL))); }
 #line 1430 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 18:
-#line 123 "dbotter.y" /* yacc.c:1646  */
+#line 127 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(PP,MKWGCONST(PP,"+"),MKWGPAIR(PP,(yyvsp[-2]),MKWGPAIR(PP,(yyvsp[0]),MKWGNIL))); }
 #line 1436 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 19:
-#line 124 "dbotter.y" /* yacc.c:1646  */
+#line 128 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(PP,MKWGCONST(PP,"-"),MKWGPAIR(PP,(yyvsp[-2]),MKWGPAIR(PP,(yyvsp[0]),MKWGNIL))); }
 #line 1442 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 20:
-#line 125 "dbotter.y" /* yacc.c:1646  */
+#line 129 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(PP,MKWGCONST(PP,"*"),MKWGPAIR(PP,(yyvsp[-2]),MKWGPAIR(PP,(yyvsp[0]),MKWGNIL))); }
 #line 1448 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 21:
-#line 126 "dbotter.y" /* yacc.c:1646  */
+#line 130 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(PP,MKWGCONST(PP,"not"),MKWGPAIR(PP,(yyvsp[0]),MKWGNIL)); }
 #line 1454 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 22:
-#line 127 "dbotter.y" /* yacc.c:1646  */
+#line 131 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(PP,MKWGCONST(PP,"not"),MKWGPAIR(PP,(yyvsp[0]),MKWGNIL)); }
 #line 1460 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 23:
-#line 128 "dbotter.y" /* yacc.c:1646  */
+#line 132 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = (yyvsp[-1]); }
 #line 1466 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 24:
-#line 129 "dbotter.y" /* yacc.c:1646  */
+#line 133 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(PP,MKWGCONST(PP,"lst"),MKWGPAIR(PP,(yyvsp[-1]),MKWGNIL)); }
 #line 1472 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 25:
-#line 130 "dbotter.y" /* yacc.c:1646  */
+#line 134 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(PP,MKWGCONST(PP,"lst"),MKWGNIL); }
 #line 1478 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 26:
-#line 131 "dbotter.y" /* yacc.c:1646  */
+#line 135 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = (yyvsp[0]); }
 #line 1484 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 27:
-#line 135 "dbotter.y" /* yacc.c:1646  */
+#line 139 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(PP,(yyvsp[0]),MKWGNIL); }
 #line 1490 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 28:
-#line 136 "dbotter.y" /* yacc.c:1646  */
+#line 140 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(PP,(yyvsp[-2]),(yyvsp[0])); }
 #line 1496 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 29:
-#line 139 "dbotter.y" /* yacc.c:1646  */
+#line 143 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = (yyvsp[0]); }
 #line 1502 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 30:
-#line 140 "dbotter.y" /* yacc.c:1646  */
+#line 144 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = (yyvsp[0]); }
 #line 1508 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 32:
-#line 145 "dbotter.y" /* yacc.c:1646  */
+#line 149 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(
                                           PP,
                                           MKWGCONST(PP,"and"),
@@ -1523,7 +1523,7 @@ yyreduce:
     break;
 
   case 33:
-#line 156 "dbotter.y" /* yacc.c:1646  */
+#line 160 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = 
                                       MKWGPAIR(
                                         PP,
@@ -1545,7 +1545,7 @@ yyreduce:
     break;
 
   case 34:
-#line 174 "dbotter.y" /* yacc.c:1646  */
+#line 178 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(
                                           PP,
                                           MKWGCONST(PP,"or"),
@@ -1560,7 +1560,7 @@ yyreduce:
     break;
 
   case 35:
-#line 186 "dbotter.y" /* yacc.c:1646  */
+#line 190 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = 
                                       MKWGPAIR(
                                         PP,
@@ -1582,7 +1582,7 @@ yyreduce:
     break;
 
   case 36:
-#line 204 "dbotter.y" /* yacc.c:1646  */
+#line 208 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(
                                           PP,
                                           MKWGCONST(PP,"imp"),
@@ -1597,7 +1597,7 @@ yyreduce:
     break;
 
   case 37:
-#line 215 "dbotter.y" /* yacc.c:1646  */
+#line 219 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(
                                           PP,
                                           MKWGCONST(PP,"imp"),
@@ -1612,7 +1612,7 @@ yyreduce:
     break;
 
   case 38:
-#line 226 "dbotter.y" /* yacc.c:1646  */
+#line 230 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(
                                           PP,
                                           MKWGCONST(PP,"eqv"),
@@ -1627,7 +1627,7 @@ yyreduce:
     break;
 
   case 39:
-#line 237 "dbotter.y" /* yacc.c:1646  */
+#line 241 "dbotter.y" /* yacc.c:1646  */
     { (yyval) =
                                       MKWGPAIR(
                                         PP,
@@ -1649,7 +1649,7 @@ yyreduce:
     break;
 
   case 40:
-#line 255 "dbotter.y" /* yacc.c:1646  */
+#line 259 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(
                                                    PP,
                                                    MKWGCONST(PP,"exists"),
@@ -1664,7 +1664,7 @@ yyreduce:
     break;
 
   case 41:
-#line 266 "dbotter.y" /* yacc.c:1646  */
+#line 270 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(
                                                    PP,
                                                    MKWGCONST(PP,"all"),
@@ -1679,79 +1679,79 @@ yyreduce:
     break;
 
   case 42:
-#line 276 "dbotter.y" /* yacc.c:1646  */
+#line 280 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(PP,MKWGCONST(PP,"not"),MKWGPAIR(PP,(yyvsp[0]),MKWGNIL)); }
 #line 1685 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 43:
-#line 277 "dbotter.y" /* yacc.c:1646  */
+#line 281 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(PP,MKWGCONST(PP,"not"),MKWGPAIR(PP,(yyvsp[0]),MKWGNIL)); }
 #line 1691 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 44:
-#line 283 "dbotter.y" /* yacc.c:1646  */
+#line 287 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(PP,(yyvsp[0]),MKWGNIL); }
 #line 1697 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 45:
-#line 284 "dbotter.y" /* yacc.c:1646  */
+#line 288 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(PP,(yyvsp[-2]),(yyvsp[0])); }
 #line 1703 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 46:
-#line 289 "dbotter.y" /* yacc.c:1646  */
+#line 293 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGINT(PP,(yyvsp[0])); }
 #line 1709 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 47:
-#line 290 "dbotter.y" /* yacc.c:1646  */
+#line 294 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGFLOAT(PP,(yyvsp[0])); }
 #line 1715 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 48:
-#line 291 "dbotter.y" /* yacc.c:1646  */
+#line 295 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGDATE(PP,(yyvsp[0])); }
 #line 1721 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 49:
-#line 292 "dbotter.y" /* yacc.c:1646  */
+#line 296 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGTIME(PP,(yyvsp[0])); }
 #line 1727 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 50:
-#line 293 "dbotter.y" /* yacc.c:1646  */
+#line 297 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGSTRING(PP,(yyvsp[0])); }
 #line 1733 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 51:
-#line 294 "dbotter.y" /* yacc.c:1646  */
+#line 298 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGVAR(PP,(yyvsp[0])); }
 #line 1739 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 52:
-#line 295 "dbotter.y" /* yacc.c:1646  */
+#line 299 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGURI(PP,(yyvsp[0])); }
 #line 1745 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 53:
-#line 296 "dbotter.y" /* yacc.c:1646  */
+#line 300 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGCONST(PP,(yyvsp[0])); }
 #line 1751 "dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 54:
-#line 297 "dbotter.y" /* yacc.c:1646  */
+#line 301 "dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGCONST(PP,(yyvsp[0])); }
 #line 1757 "dbotter.tab.c" /* yacc.c:1646  */
     break;
@@ -1985,6 +1985,6 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 302 "dbotter.y" /* yacc.c:1906  */
+#line 306 "dbotter.y" /* yacc.c:1906  */
 
 
