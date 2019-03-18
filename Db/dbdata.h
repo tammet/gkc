@@ -449,13 +449,13 @@ Immediate anon constants                0101 1111  = is eq  // not implemented y
 
 #define db_get_kb_db(db) (dbmemsegh(db)->kb_db)
 
-/*
+
 #define encode_kb_offset(db,offset) ((db_get_kb_db(db)) ? \
    (wg_int)((wg_int)(offset)+\
             (wg_int)(((char*)(dbmemsegbytes(db)))-(char*)(dbmemsegbytes(db_get_kb_db(db))))) \
    : (offset))   
-*/
-#define encode_kb_offset(db,offset) (offset)
+
+//#define encode_kb_offset(db,offset) (offset)
 
 #define db_to_kb(db) ((db_get_kb_db(db)) ?  (db_get_kb_db(db)) : db)
 #define g_to_kb_db(g) ((db_get_kb_db((g)->db)) ?  (db_get_kb_db((g)->db)) : ((g)->db))

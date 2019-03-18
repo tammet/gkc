@@ -89,8 +89,10 @@
 
 typedef struct {    
   
-  void* db;             /**< shared mem database */  
-  
+  void* db;             /**< mem database used as a base for offset: either kb_db or child_db here */
+  void* kb_db;          /**< shared-mem knowledge base */
+  void* child_db;       /**< local child db: if kb_db present, then child_db->kb_db is set to this */
+
   /* === shared data block === */
   
   cveco clbuilt;        /**< vector containing built clauses, newest last. 0: vec len, 1: index of next unused vec elem */

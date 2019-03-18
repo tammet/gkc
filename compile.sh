@@ -2,7 +2,7 @@
 
 # alternative to compilation with automake/make: just run 
 
-[ -z "$CC" ] && CC="clang"
+[ -z "$CC" ] && CC="cc"
 
 if [ -z "$(which $CC 2>/dev/null)" ]; then
     echo "Error: No compiler found"

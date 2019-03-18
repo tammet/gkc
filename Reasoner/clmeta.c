@@ -273,10 +273,10 @@ gint wr_calc_clause_meta(glb* g, gptr xptr, gptr cl_metablock) {
   gint litmetagint=0;
   gint clmetagint=0; 
   int i,tmp;
-  /*
-  printf("\nwr_calc_clause_meta called on \n"); 
-  wr_print_clause(g,xptr);
-  */
+  
+  //printf("\nwr_calc_clause_meta called on \n"); 
+  //wr_print_clause(g,xptr);
+  
   db=g->db;
   ruleflag=wg_rec_is_rule_clause(db,xptr);  
   if (!ruleflag) {

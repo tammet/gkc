@@ -71,7 +71,6 @@
 #define DPRINTF(...) ;
 #endif
 */
-
 #define DPRINTF(...) 
 
 #define json_get(obj,name) cJSON_GetObjectItemCaseSensitive(obj,name)
@@ -477,6 +476,7 @@ void* wr_preprocess_clauselist
   void* resultlist=NULL;
   int clnr=0;
   char namebuf[1000];
+  char rolebuf[100];
 #ifdef DEBUG  
   printf("wr_preprocess_clauselist starting with clauselist\n");  
   wg_mpool_print(db,clauselist);
@@ -534,9 +534,27 @@ void* wr_preprocess_clauselist
       //printf("in wr_preprocess_clauselist cl:\n");  
       //wg_mpool_print(db,cl); 
       //printf("\n");
-
-      resultclause=cl;    
-      resultclause=wg_mklist3(db,mpool,NULL,NULL,resultclause);
+      resultclause=cl;
+#ifdef MARK_IMPORTED_NAMES      
+      if (g->parse_is_included_file) {
+        //printf("\n!!! clname %s\n",wg_atomstr1(db,clname));
+        if (g->parse_is_included_file) {
+          strncpy(namebuf,IMPORTED_NAME_PREFIX,900);
+          strncat(namebuf,"ax1",900);
+          clname=wg_mkatom(db,mpool,WG_URITYPE,namebuf, NULL);
+        } else {
+          strncpy(namebuf,"u:ax2",10);
+          clname=wg_mkatom(db,mpool,WG_URITYPE,namebuf, NULL);
+        }       
+        //printf("\n!!! clnamenew %s\n",wg_atomstr1(db,clname)); 
+        strncpy(rolebuf,"u:axiom",50);
+        clrole=wg_mkatom(db,mpool,WG_URITYPE,rolebuf, NULL);
+      }
+#endif                 
+      if (g->parse_is_included_file)
+        resultclause=wg_mklist3(db,mpool,clname,clrole,resultclause);
+      else
+        resultclause=wg_mklist3(db,mpool,NULL,NULL,resultclause);  
     }        
 #ifdef DEBUG
     printf("\nin wr_preprocess_clauselist resultclause:\n");

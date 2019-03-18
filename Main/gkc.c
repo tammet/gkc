@@ -34,6 +34,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <time.h>
 #ifndef _WIN32
 #include <sys/types.h>
 #include <pwd.h>
@@ -121,6 +122,7 @@ void segment_stats(void *db);
 static void wg_show_strhash(void* db);
 
 void wg_show_database(void* db);
+void gkc_show_cur_time(void);
 
 /* ====== Functions ============== */
 
@@ -431,7 +433,7 @@ int main(int argc, char **argv) {
 #ifdef USE_REASONER
     else if(argc>(i+1) && !strcmp(argv[i],"importprolog")){
       wg_int err;
-
+       
       shmptr=wg_attach_database(shmname, shmsize);
       if(!shmptr) {
         fprintf(stderr, "Failed to attach to database.\n");
@@ -454,12 +456,18 @@ int main(int argc, char **argv) {
 #else
       shmsize=2000000000; 
 #endif      
+      printf("\to import otter\n");
+      gkc_show_cur_time();
       shmptr=wg_attach_database(shmname, shmsize);
       if(!shmptr) {
         fprintf(stderr, "Failed to attach to database.\n");
         exit(1);
       }
-      err = wg_import_otter_file(shmptr,argv[i+1]);
+      printf("\nto wg_import_otter_file\n");
+      gkc_show_cur_time();
+      err = wg_import_otter_file(shmptr,argv[i+1],1);
+      printf("\nexited wg_import_otter_file\n");
+      gkc_show_cur_time();
       if(!err)
         printf("Data imported.\n");
       else if(err<-1)
@@ -476,6 +484,8 @@ int main(int argc, char **argv) {
     } else if(argc>i && !strcmp(argv[i],"runreasoner")){
       wg_int err;
 
+      printf("\nto wg_attach_existing_database\n");
+      gkc_show_cur_time(); 
       shmptr=wg_attach_existing_database(shmname);
       if(!shmptr) {
         fprintf(stderr, "Failed to attach to database.\n");
@@ -483,6 +493,8 @@ int main(int argc, char **argv) {
       }
       //printf("about to call wg_run_reasoner\n");
       wg_show_database(shmptr);
+      printf("\nto wg_run_reasoner\n");
+      gkc_show_cur_time();
       err = wg_run_reasoner(shmptr,argc,argv);
       //if(!err);
         //printf("wg_run_reasoner finished ok.\n");
@@ -496,6 +508,7 @@ int main(int argc, char **argv) {
       wg_int err;
 
       printf("\nqrun starts\n");
+      gkc_show_cur_time();
       shmptr=wg_attach_existing_database(shmname);
       if(!shmptr) {
         fprintf(stderr, "Failed to attach to database.\n");
@@ -507,6 +520,8 @@ int main(int argc, char **argv) {
 
       // --- create a new temporary local db ---
       shmsize2=100000000;
+      printf("\nto wg_attach_local_database_with_kb\n");
+      gkc_show_cur_time();
       shmptrlocal=wg_attach_local_database_with_kb(shmsize2,shmptr);
       if(!shmptrlocal) {
         fprintf(stderr, "Failed to attach local database.\n");
@@ -515,7 +530,9 @@ int main(int argc, char **argv) {
       //wg_set_kb_db(shmptrlocal,shmptr); // set the kb field of local db to shared db    
       islocaldb=1;
       err=0;
-      err = wg_import_otter_file(shmptrlocal,argv[i+1]);
+      printf("\nto wg_import_otter_file\n");
+      gkc_show_cur_time();
+      err = wg_import_otter_file(shmptrlocal,argv[i+1],0);
       if(!err)
         printf("Data imported.\n");
       else if(err<-1)
@@ -528,6 +545,7 @@ int main(int argc, char **argv) {
       // ---- local db created ------
 
       printf("\nto call wg_run_reasoner\n");
+      gkc_show_cur_time();
       err = wg_run_reasoner(shmptr,argc,argv);
       //if(!err);
         //printf("wg_run_reasoner finished ok.\n");
@@ -535,6 +553,7 @@ int main(int argc, char **argv) {
         //fprintf(stderr, "wg_run_reasoner finished with an error %d.\n",err);
       //break;
       printf("\nwg_run_reasoner returned\n");
+      gkc_show_cur_time();
       printf("\nshowing shared memory db\n"); 
       wg_show_database(shmptr);
       printf("\nqrun exits\n");
@@ -544,21 +563,25 @@ int main(int argc, char **argv) {
       wg_int err;
 
       printf("\nqrun1 starts with external shmname %s\n",shmname);
+      gkc_show_cur_time();
       shmptr=wg_attach_existing_database(shmname);
       if(!shmptr) {
         fprintf(stderr, "Failed to attach to database.\n");
         exit(1);
       }
       printf("\ndb attached, showing attached shared memory db shmptr %d\n",shmptr);
+      gkc_show_cur_time();
       //printf("about to call wg_run_reasoner\n");
       wg_show_database(shmptr);
 
       // --- create a new temporary local db ---
       shmsize2=100000000;     
       printf("\nto wg_attach_local_database_with_kb with shmptr %d\n",(int)shmptr);
+      gkc_show_cur_time();
       shmptrlocal=wg_attach_local_database_with_kb(shmsize2,shmptr);
       //shmptrlocal=wg_attach_local_database(shmsize2);
       printf("\nshmptrlocal is %d\n",(int)shmptrlocal);
+      gkc_show_cur_time();
       //shmptrlocal=wg_attach_local_database(shmsize2);
       if(!shmptrlocal) {
         fprintf(stderr, "Failed to attach local database.\n");
@@ -568,7 +591,8 @@ int main(int argc, char **argv) {
       islocaldb=1;
       err=0;
       printf("\nqrun1 to wg_import_otter_file from argv[i+1] %s\n",argv[i+1]);
-      err = wg_import_otter_file(shmptrlocal,argv[i+1]);
+      gkc_show_cur_time();
+      err = wg_import_otter_file(shmptrlocal,argv[i+1],0);
       if(!err)
         printf("Data imported from %s.\n",argv[i+1]);
       else if(err<-1)
@@ -577,10 +601,12 @@ int main(int argc, char **argv) {
       else
         fprintf(stderr, "Import failed.\n");      
       printf("\nshowing local db\n");  
+      gkc_show_cur_time();
       wg_show_database(shmptrlocal);
       // ---- local db created ------
 
       printf("\nto call wg_run_reasoner\n");
+      gkc_show_cur_time();
       err = wg_run_reasoner(shmptrlocal,argc,argv);
       //if(!err);
         //printf("wg_run_reasoner finished ok.\n");
@@ -588,6 +614,7 @@ int main(int argc, char **argv) {
         //fprintf(stderr, "wg_run_reasoner finished with an error %d.\n",err);
       //break;
       printf("\nwg_run_reasoner returned\n");
+      gkc_show_cur_time();
       printf("\nshowing shared memory db\n"); 
       wg_show_database(shmptr);
       printf("\nqrun exits\n");
@@ -607,7 +634,7 @@ int main(int argc, char **argv) {
         exit(1);
       }
       islocaldb=1;
-      err = wg_import_otter_file(shmptr,argv[i+1]);
+      err = wg_import_otter_file(shmptr,argv[i+1],0);
       if(!err)
         printf("Data imported.\n");
       else if(err<-1)
@@ -1308,7 +1335,7 @@ void wg_show_database(void* db) {
   printf("\nwg_show_database exited\n");
 }
 
-/*
+
 static void wg_show_strhash(void* db) {
   db_memsegment_header* dbh = dbmemsegh(db);
   gint i;
@@ -1358,7 +1385,22 @@ static void wg_show_strhash(void* db) {
     }
   }
 }
-*/
+
+
+void gkc_show_cur_time(void)  {
+  time_t rawtime;
+  clock_t curclock;
+  struct tm * timeinfo;
+  float run_seconds;
+
+  time (&rawtime);
+  timeinfo = localtime ( &rawtime );
+  curclock=clock();
+  run_seconds = (float)(curclock) / CLOCKS_PER_SEC;
+  printf("run_seconds %f time %s\n", run_seconds,asctime (timeinfo));
+}
+
+
 
 #ifdef __cplusplus
 }

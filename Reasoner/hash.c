@@ -334,11 +334,14 @@ gint wr_term_basehash(glb* g, gint enc) {
       hash=str_hash(strdata);
       break;
     case WG_URITYPE:
+      //printf("\nto call wg_decode_uri_rhash \n");
       hash=(int)wg_decode_uri_rhash(db, enc);
+      //printf("\nhash for strdata %s found %d \n", wg_decode_unistr(db, enc,WG_URITYPE), hash);
       if (!hash) {
         strdata = wg_decode_unistr(db, enc,WG_URITYPE);
         exdata =  wg_decode_unistr_lang(db, enc,WG_URITYPE);
         hash=str_dual_hash(strdata,exdata);      
+        //printf("\nstrdata %s exdata %s hash %d\n",strdata,exdata,hash);
         wg_set_uri_rhash(db,enc,(gint)hash);
       }  
       break;

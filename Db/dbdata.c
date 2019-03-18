@@ -105,6 +105,7 @@ static void recptr_setbit(void *db,void *ptr);
 static void recptr_clearbit(void *db,void *ptr);
 #endif
 
+static int wg_str_dual_hash(char* x, char* y);
 static gint show_data_error(void* db, char* errmsg);
 static gint show_data_error_nr(void* db, char* errmsg, gint nr);
 static gint show_data_error_double(void* db, char* errmsg, double nr);
@@ -2376,6 +2377,7 @@ wg_int wg_set_uri_rhash(void* db, wg_int data, wg_int rhash) {
 #endif
   objptr = (gint *) offsettoptr(db,decode_longstr_offset(data));
   fldptr=((gint*)objptr)+LONGSTR_RHASH_POS;
+  //fldptr=(gint*)(((char*)(objptr))+(sizeof(gint)*LONGSTR_RHASH_POS));  
   *fldptr=wg_encode_int(db, rhash); 
   return 0;
 }
@@ -2401,10 +2403,16 @@ wg_int wg_decode_uri_rhash(void* db, wg_int data) {
 #endif
   objptr = (gint *) offsettoptr(db,decode_longstr_offset(data));
   fldptr=((gint*)objptr)+LONGSTR_RHASH_POS;
+  //fldptr=(gint*)(((char*)(objptr))+(sizeof(gint)*LONGSTR_RHASH_POS)); 
   fldval=*fldptr;
   return wg_decode_int(db,fldval);
 }
-
+/*
+if (islongstr(data)) {
+    objptr = (gint *) offsettoptr(db,decode_longstr_offset(data));
+    dataptr=((char*)(objptr))+(LONGSTR_HEADER_GINTS*sizeof(gint));
+    return dataptr;
+*/
 
 /* blob */
 
@@ -2736,14 +2744,17 @@ static gint find_create_longstr(void* db, char* data, char* extrastr, gint type,
   gint hasharrel;
   gint res;
 #ifdef USE_REASONER
+  int rhash;
   db_memsegment_header* kb_dbh;
   unsigned long hashsum;
   char* cbuf[100]; // for debugprint
 #endif
   // find hash
 #ifdef USE_REASONER 
+  //printf("\n  **** in find_create_longstr for %s \n",data);
   hashsum=wg_hash_typedstr_sum(data,extrastr,length);
   if ((dbh->kb_db)!=NULL) {    
+    //printf("\n external kb exists\n");
     // check if str present in external kb db: is yes, return value from external    
     kb_dbh = dbmemsegh(dbh->kb_db);       
     //hash=wg_hash_typedstr((dbh->kb_db),data,extrastr,type,length);
@@ -2764,6 +2775,7 @@ static gint find_create_longstr(void* db, char* data, char* extrastr, gint type,
     // check if hash exists and use if found 
 #ifdef USE_REASONER     
     hash=(int)(hashsum % (dbh->strhash_area_header).arraylength);
+    //printf("\nCP3 find_create_longstr calced hashsum %d and hash %d\n",(int)hashsum,(int)hash);
 #else
     hash=wg_hash_typedstr(db,data,extrastr,type,length);
 #endif    
@@ -2773,7 +2785,7 @@ static gint find_create_longstr(void* db, char* data, char* extrastr, gint type,
     //        hash,((dbh->strhash_area_header).arraystart)+(sizeof(gint)*hash), hasharrel);
     if (hasharrel) old=wg_find_strhash_bucket(db,data,extrastr,type,length,hasharrel);    
     //printf("\nCP3 old %d \n",old);
-    if (old) {
+    if (old) {  
       /*
       printf("\nCP10 old str found in hash\n");
       if (0) { //(dbmemsegh(db)->kb_db) {
@@ -2836,11 +2848,16 @@ static gint find_create_longstr(void* db, char* data, char* extrastr, gint type,
     //  tmp);
     dbstore(db,offset+LONGSTR_META_POS*sizeof(gint),tmp); // type and str length diff
     dbstore(db,offset+LONGSTR_REFCOUNT_POS*sizeof(gint),0); // not pointed from anywhere yet
-    dbstore(db,offset+LONGSTR_BACKLINKS_POS*sizeof(gint),0); // no backlinks yet
+    dbstore(db,offset+LONGSTR_BACKLINKS_POS*sizeof(gint),0); // no backlinks yet   
+#ifdef USE_REASONER
     // reasoner specials
-    tmp=encode_smallint(0);
-    dbstore(db,offset+LONGSTR_RHASH_POS*sizeof(gint),tmp); // encoded 0: no hash yet
+    tmp=encode_smallint(0);  
+    rhash=wg_str_dual_hash(data,extrastr);      
+    //printf("\nCP3 find_create_longstr calced rhash %d\n",rhash),
+    dbstore(db,offset+LONGSTR_RHASH_POS*sizeof(gint),encode_smallint(rhash)); // encoded 0: no hash yet
+    //dbstore(db,offset+LONGSTR_RHASH_POS*sizeof(gint),tmp); // encoded 0: no hash yet
     dbstore(db,offset+LONGSTR_RMETA_POS*sizeof(gint),tmp); // encoded 0: no meta yet
+#endif    
     // encode
     res=encode_longstr_offset(offset);
     // store to hash and update hashchain
@@ -3410,6 +3427,36 @@ static void recptr_clearbit(void *db,void *ptr) {
 }
 #endif
 
+
+/* ------------ reasoner specials ------ */
+
+
+static int wg_str_dual_hash(char* x, char* y) {
+  unsigned long hash = 0;
+  int c;  
+  
+  //printf("x %s y %s\n",x,y);  
+  if (x!=NULL) {
+    while(1) {
+      c = (int)(*x);
+      if (!c) break;
+      hash = c + (hash << 6) + (hash << 16) - hash;
+      x++;
+    }
+  }    
+  if (y!=NULL) {
+    while(1) {
+      c = (int)(*y);
+      if (!c) break;
+      hash = c + (hash << 6) + (hash << 16) - hash;
+      y++;
+    }
+  }   
+  return (int)hash;  
+  
+}
+
+
 /* ------------ errors ---------------- */
 
 
@@ -3426,6 +3473,7 @@ static gint show_data_error_nr(void* db, char* errmsg, gint nr) {
 #ifdef WG_NO_ERRPRINT
 #else
   LOG_ERROR(-1, "wg data handling error: %s %d\n", errmsg, (int)nr);
+  printf("\nwg data handling error: %s %d\n", errmsg, (int)nr);
 #endif
   return -1;
 
