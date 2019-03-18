@@ -59,7 +59,6 @@ extern "C" {
   
 void wr_print_history_extra(glb* g, gint history);
 gint wr_encode_priority(glb* g, gint priority);
-gint wr_decode_priority(glb* g, gint encpriority);
 
 /* ====== Functions ============== */
 
@@ -180,13 +179,13 @@ gint wr_decode_used_priority(glb* g, gint encpriority) {
 
 
 gint wr_calc_history_priority2(glb* g, gptr cl1, gptr cl2) {
-  void *db=g->db;
+  //void *db=g->db;
   gint hist1, hist2;
   gptr hist1ptr, hist2ptr;
   gint prior1=0, prior2=0;
   gint decprior1=WR_HISTORY_FROMAXIOM_ROLENR, decprior2=WR_HISTORY_FROMAXIOM_ROLENR;
   gint resprior=WR_HISTORY_FROMAXIOM_ROLENR;
-   
+
   if (cl1!=NULL) {  
     hist1=wr_get_history(g,cl1);
     if (hist1) {
@@ -222,11 +221,11 @@ gint wr_calc_history_priority2(glb* g, gptr cl1, gptr cl2) {
     if (decprior1==WR_HISTORY_GOAL_ROLENR && !wr_is_negative_cl(g,cl1))
       decprior1=WR_HISTORY_AXIOM_ROLENR;  
     else if (decprior1==WR_HISTORY_ASSUMPTION_ROLENR)  
-      decprior1==WR_HISTORY_AXIOM_ROLENR;      
+      decprior1=WR_HISTORY_AXIOM_ROLENR; //!! previously had no effect      
     if (decprior2==WR_HISTORY_GOAL_ROLENR  && !wr_is_negative_cl(g,cl2))
       decprior2=WR_HISTORY_AXIOM_ROLENR;    
     else if (decprior2==WR_HISTORY_ASSUMPTION_ROLENR)  
-      decprior2==WR_HISTORY_AXIOM_ROLENR;
+      decprior2=WR_HISTORY_AXIOM_ROLENR; //!! previously had no effect
   }
 
   // calculate new priorities 
@@ -260,7 +259,7 @@ gint wr_build_propagate_history(glb* g, gptr cl1, gptr cl2, int pos1, int pos2) 
   void* db=g->db;
   gptr rec;
   gint tag;
-  int i,cutn=0;  
+  int cutn=0;  
   int datalen=HISTORY_PREFIX_LEN+3;
 
   if (g->store_history) {    
@@ -891,7 +890,7 @@ void wr_print_history_extra(glb* g, gint history) {
   else if (decprior==WR_HISTORY_AXIOM_ROLENR) printf(",axiom] ");
   else if (decprior==WR_HISTORY_FROMAXIOM_ROLENR) printf(",fromaxiom] ");
   else if (decprior==WR_HISTORY_EXTAXIOM_ROLENR) printf(",extaxiom] ");
-  else if (decprior) printf(", dp %d] ",decprior);
+  else if (decprior) printf(", dp %d] ",(int)decprior);
   else printf("] ");
 }
 
@@ -936,7 +935,7 @@ void wr_print_clause_name_history(glb* g, gint history) {
     else if (decprior==WR_HISTORY_AXIOM_ROLENR) printf(",axiom] ");
     else if (decprior==WR_HISTORY_FROMAXIOM_ROLENR) printf(",fromaxiom] ");
     else if (decprior==WR_HISTORY_EXTAXIOM_ROLENR) printf(",extaxiom] ");
-    else if (decprior) printf(", dp %d] ",decprior);
+    else if (decprior) printf(", dp %d] ",(int)decprior);
 
     //else if (decprior==1) printf(",goal] ");
     //else if (decprior==2) printf(",assumption] ");

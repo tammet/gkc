@@ -144,7 +144,7 @@ mpool_header* wg_create_mpool(void* db, int origbytes) {
 
 static int extend_mpool(void* db, mpool_header* mpool, int minbytes) {
   int cursize;
-  int bytes;
+  gint bytes; // int bytes;
   void* subarea;
   mpool_header* mpoolh;
   int i;

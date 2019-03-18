@@ -79,6 +79,7 @@ int wr_given_cl_subsumed(glb* g, gptr given_cl, gptr given_cl_metablock) {
   wr_print_clause(g,given_cl); 
   printf("\n"); 
 #endif  
+  UNUSED(db);
   // first try to subsume with active unit clauses  
   if (!wg_rec_is_rule_clause(db,given_cl)) {
     if (wr_active_subsumed_lit(g,rpto(g,given_cl),0)) {
@@ -115,7 +116,7 @@ int wr_given_cl_subsumed(glb* g, gptr given_cl, gptr given_cl_metablock) {
     actptr=rotp(g,g->clactivesubsume);
     iactivelimit=CVEC_NEXT(actptr);
     for(iactive=CVEC_START; iactive<iactivelimit; iactive+=CLMETABLOCK_ELS) {
-      if (iactive!=NULL && given_cl_metablock!=NULL) {
+      if (given_cl_metablock!=NULL) {
 #ifdef DEBUG          
           printf("\ngeneral iactive %d :",iactive);    
           wr_print_clause(g,(gptr)(actptr[iactive+CLMETABLOCK_CL_POS]));
@@ -217,8 +218,7 @@ int wr_given_cl_backsubsume(glb* g, gptr given_cl, gptr given_cl_metablock) {
   gptr actptr;
   gint iactivelimit;
   int sres;
-  int i,cllen,subsumedcount;
-  gint meta, lit;
+  int subsumedcount;
 
 #ifdef BACKDEBUG
   printf("wr_given_cl_backsubsume is called with \n");
@@ -226,13 +226,14 @@ int wr_given_cl_backsubsume(glb* g, gptr given_cl, gptr given_cl_metablock) {
   printf("\n"); 
 #endif  
  
+  UNUSED(db);
   // next try to subsume with active clauses in a list
   subsumedcount=0;
   if(1) {    
     actptr=rotp(g,g->clactivesubsume);
     iactivelimit=CVEC_NEXT(actptr);
     for(iactive=CVEC_START; iactive<iactivelimit; iactive+=CLMETABLOCK_ELS) {
-      if (iactive!=NULL && given_cl_metablock!=NULL) {
+      if (given_cl_metablock!=NULL) {
         
 #ifdef BACKDEBUG          
           printf("\nspecific iactive %d :",iactive);    

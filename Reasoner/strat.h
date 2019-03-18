@@ -45,11 +45,11 @@ int wr_initial_select_active_cl(glb* g, gptr cl);
 
 int wr_order_eqterms(glb* g, gint a, gint b, gptr vb);
 
-void wr_clear_countedvarlist(gptr g, cvec varlist);
-void wr_record_varocc(gptr g, gint x, cvec varlist);
-void wr_show_countedvarlist(gptr g, cvec varlist);
-int wr_countedvarlist_is_subset(gptr g, cvec xlist, cvec ylist);
+void wr_clear_countedvarlist(glb* g, cvec varlist);
+void wr_record_varocc(glb* g, gint x, cvec varlist);
+void wr_show_countedvarlist(glb* g, cvec varlist);
+int wr_countedvarlist_is_subset(glb* g, cvec xlist, cvec ylist);
 
-static int wr_order_eqterms_lex_smaller(glb* g, gint x, gint y, gptr vb);
+//static int wr_order_eqterms_lex_smaller(glb* g, gint x, gint y, gptr vb);
 
 #endif

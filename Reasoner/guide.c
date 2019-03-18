@@ -155,9 +155,9 @@ cJSON* wr_parse_guide_str(char* buf) {
 
 int wr_parse_guide_section(glb* g, cJSON *guide, int runnr) {  
   cJSON *elem=NULL, *run=NULL;
-  char *key, *errstr, *valuestr;
-  int valueint,i,tmp;
-  int runcount=0, runfound=0;
+  char *key, *errstr; //, *valuestr;
+  int i,tmp; // valueint
+  int runcount=0; //, runfound=0;
 
   if (!json_isobject(guide)) {    
     errstr=cJSON_Print(guide);
@@ -228,7 +228,7 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr) {
         run=elem->child;        
         for(i=0; run; i++, run=run->next) {
           if (i==runnr) {
-            runfound=1;
+            //runfound=1;
             tmp=wr_parse_guide_section(g,run,-1);
             if (tmp<0) return -1;            
           } 

@@ -917,7 +917,7 @@ gint wr_create_clpick_queues(glb* g, int count) {
 
 void wr_push_cl_clpick_queues(glb* g, gint queues_offset, gptr cl, int weight) {
   void *db=g->db;
-  int qstart,i;
+  int qstart; //,i;
   gint simplequeue_offset, priorqueue_offset;
   gptr queues, simplequeue, priorqueue;
   gint history;
@@ -959,7 +959,7 @@ void wr_push_cl_clpick_queues(glb* g, gint queues_offset, gptr cl, int weight) {
       if (decprior==WR_HISTORY_GOAL_ROLENR && !wr_is_negative_cl(g,cl))
         decprior=WR_HISTORY_AXIOM_ROLENR;  
       else if (decprior==WR_HISTORY_ASSUMPTION_ROLENR)  
-        decprior==WR_HISTORY_AXIOM_ROLENR;
+        decprior=WR_HISTORY_AXIOM_ROLENR; // !! had no effect before
     } 
 
 #ifdef QADDDEBUG
@@ -1015,6 +1015,7 @@ int wr_is_positive_unit_cl(glb* g, gptr cl) {
   int cllen,i;
   gint meta;
 
+  UNUSED(db);
   if (!wg_rec_is_rule_clause(db,cl)) return 1;
   cllen=wg_count_clause_atoms(db,cl);     
   if (cllen>1) return 0;
@@ -1031,6 +1032,7 @@ int wr_is_negative_cl(glb* g, gptr cl) {
   gint meta;
   gint xatom;
 
+  UNUSED(db);
   if (!wg_rec_is_rule_clause(db,cl)) return 0;
   cllen=wg_count_clause_atoms(db,cl);     
   if (cllen>1) return 0;
@@ -1115,21 +1117,20 @@ gptr wr_pick_from_clpick_queues(glb* g, gptr queues, gptr given_cl_metablock) {
 
 gptr wr_pick_from_clpick_queues_aux(glb* g, gptr queues, int queuenr, gptr given_cl_metablock) { 
   
-  int i,j;
-  gint limit;
+  int i; //,j;
+  //gint limit;
   gint simplequeue_offset;
   gptr simplequeue;
   int simplequeue_given_pos;
-  int max_used_prior;
+  //int max_used_prior;
   gint* queue;
 
   gptr cl;
   int next;
 
-  limit=queues[0];
 #ifdef QPICKDEBUG
   printf("\n\n --- pick cl with queuenr %d limit %d NROF_CLPICK_QUEUES %d ---\n",
-         queuenr,limit,NROF_CLPICK_QUEUES); 
+         queuenr,(int)(queues[0]),NROF_CLPICK_QUEUES); 
   //printf("\n queues are: \n");       
   //wr_print_clpick_queues(g,rotp(g,g->clpick_queues));       
   //printf("\n starting to pick: \n");  
@@ -1183,11 +1184,10 @@ gptr wr_pick_from_clpick_queues_aux(glb* g, gptr queues, int queuenr, gptr given
 #ifdef QPICKEDDEBUG
         printf("\npicked cl from queue nr %d priority queue",queuenr);
 #endif        
-#ifdef QPICKDEBUG           
-        max_used_prior=queue[PRIORQUEUE_MAX_USED_PRIOR_POS];
+#ifdef QPICKDEBUG                   
         printf("\n  priority queue with max priority %d, max used priority %d: \n",
                 (int)(queue[PRIORQUEUE_ARR_LEN_POS]-2),
-                max_used_prior);  
+                (int)(queue[PRIORQUEUE_MAX_USED_PRIOR_POS]));  
 #endif
           
         wr_cl_mark_given(g,cl);
@@ -1375,7 +1375,7 @@ void wr_print_clpick_queues(glb* g, gint* queues) {
   } 
   return; 
   */
-  printf("\ng->clpick_given: %d",g->clpick_given);
+  printf("\ng->clpick_given: %d",(int)(g->clpick_given));
 
   limit=queues[0];
   printf("\ng->clpick_given vec len (el 0): %d",(int)limit);
@@ -1397,7 +1397,7 @@ void wr_print_clpick_queues(glb* g, gint* queues) {
       printf("\nsimplequeue max len %d count %d, elems:\n",(int)(simplequeue[0]),(int)(simplequeue[1]));
       for(j=2;j<simplequeue[0] && j<simplequeue[1];j++) {
         printf("\n %d: ",j);
-        wr_print_clause(g,simplequeue[j]);        
+        wr_print_clause(g,(gptr)(simplequeue[j]));        
       } 
     } else {
       printf("\nsimplequeue is 0");  

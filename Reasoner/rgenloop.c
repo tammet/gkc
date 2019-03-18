@@ -86,12 +86,12 @@ int wr_genloop(glb* g) {
   gptr given_cl;  
   //gptr simp_given_cl=NULL;
   gptr given_cl_as_active=NULL;
-  int i;
-  gptr cl;
-  gint clmeta; 
+  //int i;
+  //gptr cl;
+  //gint clmeta; 
   gint given_cl_metablock[CLMETABLOCK_ELS];
   clock_t curclock;
-  float run_seconds,total_seconds,passed_ratio,fullness;
+  float run_seconds,total_seconds,fullness; // passed_ratio
 
 #ifndef USE_RES_TERMS  
   gint ipassive;
@@ -102,6 +102,7 @@ int wr_genloop(glb* g) {
 #ifndef QUIET    
   printf("========= rwr_genloop starting ========= \n");   
 #endif  
+  UNUSED(db);
   (g->run_start_clock)=clock();  
   //clear_active_cl_list(); // ???
   wr_clear_all_varbanks(g);  
@@ -498,6 +499,7 @@ int wr_add_cl_to_active_unithash(glb* g, gptr cl) {
   int ruleflag=1;
 
   db=g->db;   
+  UNUSED(db);
   len=wg_count_clause_atoms(db,cl);
 #ifdef DEBUGHASH
   printf("\nwr_add_cl_to_active_unithash:\n");

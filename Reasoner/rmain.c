@@ -70,8 +70,8 @@ void show_cur_time(void);
 //#define DEBUG
 #undef DEBUG
 
-//#define SHOWTIME
-#undef SHOWTIME
+#define SHOWTIME
+//#undef SHOWTIME
 
 /* ====== Functions ============== */
 
@@ -108,7 +108,7 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
 
 #ifdef SHOWTIME
   printf("Guide parsed.\n");
-  printf("\ndb is %d \n",(int)db);
+  printf("\ndb is %d \n",(int)((gint)db));
   show_cur_time();
 #endif 
 
@@ -205,6 +205,7 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
     printf("\nreturned from wr_init_active_passive_lists_from_all\n");
     show_cur_time();
 #endif    
+    //exit(0); 
     if (clause_count<0) {
       // error
       printf("\nError initializing clause lists.\n");
@@ -519,6 +520,7 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
 #ifdef DEBUG            
   printf("\nrules_found %d facts_found %d \n",rules_found,facts_found); 
 #endif   
+  printf("\nrules_found %d facts_found %d \n",rules_found,facts_found);
   return rules_found+facts_found;
 }
 

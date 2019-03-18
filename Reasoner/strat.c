@@ -104,6 +104,7 @@ int wr_cl_is_assumption(glb* g, gptr cl) {
   printf("\n");
   */
 
+  hist=wr_get_history(g,cl); // !!! was wrong: hist was uninitialized
   if (hist) {
     htype=wg_get_encoded_type(g->db,hist);  
     if (htype!=WG_RECORDTYPE) return 0;
@@ -112,7 +113,7 @@ int wr_cl_is_assumption(glb* g, gptr cl) {
     if (!prior) return 0;
     decprior=wr_decode_priority(g,prior);
     if (decprior==WR_HISTORY_ASSUMPTION_ROLENR) {
-      printf("\n is assumption!\n");
+      //printf("\n is assumption!\n");
       return 1;
     } else {
       //printf("\n not marked given\n");
@@ -127,6 +128,7 @@ int wr_is_unit_cl(glb* g, gptr cl, int ruleflag, int len) {
   int i, anscount;
   gint atom;
 
+  UNUSED(db);
   if (!ruleflag) return 1;
   if (len<2) return 1;      
   anscount=0;
@@ -145,6 +147,7 @@ int wr_isunit_cl(glb* g, gptr cl) {
   gint atom;
   int len;
 
+  UNUSED(db);
   if (!wg_rec_is_rule_clause(db,cl)) return 1;
   len=wg_count_clause_atoms(db,cl);
   if (len<2) return 1;      
@@ -163,6 +166,7 @@ int wr_count_cl_nonans_atoms(glb* g, gptr cl) {
   gint atom;
   int len;
 
+  UNUSED(db);
   if (!wg_rec_is_rule_clause(db,cl)) return 1;
   len=wg_count_clause_atoms(db,cl);
   if (len<2) return len;      
@@ -195,6 +199,7 @@ void wr_set_stratlimits_cl(glb* g, gptr cl, int ruleflag, int len, int* posok, i
     return;
   } 
   db=g->db;
+  UNUSED(db);
   poscount=0; // count non-ans positive atoms
   negcount=0; 
   anscount=0; // count all ans (assume non-neg)
@@ -271,7 +276,7 @@ int wr_initial_select_active_cl(glb* g, gptr cl) {
     if (decpriority==WR_HISTORY_GOAL_ROLENR && !wr_is_negative_cl(g,cl))
       decpriority=WR_HISTORY_AXIOM_ROLENR;  
     else if (decpriority==WR_HISTORY_ASSUMPTION_ROLENR)  
-      decpriority==WR_HISTORY_AXIOM_ROLENR;
+      decpriority=WR_HISTORY_AXIOM_ROLENR; // !! wrong had no effect
   } 
 
   //printf("\ndecpriority after: %d \n",decpriority);
@@ -478,7 +483,8 @@ static int wr_order_eqterms_const_weight(glb* g, gint a) {
 #define VARVAL_DIRECT(x,vb) (vb[decode_var(x)])
 */
 
-void wr_clear_countedvarlist(gptr g, cvec varlist) {
+void wr_clear_countedvarlist(glb* g, cvec varlist) {
+  UNUSED(g);
   varlist[1]=4;
   varlist[2]=-1;
 }
@@ -494,9 +500,10 @@ void wr_clear_countedvarlist(gptr g, cvec varlist) {
 
 */
 
-void wr_record_varocc(gptr g, gint x, cvec varlist) {
+void wr_record_varocc(glb* g, gint x, cvec varlist) {
   int i, nxt;  
 
+  UNUSED(g);
   if (x<=varlist[2]) {
     // possibly already added
     for(i=4; i<varlist[1]; i=i+2) {
@@ -518,16 +525,16 @@ void wr_record_varocc(gptr g, gint x, cvec varlist) {
   varlist[1]=nxt+2; // increase freeptr
 }
 
-void wr_show_countedvarlist(gptr g, cvec varlist) {
+void wr_show_countedvarlist(glb* g, cvec varlist) {
   int i;
   
-  printf("varlist len %d min var ",(varlist[1]-4)/2);
+  printf("varlist len %d min var ",(int)((varlist[1]-4)/2));
   if (varlist[2]>=0) wr_print_term(g,varlist[2]);
   else printf(" none");
   printf(" vars ");
   for(i=4; i<varlist[1]; i=i+2) {
-    wr_print_term(g,varlist[i]);
-    printf(": %d, ",varlist[i+1]);
+    wr_print_term(g,(gint)(varlist[i]));
+    printf(": %d, ",(int)(varlist[i+1]));
   }
 }
 
@@ -609,9 +616,10 @@ static int wr_order_eqterms_weight_vars(glb* g, gint x, gptr vars, gptr vb) {
 
 */
 
-int wr_countedvarlist_is_subset(gptr g, cvec xlist, cvec ylist) {
+int wr_countedvarlist_is_subset(glb* g, cvec xlist, cvec ylist) {
   int i, j, var, found;  
 
+  UNUSED(g);
   // if both empty, then xlist is a sublist:
   if (xlist[1]==4 && ylist[1]==4) return 1;
   // else if only ylist is empty, then xlist cannot be a sublist

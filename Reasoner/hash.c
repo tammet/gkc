@@ -144,7 +144,7 @@ int wr_term_hashstore(glb* g, void* hashdata, gint term, gptr cl) {
           hash = thash + (hash << 6) + (hash << 16) - hash;
         }      
       }  
-      if (hash<0) hash=0-hash; 
+      //if (hash<0) hash=0-hash; // uint hash!
       hash=(1+(hash%(NROF_CLTERM_HASHVEC_ELS-2)));      
       // here store!
       tmp=1; // dummy
@@ -216,7 +216,7 @@ gint wr_term_complexhash(glb* g, gint* hasharr, gint hashposbits, gint term) {
       hash = thash + (hash << 6) + (hash << 16) - hash;
     }      
   }  
-  if (hash<0) hash=0-hash;  
+  //if (hash<0) hash=0-hash;  // uint hash!
 #ifdef DEBUG
   printf("wr_term_complexhash computed hash %d using NROF_CLTERM_HASHVEC_ELS-2 %d gives final res %d \n",
          hash,NROF_CLTERM_HASHVEC_ELS-2,1+(hash%(NROF_CLTERM_HASHVEC_ELS-2)));
@@ -1141,7 +1141,7 @@ cvec wr_add_atomhash_node(glb* g, gint atom, cvec bucket) {
 
 gint* wr_find_atomhash_bucketnode(glb* g, gint* hasharr, gint atom, int hash) {
   cvec bucket; 
-  int j, bnodestart;
+  int bnodestart;
 #ifdef DEBUG  
   printf("\nwr_find_atomhash called with hash %d and the term: \n",hash);
   wr_print_term(g,atom);

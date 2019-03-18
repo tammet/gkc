@@ -271,7 +271,7 @@ gint wr_calc_clause_meta(glb* g, gptr xptr, gptr cl_metablock) {
   gint xatomnr; 
   gint xmeta, xatom; 
   gint litmetagint=0;
-  gint clmetagint=0; 
+  //gint clmetagint=0; 
   int i,tmp;
   
   //printf("\nwr_calc_clause_meta called on \n"); 
@@ -336,7 +336,7 @@ gint wr_calc_clause_meta(glb* g, gptr xptr, gptr cl_metablock) {
       printf("\nmeta gint %d\n",wr_litmeta_to_gint(g,&litmeta));
       */
       if (xatomnr<2) {
-        clmetagint=wr_litmeta_to_gint(g,&litmeta);
+        //clmetagint=wr_litmeta_to_gint(g,&litmeta);
       } else {
         // xatomnr>1
       }  
@@ -368,7 +368,7 @@ gint wr_calc_clause_meta(glb* g, gptr xptr, gptr cl_metablock) {
         litmeta.groundhash=0;
       }       
     }  
-    if (!clmetagint) clmetagint=wr_litmeta_to_gint(g,&clmeta);  
+    //if (!clmetagint) clmetagint=wr_litmeta_to_gint(g,&clmeta);  
   }
   // pack clmeta struct to cl_metablock
   if (cl_metablock!=NULL) {
@@ -692,6 +692,7 @@ void wr_sort_cl(glb* g, gptr cl) {
   printf("\n");
   */
   db=g->db; 
+  UNUSED(db);
   if (!wg_rec_is_rule_clause(db,cl)) return; // no sorting for fact clauses
   len=wg_count_clause_atoms(db,cl);
   if (len<2) return; // no sorting for unit clauses
@@ -720,9 +721,10 @@ static void wr_inssort_cl(glb* g, gptr cl, int len) {
   gint imeta,jmeta;
   gptr iatom,jatom;
 
+  UNUSED(db);
   for(i=1; i<len; i++) {
-    imeta=wg_get_rule_clause_atom_meta(db,cl,i);
-    iatom=wg_get_rule_clause_atom(db,cl,i);
+    imeta=(gint)(wg_get_rule_clause_atom_meta(db,cl,i));
+    iatom=(gptr)(wg_get_rule_clause_atom(db,cl,i));
     /*
     printf("\n wr_inssort_cl i: %d imeta: %d, iatom: %d metadetails:\n",i,(int)imeta,(int)iatom);
     wr_print_cl_meta(g,imeta);
@@ -738,14 +740,14 @@ static void wr_inssort_cl(glb* g, gptr cl, int len) {
     else printf("\njmeta is not bigger\n");
     */
     while(j>=0 && !wr_sort_meta_bigger(jmeta, imeta)) {
-      wg_set_rule_clause_atom_meta(db,cl,j+1,jmeta);
-      jatom=wg_get_rule_clause_atom(db,cl,j);
-      wg_set_rule_clause_atom(db,cl,j+1,jatom);
+      wg_set_rule_clause_atom_meta(db,cl,j+1,(gint)jmeta);
+      jatom=(gptr)(wg_get_rule_clause_atom(db,cl,j));
+      wg_set_rule_clause_atom(db,cl,j+1,(gptr)jatom);
       j--;
       jmeta=wg_get_rule_clause_atom_meta(db,cl,j);
     }
-    wg_set_rule_clause_atom_meta(db,cl,j+1,imeta);
-    wg_set_rule_clause_atom(db,cl,j+1,iatom);   
+    wg_set_rule_clause_atom_meta(db,cl,j+1,(gint)imeta);
+    wg_set_rule_clause_atom(db,cl,j+1,(gptr)iatom);   
   }
 }
 

@@ -41,6 +41,8 @@
 #include "../config.h"
 #endif
 
+#define UNUSED(x) (void)(x);
+
 #include "mem.h" 
 #include "glb.h"
 #include "clterm.h"

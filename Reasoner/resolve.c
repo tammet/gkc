@@ -609,19 +609,34 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active) {
             //wr_print_vardata(g);
             //wr_clear_varstack(g,g->varstack);
             //wr_print_vardata(g);
-
+            
+            //eqtermorder_after=0; // =eqtermorder; // !!! was not initialized
+            if (ures) {
+              if (eqtermorder==3) {
+                // equality terms were initially unordered
+                // check order after unification
+                eqtermorder_after=wr_order_eqterms(g,a,b,(g->varbanks));       
+                //printf("\n eqtermorder_after: %d\n",eqtermorder_after);
+              } else {
+                eqtermorder_after=eqtermorder;
+              }  
+            }
+            /*             
             if (ures && eqtermorder==3) {
               // equality terms were initially unordered
               // check order after unification
               eqtermorder_after=wr_order_eqterms(g,a,b,(g->varbanks));       
               //printf("\n eqtermorder_after: %d\n",eqtermorder_after);
             }
+            */
             // eqtermorder values:
             // 0: none bigger, neither ok for para
             // 1: a bigger than b (prohibits b)
             // 2: b bigger than a (prohibits a)
             // 3: none bigger, both ok for para
-            if (ures && ((eqtermorder!=3) || (eqtermorder_after==3) || eqtermorder_after==1)) {
+            
+            //if (ures && ((eqtermorder!=3) || (eqtermorder_after==3) || eqtermorder_after==1)) {
+            if (ures && ((eqtermorder_after==3) || eqtermorder_after==1)) {  
               // build and process the new clause
     #ifdef DEBUG         
               printf("\nin wr_paramodulate_from_all_active to call wr_process_paramodulate_result\n");
@@ -774,7 +789,7 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
   void* db=g->db;
   gptr ptr;
   gint fun, yi, hash;
-  int len, istart, ilimit, i, path, origtermpath;
+  int len, istart, ilimit, i, origtermpath; // path
   vec hashvec;
   gint xterm,yterm,xatom;
   gptr xcl,ycl;
@@ -859,7 +874,7 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
   printf("\n");
 #endif      
   hashvec=rotp(g,g->hash_eq_terms);  
-  path=wr_encode_para_termpath(g,litnr,origtermpath);
+  //path=wr_encode_para_termpath(g,litnr,origtermpath);
   hlen=wr_clterm_hashlist_len(g,hashvec,hash);
   if (hlen==0) {       
     return 1;

@@ -153,7 +153,7 @@ where we use 29 bits:
 #define LIT_ATOM_POS 1 
 
 #define get_field(r,n) (*(((gint*)(r))+RECORD_HEADER_GINTS+(n)))
-#define set_field(r,n,d)  (*(((gint*)(r))+RECORD_HEADER_GINTS+(n))=(d))
+#define set_field(r,n,d)  (*(((gint*)(r))+RECORD_HEADER_GINTS+(n))=((gint)(d)))
 #define get_record_len(r) (((gint)(getusedobjectwantedgintsnr(*((gint*)(r)))))-RECORD_HEADER_GINTS)  
 #define decode_record(db,d) ((void*)(offsettoptr(db,decode_datarec_offset((d)))))
 #define encode_record(db,d) ((gint)(encode_datarec_offset(ptrtooffset((db),(d)))))

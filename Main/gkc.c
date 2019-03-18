@@ -65,8 +65,11 @@ extern "C" {
 #include "../Db/dbjson.h"
 #include "../Db/dbschema.h"
 #ifdef USE_REASONER
-#include "../Parser/dbparse.h"
+#include "../Builtparser/dbparse.h"
+#include "../Reasoner/rmain.h"
+//#include "../Db/dbapi.h"
 #endif
+
 
 
 /* ====== Private defs =========== */
@@ -101,6 +104,10 @@ extern "C" {
         i = 0; \
     }
 
+/* === this should come from dbapi.h ========== */
+
+void* wg_attach_local_database_with_kb(wg_int size, void* kb);
+
 /* ======= Private protos ================ */
 
 gint parse_shmsize(char *arg);
@@ -119,7 +126,7 @@ void print_indexes(void *db, FILE *f);
 
 void wg_set_kb_db(void* db, void* kb);
 void segment_stats(void *db);
-static void wg_show_strhash(void* db);
+void wg_show_strhash(void* db);
 
 void wg_show_database(void* db);
 void gkc_show_cur_time(void);
@@ -482,7 +489,7 @@ int main(int argc, char **argv) {
       break;
 
     } else if(argc>i && !strcmp(argv[i],"runreasoner")){
-      wg_int err;
+      //wg_int err;
 
       printf("\nto wg_attach_existing_database\n");
       gkc_show_cur_time(); 
@@ -495,7 +502,8 @@ int main(int argc, char **argv) {
       wg_show_database(shmptr);
       printf("\nto wg_run_reasoner\n");
       gkc_show_cur_time();
-      err = wg_run_reasoner(shmptr,argc,argv);
+      //err = 
+      wg_run_reasoner(shmptr,argc,argv);
       //if(!err);
         //printf("wg_run_reasoner finished ok.\n");
       //else
@@ -522,7 +530,7 @@ int main(int argc, char **argv) {
       shmsize2=100000000;
       printf("\nto wg_attach_local_database_with_kb\n");
       gkc_show_cur_time();
-      shmptrlocal=wg_attach_local_database_with_kb(shmsize2,shmptr);
+      shmptrlocal=(void*)(wg_attach_local_database_with_kb(shmsize2,(void*)shmptr));
       if(!shmptrlocal) {
         fprintf(stderr, "Failed to attach local database.\n");
         exit(1);
@@ -569,18 +577,18 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Failed to attach to database.\n");
         exit(1);
       }
-      printf("\ndb attached, showing attached shared memory db shmptr %d\n",shmptr);
+      printf("\ndb attached, showing attached shared memory db shmptr %d\n",(int)((gint)shmptr));
       gkc_show_cur_time();
       //printf("about to call wg_run_reasoner\n");
       wg_show_database(shmptr);
 
       // --- create a new temporary local db ---
       shmsize2=100000000;     
-      printf("\nto wg_attach_local_database_with_kb with shmptr %d\n",(int)shmptr);
+      printf("\nto wg_attach_local_database_with_kb with shmptr %d\n",(int)((gint)shmptr));
       gkc_show_cur_time();
-      shmptrlocal=wg_attach_local_database_with_kb(shmsize2,shmptr);
+      shmptrlocal=(void*)(wg_attach_local_database_with_kb(shmsize2,(void*)shmptr));
       //shmptrlocal=wg_attach_local_database(shmsize2);
-      printf("\nshmptrlocal is %d\n",(int)shmptrlocal);
+      printf("\nshmptrlocal is %d\n",(int)((gint)shmptrlocal));
       gkc_show_cur_time();
       //shmptrlocal=wg_attach_local_database(shmsize2);
       if(!shmptrlocal) {
@@ -1210,8 +1218,8 @@ abort:
 void segment_stats(void *db) {
   char buf1[200], buf2[40];
 #ifndef _WIN32
-  struct passwd *pwd;
-  struct group *grp;
+  //struct passwd *pwd;
+  //struct group *grp;
 #endif
   db_memsegment_header *dbh = dbmemsegh(db);
 
@@ -1336,7 +1344,7 @@ void wg_show_database(void* db) {
 }
 
 
-static void wg_show_strhash(void* db) {
+void wg_show_strhash(void* db) {
   db_memsegment_header* dbh = dbmemsegh(db);
   gint i;
   gint hashchain;
@@ -1369,7 +1377,7 @@ static void wg_show_strhash(void* db) {
           //       dbfetch(db,decode_longstr_offset(hashchain)+LONGSTR_HASHCHAIN_POS*sizeof(gint)));
           type=wg_get_encoded_type(db,hashchain);
           printf("  ");
-          wg_debug_print_value(db,hashchain);
+          //wg_debug_print_value(db,hashchain);
           printf("\n");
           //printf("  type %s",wg_get_type_name(db,type));
           if (type==WG_BLOBTYPE) {

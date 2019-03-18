@@ -60,7 +60,7 @@ void wr_propagate_unit(glb* g, gptr cl, gint clmeta, gint hash, gptr cl_as_activ
   gint atom,meta;  
   gptr bucketnode;
   int clvecpos,blockvecpos,i;
-  cvec clvec,blockvec,s;
+  cvec clvec,blockvec;
 
 #ifdef DEBUG
   printf("\nwr_propagate_unit called with clmeta %d, hash %d, cl: ",(int)clmeta,(int)hash);
@@ -172,7 +172,8 @@ void wr_resolve_propagated_clause(glb* g, gint atom, gptr cl, gptr cutcl, int ne
   //gint a,b;
   //gptr tptr;
   //int atomlen;
-
+  
+  UNUSED(db);
 #ifdef DEBUG
   printf("\n!!! wr_resolve_propagated_clause called for clauses \n");
   wr_print_clause(g,cl);

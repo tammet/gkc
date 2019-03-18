@@ -66,7 +66,12 @@ typedef struct parse_parm_s {
 
 #define YYSTYPE         char*
 #define YY_EXTRA_TYPE   parse_parm *
+
+#ifdef _WIN32
 #define YY_NO_UNISTD_H  // for windows 
+#else
+#undef YY_NO_UNISTD_H
+#endif
 
 
 #endif

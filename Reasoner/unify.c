@@ -261,7 +261,8 @@ gint wr_match_term_aux(glb* g, gint x, gint y, int uniquestrflag) {
   wr_print_term(g,y);
   printf("\n");
 #endif  
-    
+
+  UNUSED(eqencx);  
   // check x var case immediately
   if (isvar(x)) {
     xval=VARVAL_DIRECT(x,(g->varbanks)); 
@@ -326,6 +327,8 @@ gint wr_equal_term1(glb* g, gint x, gint y, int uniquestrflag) {
 #ifdef DEBUG
   printf("wr_equal_term called with x %d and y %d\n",x,y);
 #endif   
+
+  UNUSED(eqencx);
   // first check if immediately same: return 1 if yes 
   if (x==y)  return 1; 
   // handle immediate check cases: for these bit suffixes x is equal to y iff x==y   
@@ -381,6 +384,8 @@ gint wr_equal_term2(glb* g, gint x, gint y, int uniquestrflag) {
 #ifdef DEBUG
   printf("wr_equal_term called with x %d and y %d\n",x,y);
 #endif   
+
+  UNUSED(eqencx);
   // first check if immediately same: return 1 if yes 
   if (x==y)  return 1; 
   // handle immediate check cases: for these bit suffixes x is equal to y iff x==y   
@@ -436,6 +441,8 @@ gint wr_equal_term3(glb* g, gint x, gint y, int uniquestrflag) {
 #ifdef DEBUG
   printf("wr_equal_term called with x %d and y %d\n",x,y);
 #endif   
+
+  UNUSED(eqencx); 
   (g->tmp5)++;
   // first check if immediately same: return 1 if yes 
   if (x==y)  return 1; 
@@ -492,6 +499,8 @@ gint wr_equal_term4(glb* g, gint x, gint y, int uniquestrflag) {
 #ifdef DEBUG
   printf("wr_equal_term called with x %d and y %d\n",x,y);
 #endif   
+
+  UNUSED(eqencx);
   (g->tmp2)++;
   // first check if immediately same: return 1 if yes 
   if (x==y)  return 1; 
@@ -556,6 +565,8 @@ gint wr_equal_term(glb* g, gint x, gint y, int uniquestrflag) {
 #ifdef DEBUG
   printf("wr_equal_term called with x %d and y %d\n",x,y);
 #endif   
+ 
+  UNUSED(eqencx);
   // first check if immediately same: return 1 if yes 
   if (x==y)  return 1; 
   // handle immediate check cases: for these bit suffixes x is equal to y iff x==y   
@@ -619,6 +630,7 @@ gint wr_equal_term_macroaux(glb* g, gint x, gint y, int uniquestrflag) {
 #ifdef DEBUG
   printf("wr_equal_term_macroaux called with x %d and y %d\n",x,y);
 #endif   
+  UNUSED(eqencx);
   if (!isdatarec(x)) {
     if (isdatarec(y)) return 0;
     // neither x nor y are datarecs

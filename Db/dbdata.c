@@ -77,7 +77,7 @@ static struct tm * localtime_r (const time_t *timer, struct tm *result);
 
 /* ======= Private protos ================ */
 
-static void tmp_wg_show_strhash(void* db);
+void tmp_wg_show_strhash(void* db);
 
 #ifdef USE_BACKLINKING
 static gint remove_backlink_index_entries(void *db, gint *record,
@@ -2152,10 +2152,6 @@ wg_int wg_decode_xmlliteral_xsdtype_copy(void* db, wg_int data, char* langbuf, w
 wg_int wg_encode_uri(void* db, char* str, char* prefix) {
   gint offset;
   gint len;
-
-  char* dptr;
-  char* sptr;
-  char* dendptr;
   
 #ifdef CHECK
   if (!dbcheck(db)) {
@@ -2312,7 +2308,7 @@ wg_int wg_decode_uri_prefix_copy(void* db, wg_int data, char* langbuf, wg_int bu
 wg_int wg_set_uri_rmeta(void* db, wg_int data, wg_int meta) {
   gint* objptr;
   gint* fldptr;
-  gint fldval;
+  //gint fldval;
 
 #ifdef CHECK
   if (!dbcheck(db)) {
@@ -2363,7 +2359,7 @@ wg_int wg_decode_uri_rmeta(void* db, wg_int data) {
 wg_int wg_set_uri_rhash(void* db, wg_int data, wg_int rhash) {
   gint* objptr;
   gint* fldptr;
-  gint fldval;
+  //gint fldval;
 
 #ifdef CHECK
   if (!dbcheck(db)) {
@@ -2747,7 +2743,7 @@ static gint find_create_longstr(void* db, char* data, char* extrastr, gint type,
   int rhash;
   db_memsegment_header* kb_dbh;
   unsigned long hashsum;
-  char* cbuf[100]; // for debugprint
+  //char* cbuf[100]; // for debugprint
 #endif
   // find hash
 #ifdef USE_REASONER 
@@ -2884,7 +2880,7 @@ static gint find_create_longstr(void* db, char* data, char* extrastr, gint type,
 }
 
 
-static void tmp_wg_show_strhash(void* db) {
+void tmp_wg_show_strhash(void* db) {
   db_memsegment_header* dbh = dbmemsegh(db);
   gint i;
   gint hashchain;
@@ -2917,7 +2913,7 @@ static void tmp_wg_show_strhash(void* db) {
           //       dbfetch(db,decode_longstr_offset(hashchain)+LONGSTR_HASHCHAIN_POS*sizeof(gint)));
           type=wg_get_encoded_type(db,hashchain);
           printf("  ");
-          wg_debug_print_value(db,hashchain);
+          //wg_debug_print_value(db,hashchain);
           printf("\n");
           //printf("  type %s",wg_get_type_name(db,type));
           if (type==WG_BLOBTYPE) {

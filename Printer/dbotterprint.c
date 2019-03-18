@@ -413,7 +413,7 @@ void wg_nice_print_var(void* db, gint i) {
   else if (i==3004) printf("V3");
   else if (i==3005) printf("W3");
 
-  else printf("?%d", i);
+  else printf("?%d", (int)i);
 
 }
 

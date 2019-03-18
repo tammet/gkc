@@ -96,8 +96,8 @@ void wr_process_resolve_result
   int ruleflag;
   //int partialresflag;
   //int clstackflag;
-  gint given_termbuf_storednext;
-  gint initial_queue_termbuf_next;
+  gint given_termbuf_storednext=0;
+  gint initial_queue_termbuf_next=0;
   int weight;
   double avg;
   gint cl_metablock[CLMETABLOCK_ELS];
@@ -335,8 +335,8 @@ void wr_process_factor_result
   gptr res;
   gint resmeta,history;
   int ruleflag;
-  gint given_termbuf_storednext;
-  gint initial_queue_termbuf_next;
+  gint given_termbuf_storednext=0;
+  gint initial_queue_termbuf_next=0;
   int weight;
   double avg;
   gint cl_metablock[CLMETABLOCK_ELS];
@@ -537,8 +537,8 @@ void wr_process_paramodulate_result
   int ruleflag;
   //int partialresflag;
   //int clstackflag;
-  gint given_termbuf_storednext;
-  gint initial_queue_termbuf_next;
+  gint given_termbuf_storednext=0;
+  gint initial_queue_termbuf_next=0;
   int weight;
   double avg;
   gint cl_metablock[CLMETABLOCK_ELS];
@@ -1037,7 +1037,7 @@ helpers
 
 
 int wr_derived_weight_check(glb* g, double avg, int weight,  int size, int depth, int length) {
-  int res=1;
+  //int res=1;
   // first immediate weight limits
   //printf(" avg %f ",avg);
   //printf("\n weight %d size %d depth %d length %d \n",weight,size,depth,length);
@@ -1106,6 +1106,7 @@ gint wr_add_cl_to_unithash(glb* g, gptr cl, gint clmeta) {
   void* db;
 
   db=g->db;   
+  UNUSED(db);
   if (wg_rec_is_fact_clause(db,cl)) len=1;
   else len=wg_count_clause_atoms(db,cl);
   

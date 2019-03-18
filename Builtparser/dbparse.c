@@ -131,6 +131,7 @@ void* wr_process_tptp_import_clause(glb* g, void* mpool, void* cl);
 
 /* ====== Parse json ============== */
 
+/*
 int wr_import_json_file(glb* g, char* filename, char* strasfile, cvec clvec, int isincluded) {
   void* db=g->db;
   parse_parm  pp;
@@ -302,6 +303,7 @@ void* wr_parse_injson_term(glb* g, cJSON* term) {
   return NULL;
 }
 
+*/
 
 /* ====== Parse otter and tptp ============== */
 
@@ -442,12 +444,12 @@ int wr_import_prolog_file(glb* g, char* filename, char* strasfile, cvec clvec) {
   void *db=g->db;
   parse_parm  pp;
   char* fnamestr;  
-  FILE* fp;    
+  //FILE* fp;    
   
   DPRINTF("Hello from dbprologparse!\n"); 
 
   fnamestr=filename;   
-  fp=freopen(fnamestr, "r", stdin);
+  //fp=freopen(fnamestr, "r", stdin);
   pp.db=db;
   pp.filename=fnamestr;
   pp.foo="abcba";
