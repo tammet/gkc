@@ -63,6 +63,7 @@
 #include "rmain.h"
 #include "printerrutils.h"
 #include "guide.h"
+#include "init.h"
 #include "../cjson/cjson.h"
 #include "../Db/dbutil.h"
 #include "../Printer/dbotterprint.h"

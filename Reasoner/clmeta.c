@@ -544,7 +544,7 @@ void wr_print_gint_hashmask(glb* g, gint meta) {
 */
 
 gint wr_decorate_clause(glb* g, gptr xptr) {
-  term_metacalc litmeta = {0,0,0,0,0,0,0,0};
+  term_metacalc litmeta = {0,0,0,0,0,0,0,0,0,0,0};
   term_metacalc clmeta;
   void* db;
   int ruleflag;       

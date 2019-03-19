@@ -63,14 +63,14 @@ glb* wr_glb_new_full(void* db) {
   if (g==NULL) return NULL;
   tmp=wr_glb_init_shared_complex(g); // creates and fills in shared tables, substructures, etc
   if (tmp) {
-    printf("\error: cannot init shared complex datastructures\n");
+    printf("\nerror: cannot init shared complex datastructures\n");
     wr_glb_free_shared_complex(g);
     sys_free(g);
     return NULL; 
   }  
   tmp=wr_glb_init_local_complex(g); // creates and fills in local tables, substructures, etc
   if (tmp) {
-    printf("\error: cannot init local complex datastructures\n");
+    printf("\nerror: cannot init local complex datastructures\n");
     wr_glb_free_shared_complex(g);
     wr_glb_free_local_complex(g);
     sys_free(g);
@@ -190,6 +190,7 @@ int wr_glb_init_simple(glb* g) {
   (g->print_derived_precut_cl)=1;
   
   (g->print_clause_detaillevel)=1;
+  (g->print_runs)=1;
   (g->print_stats)=1;  
   
   /* tmp variables */

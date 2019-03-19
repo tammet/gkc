@@ -54,6 +54,7 @@ extern "C" {
 /* ====== Private headers and defs ======== */
 
 static void wr_set_no_printout(glb* g);
+static void wr_set_tiny_printout(glb* g);
 static void wr_set_low_printout(glb* g);
 static void wr_set_normal_printout(glb* g);
 static void wr_set_medium_printout(glb* g);
@@ -70,8 +71,8 @@ void show_cur_time(void);
 //#define DEBUG
 #undef DEBUG
 
-#define SHOWTIME
-//#undef SHOWTIME
+//#define SHOWTIME
+#undef SHOWTIME
 
 /* ====== Functions ============== */
 
@@ -87,11 +88,12 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
   char* guidebuf=NULL;
   cJSON *guide=NULL;
   int clause_count=0;
-
+ 
   /*
-    dprintf("\nargc %d\n",argc);
+    int i;
+    printf("\nargc %d\n",argc);
     for(i=0;i<argc;i++) {
-      dprintf("arg %d is %s\n",i,argv[i]);
+      printf("arg %d is %s\n",i,argv[i]);
     }
   */
 
@@ -128,11 +130,8 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
     kb_db=db;
   }
 
- 
-
-  for(iter=0; 1; iter++) {    
-
-    printf("\n**** run %d starts\n",iter+1);    
+  for(iter=0; 1; iter++) {  
+    // printf("\n**** run %d starts\n",iter+1);    
 
     g=wr_glb_new_simple(db);
     if (g==NULL) {
@@ -158,19 +157,27 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
       sys_free(g);
       return -1;
     }
-
+    
     if (!(g->print_flag)) (g->print_level_flag)=0;
     if ((g->print_level_flag)<0) (g->print_level_flag)=default_print_level;
     if ((g->print_level_flag)==0) wr_set_no_printout(g);
-    else if ((g->print_level_flag)<=10) wr_set_low_printout(g);
+    else if ((g->print_level_flag)<=10) wr_set_tiny_printout(g);
+    else if ((g->print_level_flag)<=15) wr_set_low_printout(g);
     else if ((g->print_level_flag)<=20) wr_set_normal_printout(g);
     else if ((g->print_level_flag)<=30) wr_set_medium_printout(g);
     //else if ((g->print_level_flag)<=40) wr_set_detailed_printout(g);
     else wr_set_detailed_printout(g);
+
+    if (g->print_runs) {
+      printf("\n**** run %d starts\n",iter+1);          
+    }  
+
     (g->cl_keep_weightlimit)=(g->cl_maxkeep_weightlimit);
     (g->cl_keep_sizelimit)=(g->cl_maxkeep_sizelimit);
     (g->cl_keep_depthlimit)=(g->cl_maxkeep_depthlimit);
-    (g->cl_keep_lengthlimit)=(g->cl_maxkeep_lengthlimit);    
+    (g->cl_keep_lengthlimit)=(g->cl_maxkeep_lengthlimit);   
+
+
 
     //clock_t t1=clock();
     tmp=wr_glb_init_shared_complex(g); // creates and fills in shared tables, substructures, etc: 0.03 secs
@@ -221,16 +228,16 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
     res=wr_genloop(g);
     if (g->print_flag) { 
       if (res==0) {
-        printf("\nProof found.\n"); 
+        printf("\n\nProof found.\n"); 
         wr_show_history(g,g->proof_history);
       } else if (res==1) {
-        printf("\nSearch finished without proof, result code %d.\n",res); 
-      } else if (res==2) {
-        printf("\nSearch terminated without proof.\n");        
+        printf("\n\nSearch finished without proof, result code %d.\n",res); 
+      } else if (res==2 && (g->print_runs)) {
+        printf("\n\nSearch terminated without proof.\n");        
       } else if (res==-1) {
-        printf("\nSearch cancelled: memory overflow.\n");
+        printf("\n\nSearch cancelled: memory overflow.\n");
       } else if (res<0) {
-        printf("\nSearch cancelled, error code %d.\n",res);
+        printf("\n\nSearch cancelled, error code %d.\n",res);
       }      
       wr_show_stats(g);
     }   
@@ -520,7 +527,6 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
 #ifdef DEBUG            
   printf("\nrules_found %d facts_found %d \n",rules_found,facts_found); 
 #endif   
-  printf("\nrules_found %d facts_found %d \n",rules_found,facts_found);
   return rules_found+facts_found;
 }
 
@@ -614,6 +620,32 @@ static void wr_set_no_printout(glb* g) {
   (g->print_derived_precut_cl)=0;
 
   (g->print_clause_detaillevel)=0;
+  (g->print_runs)=0;
+  (g->print_stats)=0;
+  
+}
+
+static void wr_set_tiny_printout(glb* g) {
+  (g->print_flag)=1;
+  
+  (g->parser_print_level)=0;
+  (g->print_initial_parser_result)=0;
+  (g->print_generic_parser_result)=0;
+  
+  (g->print_initial_active_list)=0;
+  (g->print_initial_passive_list)=0;
+  
+  (g->print_given_interval_trace)=0;
+  (g->print_initial_given_cl)=0;
+  (g->print_final_given_cl)=0;
+  (g->print_active_cl)=0;
+  (g->print_partial_derived_cl)=0;
+  (g->print_derived_cl)=0;
+  (g->print_derived_subsumed_cl)=0;
+  (g->print_derived_precut_cl)=0;
+  
+  (g->print_clause_detaillevel)=1;
+  (g->print_runs)=0;
   (g->print_stats)=0;
   
 }
@@ -638,6 +670,7 @@ static void wr_set_low_printout(glb* g) {
   (g->print_derived_precut_cl)=0;
   
   (g->print_clause_detaillevel)=1;
+  (g->print_runs)=1;
   (g->print_stats)=1;
   
 }
@@ -662,6 +695,7 @@ static void wr_set_normal_printout(glb* g) {
   (g->print_derived_precut_cl)=0;
   
   (g->print_clause_detaillevel)=1;
+  (g->print_runs)=1;
   (g->print_stats)=1;
   
 }  
@@ -686,6 +720,7 @@ static void wr_set_medium_printout(glb* g) {
   (g->print_derived_precut_cl)=0;
   
   (g->print_clause_detaillevel)=1;
+  (g->print_runs)=1;
   (g->print_stats)=1;
   
 }
@@ -709,6 +744,7 @@ static void wr_set_detailed_printout(glb* g) {
   (g->print_derived_precut_cl)=1;
   
   (g->print_clause_detaillevel)=1;
+  (g->print_runs)=1;
   (g->print_stats)=1;
   
 }

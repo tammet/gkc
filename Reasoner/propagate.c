@@ -283,7 +283,7 @@ void wr_process_propagated_result
   // check if result contains only ans predicates  
   tmp=wr_cl_derived_is_answer(g,res);
   if (tmp>0) {
-    printf("\nfound pure answer: ");
+    printf("\n\nfound pure answer: ");
     wr_print_clause(g,res);
     g->proof_found=1;   
     g->proof_history=history;    

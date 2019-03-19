@@ -67,6 +67,7 @@ extern "C" {
 #ifdef USE_REASONER
 #include "../Builtparser/dbparse.h"
 #include "../Reasoner/rmain.h"
+#include "../Reasoner/init.h"
 //#include "../Db/dbapi.h"
 #endif
 
@@ -146,11 +147,8 @@ echo 500000000  > /proc/sys/kernel/shmmax
 */
 
 void usage(char *prog) {
-  printf("usage: %s <command> <problem file> <strategy file>\n"\
-    "Where:\n"\
-    "  command - required, one of:\n\n"\
-    "    help (or \"-h\") - display this text.\n"\
-    "    lrunreasoner - try to solve the problem.\n", prog);
+  printf("usage: gkc <problem file>\n"\
+         "or   : gkc -prove <problem file> <strategy file>\n");
 /*  
 #ifdef USE_REASONER
     printf("    importotter <filename> - import facts/rules from "\
@@ -285,6 +283,7 @@ int main(int argc, char **argv) {
   int islocaldb=0; // lreasoner sets to 1 to avoid detaching db at the end
 
   /* look for commands in argv[1] or argv[2] */
+  
   if(argc < 3) scan_to = argc;
   else scan_to = 3;
   shmsize = 0; /* 0 size causes default size to be used */
@@ -297,6 +296,8 @@ int main(int argc, char **argv) {
 #ifdef _WIN32  
   shmname="8000";
 #endif  
+
+  //printf("\nargc %d argv[0] %s scan_to %d\n",argc,argv[0],scan_to);
   for(i=1; i<scan_to; i++) {
     if (!strcmp(argv[i],"help") || !strcmp(argv[i],"-h")) {
       usage(argv[0]);
@@ -463,7 +464,7 @@ int main(int argc, char **argv) {
 #else
       shmsize=2000000000; 
 #endif      
-      printf("\to import otter\n");
+      printf("\nto import otter\n");
       gkc_show_cur_time();
       shmptr=wg_attach_database(shmname, shmsize);
       if(!shmptr) {
@@ -487,6 +488,52 @@ int main(int argc, char **argv) {
       wg_show_database(shmptr);
 
       break;
+
+    }
+     else if(argc>(i+1) && !strcmp(argv[i],"-readkb")){
+      wg_int err;
+#ifdef _WIN32
+      shmsize=1000000000; // 2000 meg
+#else
+      shmsize=2000000000; 
+#endif      
+      printf("\nto -readkb");
+      gkc_show_cur_time();
+
+      wg_delete_database(shmname);
+      printf("\nprevious memory database deleted\n");
+      gkc_show_cur_time();
+
+      shmptr=wg_attach_database(shmname, shmsize);
+      if(!shmptr) {
+        fprintf(stderr, "Failed to attach to database.\n");
+        exit(1);
+      }
+      printf("\nto wg_import_otter_file\n");
+      gkc_show_cur_time();
+      err = wg_import_otter_file(shmptr,argv[i+1],1);
+      printf("\nexited wg_import_otter_file\n");
+      gkc_show_cur_time();
+      if(!err)
+        printf("Data imported.\n");
+      else if(err<-1)
+        fprintf(stderr, "Fatal error when importing otter file, data may be partially"\
+          " imported\n");
+      else
+        fprintf(stderr, "Import failed.\n");
+
+
+      wg_show_database(shmptr);
+
+      init_shared_database(shmptr);
+
+      printf("\nexited init_shared_database\n");
+      gkc_show_cur_time();
+
+      wg_show_database(shmptr);
+
+      break;
+
 
     } else if(argc>i && !strcmp(argv[i],"runreasoner")){
       //wg_int err;
@@ -628,7 +675,9 @@ int main(int argc, char **argv) {
       printf("\nqrun exits\n");
       break;  
 
-    } else if(argc>i && !strcmp(argv[i],"lrunreasoner")){
+    } else if(argc>i && 
+                  (!strcmp(argv[i],"lrunreasoner") ||
+                   !strcmp(argv[i],"-prove")))  {
       wg_int err;
 #ifdef _WIN32
       shmsize=1000000000; // 2000 meg
@@ -643,6 +692,38 @@ int main(int argc, char **argv) {
       }
       islocaldb=1;
       err = wg_import_otter_file(shmptr,argv[i+1],0);
+      if(!err)
+        printf("Data imported.\n");
+      else if(err<-1)
+        fprintf(stderr, "Fatal error when importing otter file, data may be partially"\
+          " imported\n");
+      else
+        fprintf(stderr, "Import failed.\n");      
+      //wg_show_database(shmptr);
+      //printf("about to call wg_run_reasoner\n");
+      err = wg_run_reasoner(shmptr,argc,argv);
+      //wg_show_database(shmptr);
+      //if(!err);
+        //printf("wg_run_reasoner finished ok.\n");
+      //else
+        //fprintf(stderr, "wg_run_reasoner finished with an error %d.\n",err);
+      //break;
+      break;
+    } else if(i==1 && argc==2) {
+      wg_int err;
+#ifdef _WIN32
+      shmsize=1000000000; // 2000 meg
+#else
+      shmsize=2000000000; 
+#endif
+      //shmsize=20000000;
+      shmptr=wg_attach_local_database(shmsize);
+      if(!shmptr) {
+        fprintf(stderr, "Failed to attach local database.\n");
+        exit(1);
+      }
+      islocaldb=1;
+      err = wg_import_otter_file(shmptr,argv[1],0);
       if(!err)
         printf("Data imported.\n");
       else if(err<-1)

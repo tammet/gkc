@@ -247,6 +247,7 @@ typedef struct {
   int print_derived_precut_cl;
   
   int print_clause_detaillevel;
+  int print_runs;
   int print_stats;
   
   /* tmp variables */

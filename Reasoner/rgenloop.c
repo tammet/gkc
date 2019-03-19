@@ -128,10 +128,14 @@ int wr_genloop(glb* g) {
 
     
     if (((g->passed_ratio)>0.85) &&  (g->res_shortarglen_limit)!=1) {
-      wr_printf("\n !!!! g->passed_ratio %f\n",g->passed_ratio);
+      if (g->print_given_interval_trace) {
+        wr_printf("\n !!!! g->passed_ratio %f\n",g->passed_ratio);
+      }
       (g->res_shortarglen_limit)=1;
     } else if (((g->passed_ratio)>0.5) &&  (g->pick_given_queue_ratio)!=100) {
-      wr_printf("\n !!!! g->passed_ratio %f\n",g->passed_ratio);      
+      if (g->print_given_interval_trace) {
+        wr_printf("\n !!!! g->passed_ratio %f\n",g->passed_ratio);      
+      }
       (g->pick_given_queue_ratio)=100;
     }
     
@@ -153,7 +157,7 @@ int wr_genloop(glb* g) {
 
 
     if (!picked_given_cl_cand && !(g->stat_given_candidates)) {
-       if (g->print_flag) printf("No candidate clauses found.\n");
+       if ((g->print_flag) && (g->print_runs)) printf("No candidate clauses found.\n");
        return 2; // code for no candidates at all.
     }
     // given_kept_flag will now indicate whether to add to active list or not

@@ -250,7 +250,7 @@ void wr_process_resolve_result
   //wr_print_clause(g,res);
   tmp=wr_cl_derived_is_answer(g,res);
   if (tmp>0) {
-    printf("\nfound pure answer: ");
+    printf("\n\nfound pure answer: ");
     wr_print_clause(g,res);
     g->proof_found=1;   
     g->proof_history=history;    
@@ -458,7 +458,7 @@ void wr_process_factor_result
   //wr_print_clause(g,res);
   tmp=wr_cl_derived_is_answer(g,res);
   if (tmp>0) {
-    printf("\nfound pure answer: ");
+    printf("\n\nfound pure answer: ");
     wr_print_clause(g,res);
     g->proof_found=1;
     g->proof_history=history;     
@@ -754,7 +754,7 @@ void wr_process_paramodulate_result
   //wr_print_clause(g,res);
   tmp=wr_cl_derived_is_answer(g,res);
   if (tmp>0) {
-    printf("\nfound pure answer: ");
+    printf("\n\nfound pure answer: ");
     wr_print_clause(g,res);
     g->proof_found=1;     
     g->proof_history=history;   

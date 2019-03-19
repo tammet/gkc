@@ -863,8 +863,10 @@ static int free_shared_memory(int key) {
           "Access denied");
         break;
       case ENOENT:
+        /*
         show_memory_error("linking to shared memory segment (for freeing): "\
           "Segment does not exist");
+        */  
         break;
       default:
         show_memory_error("linking to shared memory segment (for freeing) failed");
