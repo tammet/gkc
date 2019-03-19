@@ -16,6 +16,7 @@
 *.log
 *.status
 *.sub
+*.obj
 
 .libs/*
 autom4te.cache/
