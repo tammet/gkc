@@ -3,11 +3,12 @@ gkc
 
 GKC is a reasoning system for large knowledge bases.
 
-For a compiled binary for Linux as well as instructions
-for running gkc and logfiles of experimental runs,
-see the release v0.1-alpha:
+For compiled binaries for Linux and Windows, 
+as well as instructions for running gkc and logfiles of
+experimental runs, see the releases v0.1-beta and v0.1-alpha:
 
-https://github.com/tammet/gkc/releases/tag/v0.1-alpha
+* https://github.com/tammet/gkc/releases/tag/v0.1-beta
+* https://github.com/tammet/gkc/releases/tag/v0.1-alpha
 
 Compiling
 ---------
@@ -48,23 +49,30 @@ Notice that GKC is licenced under AGPL v3.
 Running
 -------
 
-Run gkc as 
+Simplest way to run:
 
-    gkc lrunreasoner problem_file_name strategy_file_name
+    ./gkc problem_file_name
+
+Example:
+
+    ./gkc Examples/steam.p
+
+In order to select options and strategies, run gkc as 
+
+    ./gkc -prove problem_file_name strategy_file_name
 
 example:
 
-    gkc lrunreasoner /opt/TPTP/Problems/NUM/NUM925+5.p runs.txt
+    ./gkc -prove /opt/TPTP/Problems/NUM/NUM925+5.p runs.txt
 
 where
-* *lrunreasoner* is a command to gkc
-* *problem_file_name* is a problem file in TPTP syntax, possibly containing
-include commands like `include('Axioms/CSR002+5.ax')`. 
-The included files are searched either from the local folder or a fixed
-path `/opt/TPTP/` . For this example the file `/opt/TPTP/Axioms/CSR002+5.ax`
-would be looked up.
-* *strategy_file_name* is a json-syntax file for giving options and strategies
-to gkc. See and use the examples in the following Experimental results chapter.
+* `-prove` is a command to gkc
+* `problem_file_name` is a problem file in TPTP syntax, possibly containing include commands like `include('Axioms/CSR002+5.ax')`. The included files are searched either from the local folder or a fixed
+path `opt/TPTP/` . For this exam the file `opt/TPTP/Axioms/CSR002+5.ax` would be looked up. 
+The TPTP problems and axioms are not included in the gkc distribution: 
+for the TPTP syntax and problems, see http://www.tptp.org/
+* `strategy_file_name` is a json-syntax file for giving options and strategies to gkc. See and use the
+example files `unit.txt`, `neg.txt`, `strat.txt` in the `Examples` folder.
 
 Experimental results
 --------------------
