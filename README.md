@@ -85,7 +85,7 @@ where
 * `-prove` is a command to gkc
 * `problem_file_name` is a problem file in TPTP syntax, possibly containing include commands like 
 `include('Axioms/CSR002+5.ax')`. The included files are searched either from the local folder or a fixed
-path `opt/TPTP/` . For this example the file `opt/TPTP/Axioms/CSR002+5.ax` would be looked up. 
+path `/opt/TPTP/` . For this example the file `/opt/TPTP/Axioms/CSR002+5.ax` would be looked up. 
 The TPTP problems and axioms are not included in the gkc distribution: 
 for the TPTP syntax and problems, see http://www.tptp.org/
 * `strategy_file_name` is a json-syntax file for giving options and strategies to gkc. See and use the
