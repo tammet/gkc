@@ -30,8 +30,8 @@
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
-#ifndef YY_WG_YYOTTER_DBOTTER_TAB_H_INCLUDED
-# define YY_WG_YYOTTER_DBOTTER_TAB_H_INCLUDED
+#ifndef YY_WG_YYOTTER_PARSER_DBOTTER_TAB_H_INCLUDED
+# define YY_WG_YYOTTER_PARSER_DBOTTER_TAB_H_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
@@ -79,4 +79,4 @@ typedef int YYSTYPE;
 
 int wg_yyotterparse (parse_parm *parm, void *scanner);
 
-#endif /* !YY_WG_YYOTTER_DBOTTER_TAB_H_INCLUDED  */
+#endif /* !YY_WG_YYOTTER_PARSER_DBOTTER_TAB_H_INCLUDED  */

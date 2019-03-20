@@ -68,7 +68,7 @@
 
 
 /* Copy the first part of user declarations.  */
-#line 30 "dbprolog.y" /* yacc.c:339  */
+#line 30 "Parser/dbprolog.y" /* yacc.c:339  */
 
 
 #include <stdio.h>
@@ -77,7 +77,7 @@
 #define DBPARM ((void*)(parm->db))
 
 
-#line 81 "dbprolog.tab.c" /* yacc.c:339  */
+#line 81 "Parser/dbprolog.tab.c" /* yacc.c:339  */
 
 # ifndef YY_NULLPTR
 #  if defined __cplusplus && 201103L <= __cplusplus
@@ -97,8 +97,8 @@
 
 /* In a future release of Bison, this section will be replaced
    by #include "dbprolog.tab.h".  */
-#ifndef YY_WG_YYPROLOG_DBPROLOG_TAB_H_INCLUDED
-# define YY_WG_YYPROLOG_DBPROLOG_TAB_H_INCLUDED
+#ifndef YY_WG_YYPROLOG_PARSER_DBPROLOG_TAB_H_INCLUDED
+# define YY_WG_YYPROLOG_PARSER_DBPROLOG_TAB_H_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
@@ -133,11 +133,11 @@ typedef int YYSTYPE;
 
 int wg_yyprologparse (parse_parm *parm, void *scanner);
 
-#endif /* !YY_WG_YYPROLOG_DBPROLOG_TAB_H_INCLUDED  */
+#endif /* !YY_WG_YYPROLOG_PARSER_DBPROLOG_TAB_H_INCLUDED  */
 
 /* Copy the second part of user declarations.  */
 
-#line 141 "dbprolog.tab.c" /* yacc.c:358  */
+#line 141 "Parser/dbprolog.tab.c" /* yacc.c:358  */
 
 #ifdef short
 # undef short
@@ -1264,259 +1264,259 @@ yyreduce:
   switch (yyn)
     {
         case 2:
-#line 74 "dbprolog.y" /* yacc.c:1646  */
+#line 74 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,(yyvsp[0]),MKWGNIL); }
-#line 1270 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1270 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 3:
-#line 77 "dbprolog.y" /* yacc.c:1646  */
+#line 77 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGNIL; }
-#line 1276 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1276 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 4:
-#line 78 "dbprolog.y" /* yacc.c:1646  */
+#line 78 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,(yyvsp[-1]), (yyvsp[0])); }
-#line 1282 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1282 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 5:
-#line 81 "dbprolog.y" /* yacc.c:1646  */
+#line 81 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = (yyvsp[0]); }
-#line 1288 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1288 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 6:
-#line 82 "dbprolog.y" /* yacc.c:1646  */
+#line 82 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = (yyvsp[0]); }
-#line 1294 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1294 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 7:
-#line 85 "dbprolog.y" /* yacc.c:1646  */
+#line 85 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,(yyvsp[-1]), MKWGNIL); }
-#line 1300 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1300 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 8:
-#line 88 "dbprolog.y" /* yacc.c:1646  */
+#line 88 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,(yyvsp[-3])), (yyvsp[-1])); }
-#line 1306 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1306 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 9:
-#line 89 "dbprolog.y" /* yacc.c:1646  */
+#line 89 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,"not"), MKWGPAIR(DBPARM,MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,(yyvsp[-3])), (yyvsp[-1])), MKWGNIL)); }
-#line 1312 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1312 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 10:
-#line 90 "dbprolog.y" /* yacc.c:1646  */
+#line 90 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,"~"), MKWGPAIR(DBPARM,MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,(yyvsp[-3])), (yyvsp[-1])), MKWGNIL)); }
-#line 1318 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1318 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 11:
-#line 93 "dbprolog.y" /* yacc.c:1646  */
+#line 93 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,(yyvsp[0]), MKWGNIL); }
-#line 1324 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1324 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 12:
-#line 94 "dbprolog.y" /* yacc.c:1646  */
+#line 94 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,(yyvsp[-2]), (yyvsp[0])); }
-#line 1330 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1330 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 13:
-#line 97 "dbprolog.y" /* yacc.c:1646  */
+#line 97 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = (yyvsp[0]); }
-#line 1336 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1336 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 14:
-#line 98 "dbprolog.y" /* yacc.c:1646  */
+#line 98 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGSTRING(DBPARM,(yyvsp[0])); }
-#line 1342 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1342 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 15:
-#line 99 "dbprolog.y" /* yacc.c:1646  */
+#line 99 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGINT(DBPARM,(yyvsp[0])); }
-#line 1348 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1348 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 16:
-#line 100 "dbprolog.y" /* yacc.c:1646  */
+#line 100 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGSTRING(DBPARM,(yyvsp[0])); }
-#line 1354 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1354 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 17:
-#line 101 "dbprolog.y" /* yacc.c:1646  */
+#line 101 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGSTRING(DBPARM,(yyvsp[0])); }
-#line 1360 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1360 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 18:
-#line 104 "dbprolog.y" /* yacc.c:1646  */
+#line 104 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,(yyvsp[-3]), (yyvsp[-1])); }
-#line 1366 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1366 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 19:
-#line 107 "dbprolog.y" /* yacc.c:1646  */
+#line 107 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,"not"), MKWGPAIR(DBPARM,(yyvsp[0]), MKWGNIL)), MKWGNIL); }
-#line 1372 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1372 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 20:
-#line 108 "dbprolog.y" /* yacc.c:1646  */
+#line 108 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,"not"), MKWGPAIR(DBPARM,(yyvsp[-2]), MKWGNIL)), (yyvsp[0])); }
-#line 1378 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1378 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 21:
-#line 109 "dbprolog.y" /* yacc.c:1646  */
+#line 109 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,"and"), MKWGPAIR(DBPARM,(yyvsp[-2]), (yyvsp[0]))), MKWGNIL); }
-#line 1384 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1384 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 22:
-#line 113 "dbprolog.y" /* yacc.c:1646  */
+#line 113 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,(yyvsp[0]), MKWGNIL); }
-#line 1390 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1390 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 23:
-#line 114 "dbprolog.y" /* yacc.c:1646  */
+#line 114 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = (yyvsp[0]); }
-#line 1396 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1396 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 24:
-#line 115 "dbprolog.y" /* yacc.c:1646  */
+#line 115 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = (yyvsp[0]); }
-#line 1402 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1402 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 25:
-#line 118 "dbprolog.y" /* yacc.c:1646  */
+#line 118 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGNIL; }
-#line 1408 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1408 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 26:
-#line 119 "dbprolog.y" /* yacc.c:1646  */
+#line 119 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,(yyvsp[-2]), (yyvsp[0])); }
-#line 1414 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1414 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 27:
-#line 120 "dbprolog.y" /* yacc.c:1646  */
+#line 120 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,(yyvsp[-2]), (yyvsp[0])); }
-#line 1420 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1420 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 28:
-#line 123 "dbprolog.y" /* yacc.c:1646  */
+#line 123 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGNIL; }
-#line 1426 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1426 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 29:
-#line 124 "dbprolog.y" /* yacc.c:1646  */
+#line 124 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,(yyvsp[-2]), (yyvsp[0])); }
-#line 1432 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1432 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 30:
-#line 125 "dbprolog.y" /* yacc.c:1646  */
+#line 125 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,(yyvsp[-2]), (yyvsp[0])); }
-#line 1438 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1438 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 31:
-#line 129 "dbprolog.y" /* yacc.c:1646  */
+#line 129 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = (yyvsp[-1]); }
-#line 1444 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1444 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 32:
-#line 132 "dbprolog.y" /* yacc.c:1646  */
+#line 132 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,(yyvsp[-3])), MKWGPAIR(DBPARM,(yyvsp[-1]), MKWGNIL)); }
-#line 1450 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1450 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 33:
-#line 135 "dbprolog.y" /* yacc.c:1646  */
+#line 135 "Parser/dbprolog.y" /* yacc.c:1646  */
     {(yyval) = MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,(yyvsp[-5])), MKWGPAIR(DBPARM,(yyvsp[-3]), MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,":-"), (yyvsp[0])))); }
-#line 1456 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1456 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 34:
-#line 138 "dbprolog.y" /* yacc.c:1646  */
+#line 138 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,(yyvsp[0]), MKWGNIL); }
-#line 1462 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1462 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 35:
-#line 139 "dbprolog.y" /* yacc.c:1646  */
+#line 139 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,(yyvsp[-2]), (yyvsp[0])); }
-#line 1468 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1468 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 36:
-#line 143 "dbprolog.y" /* yacc.c:1646  */
+#line 143 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = (yyvsp[-1]); }
-#line 1474 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1474 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 37:
-#line 146 "dbprolog.y" /* yacc.c:1646  */
+#line 146 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = (yyvsp[0]); }
-#line 1480 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1480 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 38:
-#line 147 "dbprolog.y" /* yacc.c:1646  */
+#line 147 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,"and"), MKWGPAIR(DBPARM,(yyvsp[-2]), (yyvsp[0]))), MKWGNIL); }
-#line 1486 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1486 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 39:
-#line 148 "dbprolog.y" /* yacc.c:1646  */
+#line 148 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,"or"), MKWGPAIR(DBPARM,(yyvsp[-2]), (yyvsp[0]))), MKWGNIL); }
-#line 1492 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1492 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 40:
-#line 151 "dbprolog.y" /* yacc.c:1646  */
+#line 151 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,(yyvsp[-3])), MKWGPAIR(DBPARM,(yyvsp[-1]), MKWGNIL)); }
-#line 1498 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1498 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 41:
-#line 152 "dbprolog.y" /* yacc.c:1646  */
+#line 152 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,"not"), (yyvsp[-1])); }
-#line 1504 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1504 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 42:
-#line 153 "dbprolog.y" /* yacc.c:1646  */
+#line 153 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = (yyvsp[0]); }
-#line 1510 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1510 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 43:
-#line 154 "dbprolog.y" /* yacc.c:1646  */
+#line 154 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,"cut"), MKWGNIL); }
-#line 1516 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1516 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
 
-#line 1520 "dbprolog.tab.c" /* yacc.c:1646  */
+#line 1520 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -1744,6 +1744,6 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 158 "dbprolog.y" /* yacc.c:1906  */
+#line 158 "Parser/dbprolog.y" /* yacc.c:1906  */
 
 

@@ -13,6 +13,9 @@ experimental runs, see the releases v0.1-beta and v0.1-alpha:
 Compiling
 ---------
 
+There are three alternative ways to compile gkc,
+from simpler to more complicated.
+
 To compile the Linux binary yourself, use the 
 
     compile.sh
@@ -30,6 +33,14 @@ script in the top folder creating an executable `gkc.exe`
 in the fop folder. We have tested compilation under 
 the 64-bit Windows  10 with the 2017 Visual Studio C
 community edition command-line tool cl.
+
+To compile with a simple makefile under Linux, do
+
+    make -f smakefile
+
+creating an executable `gkc` in the top folder.
+See the `smakefile` for optionally compiling without
+`flex` and `bison`.
 
 To compile with autotools under Linux, do
 
@@ -67,8 +78,9 @@ example:
 
 where
 * `-prove` is a command to gkc
-* `problem_file_name` is a problem file in TPTP syntax, possibly containing include commands like `include('Axioms/CSR002+5.ax')`. The included files are searched either from the local folder or a fixed
-path `opt/TPTP/` . For this exam the file `opt/TPTP/Axioms/CSR002+5.ax` would be looked up. 
+* `problem_file_name` is a problem file in TPTP syntax, possibly containing include commands like 
+`include('Axioms/CSR002+5.ax')`. The included files are searched either from the local folder or a fixed
+path `opt/TPTP/` . For this example the file `opt/TPTP/Axioms/CSR002+5.ax` would be looked up. 
 The TPTP problems and axioms are not included in the gkc distribution: 
 for the TPTP syntax and problems, see http://www.tptp.org/
 * `strategy_file_name` is a json-syntax file for giving options and strategies to gkc. See and use the
