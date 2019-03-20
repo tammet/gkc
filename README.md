@@ -50,7 +50,7 @@ To compile with autotools under Linux, do
     ./configure
     make
 
-creating an executable `Main/wgc`
+creating an executable `Main/gkc`
 and optionally do
 
     sudo make install
