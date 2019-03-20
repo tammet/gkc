@@ -89,7 +89,7 @@ path `/opt/TPTP/` . For this example the file `/opt/TPTP/Axioms/CSR002+5.ax` wou
 The TPTP problems and axioms are not included in the gkc distribution: 
 for the TPTP syntax and problems, see http://www.tptp.org/
 * `strategy_file_name` is a json-syntax file for giving options and strategies to gkc. See and use the
-example files `unit.txt`, `neg.txt`, `strat.txt` in the `Examples` folder.
+example files `unit.txt`, `neg.txt`, `runs.txt` in the `Examples` folder.
 
 
 Experimental results
