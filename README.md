@@ -100,9 +100,9 @@ https://github.com/tammet/gkc/releases/tag/v0.1-alpha
 
 * The file `gkc_v01_on_cascj9fof.tar.gz` contains the full logs for the CASC-J9 FOF 
 division problems, see the readme.txt in the unpacked file. 
-* The `gkc_v01_on_cascj9fof.tar.gz` contains separate one-run-only logs
+* The `gkc_v01_on_large_opencyc.tar.gz` contains separate one-run-only logs
 for the seven largest problems from the previous set.
 * The runs.txt strategy file was used for proof search as logged 
 in `gkc_v01_on_cascj9fof.tar.gz`
 * The query.txt strategy file was used for proof search logged 
-in `gkc_v01_on_cascj9fof.tar.gz`
+in `gkc_v01_on_large_opencyc.tar.gz`
