@@ -16,7 +16,7 @@ Compiling
 There are three alternative ways to compile gkc,
 from simpler to more complicated.
 
-To compile the Linux binary yourself, use the 
+To compile the Linux or OS X binary yourself, use the 
 
     compile.sh
   
@@ -24,8 +24,11 @@ script in the top folder creating a static binary gkc
 in the top folder. This script copies one header file,
 calls gcc once and does nothing else. The result 
 is the binary `gkc` in the top folder.
+
 We have tested compilation with gcc 5.4 and clang 3.8
-under Ubuntu 16_04.
+under Ubuntu 16_04 and with clang under OS X Mojave: 
+if the OS X compilation fails, remove the -static flag
+from compile.sh and then try again. 
 
 To compile the Windows binary yourself, use the
 
