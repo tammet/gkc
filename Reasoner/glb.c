@@ -88,6 +88,7 @@ glb* wr_glb_new_simple(void* db) {
   (g->db)=db;          // store database pointer to glb structure
   (g->kb_db)=NULL;          
   (g->child_db)=NULL;
+  (g->inkb)=0;
   wr_glb_init_simple(g);  // fills in simple values (ints, strings etc)   
   return g;  
 } 

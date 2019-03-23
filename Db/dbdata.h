@@ -223,11 +223,18 @@ wg_int wg_decode_uri_prefix_copy(void* db, wg_int data, char* strbuf, wg_int buf
 
 // reasoner special funs:
 
+/* -------- reasoner specific --------- */
+
+#ifdef USE_REASONER
+
+void* wg_rawalloc(void* db, gint wantedbytes);
+
 wg_int wg_set_uri_rmeta(void* db, wg_int data, wg_int meta);
 wg_int wg_decode_uri_rmeta(void* db, wg_int data);
 wg_int wg_set_uri_rhash(void* db, wg_int data, wg_int rhash);
 wg_int wg_decode_uri_rhash(void* db, wg_int data);
 
+#endif
 
 // blob (binary large object, i.e. any kind of data)
 // along with an obligatory length in bytes

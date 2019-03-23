@@ -115,6 +115,35 @@ static gint show_data_error_str(void* db, char* errmsg, char* str);
 /* ====== Functions ============== */
 
 
+#ifdef USE_REASONER
+
+void* wg_rawalloc(void* db, gint wantedbytes) {
+  gint offset, gints;
+
+  if (wantedbytes%(sizeof(gint))) {
+    gints=((sizeof(gint)-(wantedbytes % sizeof(gint)))+wantedbytes) / sizeof(gint);    
+  } else {
+    gints=wantedbytes / sizeof(gint);
+  }       
+  offset=wg_alloc_gints(db,
+                     &(dbmemsegh(db)->reasoner_area_header),
+                     gints);
+                    //length+RECORD_HEADER_GINTS);                    
+  if (!offset) {
+    show_data_error_nr(db,"cannot rawalloc bytes ",wantedbytes);
+  }
+  /*
+  dbstore(db, offset+RECORD_META_POS*sizeof(gint), 0);
+  dbstore(db, offset+RECORD_BACKLINKS_POS*sizeof(gint), 0);
+  for(i=RECORD_HEADER_GINTS;i<length+RECORD_HEADER_GINTS;i++) {
+    dbstore(db,offset+(i*(sizeof(gint))),0);
+  }
+  */  
+  return offsettoptr(db,offset);
+}
+
+#endif
+
 
 /* ------------ full record handling ---------------- */
 

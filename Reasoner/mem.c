@@ -42,7 +42,8 @@ extern "C" {
   
 /* ====== Private headers and defs ======== */
 
-
+//#define DEBUG
+#undef DEBUG
 
 /* ======= Private protos ================ */
 
@@ -55,21 +56,111 @@ extern "C" {
 void* wr_malloc(glb* g, int bytes) {
   ++(g->stat_wr_mallocs);
   (g->stat_wr_malloc_bytes)+=bytes;
-  //printf("!!! wr malloc %d \n",bytes);
-  return sys_malloc(bytes);  
+#ifdef DEBUG  
+  printf("\nwr_malloc %d \n",bytes);
+#endif  
+  if (g->inkb) return wr_inkb_malloc(g,bytes);
+  else return sys_malloc(bytes);  
 }  
+
+void* wr_calloc(glb* g, size_t nmemb, int bytes) {
+  ++(g->stat_wr_mallocs);
+  (g->stat_wr_malloc_bytes)+=bytes;
+#ifdef DEBUG  
+  printf("\nwr_calloc nmemb %d bytes each %d altogether %d\n",nmemb,bytes,nmemb*bytes);
+#endif  
+  if (g->inkb) return wr_inkb_calloc(g,nmemb,bytes);
+  else return sys_calloc(nmemb,bytes);  
+} 
 
 void* wr_realloc(glb* g, void* p, int bytes) {
   ++(g->stat_wr_reallocs);
   (g->stat_wr_realloc_bytes)+=bytes;
-  //printf("!!! wr realloc %d \n",bytes);
-  return sys_realloc(p,bytes);  
+#ifdef DEBUG   
+  printf("\nwr_realloc %d \n",bytes);
+#endif  
+  if (g->inkb) return wr_inkb_realloc(g,p,bytes);
+  else return sys_realloc(p,bytes);  
 }
 
 void wr_free(glb* g, void* p) {
   ++(g->stat_wr_frees);
-  sys_free(p);
+#ifdef DEBUG 
+  printf("\nwr_free\n");
+#endif  
+  if (g->inkb) wr_inkb_free(g,p);
+  else sys_free(p);
   return;  
+}
+
+void* wr_inkb_malloc(glb* g, int bytes) {
+  void* tmp;
+  void* ntmp;
+  /*
+  tmp=wg_create_record(g->db,bytes);
+  printf("\n");
+  wg_print_record(g->db,tmp);
+  printf("\n");
+  return tmp;
+  */
+#ifdef DEBUG  
+  printf("\nwr_inkb_malloc bytes %d\n",bytes); 
+#endif
+  tmp=wg_rawalloc(g->db,bytes+sizeof(gint));   
+  ntmp=(void*)((char*)tmp+sizeof(gint));
+#ifdef DEBUG  
+  printf("\nwr_inkb_malloc got tmp %ld ntmp %ld size at tmp %ld\n",
+       (gint)tmp,(gint)ntmp,(gint)*((gint*)tmp));
+#endif       
+  return ntmp;
+}
+
+void* wr_inkb_calloc(glb* g, size_t nmemb, int bytes) {
+  void* tmp;
+  void* ntmp;
+#ifdef DEBUG  
+  printf("\nwr_inkb_calloc nmemb %d bytes each %d altogether %d\n",nmemb,bytes,nmemb*bytes);
+#endif
+  tmp=wg_rawalloc(g->db,(nmemb*bytes)+sizeof(gint));
+  ntmp=(void*)((char*)tmp+sizeof(gint));
+  memset(ntmp,0,(nmemb*bytes));
+#ifdef DEBUG  
+  printf("\nwr_inkb_calloc got tmp %ld ntmp %ld size at tmp %ld cleared bytes %d\n",
+    (gint)tmp,(gint)ntmp,(gint)*((gint*)tmp),(nmemb*bytes));
+#endif  
+  return ntmp; 
+}
+
+void* wr_inkb_realloc(glb* g, void* p, int bytes) {
+  void* tmp;
+  void* oldstart;
+  void* ntmp;
+  gint size;
+#ifdef DEBUG  
+  printf("\nwr_inkb_realloc bytes %d\n",bytes); 
+#endif
+  oldstart=(void*)((char*)p-sizeof(gint));
+  size= *((gint*)oldstart);
+#ifdef DEBUG  
+  printf("p %ld oldstart %ld \n",(gint)p,(gint)oldstart);  
+  printf("old size %ld\n",size);
+#endif  
+  tmp=wg_rawalloc(g->db,bytes+sizeof(gint));
+  ntmp=(void*)((char*)tmp+sizeof(gint));
+  
+  memcpy(ntmp,p,size);
+#ifdef DEBUG    
+  printf("\nwr_inkb_realloc got tmp %ld ntmp %ld size at tmp %ld\n",
+       (gint)tmp,(gint)ntmp,(gint)*((gint*)tmp));
+#endif
+  return ntmp;
+}
+
+void wr_inkb_free(glb* g, void* p) {
+  //wg_rawalloc(g->db,bytes); 
+#ifdef DEBUG    
+  printf("\nwr_inkb_free p %ld\n",(gint)p);
+#endif  
 }
 
 
@@ -89,7 +180,7 @@ vec wr_vec_new(glb* g,int len) {
   //int i;
   
   //res = (vec) wr_malloc(g,((len+1)*sizeof(gint))+OVER_MALLOC_BYTES);   
-  res = (vec) calloc(sizeof(gint),(len+1)+OVER_MALLOC_BYTES);
+  res = (vec) wr_calloc(g,(len+1)+1,sizeof(gint)); // !!!!! check if necessary to clear
   if (res==NULL) {
     (g->alloc_err)=1;    
     wr_alloc_err2int(g,"Cannot allocate memory for a vec with length",len);
@@ -113,7 +204,7 @@ vec wr_vec_new_zero(glb* g,int len) {
   //int i;
   
   //res = (vec) wr_malloc(g,((len+1)*sizeof(gint))+OVER_MALLOC_BYTES);   
-  res = (vec) calloc(sizeof(gint),(len+1)+OVER_MALLOC_BYTES);
+  res = (vec) wr_calloc(g,(len+1)+1,sizeof(gint));
   if (res==NULL) {
     (g->alloc_err)=1;    
     wr_alloc_err2int(g,"Cannot allocate memory for a vec with length",len);

@@ -44,6 +44,7 @@
 #include "glb.h"
 
 #define sys_malloc malloc ///< never use malloc: use sys_malloc as a last resort
+#define sys_calloc calloc ///< never use calloc: use sys_calloc as a last resort
 #define sys_free free     ///< never use free: use sys_free as a last resort
 #define sys_realloc realloc  ///< use sys_realloc instead of realloc
 
@@ -67,11 +68,20 @@
 #define rotp(g,offset) ((gptr)(otp(((g)->db),(offset))))
 #define rpto(g,realptr)((gint)(pto(((g)->db),(realptr))))
 
+#define db_rglb(db) ((glb*)(offsettoptr((db),(dbmemsegh(db)->rglb))))
+#define r_db_rglb(g) ((glb*)(offsettoptr(((g)->db),(dbmemsegh((g)->db)->rglb))))
+
 /* ======= prototypes ===== */
 
 void* wr_malloc(glb* g, int bytes);
+void* wr_calloc(glb* g, size_t nmemb, int bytes);
 void* wr_realloc(glb* g, void* p, int bytes);
 void wr_free(glb* g, void* p);
+
+void* wr_inkb_malloc(glb* g, int bytes);
+void* wr_inkb_calloc(glb* g, size_t nmemb, int bytes);
+void* wr_inkb_realloc(glb* g, void* p, int bytes);
+void wr_inkb_free(glb* g, void* p);
 
 vec wr_vec_new(glb* g, int len);
 vec wr_vec_new_zero(glb* g,int len);

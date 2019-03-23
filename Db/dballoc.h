@@ -477,6 +477,7 @@ typedef struct _db_memsegment_header {
   gint key;        /** global shared mem key */
 #ifdef USE_REASONER
   void* kb_db; /** pointer to the knowledge base shared mem db, if available */
+  gint rglb; /** offset to the reasoner global block */
 #endif  
   // areas
   db_area_header datarec_area_header;
@@ -493,6 +494,9 @@ typedef struct _db_memsegment_header {
   db_area_header indexhdr_area_header;
   db_area_header indextmpl_area_header;
   db_area_header indexhash_area_header;
+#ifdef USE_REASONER  
+  db_area_header reasoner_area_header;
+#endif  
   // logging structures
   db_logging_area_header logging;
   // recptr bitmap

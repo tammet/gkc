@@ -132,6 +132,9 @@ void wg_show_strhash(void* db);
 void wg_show_database(void* db);
 void gkc_show_cur_time(void);
 
+//#define SHOW_CONTENTS 1
+#undef SHOW_CONTENTS
+
 /* ====== Functions ============== */
 
 
@@ -509,7 +512,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Failed to attach to database.\n");
         exit(1);
       }
-      printf("\nto wg_import_otter_file\n");
+      printf("\nto wg_import_otter_file %s\n",argv[i+1]);
       gkc_show_cur_time();
       err = wg_import_otter_file(shmptr,argv[i+1],1);
       printf("\nexited wg_import_otter_file\n");
@@ -527,10 +530,15 @@ int main(int argc, char **argv) {
 
       init_shared_database(shmptr);
 
-      printf("\nexited init_shared_database\n");
+      printf("\nexited init_shared_database\n");      
       gkc_show_cur_time();
 
       wg_show_database(shmptr);
+
+      //(((glb*)(offsettoptr(shmptr,(dbmemsegh(shmptr)->rglb))))->stat_built_cl)=10;
+      (db_rglb(shmptr)->stat_built_cl)=21;
+      //wr_show_stats(offsettoptr(shmptr,(dbmemsegh(shmptr)->rglb)));
+      wr_show_stats(db_rglb(shmptr));
 
       break;
 
@@ -1451,16 +1459,20 @@ void wg_show_strhash(void* db) {
         (int) i, (int) hashchain);
       for(;hashchain!=0;
           hashchain=dbfetch(db,decode_longstr_offset(hashchain)+LONGSTR_HASHCHAIN_POS*sizeof(gint))) {
-          //printf("hashchain %d decode_longstr_offset(hashchain) %d fulladr %d contents %d\n",
-          //       hashchain,
-          //       decode_longstr_offset(hashchain),
-          //       (decode_longstr_offset(hashchain)+LONGSTR_HASHCHAIN_POS*sizeof(gint)),
-          //       dbfetch(db,decode_longstr_offset(hashchain)+LONGSTR_HASHCHAIN_POS*sizeof(gint)));
+#ifdef SHOW_CONTENTS             
+          printf("hashchain %d decode_longstr_offset(hashchain) %d fulladr %d contents %d\n",
+                 hashchain,
+                 decode_longstr_offset(hashchain),
+                 (decode_longstr_offset(hashchain)+LONGSTR_HASHCHAIN_POS*sizeof(gint)),
+                 dbfetch(db,decode_longstr_offset(hashchain)+LONGSTR_HASHCHAIN_POS*sizeof(gint)));
+#endif          
           type=wg_get_encoded_type(db,hashchain);
           printf("  ");
-          //wg_debug_print_value(db,hashchain);
+#ifdef SHOW_CONTENTS                    
+          wg_debug_print_value(db,hashchain);
           printf("\n");
-          //printf("  type %s",wg_get_type_name(db,type));
+          printf("  type %s",wg_get_type_name(db,type));
+#endif          
           if (type==WG_BLOBTYPE) {
             //printf(" len %d\n",wg_decode_str_len(db,hashchain));
           } else if (type==WG_STRTYPE || type==WG_XMLLITERALTYPE ||

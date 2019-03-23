@@ -114,6 +114,7 @@ gint wg_init_db_memsegment_with_kb(void* db, gint key, gint size, void* kb) {
 
 #ifdef USE_REASONER
   dbh->kb_db=kb;
+  dbh->rglb=0;
   //printf("\n in wg_init_db_memsegment_with_kb  dbh->kb_db is %d\n",(int)dbh->kb_db);
 #endif
 #ifdef CHECK
@@ -213,6 +214,19 @@ gint wg_init_db_memsegment_with_kb(void* db, gint key, gint size, void* kb) {
   if (tmp) {  show_dballoc_error(db," cannot initialize indexhash area buckets"); return -1; }
   tmp=init_subarea_freespace(db,&(dbh->indexhash_area_header),0);
   if (tmp) {  show_dballoc_error(db," cannot initialize indexhash subarea 0"); return -1; }
+
+#ifdef USE_REASONER
+  // reasoner datastructures
+  
+  tmp=init_db_subarea(db,&(dbh->reasoner_area_header),0,INITIAL_SUBAREA_SIZE);
+  if (tmp) {  show_dballoc_error(db," cannot create reasoner area"); return -1; }
+  (dbh->reasoner_area_header).fixedlength=0;
+  tmp=init_area_buckets(db,&(dbh->reasoner_area_header)); // fill buckets with 0-s
+  if (tmp) {  show_dballoc_error(db," cannot initialize reasoner area buckets"); return -1; }
+  tmp=init_subarea_freespace(db,&(dbh->reasoner_area_header),0); // mark and store free space in subarea 0
+  if (tmp) {  show_dballoc_error(db," cannot initialize reasoner subarea 0"); return -1; }
+  
+#endif
 
   /* initialize other structures */
 
