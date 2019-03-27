@@ -98,10 +98,30 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
   */
 
 #ifdef CHECK
-  //printf("\ndb CHECK macro is on\n");
+  printf("\ndb CHECK macro is on\n");
 #else
- //printf("\ndb CHECK macro is off\n");
+  printf("\ndb CHECK macro is off\n");
 #endif
+
+#ifdef USE_DBLOG
+  printf("\ndb USE_DBLOG macro is on\n");
+#else
+  printf("\ndb USE_DBLOG macro is off\n");
+#endif
+
+#ifdef USE_DATABASE_HANDLE
+  printf("\ndb USE_DATABASE_HANDLE macro is on\n");
+#else
+  printf("\ndb USE_DATABASE_HANDLE macro is off\n");
+#endif
+
+#ifdef MALLOC_HASHNODES
+  printf("\ndb MALLOC_HASHNODES macro is on\n");
+#else
+  printf("\ndb MALLOC_HASHNODES macro is off\n");
+#endif
+
+
   guide=wr_parse_guide_file(argc,argv,&guidebuf);
   if (guide==NULL) {
     if (guidebuf!=NULL) free(guidebuf);
@@ -239,7 +259,7 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
       } else if (res<0) {
         printf("\n\nSearch cancelled, error code %d.\n",res);
       }      
-      wr_show_stats(g);
+      wr_show_stats(g,1);
     }   
     if (res==0) {
       // proof found 
@@ -401,7 +421,7 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
     //printf("\n");
     if (g->alloc_err) {
       wr_errprint("\nbuffer overflow, terminating\n");
-      wr_show_stats(g);      
+      wr_show_stats(g,1);      
       exit(0);
     }     
 
@@ -438,7 +458,7 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
 #endif       
 
       if (g->queryfocus_strat && wr_initial_select_active_cl(g,(gptr)rec)) {
-        given_cl=wr_process_given_cl(g,(gptr)rec);
+        given_cl=wr_process_given_cl(g,(gptr)rec, g->given_termbuf);
         if ( ((gint)given_cl==ACONST_FALSE) || ((gint)given_cl==ACONST_TRUE) ||
              (given_cl==NULL) ) {
           /*     
@@ -487,7 +507,7 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
 #endif      
       
       if (g->queryfocus_strat && wr_initial_select_active_cl(g,(gptr)rec)) {
-        given_cl=wr_process_given_cl(g,(gptr)rec);
+        given_cl=wr_process_given_cl(g,(gptr)rec,g->given_termbuf);
         if ( ((gint)given_cl==ACONST_FALSE) || ((gint)given_cl==ACONST_TRUE) ||
              (given_cl==NULL) ) {
           /*     
@@ -754,7 +774,7 @@ static void wr_set_detailed_printout(glb* g) {
    Some funs for statistics 
    ----------------------------------------------- */
 
-void wr_show_stats(glb* g) {
+void wr_show_stats(glb* g, int show_local_complex) {
   
   if (!(g->print_stats)) return;
   
@@ -817,46 +837,51 @@ void wr_show_stats(glb* g) {
 #endif
 #ifdef SHOW_MEM_STATS
   
-  //if ((g->clbuilt)!=(gint)NULL) 
-  //  printf("clbuilt els %d used %d\n",
-  //         (rotp(g,g->clbuilt))[0],(rotp(g,g->clbuilt))[1]-1);
-  if ((g->clqueue)!=(gint)NULL) 
-    printf("clqueue els %d used %d\n",
-           (int)((rotp(g,g->clqueue))[0]),(int)((rotp(g,g->clqueue))[1]-1));
-  if ((g->clactive)!=(gint)NULL) 
-    printf("clactive els %d used %d\n",
-           (int)((rotp(g,g->clactive))[0]),(int)((rotp(g,g->clactive))[1]-1));
-  if ((g->clactivesubsume)!=(gint)NULL) 
-    printf("clactivesubsume els %d used %d\n",
-           (int)((rotp(g,g->clactivesubsume))[0]),(int)((rotp(g,g->clactivesubsume))[1]-1));           
-  //if ((g->clweightqueue)!=(gint)NULL) 
-  //  printf("clweightqueue els %d used %d\n",((gptr)(g->clweightqueue))[0],((gptr)(g->clweightqueue))[1]-1);
-  
-  if ((g->queue_termbuf)!=NULL) 
-    printf("queue_termbuf els %d used %d\n",(int)((g->queue_termbuf)[0]),(int)((g->queue_termbuf)[1]-1));
-  if ((g->active_termbuf)!=NULL) 
-    printf("active_termbuf els %d used %d\n",(int)((g->active_termbuf)[0]),(int)((g->active_termbuf)[1]-1));
-  if ((g->varstack)!=NULL) 
-    printf("varstack els %d last used %d\n",(int)((g->varstack)[0]),(int)((g->varstack)[1]-1));
-  if ((g->given_termbuf)!=NULL) 
-    printf("given_termbuf els %d last used %d\n",(int)((g->given_termbuf)[0]),(int)((g->given_termbuf)[1]-1));
-  if ((g->simplified_termbuf)!=NULL) 
-    printf("simplified_termbuf els %d last used %d\n",(int)((g->simplified_termbuf)[0]),(int)((g->simplified_termbuf)[1]-1));  
-  if ((g->derived_termbuf)!=NULL) 
-    printf("derived_termbuf els %d last used %d\n",(int)((g->derived_termbuf)[0]),(int)((g->derived_termbuf)[1]-1));
+  if (show_local_complex) {
+    //if ((g->clbuilt)!=(gint)NULL) 
+    //  printf("clbuilt els %d used %d\n",
+    //         (rotp(g,g->clbuilt))[0],(rotp(g,g->clbuilt))[1]-1);
+    if ((g->clqueue)!=(gint)NULL) 
+      printf("clqueue els %d used %d\n",
+            (int)((rotp(g,g->clqueue))[0]),(int)((rotp(g,g->clqueue))[1]-1));
+    if ((g->clactive)!=(gint)NULL) 
+      printf("clactive els %d used %d\n",
+            (int)((rotp(g,g->clactive))[0]),(int)((rotp(g,g->clactive))[1]-1));
+    if ((g->clactivesubsume)!=(gint)NULL) 
+      printf("clactivesubsume els %d used %d\n",
+            (int)((rotp(g,g->clactivesubsume))[0]),(int)((rotp(g,g->clactivesubsume))[1]-1));           
+    //if ((g->clweightqueue)!=(gint)NULL) 
+    //  printf("clweightqueue els %d used %d\n",((gptr)(g->clweightqueue))[0],((gptr)(g->clweightqueue))[1]-1);
+    
+    if ((g->queue_termbuf)!=NULL) 
+      printf("queue_termbuf els %d used %d\n",(int)((g->queue_termbuf)[0]),(int)((g->queue_termbuf)[1]-1));
+    if ((g->active_termbuf)!=NULL) 
+      printf("active_termbuf els %d used %d\n",(int)((g->active_termbuf)[0]),(int)((g->active_termbuf)[1]-1));
+    if ((g->varstack)!=NULL) 
+      printf("varstack els %d last used %d\n",(int)((g->varstack)[0]),(int)((g->varstack)[1]-1));
+    if ((g->given_termbuf)!=NULL) 
+      printf("given_termbuf els %d last used %d\n",(int)((g->given_termbuf)[0]),(int)((g->given_termbuf)[1]-1));
+    if ((g->simplified_termbuf)!=NULL) 
+      printf("simplified_termbuf els %d last used %d\n",(int)((g->simplified_termbuf)[0]),(int)((g->simplified_termbuf)[1]-1));  
+    if ((g->derived_termbuf)!=NULL) 
+      printf("derived_termbuf els %d last used %d\n",(int)((g->derived_termbuf)[0]),(int)((g->derived_termbuf)[1]-1));
+  }
 
   printf("wr_mallocs: %d\n",(g->stat_wr_mallocs));
+  printf("wr_callocs: %d\n",(g->stat_wr_callocs));
   printf("wr_reallocs: %d\n",(g->stat_wr_reallocs));
   printf("wr_frees: %d\n",(g->stat_wr_frees));
-  printf("wr_malloc_bytes: %d\n",(g->stat_wr_malloc_bytes));
-  printf("wr_realloc_bytes: %d\n",(g->stat_wr_realloc_bytes));
-
+  printf("wr_malloc_bytes: %ld\n",(g->stat_wr_malloc_bytes));
+  printf("wr_calloc_bytes: %ld\n",(g->stat_wr_calloc_bytes));
+  printf("wr_realloc_bytes: %ld\n",(g->stat_wr_realloc_bytes));
+  printf("wr_realloc_freebytes: %ld\n",(g->stat_wr_realloc_freebytes));
+  /*
   printf("tmp1: %d\n",(g->tmp1));
   printf("tmp2: %d\n",(g->tmp2));
   printf("tmp3: %d\n",(g->tmp3));
   printf("tmp4: %d\n",(g->tmp4));
   printf("tmp5: %d\n",(g->tmp5));
-
+  */ 
 #endif  
   printf("----------------------------------\n");
 }  

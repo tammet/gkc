@@ -107,7 +107,7 @@ extern "C" {
 
 /* === this should come from dbapi.h ========== */
 
-void* wg_attach_local_database_with_kb(wg_int size, void* kb);
+//void* wg_attach_local_database_with_kb(wg_int size, void* kb);
 
 /* ======= Private protos ================ */
 
@@ -132,8 +132,8 @@ void wg_show_strhash(void* db);
 void wg_show_database(void* db);
 void gkc_show_cur_time(void);
 
-//#define SHOW_CONTENTS 1
-#undef SHOW_CONTENTS
+#define SHOW_CONTENTS 1
+//#undef SHOW_CONTENTS
 
 /* ====== Functions ============== */
 
@@ -526,24 +526,29 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Import failed.\n");
 
 
-      wg_show_database(shmptr);
+      //wg_show_database(shmptr);
+
+      printf("\nstarting to init_shared_database\n");      
+      gkc_show_cur_time();
 
       init_shared_database(shmptr);
 
       printf("\nexited init_shared_database\n");      
       gkc_show_cur_time();
 
-      wg_show_database(shmptr);
+      //wg_show_database(shmptr);
 
       //(((glb*)(offsettoptr(shmptr,(dbmemsegh(shmptr)->rglb))))->stat_built_cl)=10;
-      (db_rglb(shmptr)->stat_built_cl)=21;
+      (db_rglb(shmptr)->stat_built_cl)=25;
       //wr_show_stats(offsettoptr(shmptr,(dbmemsegh(shmptr)->rglb)));
-      wr_show_stats(db_rglb(shmptr));
+      //wr_show_stats(db_rglb(shmptr),1);
+
+      wr_show_database_details(NULL,shmptr,"shared db");
 
       break;
 
 
-    } else if(argc>i && !strcmp(argv[i],"runreasoner")){
+    } else if(argc>i && (!strcmp(argv[i],"runreasoner"))) {
       //wg_int err;
 
       printf("\nto wg_attach_existing_database\n");
@@ -622,7 +627,7 @@ int main(int argc, char **argv) {
       printf("\nqrun exits\n");
       break;
 
-    } else if(argc>i && !strcmp(argv[i],"qrun1")){
+    } else if(argc>i && !strcmp(argv[i],"-querykb")){
       wg_int err;
 
       printf("\nqrun1 starts with external shmname %s\n",shmname);
@@ -632,18 +637,22 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Failed to attach to database.\n");
         exit(1);
       }
-      printf("\ndb attached, showing attached shared memory db shmptr %d\n",(int)((gint)shmptr));
+      printf("\ndb attached, showing attached shared memory db shmptr %ld\n",
+        (unsigned long int)((gint)shmptr));
       gkc_show_cur_time();
       //printf("about to call wg_run_reasoner\n");
-      wg_show_database(shmptr);
+      wr_show_database_details(NULL,shmptr,"shmptr");
 
+      exit(0); 
       // --- create a new temporary local db ---
       shmsize2=100000000;     
-      printf("\nto wg_attach_local_database_with_kb with shmptr %d\n",(int)((gint)shmptr));
+      printf("\nto wg_attach_local_database_with_kb with shmptr %ld\n",
+        (unsigned long int)((gint)shmptr));
       gkc_show_cur_time();
       shmptrlocal=(void*)(wg_attach_local_database_with_kb(shmsize2,(void*)shmptr));
       //shmptrlocal=wg_attach_local_database(shmsize2);
-      printf("\nshmptrlocal is %d\n",(int)((gint)shmptrlocal));
+      printf("\nshmptrlocal is %ld\n",
+        (unsigned long int)((gint)shmptrlocal));
       gkc_show_cur_time();
       //shmptrlocal=wg_attach_local_database(shmsize2);
       if(!shmptrlocal) {
@@ -665,7 +674,8 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Import failed.\n");      
       printf("\nshowing local db\n");  
       gkc_show_cur_time();
-      wg_show_database(shmptrlocal);
+      wr_show_database_details(NULL,shmptrlocal,"shmptrlocal");
+
       // ---- local db created ------
 
       printf("\nto call wg_run_reasoner\n");
@@ -679,7 +689,7 @@ int main(int argc, char **argv) {
       printf("\nwg_run_reasoner returned\n");
       gkc_show_cur_time();
       printf("\nshowing shared memory db\n"); 
-      wg_show_database(shmptr);
+      wr_show_database_details(NULL,shmptr,"shmptr");
       printf("\nqrun exits\n");
       break;  
 

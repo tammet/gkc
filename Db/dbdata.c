@@ -2931,20 +2931,20 @@ void tmp_wg_show_strhash(void* db) {
     hashchain=dbfetch(db,(dbh->strhash_area_header).arraystart+(sizeof(gint)*i));
     /*lasthashchain=hashchain;    */
     if (hashchain!=0) {
-      printf("%d: contains %d encoded offset to chain\n",
+      printf("%d: contains %d encoded offset to chain x\n",
         (int) i, (int) hashchain);
       for(;hashchain!=0;
           hashchain=dbfetch(db,decode_longstr_offset(hashchain)+LONGSTR_HASHCHAIN_POS*sizeof(gint))) {
-          //printf("hashchain %d decode_longstr_offset(hashchain) %d fulladr %d contents %d\n",
-          //       hashchain,
-          //       decode_longstr_offset(hashchain),
-          //       (decode_longstr_offset(hashchain)+LONGSTR_HASHCHAIN_POS*sizeof(gint)),
-          //       dbfetch(db,decode_longstr_offset(hashchain)+LONGSTR_HASHCHAIN_POS*sizeof(gint)));
+          printf("hashchain %d decode_longstr_offset(hashchain) %d fulladr %d contents %d\n",
+                 hashchain,
+                 decode_longstr_offset(hashchain),
+                 (decode_longstr_offset(hashchain)+LONGSTR_HASHCHAIN_POS*sizeof(gint)),
+                 dbfetch(db,decode_longstr_offset(hashchain)+LONGSTR_HASHCHAIN_POS*sizeof(gint)));
           type=wg_get_encoded_type(db,hashchain);
           printf("  ");
-          //wg_debug_print_value(db,hashchain);
+          wg_debug_print_value(db,hashchain);
           printf("\n");
-          //printf("  type %s",wg_get_type_name(db,type));
+          printf("  type %s",wg_get_type_name(db,type));
           if (type==WG_BLOBTYPE) {
             //printf(" len %d\n",wg_decode_str_len(db,hashchain));
           } else if (type==WG_STRTYPE || type==WG_XMLLITERALTYPE ||

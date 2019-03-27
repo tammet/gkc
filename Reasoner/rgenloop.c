@@ -64,7 +64,7 @@ extern "C" {
 //#define DEBUG
 #undef DEBUG
 
-//#define DEBUGHASH
+#define DEBUGHASH
 #define QUIET
 //#undef QUIET
 
@@ -234,7 +234,7 @@ int wr_genloop(glb* g) {
 #endif    
       continue;
     }
-    given_cl=wr_process_given_cl(g,given_cl_cand); 
+    given_cl=wr_process_given_cl(g,given_cl_cand,g->given_termbuf); 
     if (given_cl==NULL) {
       if (g->alloc_err) return -1;
       continue; 
@@ -383,10 +383,23 @@ gptr wr_activate_passive_cl(glb* g, gptr picked_given_cl_cand, gptr cl_metablock
   return res;
 } 
 
+/*
 
-gptr wr_process_given_cl(glb* g, gptr given_cl_cand) {  
+  buf: new clause will be built in buf: if NULL, wg_create_raw_record used
+       standard value to pass for buf is g->given_termbuf
+
+*/
+
+gptr wr_process_given_cl(glb* g, gptr given_cl_cand, gptr buf) {  
   gptr given_cl; 
 
+  void* db=g->db;
+  printf("\nwr_process_given_cl called with \n");
+  printf("int %d type %d\n",(int)given_cl_cand,(int)(wg_get_encoded_type(db,given_cl_cand)));
+  wr_print_record(g,given_cl_cand);
+  printf("\n");
+  wr_print_clause(g,given_cl_cand);  
+  printf("\n");
 #ifdef DEBUG
   void* db=g->db;
   printf("\nwr_process_given_cl called with \n");
@@ -396,8 +409,15 @@ gptr wr_process_given_cl(glb* g, gptr given_cl_cand) {
   wr_print_clause(g,given_cl_cand);  
   printf("\n");
 #endif    
-  wr_process_given_cl_setupsubst(g,g->given_termbuf,1,1);
+  printf("\nwr_process_given_cl to do wr_process_given_cl_setupsubst \n");
+  wr_process_given_cl_setupsubst(g,buf,1,1);
+
+  printf("\nwr_process_given_cl to do wr_build_calc_cl \n");
   given_cl=wr_build_calc_cl(g,given_cl_cand);
+
+  printf("\nwr_process_given_cl got a given_cl \n");
+  wr_print_clause(g,given_cl); 
+  printf("\n");
 
   // -- check 3 starts --
   if ((gint)given_cl==ACONST_FALSE) {
@@ -548,7 +568,7 @@ void wr_process_given_cl_setupsubst(glb* g, gptr buf, gint banknr, int reuseflag
   g->build_calc=0;      // do fun and pred calculations
   g->build_dcopy=0;     // copy nonimmediate data (vs return ptr)
   //g->build_buffer=NULL; // build everything into tmp buffer (vs main area)
-  if (reuseflag) buf[1]=2; // reuse given_termbuf
+  if (reuseflag && buf!=NULL) buf[1]=2; // reuse given_termbuf
   g->build_buffer=buf;
   g->build_rename=1;   // do var renaming
   g->build_rename_maxseenvnr=-1; // tmp var for var renaming

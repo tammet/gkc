@@ -171,24 +171,41 @@ gptr wr_build_calc_cl(glb* g, gptr xptr) {
   gint tmp;
   int ilimit;
   
-  //printf("wr_build_calc_cl called\n"); 
+  printf("wr_build_calc_cl called\n"); 
+
   db=g->db;
   if (g->build_rename) (g->build_rename_vc)=0;
   ruleflag=wg_rec_is_rule_clause(db,xptr);  
   if (!ruleflag) {
     // in some cases, no change, no copy: normally copy
     //yptr=xptr;     
-    //printf("\in wr_build_calc_cl !ruleflag\n"); 
+    
+    printf("\nin wr_build_calc_cl !ruleflag\n"); 
+    
     xlen=get_record_len(xptr);
-    //printf("\nxlen %d\n",xlen);
+
+    printf("\nxlen %d\n",xlen);
+
     // allocate space
     if ((g->build_buffer)!=NULL) {
       yptr=wr_alloc_from_cvec(g,g->build_buffer,(RECORD_HEADER_GINTS+xlen));       
+       // copy rec header and clause header
+      ilimit=RECORD_HEADER_GINTS+1; // this should change with probabs!!!!
+      for(i=0;i<RECORD_HEADER_GINTS+CLAUSE_EXTRAHEADERLEN;i++) {
+        //printf("\n i1: %d RECORD_HEADER_GINTS: %d, CLAUSE_EXTRAHEADERLEN: %d xptr[i]: %d \n",i,RECORD_HEADER_GINTS,CLAUSE_EXTRAHEADERLEN,xptr[i]);
+        yptr[i]=xptr[i];     
+      }  
     } else {
-      yptr=wg_create_raw_record(db,xlen);                   
+      yptr=wg_create_raw_record(db,xlen); 
+      // copy clause header
+      ilimit=RECORD_HEADER_GINTS+1; // this should change with probabs!!!!
+      for(i=0;i<CLAUSE_EXTRAHEADERLEN;i++) {
+        //printf("\n i1: %d RECORD_HEADER_GINTS: %d, CLAUSE_EXTRAHEADERLEN: %d xptr[i]: %d \n",i,RECORD_HEADER_GINTS,CLAUSE_EXTRAHEADERLEN,xptr[i]);
+        yptr[i]=xptr[i];     
+      }                    
     }        
     if (yptr==NULL) return NULL;
-    /*
+    
     printf("\n in wr_build_calc_cl cp0 xptr:\n");
     wr_print_record(g,xptr);
     printf("\n");
@@ -196,13 +213,15 @@ gptr wr_build_calc_cl(glb* g, gptr xptr) {
     printf("\n in wr_build_calc_cl cp0 yptr:\n");
     wr_print_record(g,yptr);
     printf("\n");
-    */
+    
+    /*
     // copy rec header and clause header
     ilimit=RECORD_HEADER_GINTS+1; // this should change with probabs!!!!
     for(i=0;i<RECORD_HEADER_GINTS+CLAUSE_EXTRAHEADERLEN;i++) {
       //printf("\n i1: %d RECORD_HEADER_GINTS: %d, CLAUSE_EXTRAHEADERLEN: %d xptr[i]: %d \n",i,RECORD_HEADER_GINTS,CLAUSE_EXTRAHEADERLEN,xptr[i]);
       yptr[i]=xptr[i];     
     }  
+    */
     /*
     printf("\n in wr_build_calc_cl cp1 yptr:\n");
     wr_print_record(g,yptr);
@@ -220,11 +239,11 @@ gptr wr_build_calc_cl(glb* g, gptr xptr) {
       if (tmp==WG_ILLEGAL) return NULL; // could be memory err
       yptr[i]=tmp; 
     } 
-    /*
+    
     printf("\n in wr_build_calc_cl result yptr:\n");
     wr_print_record(g,yptr);
     printf("\n");
-    */
+    
     /* old version 
 
     tmp=wr_build_calc_term(g,encode_datarec_offset(pto(db,xptr)));

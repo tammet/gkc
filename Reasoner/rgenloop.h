@@ -36,7 +36,7 @@ int wr_genloop(glb* g);
 gptr wr_pick_given_cl(glb* g, gptr cl_metablock);
 gptr wr_activate_passive_cl(glb* g, gptr picked_given_cl_cand, gptr cl_metablock);
 gptr wr_add_given_cl_active_list(glb* g, gptr given_cl, gptr given_cl_metablock, int subsflag);
-gptr wr_process_given_cl(glb* g, gptr given_cl_cand);
+gptr wr_process_given_cl(glb* g, gptr given_cl_cand, gptr buf);
 int wr_add_cl_to_active_unithash(glb* g, gptr cl);
 
 void wr_process_given_cl_setupsubst(glb* g, gptr buf, gint banknr, int reuseflag);

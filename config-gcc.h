@@ -45,13 +45,13 @@
 #define PACKAGE_NAME "GKC"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "GKC 0.2-alpha"
+#define PACKAGE_STRING "gkc 0.2-beta"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "gkc"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "0.2-alpha"
+#define PACKAGE_VERSION "0.2-beta"
 
 /* Define to necessary symbol if this constant uses a non-standard name on
    your system. */
@@ -73,7 +73,7 @@
 /* #undef USE_CHILD_DB */
 
 /* Use dblog module for transaction logging */
-/* #undef USE_DBLOG */
+#undef USE_DBLOG 
 
 /* Use match templates for indexes */
 #define USE_INDEX_TEMPLATE 1
@@ -82,7 +82,7 @@
 #define USE_REASONER 1
 
 /* Version number of package */
-#define VERSION "0.8-alpha"
+#define VERSION "0.2-beta"
 
 /* Package major version */
 #define VERSION_MAJOR 0

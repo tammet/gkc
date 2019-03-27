@@ -79,12 +79,17 @@ gptr wr_clterm_alloc_hashnode(glb* g);
 void wr_clterm_free_hashnode(glb* g, gptr node);
 void wr_clterm_hashlist_free(glb* g, vec hashvec);
 void wr_clterm_hashlist_print(glb* g, vec hashvec);
+void wr_clterm_hashlist_print_para(glb* g, vec hashvec);
 
 gint* wr_push_termhash(glb* g, gint* hasharr, int hash, gptr term, gptr cl);
+gint* wr_push_offset_termhash(glb* g, gint* hasharr, int hash, gptr term, gptr cl);
 gint* wr_find_termhash(glb* g, gint* hasharr, gptr term, int hash);
+gint* wr_find_offset_termhash(glb* g, gint* hasharr, gptr term, int hash);
 //gint* wr_find_termhash_skip(glb* g, gint* hasharr, gptr term, int hash, gptr skipcl);
 void wr_free_termhash(glb* g, gint* hasharr);
+void wr_free_offset_termhash(glb* g, gint* hasharr);
 void wr_print_termhash(glb* g, gint* hasharr);
+void wr_print_offset_termhash(glb* g, gint* hasharr);
 
 gint* wr_push_atomhash(glb* g, gint* hasharr, int hash, gint atom, gptr cl, int pos, int negflag);
 cvec wr_add_atomhash_node(glb* g, gint atom, cvec bucket);

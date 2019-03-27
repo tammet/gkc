@@ -92,10 +92,13 @@ typedef struct {
   void* db;             /**< mem database used as a base for offset: either kb_db or child_db here */
   void* kb_db;          /**< shared-mem knowledge base */
   void* child_db;       /**< local child db: if kb_db present, then child_db->kb_db is set to this */
+  gint db_offset;       /**< offset of the db ptr */
   gint inkb;            /**< 1 if g struct is inside shared kb, 0 otherwise */
 
   /* === shared data block === */
   
+  gint initial_cl_list; /**< offset of the initial clause list in a shared db */
+
   cveco clbuilt;        /**< vector containing built clauses, newest last. 0: vec len, 1: index of next unused vec elem */
   cveco clactive;      /**< vector containing active clauses, newest last.  */
   cveco clactivesubsume; /**< vector containing active clauses with metainfo for subsumption */
@@ -274,10 +277,13 @@ typedef struct {
   /* statistics */
   
   int stat_wr_mallocs;
+  int stat_wr_callocs;
   int stat_wr_reallocs;
   int stat_wr_frees;
-  int stat_wr_malloc_bytes;
-  int stat_wr_realloc_bytes;
+  gint stat_wr_malloc_bytes;
+  gint stat_wr_calloc_bytes;
+  gint stat_wr_realloc_bytes;
+  gint stat_wr_realloc_freebytes;
   
   int stat_built_cl;
   int stat_derived_cl;

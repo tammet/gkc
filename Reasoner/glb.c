@@ -89,6 +89,7 @@ glb* wr_glb_new_simple(void* db) {
   (g->kb_db)=NULL;          
   (g->child_db)=NULL;
   (g->inkb)=0;
+  (g->db_offset)=0;
   wr_glb_init_simple(g);  // fills in simple values (ints, strings etc)   
   return g;  
 } 
@@ -213,10 +214,13 @@ int wr_glb_init_simple(glb* g) {
   /* statistics */
   
   (g->stat_wr_mallocs)=0;
+  (g->stat_wr_callocs)=0;
   (g->stat_wr_reallocs)=0;
   (g->stat_wr_frees)=0;
   (g->stat_wr_malloc_bytes)=0;
+  (g->stat_wr_calloc_bytes)=0;
   (g->stat_wr_realloc_bytes)=0;
+  (g->stat_wr_realloc_freebytes)=0;
   
   (g->stat_built_cl)=0;
   (g->stat_derived_cl)=0;
@@ -299,6 +303,8 @@ int wr_glb_init_shared_complex(glb* g) {
   
   // first NULL all vars
   
+  (g->initial_cl_list)=0;
+
   (g->clbuilt)=(gint)NULL;
   (g->clqueue)=(gint)NULL;
   (g->clqueue_given)=(gint)NULL; 

@@ -2,7 +2,7 @@
 * $Id:  $
 * $Version: $
 *
-* Copyright (c) Priit Järv 2010,2011,2012,2013
+* Copyright (c) Priit Jï¿½rv 2010,2011,2012,2013
 *
 * Minor mods by Tanel Tammet. Triple handler for raptor and raptor
 * rdf parsing originally written by Tanel Tammet.
@@ -240,7 +240,7 @@ void wg_snprint_value(void *db, gint enc, char *buf, int buflen) {
       break;
     case WG_RECORDTYPE:
       ptrdata = (gint) wg_decode_record(db, enc);
-      snprintf(buf, buflen, "<rec %x>", (int) ptrdata);
+      snprintf(buf, buflen, "<rec %lx>", (unsigned long int) ptrdata);
       len = strlen(buf);
       if(buflen - len > 1)
         snprint_record(db, (wg_int*)ptrdata, buf+len, buflen-len);

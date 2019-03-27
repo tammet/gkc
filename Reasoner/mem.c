@@ -64,8 +64,8 @@ void* wr_malloc(glb* g, int bytes) {
 }  
 
 void* wr_calloc(glb* g, size_t nmemb, int bytes) {
-  ++(g->stat_wr_mallocs);
-  (g->stat_wr_malloc_bytes)+=bytes;
+  ++(g->stat_wr_callocs);
+  (g->stat_wr_calloc_bytes)+=nmemb*bytes;
 #ifdef DEBUG  
   printf("\nwr_calloc nmemb %d bytes each %d altogether %d\n",nmemb,bytes,nmemb*bytes);
 #endif  
@@ -418,6 +418,8 @@ gptr wr_alloc_from_cvec(glb* g, cvec buf, gint gints) {
   gint pos;
   gint i;
   
+  printf("\nwr_alloc_from_cvec called with gints %ld\n",gints);
+
   pos=CVEC_NEXT(buf);
   // set correct alignment for pos
   //printf("wr_alloc_from_cvec initial pos %d buf+pos %d remainder with VEC_ALIGNMENT_BYTES %d\n",
