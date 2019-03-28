@@ -64,6 +64,7 @@ void wg_print_code_version(void);  // show libwgdb version info
 void wg_print_header_version(db_memsegment_header *dbh, int verbose); // show version info from header
 
 void* wg_attach_local_database(gint size);
+void* wg_attach_local_database_with_kb(gint size, void* kb);
 void wg_delete_local_database(void* dbase);
 
 int wg_memmode(void *db);

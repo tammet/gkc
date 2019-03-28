@@ -246,6 +246,12 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
     }
     // ok, clauses found and clause lists initialized
     res=wr_genloop(g);
+
+    /*
+    printf("\nwr_genloop exited, showing database details\n");
+    wr_show_database_details(g,NULL,"local g");
+    */
+
     if (g->print_flag) { 
       if (res==0) {
         printf("\n\nProof found.\n"); 
@@ -470,7 +476,8 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
         };
         wr_sort_cl(g,given_cl);
         //given_cl_as_active=wr_add_given_cl_active_list(g,(gptr)rec);
-        given_cl_as_active=wr_add_given_cl_active_list(g,given_cl,given_cl_metablock,0);
+        given_cl_as_active=wr_add_given_cl_active_list
+                             (g,given_cl,given_cl_metablock,0,g->active_termbuf);
         if (given_cl_as_active==NULL) {
           //if (g->alloc_err) return -1;
           continue; 
@@ -517,7 +524,8 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
           rec = wg_get_next_raw_record(child_db,rec); 
           continue;
         }
-        given_cl_as_active=wr_add_given_cl_active_list(g,given_cl,given_cl_metablock,1);
+        given_cl_as_active=wr_add_given_cl_active_list
+                            (g,given_cl,given_cl_metablock,1,g->active_termbuf);
         if (given_cl_as_active==NULL) {
           if (g->alloc_err) return -1;
           //continue; 

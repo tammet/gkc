@@ -547,15 +547,14 @@ int wr_clterm_add_hashlist_withpath(glb* g, vec hashvec, gint hash, gint term, g
   gptr prevnode;
   gint nextnode;
 
-  printf("\n !!!!!!!!!!! wr_clterm_add_hashlist_withpath called\n");
-  printf("\n hash %ld path %d term %ld %lx:\n",hash,path,term,rotp(g,term));
-  //wr_print_record(g,term);
-  //wr_print_record(g,rotp(g,term));
+#ifdef DEBUG
+  printf("\nwr_clterm_add_hashlist_withpath called\n");
+  printf("\nhash %ld path %d term %ld %lx:\n",hash,path,term,rotp(g,term));
   wr_print_term(g, term);
   printf("\n cl %lx:\n",cl);
   wr_print_record(g,cl);
   printf("\n");
-
+#endif  
   vlen=VEC_LEN(hashvec);  
   if ((hash>=vlen) || (hash<1)) { 
     // err case
@@ -661,9 +660,7 @@ int wr_clterm_add_hashlist_offset_withpath(glb* g, vec hashvec, gint hash, gint 
   } else {
     // hash chain exists: first node contains counter to increase
     // then take next ptr for node to handle
-
-    printf("\n hash chain exists !!!!\n");
-    
+    // printf("\n hash chain exists !!!!\n");    
     prevnode=otp(db,cell);
     prevnode[CLTERM_HASHNODE_LEN_POS]++;
     nextnode=prevnode[CLTERM_HASHNODE_NEXT_POS];
@@ -675,19 +672,13 @@ int wr_clterm_add_hashlist_offset_withpath(glb* g, vec hashvec, gint hash, gint 
     wr_sys_exiterr(g,"could not allocate node for hashlist in cl_store_res_terms");
     return 1;
   } 
-  printf("\nnode for hash %d allocated as ptr %d and pto(db,node) %d\n",hash,node,pto(db,node));
-  
+  //printf("\nnode for hash %d allocated as ptr %d and pto(db,node) %d\n",hash,node,pto(db,node));  
   node[CLTERM_HASHNODE_TERM_POS]=term;    
   node[CLTERM_HASHNODE_CL_POS]=pto(db,cl);
   node[CLTERM_HASHNODE_PATH_POS]=wg_encode_int(db,path);
   //node[CLTERM_HASHNODE_NEXT_POS]=nextnode;  
   node[CLTERM_HASHNODE_NEXT_POS]=nextnode;
-  prevnode[CLTERM_HASHNODE_NEXT_POS]=pto(db,node);
-
-  printf("all node[CLTERM_HASHNODE_TERM_POS] %d\n",node[CLTERM_HASHNODE_TERM_POS]);  
-  printf("all node[CLTERM_HASHNODE_CL_POS] %d\n",node[CLTERM_HASHNODE_CL_POS]);
-  printf("all node[CLTERM_HASHNODE_NEXT_POS] %d\n",node[CLTERM_HASHNODE_NEXT_POS]);
-  
+  prevnode[CLTERM_HASHNODE_NEXT_POS]=pto(db,node);  
   return 0;
 }  
 
@@ -812,39 +803,33 @@ void wr_clterm_hashlist_print(glb* g, vec hashvec) {
   gint node;
   gint tmp,path;
   int i;
-
   gint tmpel;
-  
-  printf("\nwr_clterm_hashlist_print starts with hashvec %lx\n",hashvec);
+   
   vlen=VEC_LEN(hashvec); 
-  printf("\nhashvec len %d and els:\n",(int)vlen);  
+  printf("\nhashvec len %d ptr %lx and els:\n",(int)vlen,(unsigned long int)hashvec); 
   for(i=VEC_START;i<vlen+1;i++) {
     if (hashvec[i]!=0) {
-      //printf("\ni %d hashvec[i] %d \n",i,hashvec[i]);
-      printf("hashslot i %d len %d:\n",i,(int)((rotp(g,hashvec[i]))[CLTERM_HASHNODE_LEN_POS]));
+      //printf("\ni %d hashvec[i] %d \n",i,hashvec[i]);      
       node=(rotp(g,hashvec[i]))[CLTERM_HASHNODE_NEXT_POS];
-      printf("\nnode %ld \n",node);
+      printf("\nhashslot i %d node %ld len %ld:\n",
+         i, node, (int)((rotp(g,hashvec[i]))[CLTERM_HASHNODE_LEN_POS]));
       while(node!=0) {
-        printf("\nterm \n");
+        printf("term ");
         tmpel=(rotp(g,node))[CLTERM_HASHNODE_TERM_POS];
-        printf("\nterm (rotp(g,node))[CLTERM_HASHNODE_TERM_POS] %ld\n",tmpel);
+        //printf("\nterm (rotp(g,node))[CLTERM_HASHNODE_TERM_POS] %ld\n",tmpel);
   
         wg_print_record(g->db,rotp(g,tmpel));
-        printf("\n!");
-
-        //wr_print_record(g,rotp(g,(rotp(g,node))[CLTERM_HASHNODE_TERM_POS]));
-        //wr_print_record(g,(rotp(g,node))[CLTERM_HASHNODE_TERM_POS]);
-        printf("\n");
+        printf(" as term ");
         wr_print_term(g,(rotp(g,node))[CLTERM_HASHNODE_TERM_POS]);
-        printf("\n");
+
         tmp=(rotp(g,node))[CLTERM_HASHNODE_PATH_POS];
         if (!tmp) {
           path=0;
         } else {
           path=wg_decode_int(g->db,tmp);
         }        
-        printf(" at path %d \n",(int)path);       
-        printf(" in cl \n");
+        printf(" at path %d ",(int)path);       
+        printf("in cl ");
         wr_print_clause(g,rotp(g,(rotp(g,node))[CLTERM_HASHNODE_CL_POS]));
         printf("\n");        
         node=(rotp(g,node))[CLTERM_HASHNODE_NEXT_POS];
@@ -861,56 +846,28 @@ void wr_clterm_hashlist_print_para(glb* g, vec hashvec) {
   gint node;
   gint tmp,path;
   int i;
-
-  gint tmpel;
+  //gint tmpel;
   
-  printf("\nwr_clterm_hashlist_print_para starts with hashvec %lx\n",hashvec);
   vlen=VEC_LEN(hashvec); 
-  printf("\nhashvec len %d and els:\n",(int)vlen);  
+  printf("\nhashvec len %d ptr %lx and els:\n",(int)vlen,(unsigned long int)hashvec);  
   for(i=VEC_START;i<vlen+1;i++) {
     if (hashvec[i]!=0) {
-      //printf("\ni %d hashvec[i] %d \n",i,hashvec[i]);
-      printf("hashslot i %d len %d:\n",i,(int)((rotp(g,hashvec[i]))[CLTERM_HASHNODE_LEN_POS]));
+      //printf("\ni %d hashvec[i] %d \n",i,hashvec[i]);   
       node=(rotp(g,hashvec[i]))[CLTERM_HASHNODE_NEXT_POS];
-      printf("\nnode %ld \n",node);
+      printf("\nhashslot i %d node %ld len %ld:\n",
+         i, node, (int)((rotp(g,hashvec[i]))[CLTERM_HASHNODE_LEN_POS]));
       while(node!=0) {
-        printf("\nterm \n");
-        tmpel=(rotp(g,node))[CLTERM_HASHNODE_TERM_POS];
-        printf("\nterm (rotp(g,node))[CLTERM_HASHNODE_TERM_POS] %ld\n",tmpel);
-  
-        //wg_print_record(g->db,rotp(g,tmpel));
-        //wg_print_record(g->db,tmpel);
-        printf("\n!");
-
-        //wr_print_record(g,rotp(g,(rotp(g,node))[CLTERM_HASHNODE_TERM_POS]));
-        //wr_print_record(g,(rotp(g,node))[CLTERM_HASHNODE_TERM_POS]);
-
-         //printf("\nnode for hash %d allocated as ptr %d and pto(db,node) %d\n",hash,node,pto(db,node));
-
-         /*
-  node[CLTERM_HASHNODE_TERM_POS]=term;    
-  node[CLTERM_HASHNODE_CL_POS]=pto(db,cl);
-  node[CLTERM_HASHNODE_PATH_POS]=wg_encode_int(db,path);
-  //node[CLTERM_HASHNODE_NEXT_POS]=nextnode;  
-  node[CLTERM_HASHNODE_NEXT_POS]=nextnode;
-  prevnode[CLTERM_HASHNODE_NEXT_POS]=pto(db,node);
-  //printf("all node[CLTERM_HASHNODE_TERM_POS] %d\n",node[CLTERM_HASHNODE_TERM_POS]);  
-  //printf("all node[CLTERM_HASHNODE_CL_POS] %d\n",node[CLTERM_HASHNODE_CL_POS]);
-  //printf("all node[CLTERM_HASHNODE_NEXT_POS] %d\n",node[CLTERM_HASHNODE_NEXT_POS]);
-        */
-
-
-        printf("\n");
+        printf("term ");      
+      
         wr_print_term(g,(rotp(g,node))[CLTERM_HASHNODE_TERM_POS]);
-        printf("\n");
         tmp=(rotp(g,node))[CLTERM_HASHNODE_PATH_POS];
         if (!tmp) {
           path=0;
         } else {
           path=wg_decode_int(g->db,tmp);
         }        
-        printf(" at path %d \n",(int)path);       
-        printf(" in cl \n");
+        printf(" at path %d ",(int)path);       
+        printf("in cl ");
         wr_print_clause(g,rotp(g,(rotp(g,node))[CLTERM_HASHNODE_CL_POS]));
         printf("\n");        
         node=(rotp(g,node))[CLTERM_HASHNODE_NEXT_POS];
@@ -1295,34 +1252,31 @@ void wr_print_termhash(glb* g, gint* hasharr) {
 void wr_print_offset_termhash(glb* g, gint* hasharr) {
   int i,j;
   cvec bucket;
-  
-  printf("\ntermhash with length %ld: \n",hasharr[0]);  
-
+ 
+  printf("\nhashvec len %ld ptr %lx and els:\n",hasharr[0],(unsigned long int)hasharr);  
   for(i=1;i<hasharr[0];i++) {    
-
     if (hasharr[i]) {
-
-      printf("\n i %d\n",i);
-      printf("\n hasharr[i] %ld\n",hasharr[i]);
-
+      //printf("\nhashslot i %d ",i);
+      //printf(" hasharr[i] %ld\n",hasharr[i]);
       bucket=rotp(g,(hasharr[i]));
-
-      printf("\nbucket %lx\n",(unsigned long int)bucket);
+      //printf("\nbucket %lx\n",(unsigned long int)bucket);
       //printf("\nbucket[0] %ld bucket[1] %ld\n",bucket[0],bucket[1]);
-
-      printf("bucket for i %d size %ld next free %ld\n",i,bucket[0],bucket[1]);
+      printf("\nhashslot i %d node %ld size %ld next free %ld\n",
+              i,hasharr[i],bucket[0],bucket[1]);
       if (1) {
         for(j=2;j<bucket[0] && j<bucket[1]; j=j+2) {
-          printf("\n j %d  (j-2)/2 %d\n",(j-2)/2);
+          //printf("\n j %d  (j-2)/2 %d\n",(j-2)/2);
           //CP0
-          //wr_print_term(g,bucket[j]);
+          printf("term ");
+          wr_print_term(g,bucket[j]);
           //printf(" path %d in cl ",0);
           //CP1
-          printf("\nj %d bucket[j+1] %ld \n",j,bucket[j+1]);
+          //printf("\nj %d bucket[j+1] %ld \n",j,bucket[j+1]);
           //CP2
+          printf(" in rec ");
           wg_print_record(g->db,rotp(g,bucket[j+1]));
-          //CP3
-          //wr_print_clause(g,rotp(g,bucket[j+1]));
+          printf(" as clause ");
+          wr_print_clause(g,rotp(g,bucket[j+1]));
           printf("\n");
         }
       }  

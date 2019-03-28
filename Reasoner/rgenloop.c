@@ -64,7 +64,9 @@ extern "C" {
 //#define DEBUG
 #undef DEBUG
 
-#define DEBUGHASH
+//#define DEBUGHASH
+#undef DEBUGHASH
+
 #define QUIET
 //#undef QUIET
 
@@ -268,7 +270,7 @@ int wr_genloop(glb* g) {
     // optionally do backsubsumption
     if (g->back_subsume) wr_given_cl_backsubsume(g,given_cl,given_cl_metablock);
     // add to active list
-    given_cl_as_active=wr_add_given_cl_active_list(g,given_cl,given_cl_metablock,1);
+    given_cl_as_active=wr_add_given_cl_active_list(g,given_cl,given_cl_metablock,1,g->active_termbuf);
 
     //printf("\nmetablock3 %d %d %d %d \n",*given_cl_metablock,*(given_cl_metablock+1),*(given_cl_metablock+2),*(given_cl_metablock+3));
 
@@ -393,13 +395,6 @@ gptr wr_activate_passive_cl(glb* g, gptr picked_given_cl_cand, gptr cl_metablock
 gptr wr_process_given_cl(glb* g, gptr given_cl_cand, gptr buf) {  
   gptr given_cl; 
 
-  void* db=g->db;
-  printf("\nwr_process_given_cl called with \n");
-  printf("int %d type %d\n",(int)given_cl_cand,(int)(wg_get_encoded_type(db,given_cl_cand)));
-  wr_print_record(g,given_cl_cand);
-  printf("\n");
-  wr_print_clause(g,given_cl_cand);  
-  printf("\n");
 #ifdef DEBUG
   void* db=g->db;
   printf("\nwr_process_given_cl called with \n");
@@ -409,15 +404,19 @@ gptr wr_process_given_cl(glb* g, gptr given_cl_cand, gptr buf) {
   wr_print_clause(g,given_cl_cand);  
   printf("\n");
 #endif    
+#ifdef DEBUG
   printf("\nwr_process_given_cl to do wr_process_given_cl_setupsubst \n");
+#endif  
   wr_process_given_cl_setupsubst(g,buf,1,1);
-
+#ifdef DEBUG
   printf("\nwr_process_given_cl to do wr_build_calc_cl \n");
+#endif    
   given_cl=wr_build_calc_cl(g,given_cl_cand);
-
+#ifdef DEBUG
   printf("\nwr_process_given_cl got a given_cl \n");
   wr_print_clause(g,given_cl); 
   printf("\n");
+#endif    
 
   // -- check 3 starts --
   if ((gint)given_cl==ACONST_FALSE) {
@@ -455,7 +454,8 @@ gptr wr_process_given_cl(glb* g, gptr given_cl_cand, gptr buf) {
   if subsflag==0, do not add to active subsumption structures (used for query focus)
 */
 
-gptr wr_add_given_cl_active_list(glb* g, gptr given_cl, gptr given_cl_metablock, int subsflag) {  
+gptr wr_add_given_cl_active_list(glb* g, gptr given_cl, gptr given_cl_metablock, 
+    int subsflag, gptr build_buffer) {  
   gptr active_cl;
   int hashadded;
 
@@ -470,7 +470,7 @@ gptr wr_add_given_cl_active_list(glb* g, gptr given_cl, gptr given_cl_metablock,
   wr_print_clause(g,given_cl);  
   printf("\n");
 #endif          
-  wr_process_given_cl_setupsubst(g,g->active_termbuf,2,0);    
+  wr_process_given_cl_setupsubst(g,build_buffer,2,0); 
   active_cl=wr_build_calc_cl(g,given_cl);
   wr_process_given_cl_cleanupsubst(g); 
   if (active_cl==NULL) return NULL; // could be memory err
@@ -484,14 +484,18 @@ gptr wr_add_given_cl_active_list(glb* g, gptr given_cl, gptr given_cl_metablock,
 #endif    
   // add to a list of all active clauses
 #ifdef DEBUG  
+  if ((g->clactive)!=NULL)
     printf("\npushing to clactive pos %d\n",(int)((rotp(g,g->clactive))[1]));
+  }  
 #endif  
-  (g->clactive)=rpto(g,wr_cvec_push(g,rotp(g,(g->clactive)),(gint)active_cl));
+  if ((g->clactive)!=NULL) {
+    (g->clactive)=rpto(g,wr_cvec_push(g,rotp(g,(g->clactive)),(gint)active_cl));
+  }  
   // add ground units to unithash  
   if (1) {  //(subsflag) {
     // only add to active subsumption structures if subsflag==1 (ie not for queryfocus big sos list)
     hashadded=wr_add_cl_to_active_unithash(g,active_cl);
-    if (!hashadded && subsflag) {    
+    if (!hashadded && subsflag && (g->clactivesubsume)!=NULL) {    
   #ifdef DEBUG  
       printf("\npushing to clactivesubsume pos %d\n",(int)((rotp(g,g->clactivesubsume))[1]));
   #endif  

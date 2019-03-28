@@ -630,7 +630,7 @@ int main(int argc, char **argv) {
     } else if(argc>i && !strcmp(argv[i],"-querykb")){
       wg_int err;
 
-      printf("\nqrun1 starts with external shmname %s\n",shmname);
+      printf("\n-querykb starts with external shmname %s\n",shmname);
       gkc_show_cur_time();
       shmptr=wg_attach_existing_database(shmname);
       if(!shmptr) {
@@ -643,16 +643,22 @@ int main(int argc, char **argv) {
       //printf("about to call wg_run_reasoner\n");
       wr_show_database_details(NULL,shmptr,"shmptr");
 
-      exit(0); 
+      //exit(0); 
       // --- create a new temporary local db ---
       shmsize2=100000000;     
       printf("\nto wg_attach_local_database_with_kb with shmptr %ld\n",
         (unsigned long int)((gint)shmptr));
       gkc_show_cur_time();
-      shmptrlocal=(void*)(wg_attach_local_database_with_kb(shmsize2,(void*)shmptr));
+      shmptrlocal=wg_attach_local_database_with_kb(shmsize2,(void*)shmptr);
+ 
+      printf("\nto show headers right after return from attach:\n");
+      printf("\nshmptrlocal is %lx and gint %ld\n",
+        (unsigned long int)shmptrlocal,(gint)shmptrlocal);
+      wr_show_database_headers(shmptrlocal);
+      
       //shmptrlocal=wg_attach_local_database(shmsize2);
-      printf("\nshmptrlocal is %ld\n",
-        (unsigned long int)((gint)shmptrlocal));
+      printf("\nshmptrlocal is %lx and gint %ld\n",
+        (unsigned long int)shmptrlocal,(gint)shmptrlocal);
       gkc_show_cur_time();
       //shmptrlocal=wg_attach_local_database(shmsize2);
       if(!shmptrlocal) {
@@ -662,6 +668,11 @@ int main(int argc, char **argv) {
       //wg_set_kb_db(shmptrlocal,shmptr); // set the kb field of local db to shared db    
       islocaldb=1;
       err=0;
+      wr_show_database_headers(shmptrlocal);
+
+      //wr_show_database_details(NULL,shmptrlocal,"shmptrlocal");
+      // exit(0);
+
       printf("\nqrun1 to wg_import_otter_file from argv[i+1] %s\n",argv[i+1]);
       gkc_show_cur_time();
       err = wg_import_otter_file(shmptrlocal,argv[i+1],0);
@@ -674,8 +685,10 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Import failed.\n");      
       printf("\nshowing local db\n");  
       gkc_show_cur_time();
-      wr_show_database_details(NULL,shmptrlocal,"shmptrlocal");
+      wr_show_database_headers(shmptrlocal);
+      //wr_show_database_details(NULL,shmptrlocal,"shmptrlocal");
 
+      
       // ---- local db created ------
 
       printf("\nto call wg_run_reasoner\n");
@@ -688,9 +701,11 @@ int main(int argc, char **argv) {
       //break;
       printf("\nwg_run_reasoner returned\n");
       gkc_show_cur_time();
+
+
       printf("\nshowing shared memory db\n"); 
       wr_show_database_details(NULL,shmptr,"shmptr");
-      printf("\nqrun exits\n");
+      printf("\n-querykb exits\n");
       break;  
 
     } else if(argc>i && 

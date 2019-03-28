@@ -39,13 +39,18 @@ extern "C" {
 /* ====== Private defs =========== */
 
 
-#define DEBUG
-//#undef DEBUG  
+//#define DEBUG
+#undef DEBUG  
 
 
 /* ====== Private headers ======== */
 
 int wr_init_db_clause_indexes(glb* g, void* db);  
+
+// from gkc.c:
+
+void segment_stats(void *db);
+void wg_show_database(void* db);
   
 /* ====== Functions ============== */
 
@@ -110,7 +115,6 @@ int init_shared_database(void* db) {
     return -1;
   }
   (g->inkb)=1; // restore: g is inside the shared knowledge base 
-
   
 #ifdef DEBUG  
   wg_show_db_memsegment_header(db);
@@ -119,36 +123,6 @@ int init_shared_database(void* db) {
   printf("\nwg_show_strhash ends\n");
 #endif 
   wr_init_db_clause_indexes(g,db);
-
-  
-#ifdef DEBUG
-  printf("\nwr_init_db_clause_indexes ended\n");
-
-  printf("\n* hash_neg_groundunits at offset %ld and ptr %lx\n",
-    (gint)(g->hash_neg_groundunits),(unsigned long int)rotp(g,g->hash_neg_groundunits));  
-  wr_print_termhash(g,rotp(g,g->hash_neg_groundunits));
-  printf("\n* hash_pos_groundunits at offset %ld and ptr %lx\n",
-    (gint)(g->hash_pos_groundunits),(unsigned long int)rotp(g,g->hash_pos_groundunits));
-  wr_print_termhash(g,rotp(g,g->hash_pos_groundunits));
-
-  printf("\n* hash_neg_atoms:\n");      
-  wr_clterm_hashlist_print(g,rotp(g,g->hash_neg_atoms));
-  printf("\n* hash_pos_atoms:\n");      
-  wr_clterm_hashlist_print(g,rotp(g,g->hash_pos_atoms));
-
-  /*
-  printf("\n* hash_neg_active_groundunits:\n"); 
-  wr_print_termhash(g,rotp(g,g->hash_neg_active_groundunits));
-  printf("\n* hash_pos_active_groundunits:\n"); 
-  wr_print_termhash(g,rotp(g,g->hash_pos_active_groundunits));
-  
-  printf("\n* hash_para_terms after adding:");      
-  wr_clterm_hashlist_print(g,rotp(g,g->hash_para_terms)); 
-  printf("\nhash_eq_terms after adding:");      
-  wr_clterm_hashlist_print(g,rotp(g,g->hash_eq_terms));
-  */
-  printf("\ninit_shared_database ends\n");
-#endif   
   return 0;
 }
 
@@ -156,33 +130,30 @@ int init_shared_database(void* db) {
 int wr_init_db_clause_indexes(glb* g, void* db) {
   void *rec;
   gint clmeta;
-  gptr given_cl_as_active, given_cl;
+  gptr given_cl;
   gint given_cl_metablock[CLMETABLOCK_ELS];
   int rules_found=0;
   int facts_found=0;
-  //gint weight;
-  gint rlen;
-  gptr active_cl;
   gint cell;
   gcell *cellptr;
 
+#ifdef DEBUG
   printf("\nwr_init_db_clause_indexes starts, g->inkb is %d\n",(g->inkb)); 
+#endif  
   // next two need init_local_complex do be performed before:
   wr_clear_all_varbanks(g);
   wr_process_given_cl_setupsubst(g,g->given_termbuf,1,1);   
   (g->proof_found)=0;
   
-  // start allocating from record area instead of g->build_buffer
-  // (g->build_buffer)=NULL;  // setting it here does not work: overwritten later
-
   // loop over initial clauses
 
   rec = wg_get_first_raw_record(db);
-  while(rec) {     
-    rlen=wg_get_record_len(db,rec);   
+  while(rec) {      
     if ((wg_rec_is_rule_clause(db,rec) || wg_rec_is_fact_clause(db,rec)) ) {
-      printf("\ninitial rec with len %ld\n",rlen);
+#ifdef DEBUG      
+      printf("\ninitial rec with len %ld\n",wg_get_record_len(db,rec));
       wg_print_record(db,rec);      
+#endif      
       cell=alloc_listcell(db);
       cellptr = (gcell *) offsettoptr(db, cell);
       (cellptr->car) = ptrtooffset(db, rec);
@@ -192,20 +163,8 @@ int wr_init_db_clause_indexes(glb* g, void* db) {
     rec = wg_get_next_raw_record(db,rec);    
   }
   
-  /*
-  cell=g->initial_cl_list;
-  while(cell) {
-    cellptr=(gcell *) offsettoptr(db, cell);
-    printf("\nlisted rec \n");
-    wg_print_record(db,offsettoptr(db,cellptr->car));
-    printf("\nnext rec \n");
-    cell=cellptr->cdr;  
-  }
-  */
-
   // next loop over collected clauses
  
-  //rec = wg_get_first_raw_record(db);
   cell=g->initial_cl_list;
   while(cell) {        
     cellptr=(gcell *) offsettoptr(db, cell);
@@ -214,138 +173,56 @@ int wr_init_db_clause_indexes(glb* g, void* db) {
       wr_errprint("\nbuffer overflow while processing parsed clauses, terminating\n");            
       exit(0);
     }  
-    rlen=wg_get_record_len(db,rec);   
+#ifdef DEBUG
+    printf("\nrule with len %ld x\n",wg_get_record_len(db,rec));
+    wg_print_record(db,rec);
+#endif
+    clmeta=wr_calc_clause_meta(g,rec,given_cl_metablock);
+#ifdef DEBUG
+    printf("\nafter wr_calc_clause_meta\n");
+    wg_print_record(db,rec);
+#endif
+    wr_add_cl_to_unithash(g,rec,clmeta);     
+#ifdef DEBUG
+    printf("\nafter wr_add_cl_to_unithash\n");
+    wg_print_record(db,rec);     
+    printf("\npreparing to do wr_process_given_cl\n");
+#endif    
+    // start allocating from record area instead of g->build_buffer 
+    (g->build_buffer)=NULL;
+    given_cl=wr_process_given_cl(g,(gptr)rec, NULL);
+    if ( ((gint)given_cl==ACONST_FALSE) || ((gint)given_cl==ACONST_TRUE) ||
+          (given_cl==NULL) ) {
+#ifdef DEBUG
+      printf("\nrule clause was simplified while adding to sos, original:\n");
+      wr_print_clause(g,(gptr)rec);
+#endif
+      cell=cellptr->cdr; 
+      continue;
+    };
+#ifdef DEBUG
+    printf("\nwr_process_given_cl gives given_cl\n");
+    wg_print_record(db,given_cl);
+#endif  
     if (wg_rec_is_rule_clause(db,rec)) {
       rules_found++;
-
-      printf("\nrule with len %ld x\n",rlen);
-      wg_print_record(db,rec);
-
-      clmeta=wr_calc_clause_meta(g,rec,given_cl_metablock);
-
-      printf("\nafter wr_calc_clause_meta\n");
-      wg_print_record(db,rec);
-
-      wr_add_cl_to_unithash(g,rec,clmeta);     
-
-      printf("\nafter wr_add_cl_to_unithash\n");
-      wg_print_record(db,rec);
-      
-      wr_process_given_cl_setupsubst(g,g->active_termbuf,2,0);    
-      (g->build_buffer)=NULL;
-      active_cl=wr_build_calc_cl(g,rec);
-
-      printf("\nactive_cl built by wr_build_calc_cl: \n");
-      wg_print_record(db,active_cl);
-
-      wr_process_given_cl_cleanupsubst(g); 
-      if (active_cl==NULL) {
-        printf("\nactive_cl created is NULL\n");
-        //rec = wg_get_next_raw_record(db,rec); 
-        cell=cellptr->cdr;
-        continue;
-        //return NULL; // could be memory err
-      }  
-
-      wr_cl_store_res_terms(g,active_cl);
-      wr_cl_store_para_terms(g,active_cl);
-
-      /*
-      printf("\npreparing to do wr_process_given_cl\n");
-
-      (g->build_buffer)=NULL;
-      given_cl=wr_process_given_cl(g,(gptr)rec, NULL);
-      if ( ((gint)given_cl==ACONST_FALSE) || ((gint)given_cl==ACONST_TRUE) ||
-            (given_cl==NULL) ) {
-
-        printf("\nrule clause was simplified while adding to sos, original:\n");
-        wr_print_clause(g,(gptr)rec);
-
-        cell=cellptr->cdr; 
-        continue;
-      };
-
-      printf("\nwr_process_given_cl gives given_cl\n");
-      wg_print_record(db,given_cl);
-      */
-      
-      printf("\nto do wr_sort_cl with active_cl\n");
-      //wr_sort_cl(g,given_cl);    
-      wr_sort_cl(g,active_cl);
-
-      printf("\nafter wr_sort_cl active_cl\n");
-      wg_print_record(db,active_cl);
-      
-      /*
-      //given_cl_as_active=wr_add_given_cl_active_list(g,given_cl,given_cl_metablock,0);
-      given_cl_as_active=wr_add_given_cl_active_list(g,rec,given_cl_metablock,0);
-
-      printf("\ngiven_cl_as_active\n");
-      wg_print_record(db,given_cl_as_active);
-
-      if (given_cl_as_active==NULL) continue;   
-      */
-      
-    } else if (wg_rec_is_fact_clause(db,rec)) {
+#ifdef DEBUG      
+      printf("\nto do wr_sort_cl with given_cl\n");
+#endif      
+      wr_sort_cl(g,given_cl);    
+#ifdef DEBUG      
+      printf("\nafter wr_sort_cl given_cl\n");  
+#endif      
+    } else {
       facts_found++;
+    }  
 
-      printf("\nfact with len %ld\n",rlen);
-      wg_print_record(db,rec);
-
-      clmeta=wr_calc_clause_meta(g,rec,given_cl_metablock);
-
-      printf("\nafter wr_calc_clause_meta\n");
-      wg_print_record(db,rec);
-
-      wr_add_cl_to_unithash(g,rec,clmeta);
-
-      printf("\nafter wr_add_cl_to_unithash\n");
-      wg_print_record(db,rec);
-
-      wr_process_given_cl_setupsubst(g,g->active_termbuf,2,0);    
-      (g->build_buffer)=NULL;
-      active_cl=wr_build_calc_cl(g,rec);
-
-      printf("\nactive_cl for fact clause built by wr_build_calc_cl: \n");
-      wg_print_record(db,active_cl);
-
-      wr_process_given_cl_cleanupsubst(g); 
-      if (active_cl==NULL) {
-        printf("\nactive_cl created is NULL\n");
-        //rec = wg_get_next_raw_record(db,rec); 
-        cell=cellptr->cdr;
-        continue;
-        //return NULL; // could be memory err
-      }  
-
-      wr_cl_store_res_terms(g,rec);
-      wr_cl_store_para_terms(g,active_cl);
-     
-      /*
-      given_cl=wr_process_given_cl(g,(gptr)rec);
-      if ( ((gint)given_cl==ACONST_FALSE) || ((gint)given_cl==ACONST_TRUE) ||
-            (given_cl==NULL) ) {
-        
-        printf("\nfact clause was simplified while processing, original:\n");
-        wr_print_clause(g,(gptr)rec);
-
-        rec = wg_get_next_raw_record(db,rec); 
-        continue;
-      }
-
-      printf("\nwr_process_given_cl gives given_cl\n");
-      wg_print_record(db,given_cl);
-
-      //given_cl_as_active=wr_add_given_cl_active_list(g,given_cl,given_cl_metablock,1);
-      given_cl_as_active=wr_add_given_cl_active_list(g,rec,given_cl_metablock,1);
-
-      printf("\ngiven_cl_as_active\n");
-      wg_print_record(db,given_cl_as_active);
-
-      if (given_cl_as_active==NULL) continue; 
-      */                   
-    }               
-    //rec = wg_get_next_raw_record(db,rec);    
+    // start allocating from record area instead of g->build_buffer 
+    given_cl=wr_add_given_cl_active_list(g,given_cl,given_cl_metablock,0,NULL);
+#ifdef DEBUG 
+    printf("\ngiven_cl after wr_add_given_cl_active_list\n");
+    wg_print_record(db,given_cl);
+#endif                
     cell=cellptr->cdr;
   }
 #ifdef DEBUG            
@@ -354,20 +231,21 @@ int wr_init_db_clause_indexes(glb* g, void* db) {
   return rules_found+facts_found;
 }
 
+/*
 
+  passedg: g block to be shown directly, instead of the following db
+  if passedg is NULL, pass the following db instead
+
+  db: ptr to shared db memory which contains the internal gb block
+  desc: description str of db, for debug output only
+
+*/
 
 void wr_show_database_details(glb* passedg,void* db, char* desc) {
   glb* rglb;
   glb* g;
   db_memsegment_header* dbh;
-
   void *rec;
-  gint clmeta;
-  gptr given_cl_as_active, given_cl;
-  gint given_cl_metablock[CLMETABLOCK_ELS];
-  int rules_found=0;
-  int facts_found=0;
-  //gint weight;
   gint rlen;
   void *gdbptr;
   gint cell;
@@ -375,36 +253,44 @@ void wr_show_database_details(glb* passedg,void* db, char* desc) {
 
   printf("\n*** wr_show_database_details for desc %s\n",desc);
   
-  printf("\ndbcheck(db) gives %d \n", dbcheck(db));
-  dbh=dbmemsegh(db);
-  printf("\ndbcheckh(dbh) gives %d \n", dbcheck(dbh));
-  printf("\ndb as ptr is %lx \n", (unsigned long int)db);
+  if (passedg==NULL) {
+    printf("\ndirect g block passedg is NULL, hence using g inside db \n");
+ 
+    printf("\ndbcheck(db) gives %d \n", dbcheck(db));
+    dbh=dbmemsegh(db);
+    printf("\ndbcheckh(dbh) gives %d \n", dbcheck(dbh));
+    printf("\ndb as ptr is %lx \n", (unsigned long int)db);
 
+    rglb=db_rglb(db); // this is the internal g of db
+    g=malloc(sizeof(glb)); // this is a new malloced g
+    // copy rglb stuff to g
+    memcpy(g,rglb,sizeof(glb));
+    // now g should contain the same things as rglb
 
-  rglb=db_rglb(db); // this is the internal g of db
-  g=malloc(sizeof(glb)); // this is a new malloced g
-  // copy rglb stuff to g
-  memcpy(g,rglb,sizeof(glb));
-  // now g should contain the same things as rglb
+    printf("internal rglb ptr is %lx and int is %ld\n", (unsigned long int)rglb,(gint)rglb);
+    printf("malloced    g ptr is %lx and int is %ld\n", (unsigned long int)g,(gint)g);
 
-  printf("internal rglb ptr is %lx and int is %ld\n", (unsigned long int)rglb,(gint)rglb);
-  printf("malloced    g ptr is %lx and int is %ld\n", (unsigned long int)g,(gint)g);
+    // show rglb contents
 
-  // show rglb contents
+    printf("(rglb->db_offset) is %ld\n",(rglb->db_offset));
+    printf("(rglb->db) is ptr %lx and int %ld\n",(unsigned long int)(rglb->db),(gint)(rglb->db));
+    printf("(rglb->kb_db) is ptr %lx and int %ld\n",(unsigned long int)(rglb->kb_db),(gint)(rglb->kb_db));
+    printf("(rglb->child_db) is ptr %lx and int %ld\n",(unsigned long int)(rglb->child_db),(gint)(rglb->child_db));
+    printf("(rglb->inkb) is %ld\n",(rglb->inkb));
 
-  printf("(rglb->db_offset) is %ld\n",(rglb->db_offset));
-  printf("(rglb->db) is ptr %lx and int %ld\n",(unsigned long int)(rglb->db),(gint)(rglb->db));
-  printf("(rglb->kb_db) is ptr %lx and int %ld\n",(unsigned long int)(rglb->kb_db),(gint)(rglb->kb_db));
-  printf("(rglb->child_db) is ptr %lx and int %ld\n",(unsigned long int)(rglb->child_db),(gint)(rglb->child_db));
-  printf("(rglb->inkb) is %ld\n",(rglb->inkb));
+    // compute, check and store correct db ptrs to g
+    // offset was created as (g->db_offset)=(gint)(((char*)g)-((char*)db))
+    gdbptr = (void *)(((char*)rglb)-(rglb->db_offset));
+    printf("calculated db ptr from internal rglb as %lx and int %ld\n",(unsigned long int)gdbptr, (gint)gdbptr);
+    printf("\ndbcheck(gdbptr) gives %d \n", dbcheck(gdbptr));
+    (g->db) = gdbptr;
+    (g->kb_db) = gdbptr;
 
-  // compute, check and store correct db ptrs to g
-  // offset was created as (g->db_offset)=(gint)(((char*)g)-((char*)db))
-  gdbptr = (void *)(((char*)rglb)-(rglb->db_offset));
-  printf("calculated db ptr from internal rglb as %lx and int %ld\n",(unsigned long int)gdbptr, (gint)gdbptr);
-  printf("\ndbcheck(gdbptr) gives %d \n", dbcheck(gdbptr));
-  (g->db) = gdbptr;
-  (g->kb_db) = gdbptr;
+  } else {
+    printf("\ndirect g block passedg is present, hence using passedg and not db or g inside db \n");
+    g=passedg;
+    db=g->db;
+  }
 
   // show modified g contents
 
@@ -439,7 +325,7 @@ void wr_show_database_details(glb* passedg,void* db, char* desc) {
   
   // show groundunits hash
 
-  printf("\n** show hash_neg_groundunits\n");
+  printf("\n\n** show hash_neg_groundunits\n");
   wr_print_termhash(g,rotp(g,g->hash_neg_groundunits));
   printf("\n** show hash_pos_groundunits\n");
   wr_print_termhash(g,rotp(g,g->hash_pos_groundunits));  
@@ -453,17 +339,12 @@ void wr_show_database_details(glb* passedg,void* db, char* desc) {
   wr_clterm_hashlist_print(g, rotp(g,g->hash_pos_atoms));
   printf("\n");
   
-  /*
-  printf("\n* hash_neg_active_groundunits:\n"); 
-  wr_print_termhash(g,
-     (unsigned long int) ((gptr)(offsettoptr(db,(g->hash_neg_active_groundunits)))) );
-     //rotp(g,g->hash_neg_active_groundunits));
-  printf("\n* hash_pos_active_groundunits:\n"); 
-  wr_print_termhash(g,
-     (unsigned long int) ((gptr)(offsettoptr(db,(g->hash_pos_active_groundunits)))) );
-     //rotp(g,g->hash_pos_active_groundunits));
-  */
+  // show groundunits hash for given clause subsumption
   
+  printf("\n** show hash_neg_active_groundunits:\n"); 
+  wr_print_termhash(g,rotp(g,g->hash_neg_active_groundunits));
+  printf("\n** show hash_pos_active_groundunits:\n"); 
+  wr_print_termhash(g,rotp(g,g->hash_pos_active_groundunits));
   
   printf("\n** show hash_para_terms:\n");      
   wr_clterm_hashlist_print_para(g,rotp(g,g->hash_para_terms)); 
@@ -472,6 +353,23 @@ void wr_show_database_details(glb* passedg,void* db, char* desc) {
   printf("\nhash_eq_terms after adding:");      
   wr_clterm_hashlist_print(g,rotp(g,g->hash_eq_terms));  
   */
+}
+
+
+
+void wr_show_database_headers(void* db) {
+  db_memsegment_header* dbh;
+
+  printf("\n*** wr_show_database_headers for ptr %lx as int %ld\n",
+      (unsigned long int)db,(gint)db);
+  printf("\ndbcheck(db) gives %d \n", dbcheck(db));
+  dbh=dbmemsegh(db);
+  printf("\ndbcheckh(dbh) gives %d \n", dbcheck(dbh));
+  
+  printf("\ndb->kb_db is ptr %lx and int %ld\n",(unsigned long int)(dbh->kb_db),(gint)(dbh->kb_db));
+  printf("\ndb->rglb is ptr %lx and int %ld\n",(unsigned long int)(dbh->rglb),(gint)(dbh->rglb));
+
+  wg_show_database(db);
 }
 
 #ifdef __cplusplus

@@ -56,6 +56,8 @@ extern "C" {
 #include "dbfeatures.h"
 #include "dbmem.h"
 #include "dblog.h"
+#include "../Reasoner/init.h"
+
 
 /* ====== Private headers and defs ======== */
 
@@ -419,7 +421,11 @@ void* wg_attach_local_database(gint size) {
 
 void* wg_attach_local_database_with_kb(gint size, void* kb) {
   void* shm;
+
+  printf("\nwg_attach_local_database_with_kb called\n");
 #ifdef USE_DATABASE_HANDLE
+  printf("\nwg_attach_local_database_with_kb USE_DATABASE_HANDLE\n");
+  printf("")
   void *dbhandle = init_dbhandle();
   if(!dbhandle)
     return NULL;
@@ -428,6 +434,7 @@ void* wg_attach_local_database_with_kb(gint size, void* kb) {
   if (size<=0) size=DEFAULT_MEMDBASE_SIZE;
 
   shm = (void *) malloc(size);
+  printf("\nwg_attach_local_database_with_kb malloced shm ptr %lx\n",(unsigned long int)shm);
   if (shm==NULL) {
     show_memory_error("malloc failed");
     return NULL;
@@ -437,7 +444,9 @@ void* wg_attach_local_database_with_kb(gint size, void* kb) {
     ((db_handle *) dbhandle)->db = shm;
     if(wg_init_db_memsegment_with_kb(dbhandle, 0, size, kb)) {
 #else
-    if(wg_init_db_memsegment_with_kb(shm, 0, size, kb)) {
+    printf("\nwg_attach_local_database_with_kb to wg_init_db_memsegment_with_kb\n");
+    if(wg_init_db_memsegment_with_kb(shm, 0, size, NULL)) {
+      printf("\nwg_attach_local_database_with_kb passed wg_init_db_memsegment_with_kb with 1\n");
 #endif
       show_memory_error("Database initialization failed");
       free(shm);
@@ -446,10 +455,17 @@ void* wg_attach_local_database_with_kb(gint size, void* kb) {
 #endif
       return NULL;
     }
+    printf("\nwg_attach_local_database_with_kb to do wr_show_database_headers\n");
+    wr_show_database_headers(shm); 
   }
+  printf("\nwg_attach_local_database_with_kb exiting\n");
 #ifdef USE_DATABASE_HANDLE
   return dbhandle;
 #else
+  printf("\nwg_attach_local_database_with_kb to do wr_show_database_headers second time\n");
+  printf("\nshm is %lx and gint %ld\n",
+        (unsigned long int)shm,(gint)shm);
+  wr_show_database_headers(shm); 
   return shm;
 #endif
 }

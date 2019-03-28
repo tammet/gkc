@@ -43,7 +43,8 @@ extern "C" {
 /* ====== Private headers and defs ======== */
 
 #define PRINT_LIMITS
-
+//#define DEBUG
+#undef DEBUG
 
 /* ======= Private protos ================ */
 
@@ -170,21 +171,25 @@ gptr wr_build_calc_cl(glb* g, gptr xptr) {
   int i;
   gint tmp;
   int ilimit;
-  
-  printf("wr_build_calc_cl called\n"); 
 
+#ifdef DEBUG
+  printf("\nwr_build_calc_cl called, g->build_buffer ptr is %lx \n", (unsigned long int)g->build_buffer); 
+#endif
   db=g->db;
   if (g->build_rename) (g->build_rename_vc)=0;
   ruleflag=wg_rec_is_rule_clause(db,xptr);  
-  if (!ruleflag) {
+
+  if (!ruleflag) { ///// atom case starts
+
     // in some cases, no change, no copy: normally copy
     //yptr=xptr;     
-    
-    printf("\nin wr_build_calc_cl !ruleflag\n"); 
-    
+#ifdef DEBUG    
+    printf("\nin wr_build_calc_cl !ruleflag case\n"); 
+#endif    
     xlen=get_record_len(xptr);
-
-    printf("\nxlen %d\n",xlen);
+#ifdef DEBUG
+    printf("\nin wr_build_calc_cl got record with len %ld\n",xlen);
+#endif   
 
     // allocate space
     if ((g->build_buffer)!=NULL) {
@@ -197,23 +202,31 @@ gptr wr_build_calc_cl(glb* g, gptr xptr) {
       }  
     } else {
       yptr=wg_create_raw_record(db,xlen); 
+       // copy rec header and clause header
+      ilimit=RECORD_HEADER_GINTS+1; // this should change with probabs!!!!
+      for(i=0;i<RECORD_HEADER_GINTS+CLAUSE_EXTRAHEADERLEN;i++) {
+        //printf("\n i1: %d RECORD_HEADER_GINTS: %d, CLAUSE_EXTRAHEADERLEN: %d xptr[i]: %d \n",i,RECORD_HEADER_GINTS,CLAUSE_EXTRAHEADERLEN,xptr[i]);
+        yptr[i]=xptr[i];     
+      }  
+      /*
       // copy clause header
       ilimit=RECORD_HEADER_GINTS+1; // this should change with probabs!!!!
       for(i=0;i<CLAUSE_EXTRAHEADERLEN;i++) {
         //printf("\n i1: %d RECORD_HEADER_GINTS: %d, CLAUSE_EXTRAHEADERLEN: %d xptr[i]: %d \n",i,RECORD_HEADER_GINTS,CLAUSE_EXTRAHEADERLEN,xptr[i]);
         yptr[i]=xptr[i];     
-      }                    
+      } 
+      */                   
     }        
     if (yptr==NULL) return NULL;
-    
-    printf("\n in wr_build_calc_cl cp0 xptr:\n");
+#ifdef DEBUG    
+    printf("\n in wr_build_calc_cl cp0 original xptr:\n");
     wr_print_record(g,xptr);
     printf("\n");
 
-    printf("\n in wr_build_calc_cl cp0 yptr:\n");
+    printf("\n in wr_build_calc_cl cp0 created yptr:\n");
     wr_print_record(g,yptr);
     printf("\n");
-    
+#endif    
     /*
     // copy rec header and clause header
     ilimit=RECORD_HEADER_GINTS+1; // this should change with probabs!!!!
@@ -239,11 +252,11 @@ gptr wr_build_calc_cl(glb* g, gptr xptr) {
       if (tmp==WG_ILLEGAL) return NULL; // could be memory err
       yptr[i]=tmp; 
     } 
-    
-    printf("\n in wr_build_calc_cl result yptr:\n");
+#ifdef DEBUG    
+    printf("\n in wr_build_calc_cl final result yptr:\n");
     wr_print_record(g,yptr);
     printf("\n");
-    
+#endif    
     /* old version 
 
     tmp=wr_build_calc_term(g,encode_datarec_offset(pto(db,xptr)));
@@ -251,11 +264,16 @@ gptr wr_build_calc_cl(glb* g, gptr xptr) {
     if (tmp==ACONST_FALSE || tmp==ACONST_TRUE) return tmp; // for computable atoms
     yptr=rotp(g,tmp);
     */
-  } else {        
 
-    //printf("\in wr_build_calc_cl ruleflag\n"); 
+  } else {        ///// rule case starts
 
+#ifdef DEBUG
+    printf("\nin wr_build_calc_cl ruleflag case\n"); 
+#endif    
     xlen=get_record_len(xptr);
+#ifdef DEBUG
+    printf("\nnin wr_build_calc_cl got record with len %ld\n",xlen);
+#endif
     // allocate space
     if ((g->build_buffer)!=NULL) {
       yptr=wr_alloc_from_cvec(g,g->build_buffer,(RECORD_HEADER_GINTS+xlen));       
@@ -263,11 +281,23 @@ gptr wr_build_calc_cl(glb* g, gptr xptr) {
       yptr=wg_create_raw_record(db,xlen);                   
     }        
     if (yptr==NULL) return NULL;
+    
+     
     // copy rec header and clause header
     ilimit=RECORD_HEADER_GINTS+CLAUSE_EXTRAHEADERLEN;
     for(i=0;i<ilimit;i++) {
       yptr[i]=xptr[i];     
     }  
+#ifdef DEBUG
+    printf("\n in wr_build_calc_cl cp0 original xptr:\n");
+    wr_print_record(g,xptr);
+    printf("\n");
+
+    printf("\n in wr_build_calc_cl cp0 created yptr:\n");
+    wr_print_record(g,yptr);
+    printf("\n");
+#endif
+
     //wr_print_varbank(g,g->varbanks);
     // loop over clause elems
     xatomnr=wg_count_clause_atoms(db,xptr);
@@ -281,6 +311,11 @@ gptr wr_build_calc_cl(glb* g, gptr xptr) {
       if (yatom==ACONST_TRUE) return (gptr)ACONST_TRUE; // return yatom; // for computable atoms, but should not do that here!!! ???
       wr_set_rule_clause_atom(g,yptr,i,yatom);
     }   
+#ifdef DEBUG
+    printf("\n in wr_build_calc_cl final result yptr:\n");
+    wr_print_record(g,yptr);
+    printf("\n");
+#endif
     //wr_print_varbank(g,g->varbanks);
   }
   ++(g->stat_built_cl);
