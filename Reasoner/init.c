@@ -218,7 +218,7 @@ int wr_init_db_clause_indexes(glb* g, void* db) {
     }  
 
     // start allocating from record area instead of g->build_buffer 
-    given_cl=wr_add_given_cl_active_list(g,given_cl,given_cl_metablock,0,NULL);
+    given_cl=wr_add_given_cl_active_list(g,given_cl,given_cl_metablock,1,NULL);
 #ifdef DEBUG 
     printf("\ngiven_cl after wr_add_given_cl_active_list\n");
     wg_print_record(db,given_cl);
@@ -302,10 +302,15 @@ void wr_show_database_details(glb* passedg,void* db, char* desc) {
 
   // show g stats
 
-  wr_show_stats(g,0);  
-  
+  wr_show_stats(g,0); 
+
+  // show g strings
+
+  //wg_show_strhash(db);
+ 
   // show records in db   
   
+  printf("\n\n** clauses\n");
   //rec = wg_get_first_raw_record(db);
   cell=g->initial_cl_list;
   while(cell) {        
@@ -325,34 +330,36 @@ void wr_show_database_details(glb* passedg,void* db, char* desc) {
   
   // show groundunits hash
 
-  printf("\n\n** show hash_neg_groundunits\n");
+  printf("\n\n** hash_neg_groundunits\n");
   wr_print_termhash(g,rotp(g,g->hash_neg_groundunits));
-  printf("\n** show hash_pos_groundunits\n");
+  printf("\n** hash_pos_groundunits\n");
   wr_print_termhash(g,rotp(g,g->hash_pos_groundunits));  
   printf("\n");
    
   // show neg and pos atoms
 
-  printf("\n** show hash_neg_atoms:\n");      
+  printf("\n** hash_neg_atoms:\n");      
   wr_clterm_hashlist_print(g, rotp(g,g->hash_neg_atoms));
-  printf("\n** show hash_pos_atoms:\n");      
+  printf("\n** hash_pos_atoms:\n");      
   wr_clterm_hashlist_print(g, rotp(g,g->hash_pos_atoms));
   printf("\n");
   
   // show groundunits hash for given clause subsumption
   
-  printf("\n** show hash_neg_active_groundunits:\n"); 
+  printf("\n** hash_neg_active_groundunits:\n"); 
   wr_print_termhash(g,rotp(g,g->hash_neg_active_groundunits));
-  printf("\n** show hash_pos_active_groundunits:\n"); 
+  printf("\n** hash_pos_active_groundunits:\n"); 
   wr_print_termhash(g,rotp(g,g->hash_pos_active_groundunits));
   
-  printf("\n** show hash_para_terms:\n");      
-  wr_clterm_hashlist_print_para(g,rotp(g,g->hash_para_terms)); 
+  printf("\n** clactivesubsume:\n"); 
+  wr_show_clactivesubsume(g);
 
-  /*
-  printf("\nhash_eq_terms after adding:");      
-  wr_clterm_hashlist_print(g,rotp(g,g->hash_eq_terms));  
-  */
+  printf("\n** hash_para_terms:\n");      
+  wr_clterm_hashlist_print_para(g,rotp(g,g->hash_para_terms)); 
+  
+  printf("\n** hash_eq_terms:");      
+  wr_clterm_hashlist_print_para(g,rotp(g,g->hash_eq_terms));  
+  
 }
 
 

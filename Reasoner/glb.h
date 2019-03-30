@@ -94,6 +94,7 @@ typedef struct {
   void* child_db;       /**< local child db: if kb_db present, then child_db->kb_db is set to this */
   gint db_offset;       /**< offset of the db ptr */
   gint inkb;            /**< 1 if g struct is inside shared kb, 0 otherwise */
+  void* kb_g;            /**< if external shared mem kb_db is present, then the g ptr inside kb_db, else NULL */ 
 
   /* === shared data block === */
   

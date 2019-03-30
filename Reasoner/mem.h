@@ -71,6 +71,9 @@
 #define db_rglb(db) ((glb*)(offsettoptr((db),(dbmemsegh(db)->rglb))))
 #define r_db_rglb(g) ((glb*)(offsettoptr(((g)->db),(dbmemsegh((g)->db)->rglb))))
 
+#define r_kb_g(g) ((glb*)((g)->kb_g))
+
+
 /* ======= prototypes ===== */
 
 void* wr_malloc(glb* g, int bytes);

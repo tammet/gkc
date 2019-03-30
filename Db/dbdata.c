@@ -2935,14 +2935,14 @@ void tmp_wg_show_strhash(void* db) {
         (int) i, (int) hashchain);
       for(;hashchain!=0;
           hashchain=dbfetch(db,decode_longstr_offset(hashchain)+LONGSTR_HASHCHAIN_POS*sizeof(gint))) {
-          printf("hashchain %d decode_longstr_offset(hashchain) %d fulladr %d contents %d\n",
+          printf("hashchain %ld decode_longstr_offset(hashchain) %ld fulladr %ld contents %ld\n",
                  hashchain,
                  decode_longstr_offset(hashchain),
                  (decode_longstr_offset(hashchain)+LONGSTR_HASHCHAIN_POS*sizeof(gint)),
                  dbfetch(db,decode_longstr_offset(hashchain)+LONGSTR_HASHCHAIN_POS*sizeof(gint)));
           type=wg_get_encoded_type(db,hashchain);
           printf("  ");
-          wg_debug_print_value(db,hashchain);
+          //wg_debug_print_value(db,hashchain);
           printf("\n");
           printf("  type %s",wg_get_type_name(db,type));
           if (type==WG_BLOBTYPE) {

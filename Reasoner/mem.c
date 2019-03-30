@@ -417,9 +417,9 @@ cvec wr_cvec_push(glb* g,cvec v, gint e) {
 gptr wr_alloc_from_cvec(glb* g, cvec buf, gint gints) {
   gint pos;
   gint i;
-  
+#ifdef DEBUG  
   printf("\nwr_alloc_from_cvec called with gints %ld\n",gints);
-
+#endif
   pos=CVEC_NEXT(buf);
   // set correct alignment for pos
   //printf("wr_alloc_from_cvec initial pos %d buf+pos %d remainder with VEC_ALIGNMENT_BYTES %d\n",

@@ -42,4 +42,6 @@ int wr_init_active_passive_lists_from_all(glb* g);
 int wr_init_active_passive_lists_from_one(glb* g, void* db, void* kb_db);
 void wr_show_stats(glb* g, int show_local_complex);
 
+void wr_set_detailed_printout(glb* g);
+
 #endif

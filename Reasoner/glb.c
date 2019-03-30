@@ -90,6 +90,7 @@ glb* wr_glb_new_simple(void* db) {
   (g->child_db)=NULL;
   (g->inkb)=0;
   (g->db_offset)=0;
+  (g->kb_g)=NULL;
   wr_glb_init_simple(g);  // fills in simple values (ints, strings etc)   
   return g;  
 } 

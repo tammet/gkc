@@ -47,8 +47,8 @@ extern "C" {
 
 //#define PARADEBUG // storing para terms
 
-#undef XDEBUG
 //#define XDEBUG
+#undef XDEBUG
 //#define DEBUGHASH
 
 /* ====== Private headers ======== */
@@ -135,10 +135,12 @@ void wr_show_clactive(glb* g) {
 void wr_show_clactivesubsume(glb* g) {
   int i;
   
+  if (!(g->clactivesubsume)) {
+    printf("\n g->clactivesubsume is NULL\n");
+    return;
+  }
   for(i=2;i<(rotp(g,g->clactivesubsume))[1];i+=CLMETABLOCK_ELS) {
-    printf("\nclactivesubsume nr %d :",i);    
-    wr_print_clause(g,(gptr)((rotp(g,g->clactivesubsume))[i+CLMETABLOCK_CL_POS]));
-    wr_print_record(g,(gptr)((rotp(g,g->clactivesubsume))[i+CLMETABLOCK_CL_POS]));    
+    printf("\nclactivesubsume nr %d :",i);       
     printf("\n lengths   ");
     wr_print_gint_hashmask(g, (rotp(g,g->clactivesubsume))[i+CLMETABLOCK_LENGTHS_POS]);
     printf("\n sizes     ");
@@ -149,7 +151,13 @@ void wr_show_clactivesubsume(glb* g) {
     wr_print_gint_hashmask(g, (rotp(g,g->clactivesubsume))[i+CLMETABLOCK_PREF2BITS_POS]);
     printf("\n pref3bits ");
     wr_print_gint_hashmask(g, (rotp(g,g->clactivesubsume))[i+CLMETABLOCK_PREF3BITS_POS]);
-    printf("\n");
+    printf("\n clause    ");
+    wr_print_clause(g,rotp(g,(rotp(g,g->clactivesubsume))[i+CLMETABLOCK_CL_POS]));
+    printf("\n record    ");
+    wg_print_record(g->db,rotp(g,(rotp(g,g->clactivesubsume))[i+CLMETABLOCK_CL_POS]));
+    //printf("\n cl offset stored in (g->clactivesubsume): %ld", 
+    //          ((rotp(g,g->clactivesubsume))[i+CLMETABLOCK_CL_POS]));
+    printf("\n"); 
   } 
 }
 
@@ -525,6 +533,14 @@ int wr_cl_store_eq_arg(glb* g, gptr cl, gint term, int termtype, int litnr, int 
 
   gptr tptr;
 
+#ifdef XDEBUG 
+  printf("\nwr_cl_store_eq_arg starts %d\n");
+  printf("term \n");
+  wr_print_term(g,term);
+  printf("clause \n");
+  wr_print_clause(g,cl);
+  printf("\nwtermtype %d litnr %d leftflag %d\n",termtype,litnr,leftflag);
+#endif  
   if (termtype==WG_RECORDTYPE) {
     tptr=rotp(g,term);
     fun=tptr[RECORD_HEADER_GINTS+(g->unify_funpos)];
@@ -544,7 +560,7 @@ int wr_cl_store_eq_arg(glb* g, gptr cl, gint term, int termtype, int litnr, int 
   }  
 #ifdef DEBUGHASH      
   printf("\nhash_eq_terms after adding:");      
-  wr_clterm_hashlist_print(g,hashvec);
+  wr_clterm_hashlist_print_para(g,hashvec);
 #endif 
   return 1; 
 

@@ -137,7 +137,7 @@ int wg_delete_database(char* dbasename); // deletes a database: returns 0 if OK
 
 void* wg_attach_local_database(wg_int size);
 #ifdef USE_REASONER
-void* wg_attach_local_database_with_kb(wg_int size, void* kb);
+//void* wg_attach_local_database_with_kb(wg_int size, void* kb);
 #endif
 void wg_delete_local_database(void* dbase);
 

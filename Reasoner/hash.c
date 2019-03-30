@@ -811,7 +811,7 @@ void wr_clterm_hashlist_print(glb* g, vec hashvec) {
     if (hashvec[i]!=0) {
       //printf("\ni %d hashvec[i] %d \n",i,hashvec[i]);      
       node=(rotp(g,hashvec[i]))[CLTERM_HASHNODE_NEXT_POS];
-      printf("\nhashslot i %d node %ld len %ld:\n",
+      printf("\nhashslot i %d node %ld len %d:\n",
          i, node, (int)((rotp(g,hashvec[i]))[CLTERM_HASHNODE_LEN_POS]));
       while(node!=0) {
         printf("term ");
@@ -837,7 +837,7 @@ void wr_clterm_hashlist_print(glb* g, vec hashvec) {
       }        
     }  
   } 
-  printf("hashvec printed\n");  
+  //printf("hashvec printed\n");  
 }  
 
 
@@ -854,7 +854,7 @@ void wr_clterm_hashlist_print_para(glb* g, vec hashvec) {
     if (hashvec[i]!=0) {
       //printf("\ni %d hashvec[i] %d \n",i,hashvec[i]);   
       node=(rotp(g,hashvec[i]))[CLTERM_HASHNODE_NEXT_POS];
-      printf("\nhashslot i %d node %ld len %ld:\n",
+      printf("\nhashslot i %d node %ld len %d:\n",
          i, node, (int)((rotp(g,hashvec[i]))[CLTERM_HASHNODE_LEN_POS]));
       while(node!=0) {
         printf("term ");      
@@ -875,7 +875,7 @@ void wr_clterm_hashlist_print_para(glb* g, vec hashvec) {
       }        
     }  
   } 
-  printf("hashvec printed\n");  
+  //printf("hashvec printed\n");  
 }  
 
 

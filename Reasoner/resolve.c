@@ -56,11 +56,12 @@ extern "C" {
 /* ====== Private headers and defs ======== */
 
 //#define DEBUG
-#undef DEBUG
+//#undef DEBUG
 #define QUIET
 //#undef QUIET
 
-#define USE_RES_TERMS // loop over active clauses in wr_resolve_binary_all_active
+//#define USE_RES_TERMS // loop over active clauses in wr_resolve_binary_all_active
+
 
 /* ======= Private protos ================ */
 
@@ -90,7 +91,7 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active) {
   gptr xcl;
   gptr ycl;
   int ures;
-
+  int dbused;
   int negadded=0;
   int posadded=0;
   
@@ -156,126 +157,154 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active) {
       // now loop over hash vectors for all active unification candidates
       // ycl: cand clause
       // yatom: cand atom
-#ifndef QUIET      
-      printf("\n----- inner wr_genloop cycle (active hash list) starts ----------\n"); 
-#endif             
-      if (negflag) hashvec=rotp(g,g->hash_pos_atoms);
-      else hashvec=rotp(g,g->hash_neg_atoms);       
-      //wr_clterm_hashlist_print(g,hashvec);       
-      hlen=wr_clterm_hashlist_len(g,hashvec,hash);
-      if (hlen==0) {
-#ifdef DEBUG        
-        printf("no matching atoms in hash\n");
-#endif        
-        continue;
-      }     
-      node=wr_clterm_hashlist_start(g,hashvec,hash);
-      if (!node)  {
-        wr_sys_exiterr(g,"apparently wrong hash given to wr_clterm_hashlist_start");
-        return;
-      }      
-      while(node!=0) {    
-        yatom=(otp(db,node))[CLTERM_HASHNODE_TERM_POS];
-        ycl=otp(db,(otp(db,node))[CLTERM_HASHNODE_CL_POS]);
-        /*
-        printf("after while(node!=0): \n");
-        printf("ycl: \n");
-        wr_print_clause(g,ycl);         
-        printf("xcl: \n");
-        wr_print_clause(g,xcl);
-        printf("xatom: \n");
-        wr_print_clause(g,xatom);
-        */
-        if ((g->back_subsume) && wr_blocked_clause(g,ycl)) {
-          /*
-          printf("\nCP1 blocked clause: \n");          
-          wr_print_clause(g,ycl);
-          printf("\n");
-          */
-          node=wr_clterm_hashlist_next(g,hashvec,node);
-          continue;
+
+      // loop over local atom hash (dbused==0) and external atom hash (dbused==1)
+
+      for(dbused=0; dbused<2; dbused++) {
+        if (dbused==0) {
+          if (negflag) hashvec=rotp(g,g->hash_pos_atoms);
+          else hashvec=rotp(g,g->hash_neg_atoms);   
+#ifdef DEBUG
+          printf("\n**** in wr_resolve_binary_all_active dbused %d hashvec is *****\n",dbused);
+          wr_clterm_hashlist_print(g,hashvec);
+#endif
+        } else {
+#ifdef DEBUG
+          printf("\n**** in wr_resolve_binary_all_active dbused %d hashvec is *****\n",dbused);
+          //wr_clterm_hashlist_print(g,hashvec);
+#endif
+          if (r_kb_g(g)) {
+            //printf("\nr_kb_g(g) used\n");
+            if (negflag) hashvec=rotp(g,r_kb_g(g)->hash_pos_atoms);
+            else hashvec=rotp(g,r_kb_g(g)->hash_neg_atoms); 
+#ifdef DEBUG            
+            wr_clterm_hashlist_print(g,hashvec);            
+#endif            
+          }        
         }
-        if (g->print_active_cl) {
-          printf("\n* active: ");
-          wr_print_clause(g,ycl); 
-          //printf("\n");
-        }  
-        /*
-        printf("\n* active: ");
-        wr_print_clause(g,ycl);    
-        */
+
+  #ifndef QUIET      
+        printf("\n----- inner wr_genloop cycle (active hash list) starts ----------\n"); 
+
+        printf("\nhash %ld\n",hash);
+  #endif             
         
-        if ((g->res_shortarglen_limit) && (nonanslen>(g->res_shortarglen_limit))) {
-          // must check that ycl is unit
-          if (wr_count_cl_nonans_atoms(g,ycl) > (g->res_shortarglen_limit)) {
-            // cannot use: continue loop
+        //wr_clterm_hashlist_print(g,hashvec);       
+        hlen=wr_clterm_hashlist_len(g,hashvec,hash);
+        if (hlen==0) {
+  #ifdef DEBUG        
+          printf("no matching atoms in hash\n");
+  #endif        
+          continue;
+        }     
+        node=wr_clterm_hashlist_start(g,hashvec,hash);
+        if (!node)  {
+          wr_sys_exiterr(g,"apparently wrong hash given to wr_clterm_hashlist_start");
+          return;
+        }      
+        while(node!=0) {    
+          yatom=(otp(db,node))[CLTERM_HASHNODE_TERM_POS];
+          ycl=otp(db,(otp(db,node))[CLTERM_HASHNODE_CL_POS]);
+          /*
+          printf("after while(node!=0): \n");
+          printf("ycl: \n");
+          wr_print_clause(g,ycl);                   
+          printf("xcl: \n");
+          wr_print_clause(g,xcl);
+          printf("xatom: \n");
+          wr_print_clause(g,xatom);
+          */
+          if ((g->back_subsume) && wr_blocked_clause(g,ycl)) {
+            /*
+            printf("\nCP1 blocked clause: \n");          
+            wr_print_clause(g,ycl);
+            printf("\n");
+            */
             node=wr_clterm_hashlist_next(g,hashvec,node);
             continue;
+          }
+          if (g->print_active_cl) {
+            printf("\n* active: ");
+            wr_print_clause(g,ycl); 
+            //printf("\n");
           }  
-        }
-        
-#ifdef DEBUG        
-        printf("\nxatom ");
-        wr_print_term(g,xatom);
-        printf(" in xcl ");
-        wr_print_clause(g,xcl);
-        printf("yatom ");
-        wr_print_term(g,yatom);
-        printf(" in ycl ");
-        wr_print_clause(g,ycl);
-        //wg_print_record(db,ycl);
-        //printf("calling equality check\n");
-        wr_print_vardata(g);
-#endif          
-        //printf("!!!!!!!!!!!!!!!!!!!!! before unification\n");
-        //wr_print_vardata(g); 
-        //printf("CLEAR\n");
-        //wr_clear_varstack(g,g->varstack);           
-        //wr_print_vardata(g); 
-        //printf("START UNIFICATION\n");
-        
-        ures=wr_unify_term(g,xatom,yatom,1); // uniquestrflag=1
-#ifdef DEBUG        
-        printf("unification check res: %d\n",ures);
-#endif        
-        //wr_print_vardata(g);
-        //wr_print_vardata(g);
-        //wr_clear_varstack(g,g->varstack);
-        //wr_print_vardata(g);
-        if (ures) {
-          // build and process the new clause
-#ifdef DEBUG         
-          printf("\nin wr_resolve_binary_all_active to call wr_process_resolve_result\n");
-#endif           
-          wr_process_resolve_result(g,xatom,xcl,yatom,ycl,cl_as_active); 
-#ifdef DEBUG           
-          printf("\nin wr_resolve_binary_all_active after wr_process_resolve_result\n");
-          printf("\nxatom\n");
+          /*
+          printf("\n* active: ");
+          wr_print_clause(g,ycl);    
+          */
+          
+          if ((g->res_shortarglen_limit) && (nonanslen>(g->res_shortarglen_limit))) {
+            // must check that ycl is unit
+            if (wr_count_cl_nonans_atoms(g,ycl) > (g->res_shortarglen_limit)) {
+              // cannot use: continue loop
+              node=wr_clterm_hashlist_next(g,hashvec,node);
+              continue;
+            }  
+          }
+          
+  #ifdef DEBUG        
+          printf("\nxatom ");
           wr_print_term(g,xatom);
-          printf("\nyatom\n");
+          printf(" in xcl ");
+          wr_print_clause(g,xcl);
+          printf("yatom ");
           wr_print_term(g,yatom);
-          printf("!!!!! wr_resolve_binary_all_active after  wr_process_resolve_result queue is\n");
+          printf(" in ycl ");
+          wr_print_clause(g,ycl);
+          //wg_print_record(db,ycl);
+          //printf("calling equality check\n");
+          wr_print_vardata(g);
+  #endif          
+          //printf("!!!!!!!!!!!!!!!!!!!!! before unification\n");
+          //wr_print_vardata(g); 
+          //printf("CLEAR\n");
+          //wr_clear_varstack(g,g->varstack);           
+          //wr_print_vardata(g); 
+          //printf("START UNIFICATION\n");
+          
+          ures=wr_unify_term(g,xatom,yatom,1); // uniquestrflag=1
+  #ifdef DEBUG        
+          printf("unification check res: %d\n",ures);
+  #endif        
+          //wr_print_vardata(g);
+          //wr_print_vardata(g);
+          //wr_clear_varstack(g,g->varstack);
+          //wr_print_vardata(g);
+          if (ures) {
+            // build and process the new clause
+  #ifdef DEBUG         
+            printf("\nin wr_resolve_binary_all_active to call wr_process_resolve_result\n");
+  #endif           
+            wr_process_resolve_result(g,xatom,xcl,yatom,ycl,cl_as_active); 
+  #ifdef DEBUG           
+            printf("\nin wr_resolve_binary_all_active after wr_process_resolve_result\n");
+            printf("\nxatom\n");
+            wr_print_term(g,xatom);
+            printf("\nyatom\n");
+            wr_print_term(g,yatom);
+            printf("!!!!! wr_resolve_binary_all_active after  wr_process_resolve_result queue is\n");
+            wr_show_clqueue(g);
+            printf("\nqueue ended\n");
+  #endif             
+            if (g->proof_found || g->alloc_err) {
+              wr_clear_varstack(g,g->varstack);          
+              return;          
+            }  
+          }
+  #ifdef DEBUG
+          printf("wr_resolve_binary_all_active before wr_clear_varstack queue is\n");
           wr_show_clqueue(g);
           printf("\nqueue ended\n");
-#endif             
-          if (g->proof_found || g->alloc_err) {
-            wr_clear_varstack(g,g->varstack);          
-            return;          
-          }  
-        }
-#ifdef DEBUG
-        printf("wr_resolve_binary_all_active before wr_clear_varstack queue is\n");
-        wr_show_clqueue(g);
-        printf("\nqueue ended\n");
-#endif         
-        wr_clear_varstack(g,g->varstack);              
-        //wr_print_vardata(g);
-        // get next node;
-        node=wr_clterm_hashlist_next(g,hashvec,node);       
-      }
-#ifdef DEBUG      
-      printf("\nexiting node loop\n");      
-#endif      
+  #endif         
+          wr_clear_varstack(g,g->varstack);              
+          //wr_print_vardata(g);
+          // get next node;
+          node=wr_clterm_hashlist_next(g,hashvec,node);       
+        } /* over one single hash vector */
+  #ifdef DEBUG      
+        printf("\nexiting node loop\n");      
+  #endif      
+      } /* over local and external db hash vectors */
     }  
   }         
   return;
@@ -366,7 +395,8 @@ void wr_factor(glb* g, gptr cl, gptr cl_as_active) {
 
   wr_paramodulate_from_all_active takes a given cl
   and tries to paramodulate from positive equalities in this given cl
-  into terms of the clauses stored earlier as active.
+  into terms of the clauses stored earlier as active,
+  i.e. earlier clauses do not need to contain equalities.
 
 */
 
@@ -384,6 +414,7 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active) {
   int nonanslen; // length without ans preds
   //int termflag; // 1 if complex atom  
   gint hash;
+  int dbused;
   int useflag=0;  
   vec hashvec;
   int hlen;
@@ -529,146 +560,175 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active) {
           // yatom: cand atom
     #ifndef QUIET      
           printf("\n----- inner wr_genloop cycle (active hash list) starts ----------\n"); 
-    #endif             
-          hashvec=rotp(g,g->hash_para_terms);       
-          //wr_clterm_hashlist_print(g,hashvec);       
-          hlen=wr_clterm_hashlist_len(g,hashvec,hash);
-          if (hlen==0) {
-    #ifdef DEBUG        
-            printf("no matching atoms in hash\n");
-    #endif        
-            continue;
-          }     
-          node=wr_clterm_hashlist_start(g,hashvec,hash);
-          if (!node)  {
-            wr_sys_exiterr(g,"apparently wrong hash given to wr_clterm_hashlist_start");
-            return;
-          }      
-          while(node!=0) {  
-            nodeptr=otp(db,node);  
-            yterm=nodeptr[CLTERM_HASHNODE_TERM_POS];
-            ycl=otp(db,nodeptr[CLTERM_HASHNODE_CL_POS]);        
-            /*
-            printf("after while(node!=0): \n");
-            printf("ycl: \n");
-            wr_print_clause(g,ycl);    
-            printf("yterm: \n");
-            wr_print_term(g,yterm);      
-            printf("nodeptr[CLTERM_HASHNODE_PATH_POS]: %d\n",nodeptr[CLTERM_HASHNODE_PATH_POS]);
-            */
-            //printf("xcl: \n");
-            //wr_print_clause(g,xcl);
-            //printf("xatom: \n");
-            //wr_print_term(g,xatom);
-            if ((g->back_subsume) && wr_blocked_clause(g,ycl)) {
-              /*
-              printf("\nCP2 blocked clause: \n");          
-              wr_print_clause(g,ycl);
-              printf("\n");
-              */
-              node=wr_clterm_hashlist_next(g,hashvec,node);
-              continue;
-            }
-            if (g->print_active_cl) {
-              printf("\n* active: ");
-              wr_print_clause(g,ycl); 
-              //printf("\n");
-            }  
-            if ((g->res_shortarglen_limit) && (nonanslen>(g->res_shortarglen_limit))) {
-              // must check that ycl is unit
-              if (wr_count_cl_nonans_atoms(g,ycl) > (g->res_shortarglen_limit)) {
-                // cannot use: continue loop
-                node=wr_clterm_hashlist_next(g,hashvec,node);
-                continue;                   
-              }  
-            }
-    #ifdef DEBUG        
-            printf("\neq term a ");
-            wr_print_term(g,a);
-            printf(" in xcl ");
-            wr_print_clause(g,xcl);
-            printf("\nyterm ");
-            wr_print_term(g,yterm);
-            printf(" in ycl ");
-            wr_print_clause(g,ycl);
-            //wg_print_record(db,ycl);
-            //printf("calling equality check\n");
-            wr_print_vardata(g);
     #endif          
-            //printf("!!!!!!!!!!!!!!!!!!!!! before unification\n");
-            //wr_print_vardata(g); 
-            //printf("CLEAR\n");
-            //wr_clear_varstack(g,g->varstack);           
-            //wr_print_vardata(g); 
-            //printf("START UNIFICATION\n");
-            ures=wr_unify_term(g,a,yterm,1); // uniquestrflag=1
-    #ifdef DEBUG        
-            printf("unification check res: %d\n",ures);
-    #endif        
-            //wr_print_vardata(g);
-            //wr_print_vardata(g);
-            //wr_clear_varstack(g,g->varstack);
-            //wr_print_vardata(g);
-            
-            //eqtermorder_after=0; // =eqtermorder; // !!! was not initialized
-            if (ures) {
-              if (eqtermorder==3) {
+
+          // loop over local termhash (dbused==0) and external termhash (dbused==1)
+          for(dbused=0; dbused<2; dbused++) {            
+            if (dbused==0) {
+              // local termhash
+        #ifdef DEBUG
+              printf("\n**** in wr_paramodulate_from_all_active dbused %d hashvec is *****\n",dbused);
+              //wr_clterm_hashlist_print(g,hashvec);
+        #endif              
+              hashvec=rotp(g,g->hash_para_terms);       
+              //wr_clterm_hashlist_print(g,hashvec);       
+              hlen=wr_clterm_hashlist_len(g,hashvec,hash);
+              if (hlen==0) {
+        #ifdef DEBUG        
+                printf("no matching atoms in hash\n");
+        #endif        
+                continue;
+              }   
+            } else {   
+              // external kb termhash           
+    #ifdef DEBUG
+              printf("\n**** in wr_paramodulate_from_all_active dbused %d hashvec is *****\n",dbused);
+              //wr_clterm_hashlist_print(g,hashvec);
+    #endif
+              if (!(r_kb_g(g))) continue;             
+              //printf("\nr_kb_g(g) used\n");
+              hashvec=rotp(g,r_kb_g(g)->hash_para_terms);       
+              //wr_clterm_hashlist_print(g,hashvec);       
+              hlen=wr_clterm_hashlist_len(g,hashvec,hash);
+              if (hlen==0) {
+        #ifdef DEBUG        
+                printf("no matching atoms in hash\n");
+        #endif        
+                continue;
+              }               
+            }
+
+            node=wr_clterm_hashlist_start(g,hashvec,hash);
+            if (!node)  {
+              wr_sys_exiterr(g,"apparently wrong hash given to wr_clterm_hashlist_start");
+              return;
+            }      
+            while(node!=0) {  
+              nodeptr=otp(db,node);  
+              yterm=nodeptr[CLTERM_HASHNODE_TERM_POS];
+              ycl=otp(db,nodeptr[CLTERM_HASHNODE_CL_POS]);        
+              /*
+              printf("after while(node!=0): \n");
+              printf("ycl: \n");
+              wr_print_clause(g,ycl);    
+              printf("yterm: \n");
+              wr_print_term(g,yterm);      
+              printf("nodeptr[CLTERM_HASHNODE_PATH_POS]: %d\n",nodeptr[CLTERM_HASHNODE_PATH_POS]);
+              */
+              //printf("xcl: \n");
+              //wr_print_clause(g,xcl);
+              //printf("xatom: \n");
+              //wr_print_term(g,xatom);
+              if ((g->back_subsume) && wr_blocked_clause(g,ycl)) {
+                /*
+                printf("\nCP2 blocked clause: \n");          
+                wr_print_clause(g,ycl);
+                printf("\n");
+                */
+                node=wr_clterm_hashlist_next(g,hashvec,node);
+                continue;
+              }
+              if (g->print_active_cl) {
+                printf("\n* active: ");
+                wr_print_clause(g,ycl); 
+                //printf("\n");
+              }  
+              if ((g->res_shortarglen_limit) && (nonanslen>(g->res_shortarglen_limit))) {
+                // must check that ycl is unit
+                if (wr_count_cl_nonans_atoms(g,ycl) > (g->res_shortarglen_limit)) {
+                  // cannot use: continue loop
+                  node=wr_clterm_hashlist_next(g,hashvec,node);
+                  continue;                   
+                }  
+              }
+      #ifdef DEBUG        
+              printf("\neq term a ");
+              wr_print_term(g,a);
+              printf(" in xcl ");
+              wr_print_clause(g,xcl);
+              printf("\nyterm ");
+              wr_print_term(g,yterm);
+              printf(" in ycl ");
+              wr_print_clause(g,ycl);
+              //wg_print_record(db,ycl);
+              //printf("calling equality check\n");
+              wr_print_vardata(g);
+      #endif          
+              //printf("!!!!!!!!!!!!!!!!!!!!! before unification\n");
+              //wr_print_vardata(g); 
+              //printf("CLEAR\n");
+              //wr_clear_varstack(g,g->varstack);           
+              //wr_print_vardata(g); 
+              //printf("START UNIFICATION\n");
+              ures=wr_unify_term(g,a,yterm,1); // uniquestrflag=1
+      #ifdef DEBUG        
+              printf("unification check res: %d\n",ures);
+      #endif        
+              //wr_print_vardata(g);
+              //wr_print_vardata(g);
+              //wr_clear_varstack(g,g->varstack);
+              //wr_print_vardata(g);
+              
+              //eqtermorder_after=0; // =eqtermorder; // !!! was not initialized
+              if (ures) {
+                if (eqtermorder==3) {
+                  // equality terms were initially unordered
+                  // check order after unification
+                  eqtermorder_after=wr_order_eqterms(g,a,b,(g->varbanks));       
+                  //printf("\n eqtermorder_after: %d\n",eqtermorder_after);
+                } else {
+                  eqtermorder_after=eqtermorder;
+                }  
+              }
+              /*             
+              if (ures && eqtermorder==3) {
                 // equality terms were initially unordered
                 // check order after unification
                 eqtermorder_after=wr_order_eqterms(g,a,b,(g->varbanks));       
                 //printf("\n eqtermorder_after: %d\n",eqtermorder_after);
-              } else {
-                eqtermorder_after=eqtermorder;
-              }  
-            }
-            /*             
-            if (ures && eqtermorder==3) {
-              // equality terms were initially unordered
-              // check order after unification
-              eqtermorder_after=wr_order_eqterms(g,a,b,(g->varbanks));       
-              //printf("\n eqtermorder_after: %d\n",eqtermorder_after);
-            }
-            */
-            // eqtermorder values:
-            // 0: none bigger, neither ok for para
-            // 1: a bigger than b (prohibits b)
-            // 2: b bigger than a (prohibits a)
-            // 3: none bigger, both ok for para
-            
-            //if (ures && ((eqtermorder!=3) || (eqtermorder_after==3) || eqtermorder_after==1)) {
-            if (ures && ((eqtermorder_after==3) || eqtermorder_after==1)) {  
-              // build and process the new clause
-    #ifdef DEBUG         
-              printf("\nin wr_paramodulate_from_all_active to call wr_process_paramodulate_result\n");
-    #endif                                       
-              path=wg_decode_int(db,nodeptr[CLTERM_HASHNODE_PATH_POS]);              
-              //printf("\n path before call %d\n",(int)path);
-              wr_process_paramodulate_result(g,xatom,xcl,0,ycl,cl_as_active,a,b,path,!termpos,1);                 
-    #ifdef DEBUG                        
-              printf("\nin wr_paramodulate_from_all_active after wr_process_paramodulate_result\n");
-              printf("\na\n");
-              wr_print_term(g,a);
-              //printf("\nyatom\n");
-              //wr_print_term(g,yatom);
-              printf("!!!!! wr_paramodulate_from_all_active after  wr_process_paramodulate_result queue is\n");
+              }
+              */
+              // eqtermorder values:
+              // 0: none bigger, neither ok for para
+              // 1: a bigger than b (prohibits b)
+              // 2: b bigger than a (prohibits a)
+              // 3: none bigger, both ok for para
+              
+              //if (ures && ((eqtermorder!=3) || (eqtermorder_after==3) || eqtermorder_after==1)) {
+              if (ures && ((eqtermorder_after==3) || eqtermorder_after==1)) {  
+                // build and process the new clause
+      #ifdef DEBUG         
+                printf("\nin wr_paramodulate_from_all_active to call wr_process_paramodulate_result\n");
+      #endif                                       
+                path=wg_decode_int(db,nodeptr[CLTERM_HASHNODE_PATH_POS]);              
+                //printf("\n path before call %d\n",(int)path);
+                wr_process_paramodulate_result(g,xatom,xcl,0,ycl,cl_as_active,a,b,path,!termpos,1);                 
+      #ifdef DEBUG                        
+                printf("\nin wr_paramodulate_from_all_active after wr_process_paramodulate_result\n");
+                printf("\na\n");
+                wr_print_term(g,a);
+                //printf("\nyatom\n");
+                //wr_print_term(g,yatom);
+                printf("!!!!! wr_paramodulate_from_all_active after  wr_process_paramodulate_result queue is\n");
+                wr_show_clqueue(g);
+                printf("\nqueue ended\n");
+      #endif             
+                if (g->proof_found || g->alloc_err) {
+                  wr_clear_varstack(g,g->varstack);          
+                  return;          
+                }  
+              }
+      #ifdef DEBUG
+              printf("wr_paramodulate_from_all_active before wr_clear_varstack queue is\n");
               wr_show_clqueue(g);
               printf("\nqueue ended\n");
-    #endif             
-              if (g->proof_found || g->alloc_err) {
-                wr_clear_varstack(g,g->varstack);          
-                return;          
-              }  
-            }
-    #ifdef DEBUG
-            printf("wr_paramodulate_from_all_active before wr_clear_varstack queue is\n");
-            wr_show_clqueue(g);
-            printf("\nqueue ended\n");
-    #endif         
-            wr_clear_varstack(g,g->varstack);              
-            //wr_print_vardata(g);
-            // get next node;
-            node=wr_clterm_hashlist_next(g,hashvec,node);       
-          }
+      #endif         
+              wr_clear_varstack(g,g->varstack);              
+              //wr_print_vardata(g);
+              // get next node;
+              node=wr_clterm_hashlist_next(g,hashvec,node);       
+            } // end loop over nodes in the hash bucket
+          }  // end loop over local and external termhashes
         } // if (atype==WG_RECORDTYPE ...
       }  // for(termpos=0; ...    
     }  // if (useflag) ...
@@ -799,6 +859,7 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
   int hlen;
   gint node;
   int ures;
+  int dbused;
 
 
   int replpath;
@@ -873,132 +934,174 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
   wr_print_term(g,term);
   printf("\n");
 #endif      
-  hashvec=rotp(g,g->hash_eq_terms);  
-  //path=wr_encode_para_termpath(g,litnr,origtermpath);
-  hlen=wr_clterm_hashlist_len(g,hashvec,hash);
-  if (hlen==0) {       
-    return 1;
-  }     
-  //printf("\nhash table:");      
-  //wr_clterm_hashlist_print(g,hashvec);
-  /*
-    node=wr_clterm_hashlist_start(g,hashvec,hash);
-      if (!node)  {
-        wr_sys_exiterr(g,"apparently wrong hash given to wr_clterm_hashlist_start");
-        return;
-      }      
-      while(node!=0) {    
-        yatom=(otp(db,node))[CLTERM_HASHNODE_TERM_POS];
-        ycl=otp(db,(otp(db,node))[CLTERM_HASHNODE_CL_POS]);
 
-  */
-  node=wr_clterm_hashlist_start(g,hashvec,hash);
-  if (!node)  {
-    wr_sys_exiterr(g,"apparently wrong hash given to wr_clterm_hashlist_start");
-    return -1;
-  }      
-  while(node!=0) {    
-    //nodeptr=otp(db,node);
-    yterm=(otp(db,node))[CLTERM_HASHNODE_TERM_POS];     //nodeptr[CLTERM_HASHNODE_TERM_POS];
-    ycl=otp(db,(otp(db,node))[CLTERM_HASHNODE_CL_POS]); //(otp(db,nodeptr)[CLTERM_HASHNODE_CL_POS]);
-    if ((g->back_subsume) && wr_blocked_clause(g,ycl)) {
-      /*
-      printf("\nCP3 blocked clause: \n");          
-      wr_print_clause(g,ycl);
-      printf("\n");
-      */
-      node=wr_clterm_hashlist_next(g,hashvec,node);
-      continue;
-    }
-    if (g->print_active_cl) {
-      printf("\n* active1: ");
-      wr_print_clause(g,ycl); 
-      //printf("\n");
-    }  
-    if ((g->res_shortarglen_limit) && (nonanslen>(g->res_shortarglen_limit))) {
-      // must check that ycl is unit
-      if (wr_count_cl_nonans_atoms(g,ycl) > (g->res_shortarglen_limit)) {
-        // cannot use: continue loop
-        node=wr_clterm_hashlist_next(g,hashvec,node);
-        continue;     
-      }  
-    } 
-    ures=wr_unify_term(g,xterm,yterm,1); // uniquestrflag=1
+
+  // loop over local termhash (dbused==0) and external termhash (dbused==1)
+  for(dbused=0; dbused<2; dbused++) {            
+    if (dbused==0) {
+      // local termhash
+#ifdef DEBUG
+      printf("\n**** in wr_paramodulate_into_subterms_all_active dbused %d hashvec is *****\n",dbused);
+      //wr_clterm_hashlist_print(g,hashvec);
+#endif              
+      hashvec=rotp(g,g->hash_eq_terms);       
+      //wr_clterm_hashlist_print(g,hashvec);       
+      hlen=wr_clterm_hashlist_len(g,hashvec,hash);
+      if (hlen==0) {
 #ifdef DEBUG        
-            printf("unification check res: %d\n",ures);
-#endif 
-    if (ures) { //  ideally should know if was orderered before a la if ... eqtermorder==3
-      /* TODO
-      // ideally should check if order ok
-      eqtermorder_after=wr_order_eqterms(g,a,b,(g->varbanks));      
-      // eqtermorder values:
-      // 0: none bigger, neither ok for para
-      // 1: a bigger than b (prohibits b)
-      // 2: b bigger than a (prohibits a)
-      // 3: none bigger, both ok for para
-      if (eqtermorder_after==3 || eqtermorder_after==1) {
-        // build and process the new clause
-        //...
-      }
-      */
-      // build and process the new clause
-#ifdef DEBUG         
-      printf("\nin wr_paramodulate_into_subterms_all_active to call wr_process_paramodulate_result\n");
-#endif                                       
-      //path=wg_decode_int(db,nodeptr[CLTERM_HASHNODE_PATH_POS]);
-
-      replpath=wr_encode_para_termpath(g,litnr,origtermpath);
-      eqpath=wg_decode_int(db,otp(db,node)[CLTERM_HASHNODE_PATH_POS]);      
-      eqlitnr=wr_decode_para_termpath_litnr(g,eqpath);
-      eqleftflag=wr_decode_para_termpath_pos(g,eqpath);
-      if (wg_rec_is_rule_clause(db,ycl)) {
-        yatom=wg_get_rule_clause_atom(db,ycl,eqlitnr); // eq literal
-      } else {
-        yatom=encode_record(db,ycl);
-      }  
-      if (eqleftflag) {
-        if (g->print_active_cl) {
-          printf(" left ");
-        }  
-        b=(gint)(((gint *)(otp(db,yatom)))[RECORD_HEADER_GINTS+(g->unify_funarg2pos)]);
-      } else {
-        if (g->print_active_cl) {
-          printf(" right ");
-        }  
-        b=(gint)(((gint *)(otp(db,yatom)))[RECORD_HEADER_GINTS+(g->unify_funarg1pos)]);
-      }  
-      //a=xterm; // eq first arg (unified upon) ????
-      //b=yterm; // eq second arg, for which term is replaced 
-      
-      
-      //wr_process_paramodulate_result(g,yatom,ycl,xatom,xcl,cl_as_active,yterm,b,eqpath,eqleftflag); 
-   
-      wr_process_paramodulate_result(g,yatom,ycl,xatom,xcl,cl_as_active,yterm,b,replpath,eqleftflag,0);
-
-      /*
-      wr_process_paramodulate_result(g,xatom,xcl,0,ycl,cl_as_active,a,b,path,leftflag); 
-#ifdef DEBUG           
-      printf("\nin wr_paramodulate_into_subterms_all_active after wr_process_paramodulate_result\n");
-      printf("\nyterm\n");
-      wr_print_term(g,yterm);
-      //printf("\nyatom\n");
-      //wr_print_term(g,yatom);
-      printf("!!!!! wr_paramodulate_into_subterms_all_active after  wr_process_paramodulate_result queue is\n");
-      wr_show_clqueue(g);
-      printf("\nqueue ended\n");
+        printf("no matching atoms in hash\n");
 #endif        
-      */     
-      if (g->proof_found || g->alloc_err) {
-        wr_clear_varstack(g,g->varstack);          
-        return 1; // return 1 ????
-      }        
+        continue;
+      }   
+    } else {   
+      // external kb termhash           
+#ifdef DEBUG
+      printf("\n**** in wr_paramodulate_into_subterms_all_active dbused %d hashvec is *****\n",dbused);
+      //wr_clterm_hashlist_print(g,hashvec);
+#endif
+      if (!(r_kb_g(g))) return 1;             
+      //printf("\nr_kb_g(g) used\n");
+      hashvec=rotp(g,r_kb_g(g)->hash_eq_terms);       
+      //wr_clterm_hashlist_print(g,hashvec);       
+      hlen=wr_clterm_hashlist_len(g,hashvec,hash);
+      if (hlen==0) {
+#ifdef DEBUG        
+        printf("no matching atoms in hash\n");
+#endif        
+        return 1;
+      }               
     }
 
-    wr_clear_varstack(g,g->varstack);              
-    //wr_print_vardata(g);
-    // get next node;
-    node=wr_clterm_hashlist_next(g,hashvec,node);       
-  }
+
+    /*
+    hashvec=rotp(g,g->hash_eq_terms);  
+    //path=wr_encode_para_termpath(g,litnr,origtermpath);
+    hlen=wr_clterm_hashlist_len(g,hashvec,hash);
+    if (hlen==0) {       
+      return 1;
+    } 
+    */    
+    //printf("\nhash table:");      
+    //wr_clterm_hashlist_print(g,hashvec);
+    /*
+      node=wr_clterm_hashlist_start(g,hashvec,hash);
+        if (!node)  {
+          wr_sys_exiterr(g,"apparently wrong hash given to wr_clterm_hashlist_start");
+          return;
+        }      
+        while(node!=0) {    
+          yatom=(otp(db,node))[CLTERM_HASHNODE_TERM_POS];
+          ycl=otp(db,(otp(db,node))[CLTERM_HASHNODE_CL_POS]);
+
+    */
+    node=wr_clterm_hashlist_start(g,hashvec,hash);
+    if (!node)  {
+      wr_sys_exiterr(g,"apparently wrong hash given to wr_clterm_hashlist_start");
+      return -1;
+    }      
+    while(node!=0) {    
+      //nodeptr=otp(db,node);
+      yterm=(otp(db,node))[CLTERM_HASHNODE_TERM_POS];     //nodeptr[CLTERM_HASHNODE_TERM_POS];
+      ycl=otp(db,(otp(db,node))[CLTERM_HASHNODE_CL_POS]); //(otp(db,nodeptr)[CLTERM_HASHNODE_CL_POS]);
+      if ((g->back_subsume) && wr_blocked_clause(g,ycl)) {
+        /*
+        printf("\nCP3 blocked clause: \n");          
+        wr_print_clause(g,ycl);
+        printf("\n");
+        */
+        node=wr_clterm_hashlist_next(g,hashvec,node);
+        continue;
+      }
+      if (g->print_active_cl) {
+        printf("\n* active1: ");
+        wr_print_clause(g,ycl); 
+        //printf("\n");
+      }  
+      if ((g->res_shortarglen_limit) && (nonanslen>(g->res_shortarglen_limit))) {
+        // must check that ycl is unit
+        if (wr_count_cl_nonans_atoms(g,ycl) > (g->res_shortarglen_limit)) {
+          // cannot use: continue loop
+          node=wr_clterm_hashlist_next(g,hashvec,node);
+          continue;     
+        }  
+      } 
+      ures=wr_unify_term(g,xterm,yterm,1); // uniquestrflag=1
+  #ifdef DEBUG        
+              printf("unification check res: %d\n",ures);
+  #endif 
+      if (ures) { //  ideally should know if was orderered before a la if ... eqtermorder==3
+        /* TODO
+        // ideally should check if order ok
+        eqtermorder_after=wr_order_eqterms(g,a,b,(g->varbanks));      
+        // eqtermorder values:
+        // 0: none bigger, neither ok for para
+        // 1: a bigger than b (prohibits b)
+        // 2: b bigger than a (prohibits a)
+        // 3: none bigger, both ok for para
+        if (eqtermorder_after==3 || eqtermorder_after==1) {
+          // build and process the new clause
+          //...
+        }
+        */
+        // build and process the new clause
+  #ifdef DEBUG         
+        printf("\nin wr_paramodulate_into_subterms_all_active to call wr_process_paramodulate_result\n");
+  #endif                                       
+        //path=wg_decode_int(db,nodeptr[CLTERM_HASHNODE_PATH_POS]);
+
+        replpath=wr_encode_para_termpath(g,litnr,origtermpath);
+        eqpath=wg_decode_int(db,otp(db,node)[CLTERM_HASHNODE_PATH_POS]);      
+        eqlitnr=wr_decode_para_termpath_litnr(g,eqpath);
+        eqleftflag=wr_decode_para_termpath_pos(g,eqpath);
+        if (wg_rec_is_rule_clause(db,ycl)) {
+          yatom=wg_get_rule_clause_atom(db,ycl,eqlitnr); // eq literal
+        } else {
+          yatom=encode_record(db,ycl);
+        }  
+        if (eqleftflag) {
+          if (g->print_active_cl) {
+            printf(" left ");
+          }  
+          b=(gint)(((gint *)(otp(db,yatom)))[RECORD_HEADER_GINTS+(g->unify_funarg2pos)]);
+        } else {
+          if (g->print_active_cl) {
+            printf(" right ");
+          }  
+          b=(gint)(((gint *)(otp(db,yatom)))[RECORD_HEADER_GINTS+(g->unify_funarg1pos)]);
+        }  
+        //a=xterm; // eq first arg (unified upon) ????
+        //b=yterm; // eq second arg, for which term is replaced 
+        
+        
+        //wr_process_paramodulate_result(g,yatom,ycl,xatom,xcl,cl_as_active,yterm,b,eqpath,eqleftflag); 
+    
+        wr_process_paramodulate_result(g,yatom,ycl,xatom,xcl,cl_as_active,yterm,b,replpath,eqleftflag,0);
+
+        /*
+        wr_process_paramodulate_result(g,xatom,xcl,0,ycl,cl_as_active,a,b,path,leftflag); 
+  #ifdef DEBUG           
+        printf("\nin wr_paramodulate_into_subterms_all_active after wr_process_paramodulate_result\n");
+        printf("\nyterm\n");
+        wr_print_term(g,yterm);
+        //printf("\nyatom\n");
+        //wr_print_term(g,yatom);
+        printf("!!!!! wr_paramodulate_into_subterms_all_active after  wr_process_paramodulate_result queue is\n");
+        wr_show_clqueue(g);
+        printf("\nqueue ended\n");
+  #endif        
+        */     
+        if (g->proof_found || g->alloc_err) {
+          wr_clear_varstack(g,g->varstack);          
+          return 1; // return 1 ????
+        }        
+      }
+
+      wr_clear_varstack(g,g->varstack);              
+      //wr_print_vardata(g);
+      // get next node;
+      node=wr_clterm_hashlist_next(g,hashvec,node);       
+    }
+  } // end loop over local and global termhash  
 
   //tmp=wr_clterm_add_hashlist_withpath(g,hashvec,hash,term,cl,path);
 #ifdef XDEBUG 

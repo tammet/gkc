@@ -525,7 +525,6 @@ int main(int argc, char **argv) {
       else
         fprintf(stderr, "Import failed.\n");
 
-
       //wg_show_database(shmptr);
 
       printf("\nstarting to init_shared_database\n");      
@@ -637,12 +636,13 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Failed to attach to database.\n");
         exit(1);
       }
+      /*
       printf("\ndb attached, showing attached shared memory db shmptr %ld\n",
         (unsigned long int)((gint)shmptr));
       gkc_show_cur_time();
       //printf("about to call wg_run_reasoner\n");
       wr_show_database_details(NULL,shmptr,"shmptr");
-
+      */ 
       //exit(0); 
       // --- create a new temporary local db ---
       shmsize2=100000000;     
@@ -651,11 +651,13 @@ int main(int argc, char **argv) {
       gkc_show_cur_time();
       shmptrlocal=wg_attach_local_database_with_kb(shmsize2,(void*)shmptr);
  
+      /*
       printf("\nto show headers right after return from attach:\n");
       printf("\nshmptrlocal is %lx and gint %ld\n",
         (unsigned long int)shmptrlocal,(gint)shmptrlocal);
       wr_show_database_headers(shmptrlocal);
-      
+      */
+
       //shmptrlocal=wg_attach_local_database(shmsize2);
       printf("\nshmptrlocal is %lx and gint %ld\n",
         (unsigned long int)shmptrlocal,(gint)shmptrlocal);
@@ -668,7 +670,7 @@ int main(int argc, char **argv) {
       //wg_set_kb_db(shmptrlocal,shmptr); // set the kb field of local db to shared db    
       islocaldb=1;
       err=0;
-      wr_show_database_headers(shmptrlocal);
+      //wr_show_database_headers(shmptrlocal);
 
       //wr_show_database_details(NULL,shmptrlocal,"shmptrlocal");
       // exit(0);
@@ -683,9 +685,10 @@ int main(int argc, char **argv) {
           " imported\n");
       else
         fprintf(stderr, "Import failed.\n");      
-      printf("\nshowing local db\n");  
-      gkc_show_cur_time();
-      wr_show_database_headers(shmptrlocal);
+      //printf("\nshowing local db\n");  
+      //gkc_show_cur_time();
+      
+      //wr_show_database_headers(shmptrlocal);
       //wr_show_database_details(NULL,shmptrlocal,"shmptrlocal");
 
       
@@ -703,8 +706,8 @@ int main(int argc, char **argv) {
       gkc_show_cur_time();
 
 
-      printf("\nshowing shared memory db\n"); 
-      wr_show_database_details(NULL,shmptr,"shmptr");
+      //printf("\nshowing shared memory db\n"); 
+      //wr_show_database_details(NULL,shmptr,"shmptr");
       printf("\n-querykb exits\n");
       break;  
 
@@ -1485,7 +1488,7 @@ void wg_show_strhash(void* db) {
       for(;hashchain!=0;
           hashchain=dbfetch(db,decode_longstr_offset(hashchain)+LONGSTR_HASHCHAIN_POS*sizeof(gint))) {
 #ifdef SHOW_CONTENTS             
-          printf("hashchain %d decode_longstr_offset(hashchain) %d fulladr %d contents %d\n",
+          printf("hashchain %ld decode_longstr_offset(hashchain) %ld fulladr %ld contents %ld\n",
                  hashchain,
                  decode_longstr_offset(hashchain),
                  (decode_longstr_offset(hashchain)+LONGSTR_HASHCHAIN_POS*sizeof(gint)),
@@ -1494,7 +1497,7 @@ void wg_show_strhash(void* db) {
           type=wg_get_encoded_type(db,hashchain);
           printf("  ");
 #ifdef SHOW_CONTENTS                    
-          wg_debug_print_value(db,hashchain);
+          //wg_debug_print_value(db,hashchain);
           printf("\n");
           printf("  type %s",wg_get_type_name(db,type));
 #endif          

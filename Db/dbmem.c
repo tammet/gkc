@@ -445,7 +445,7 @@ void* wg_attach_local_database_with_kb(gint size, void* kb) {
     if(wg_init_db_memsegment_with_kb(dbhandle, 0, size, kb)) {
 #else
     printf("\nwg_attach_local_database_with_kb to wg_init_db_memsegment_with_kb\n");
-    if(wg_init_db_memsegment_with_kb(shm, 0, size, NULL)) {
+    if(wg_init_db_memsegment_with_kb(shm, 0, size, kb)) {
       printf("\nwg_attach_local_database_with_kb passed wg_init_db_memsegment_with_kb with 1\n");
 #endif
       show_memory_error("Database initialization failed");
@@ -455,17 +455,19 @@ void* wg_attach_local_database_with_kb(gint size, void* kb) {
 #endif
       return NULL;
     }
-    printf("\nwg_attach_local_database_with_kb to do wr_show_database_headers\n");
-    wr_show_database_headers(shm); 
+    //printf("\nwg_attach_local_database_with_kb to do wr_show_database_headers\n");
+    //wr_show_database_headers(shm); 
   }
-  printf("\nwg_attach_local_database_with_kb exiting\n");
+  //printf("\nwg_attach_local_database_with_kb exiting\n");
 #ifdef USE_DATABASE_HANDLE
   return dbhandle;
 #else
+  /*
   printf("\nwg_attach_local_database_with_kb to do wr_show_database_headers second time\n");
   printf("\nshm is %lx and gint %ld\n",
         (unsigned long int)shm,(gint)shm);
   wr_show_database_headers(shm); 
+  */
   return shm;
 #endif
 }

@@ -58,7 +58,7 @@ static void wr_set_tiny_printout(glb* g);
 static void wr_set_low_printout(glb* g);
 static void wr_set_normal_printout(glb* g);
 static void wr_set_medium_printout(glb* g);
-static void wr_set_detailed_printout(glb* g);  
+//void wr_set_detailed_printout(glb* g);  
 
 void show_cur_time(void);
 
@@ -79,7 +79,9 @@ void show_cur_time(void);
 
   
 int wg_run_reasoner(void *db, int argc, char **argv) {
-  glb* g;
+  glb* g;    // our g (globals)
+  glb* kb_g; // our copy of the g (globals) of the external shared db 
+  glb* rglb; // ptr to g (globals) of the external shared db 
   void* kb_db;
   void* child_db;
   int res=1;
@@ -88,6 +90,7 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
   char* guidebuf=NULL;
   cJSON *guide=NULL;
   int clause_count=0;
+  int have_shared_kb=0; // set to 1 if external shared db present
  
   /*
     int i;
@@ -96,7 +99,7 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
       printf("arg %d is %s\n",i,argv[i]);
     }
   */
-
+/*
 #ifdef CHECK
   printf("\ndb CHECK macro is on\n");
 #else
@@ -120,40 +123,57 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
 #else
   printf("\ndb MALLOC_HASHNODES macro is off\n");
 #endif
-
+*/
 
   guide=wr_parse_guide_file(argc,argv,&guidebuf);
   if (guide==NULL) {
     if (guidebuf!=NULL) free(guidebuf);
     return -1;
   }
-
 #ifdef SHOWTIME
   printf("Guide parsed.\n");
   printf("\ndb is %d \n",(int)((gint)db));
   show_cur_time();
 #endif 
-
   // kb_db is set to parent db
   kb_db=db_get_kb_db(db);
   if (kb_db) {
     // separate child_db and kb_db
-    // from now one db will be the parent, i.e. kb_db
-
-    //printf("\nseparate child_db and kb_db\n");
+    // from now one var db will point to the parent, i.e. kb_db
+#ifdef DEBUG
+    printf("\nseparate child_db and kb_db\n");
+#endif    
+    have_shared_kb=1;
     child_db=db;
     db=kb_db;    
+
+    rglb=db_rglb(db); // this is the internal g of db
+    kb_g=sys_malloc(sizeof(glb)); // this is a new malloced g
+    // copy rglb stuff to g
+    memcpy(kb_g,rglb,sizeof(glb));
+    // now kb_g should contain the same things as rglb
+    // set the db ptr of kb_g to the shared db
+    (kb_g->db)=kb_db;    
   } else {
+    CP5
     // just one single db 
-    //printf("\njust one single db \n");
+#ifdef DEBUG
+    printf("\njust one single db \n");
+#endif 
+    have_shared_kb=0;
     child_db=db;
     kb_db=db;
+    kb_g=NULL;
   }
 
   for(iter=0; 1; iter++) {  
-    // printf("\n**** run %d starts\n",iter+1);    
-
+#ifdef DEBUG    
+    printf("\n**** run %d starts\n",iter+1);    
+#endif
     g=wr_glb_new_simple(db);
+    if (kb_g!=NULL) {
+      (g->kb_g)=kb_g; // points to the copy of globals of the external kb
+    }  
     if (g==NULL) {
       wr_errprint("cannot allocate enough memory during reasoner initialization");
       if (guidebuf!=NULL) free(guidebuf);
@@ -161,11 +181,19 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
       sys_free(g); 
       return -1;
     }   
-
-    //printf("\nnow db is %d and child_db is %d \n",(int)db,(int)child_db);
+#ifdef DEBUG
+    printf("\nnow db is %d and child_db is %d \n",(int)db,(int)child_db);
+#endif    
     (g->child_db)=child_db;
     (g->db)=db;
 
+
+    //printf("\nin wg_run_reasoner have_shared_kb: %d \n",have_shared_kb);
+    if (have_shared_kb) {
+       //printf("\nin wg_run_reasoner have_shared_kb is true\n")
+      //wr_show_stats(g->kb_g,0); 
+      //wg_show_strhash(((glb*)(g->kb_g))->db);          
+    }    
 
     (g->current_run_nr)=iter;
     if (iter==0) (g->allruns_start_clock)=clock();  
@@ -188,6 +216,8 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
     //else if ((g->print_level_flag)<=40) wr_set_detailed_printout(g);
     else wr_set_detailed_printout(g);
 
+    wr_set_detailed_printout(g);
+
     if (g->print_runs) {
       printf("\n**** run %d starts\n",iter+1);          
     }  
@@ -196,8 +226,6 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
     (g->cl_keep_sizelimit)=(g->cl_maxkeep_sizelimit);
     (g->cl_keep_depthlimit)=(g->cl_maxkeep_depthlimit);
     (g->cl_keep_lengthlimit)=(g->cl_maxkeep_lengthlimit);   
-
-
 
     //clock_t t1=clock();
     tmp=wr_glb_init_shared_complex(g); // creates and fills in shared tables, substructures, etc: 0.03 secs
@@ -222,7 +250,7 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
       wr_glb_free_local_complex(g);
       sys_free(g);
       return -1; 
-    } 
+    }   
 #ifdef SHOWTIME    
     printf("\nto call wr_init_active_passive_lists_from_all\n");
     show_cur_time();
@@ -232,7 +260,6 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
     printf("\nreturned from wr_init_active_passive_lists_from_all\n");
     show_cur_time();
 #endif    
-    //exit(0); 
     if (clause_count<0) {
       // error
       printf("\nError initializing clause lists.\n");
@@ -355,8 +382,8 @@ int wg_import_prolog_file(void *db, char* filename) {
 }
 
 int wr_init_active_passive_lists_from_all(glb* g) {
-  void* db=g->db;
-  void* child_db=g->child_db;
+  void* db=g->db;             // if two db-s, db is the shared db 
+  void* child_db=g->child_db; // if two db-s, child_db is the local db
   //void* kb_db=g->kb_db;
   //void* kb_db;
   int count=0;
@@ -364,10 +391,17 @@ int wr_init_active_passive_lists_from_all(glb* g) {
   //printf("\n wr_init_active_passive_lists_from_all called\n");
   //kb_db=g->kb_db;
   //printf("\n db is %d and child_db is %d\n",(int)db,(int)child_db);
-  count=wr_init_active_passive_lists_from_one(g,db,db);
+
+  // if two db-s, this will take the clauses from the shared db
+  
+  //count=wr_init_active_passive_lists_from_one(g,db,db);
+
   if (db!=child_db) {
     //printf("\n separate child kb found, using\n");
+
+    // if two db-s, this will take the clauses from the local db:
     count+=wr_init_active_passive_lists_from_one(g,db,child_db);
+    
     //g->db=kb_db;
   } else {
     //printf("\n external kb NOT found\n");
@@ -388,8 +422,6 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
   gint weight;
 
   (g->proof_found)=0;
-
-  //printf("\nwr_init_active_passive_lists_from_one starts on db %d and child_db %d\n",(int)db,(int)child_db);
 
   //for(i=0;i<10;i++) printf(" %d ",(int)((rotp(g,g->clqueue))[i])); printf("\n");
   rec = wg_get_first_raw_record(child_db);
@@ -753,7 +785,7 @@ static void wr_set_medium_printout(glb* g) {
   
 }
 
-static void wr_set_detailed_printout(glb* g) {
+void wr_set_detailed_printout(glb* g) {
   (g->print_flag)=1;
   
   (g->parser_print_level)=1;

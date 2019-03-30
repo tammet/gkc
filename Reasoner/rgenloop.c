@@ -484,18 +484,18 @@ gptr wr_add_given_cl_active_list(glb* g, gptr given_cl, gptr given_cl_metablock,
 #endif    
   // add to a list of all active clauses
 #ifdef DEBUG  
-  if ((g->clactive)!=NULL)
+  if ((g->clactive)!=(gint)NULL) {
     printf("\npushing to clactive pos %d\n",(int)((rotp(g,g->clactive))[1]));
   }  
 #endif  
-  if ((g->clactive)!=NULL) {
+  if ((g->clactive)!=(gint)NULL) {
     (g->clactive)=rpto(g,wr_cvec_push(g,rotp(g,(g->clactive)),(gint)active_cl));
   }  
   // add ground units to unithash  
   if (1) {  //(subsflag) {
     // only add to active subsumption structures if subsflag==1 (ie not for queryfocus big sos list)
     hashadded=wr_add_cl_to_active_unithash(g,active_cl);
-    if (!hashadded && subsflag && (g->clactivesubsume)!=NULL) {    
+    if (!hashadded && subsflag && (g->clactivesubsume)!=(gint)NULL) {    
   #ifdef DEBUG  
       printf("\npushing to clactivesubsume pos %d\n",(int)((rotp(g,g->clactivesubsume))[1]));
   #endif  
@@ -504,7 +504,9 @@ gptr wr_add_given_cl_active_list(glb* g, gptr given_cl, gptr given_cl_metablock,
       (g->clactivesubsume)=rpto(g,wr_cvec_push(g,rotp(g,(g->clactivesubsume)),given_cl_metablock[2]));
       (g->clactivesubsume)=rpto(g,wr_cvec_push(g,rotp(g,(g->clactivesubsume)),given_cl_metablock[3]));
       (g->clactivesubsume)=rpto(g,wr_cvec_push(g,rotp(g,(g->clactivesubsume)),given_cl_metablock[4]));
-      (g->clactivesubsume)=rpto(g,wr_cvec_push(g,rotp(g,(g->clactivesubsume)),(gint)active_cl));  
+      (g->clactivesubsume)=rpto(g,wr_cvec_push(g,rotp(g,(g->clactivesubsume)),
+          rpto(g,(gint)active_cl))); 
+      //printf("\n cl offset stored in (g->clactivesubsume): %ld", rpto(g,(gint)active_cl));     
     }  
   }
   //wr_show_clactivesubsume(g);
