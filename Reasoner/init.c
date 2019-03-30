@@ -225,6 +225,7 @@ int wr_init_db_clause_indexes(glb* g, void* db) {
 #endif                
     cell=cellptr->cdr;
   }
+  printf("\nrules_found %d facts_found %d \n",rules_found,facts_found);
 #ifdef DEBUG            
   printf("\nrules_found %d facts_found %d \n",rules_found,facts_found); 
 #endif   

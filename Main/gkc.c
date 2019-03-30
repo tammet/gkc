@@ -540,9 +540,9 @@ int main(int argc, char **argv) {
       //(((glb*)(offsettoptr(shmptr,(dbmemsegh(shmptr)->rglb))))->stat_built_cl)=10;
       (db_rglb(shmptr)->stat_built_cl)=25;
       //wr_show_stats(offsettoptr(shmptr,(dbmemsegh(shmptr)->rglb)));
-      //wr_show_stats(db_rglb(shmptr),1);
+      wr_show_stats(db_rglb(shmptr),1);
 
-      wr_show_database_details(NULL,shmptr,"shared db");
+      //wr_show_database_details(NULL,shmptr,"shared db");
 
       break;
 
@@ -643,6 +643,8 @@ int main(int argc, char **argv) {
       //printf("about to call wg_run_reasoner\n");
       wr_show_database_details(NULL,shmptr,"shmptr");
       */ 
+
+      //wr_show_database_details(NULL,shmptr,"shmptr");
       //exit(0); 
       // --- create a new temporary local db ---
       shmsize2=100000000;     

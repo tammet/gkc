@@ -114,6 +114,9 @@ int wr_given_cl_subsumed(glb* g, gptr given_cl, gptr given_cl_metablock) {
 
   // next try to subsume with active clauses in lists
 
+  //printf("\n** clactivesubsume data from external:\n"); 
+  //wr_show_clactivesubsume(r_kb_g(g));
+
   // loop over local active subslist (dbused==0) and external subslist (dbused==1)
 
   for(dbused=0; dbused<2; dbused++) {

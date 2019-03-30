@@ -105,6 +105,10 @@ int wr_genloop(glb* g) {
   printf("========= rwr_genloop starting ========= \n");   
 #endif  
   UNUSED(db);
+
+  //printf("\n** clactivesubsume data from external:\n"); 
+  //wr_show_clactivesubsume(r_kb_g(g));
+
   (g->run_start_clock)=clock();  
   //clear_active_cl_list(); // ???
   wr_clear_all_varbanks(g);  

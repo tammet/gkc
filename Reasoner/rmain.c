@@ -155,7 +155,7 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
     // set the db ptr of kb_g to the shared db
     (kb_g->db)=kb_db;    
   } else {
-    CP5
+    
     // just one single db 
 #ifdef DEBUG
     printf("\njust one single db \n");
@@ -165,6 +165,9 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
     kb_db=db;
     kb_g=NULL;
   }
+  
+  //printf("\n** clactivesubsume data from external:\n"); 
+  //wr_show_clactivesubsume(kb_g);
 
   for(iter=0; 1; iter++) {  
 #ifdef DEBUG    
@@ -272,7 +275,7 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
       break;
     }
     // ok, clauses found and clause lists initialized
-    (g->kb_g)=NULL;
+    //(g->kb_g)=NULL;
     res=wr_genloop(g);
 
     /*
@@ -391,12 +394,12 @@ int wr_init_active_passive_lists_from_all(glb* g) {
 
   printf("\n wr_init_active_passive_lists_from_all called\n");
   //kb_db=g->kb_db;
-  printf("\n db is %d and child_db is %d\n",(int)db,(int)child_db);
+  printf("\n db is %ld and child_db is %ld\n",(gint)db,(gint)child_db);
 
   // if two db-s, this will take the clauses from the shared db
   
   //count=wr_init_active_passive_lists_from_one(g,db,db);
-
+  
   if (db!=child_db) {
     printf("\n separate child kb found, using\n");
 
@@ -409,7 +412,7 @@ int wr_init_active_passive_lists_from_all(glb* g) {
 
     count=wr_init_active_passive_lists_from_one(g,db,db);
   } 
-  //printf("\n wr_init_active_passive_lists_from_all returns %d\n",count);
+  printf("\n wr_init_active_passive_lists_from_all returns %d\n",count);
   return count;
 }  
 
@@ -455,11 +458,13 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
   }
   return 0;
   */
- 
+  
   while(rec) {     
-    //printf("\n next rec from db: ");
-    //wg_print_record(db,rec);
-    //printf("\n");
+    /*
+    printf("\n next rec from db: ");
+    wg_print_record(db,rec);
+    printf("\n");
+    */
     if (g->alloc_err) {
       wr_errprint("\nbuffer overflow, terminating\n");
       wr_show_stats(g,1);      
