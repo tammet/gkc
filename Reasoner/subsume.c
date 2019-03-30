@@ -488,7 +488,7 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos) {
   int cuts=0;
 
 #ifdef DEBUG
-  printf("\n!!!!! wr_derived_cl_cut_and_subsume is called \n");
+  printf("\nwr_derived_cl_cut_and_subsume is called \n");
 #endif
 
   (g->stat_forwardsubs_attempted)++;
@@ -496,50 +496,59 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos) {
   for(i=0;i<rpos;i++) { 
     tmp=i*LIT_WIDTH;
     xatom=rptr[tmp+LIT_ATOM_POS];
-    xatommeta=rptr[tmp+LIT_META_POS];    
-    //printf("\n i %d xatom %d xatommeta %d atom:\n",i,xatom,xatommeta);
-    //wr_print_term(g,xatom);    
+    xatommeta=rptr[tmp+LIT_META_POS];   
+#ifdef DEBUG     
+    printf("\n i %d xatom %d xatommeta %d atom:\n",i,xatom,xatommeta);
+    wr_print_term(g,xatom);    
+#endif    
     xatomptr=rotp(g,xatom);
     hash=wr_lit_hash(g,xatom); 
-    //printf("\ncalculated hash %d \n",hash);
+#ifdef DEBUG    
+    printf("\ncalculated hash %d \n",hash);
+#endif    
     if (wg_atom_meta_is_neg(db,xatommeta)) {
-      //printf("\nneg\n");
+#ifdef DEBUG      
+      printf("\nneg\n");
+#endif      
       bucket=wr_find_termhash(g,rotp(g,g->hash_neg_groundunits),xatomptr,hash);      
       //printf("\ncpneg\n");
       if (bucket!=NULL) {
-        /*
+#ifdef DEBUG        
         printf("\nsubsumed by ground hash as neg!\n"); 
         wr_print_term(g,xatomptr);
         printf("\n bucket:\n");
         wr_print_clause(g,bucket); 
-        */
+#endif        
         (g->stat_lit_hash_subsume_ok)++;
         (g->stat_forward_subsumed)++;
         return -1;
       }
       if (r_kb_g(g)) {
-        bucket=wr_find_termhash(g,rotp(g,(r_kb_g(g))->hash_neg_groundunits),xatomptr,hash);
-      }
-      if (bucket!=NULL) {
-        /*
-        printf("\nsubsumed by kb ground hash as neg!\n"); 
-        wr_print_term(g,xatomptr);
-        printf("\n bucket:\n");
-        wr_print_clause(g,bucket); 
-        */
-        (g->stat_lit_hash_subsume_ok)++;
-        (g->stat_forward_subsumed)++;
-        return -1;
-      }
+#ifdef DEBUG
+        printf("\nexternal kb r_kb_g(g) present");
+#endif        
+        bucket=wr_find_termhash(g,rotp(g,(r_kb_g(g))->hash_neg_groundunits),xatomptr,hash);     
+        if (bucket!=NULL) {
+  #ifdef DEBUG        
+          printf("\nsubsumed by kb ground hash as neg!\n"); 
+          wr_print_term(g,xatomptr);
+          printf("\n bucket:\n");
+          wr_print_clause(g,bucket); 
+  #endif        
+          (g->stat_lit_hash_subsume_ok)++;
+          (g->stat_forward_subsumed)++;
+          return -1;
+        }
+      }  
 
       bucket=wr_find_termhash(g,rotp(g,g->hash_pos_groundunits),xatomptr,hash);      
       if (bucket!=NULL) {         
-        /*             
+#ifdef DEBUG        
         printf("\ncutoff by ground hash as neg!\n"); 
         wr_print_term(g,xatom);
         printf("\n bucket:\n");
         wr_print_clause(g,bucket);        
-        */
+#endif
         cuts++;
         rptr[tmp+LIT_META_POS]=0; // mark cutoff lit metas as 0
         if ((g->cut_clvec)[0]>cuts+1) {
@@ -550,62 +559,70 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos) {
         //return 0;
       }
       if (r_kb_g(g)) {
-        bucket=wr_find_termhash(g,rotp(g,(r_kb_g(g))->hash_pos_groundunits),xatomptr,hash);
-      }
-      if (bucket!=NULL) {         
-        /*       
-        printf("\ncutoff by kb ground hash as neg!\n"); 
-        wr_print_term(g,xatom);
-        printf("\n bucket:\n");
-        wr_print_clause(g,bucket);        
-        */
-        cuts++;
-        rptr[tmp+LIT_META_POS]=0; // mark cutoff lit metas as 0
-        if ((g->cut_clvec)[0]>cuts+1) {
-          (g->cut_clvec)[cuts]=(gint)bucket;
-          (g->cut_clvec)[cuts+1]=(gint)NULL;
-        }  
-        (g->stat_lit_hash_cut_ok)++;   
-        //return 0;
-      }
+#ifdef DEBUG
+        printf("\nexternal kb r_kb_g(g) present");
+#endif          
+        bucket=wr_find_termhash(g,rotp(g,(r_kb_g(g))->hash_pos_groundunits),xatomptr,hash);      
+        if (bucket!=NULL) {         
+  #ifdef DEBUG        
+          printf("\ncutoff by kb ground hash as neg!\n"); 
+          wr_print_term(g,xatom);
+          printf("\n bucket:\n");
+          wr_print_clause(g,bucket);        
+  #endif        
+          cuts++;
+          rptr[tmp+LIT_META_POS]=0; // mark cutoff lit metas as 0
+          if ((g->cut_clvec)[0]>cuts+1) {
+            (g->cut_clvec)[cuts]=(gint)bucket;
+            (g->cut_clvec)[cuts+1]=(gint)NULL;
+          }  
+          (g->stat_lit_hash_cut_ok)++;   
+          //return 0;
+        }
+      }  
 
     } else {
-      //printf("\npos\n");
+#ifdef DEBUG      
+      printf("\npos\n");
+#endif
       bucket=wr_find_termhash(g,rotp(g,g->hash_pos_groundunits),xatomptr,hash);
       //printf("\ncppos\n");
       if (bucket!=NULL) {
-        /*
+#ifdef DEBUG        
         printf("\nsubsumed by ground hash as pos!\n");
         wr_print_term(g,xatom);;
         printf("\n bucket:\n");
         wr_print_clause(g,bucket);
-        */
+#endif        
         (g->stat_lit_hash_subsume_ok)++;
         (g->stat_forward_subsumed)++;
         return -1;
       }
       if (r_kb_g(g)) {
-        bucket=wr_find_termhash(g,rotp(g,(r_kb_g(g))->hash_pos_groundunits),xatomptr,hash);
-      }
-      if (bucket!=NULL) {
-        /*
-        printf("\nsubsumed by kb ground hash as pos!\n"); 
-        wr_print_term(g,xatomptr);
-        printf("\n bucket:\n");
-        wr_print_clause(g,bucket); 
-        */
-        (g->stat_lit_hash_subsume_ok)++;
-        (g->stat_forward_subsumed)++;
-        return -1;
-      }
+#ifdef DEBUG
+        printf("\nexternal kb r_kb_g(g) present");
+#endif          
+        bucket=wr_find_termhash(g,rotp(g,(r_kb_g(g))->hash_pos_groundunits),xatomptr,hash);      
+        if (bucket!=NULL) {
+  #ifdef DEBUG        
+          printf("\nsubsumed by kb ground hash as pos!\n"); 
+          wr_print_term(g,xatomptr);
+          printf("\n bucket:\n");
+          wr_print_clause(g,bucket); 
+  #endif        
+          (g->stat_lit_hash_subsume_ok)++;
+          (g->stat_forward_subsumed)++;
+          return -1;
+        }
+      }  
       bucket=wr_find_termhash(g,rotp(g,g->hash_neg_groundunits),xatomptr,hash);      
       if (bucket!=NULL) {            
-        /*        
+#ifdef DEBUG        
         printf("\ncutoff by ground hash as pos!\n"); 
         wr_print_term(g,xatom);
         printf("\n bucket:\n");
         wr_print_clause(g,bucket);    
-        */
+#endif        
         cuts++;
         rptr[tmp+LIT_META_POS]=0; // mark cutoff lit metas as 0
         if ((g->cut_clvec)[0]>cuts+1) {
@@ -616,28 +633,33 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos) {
         //return 0;
       }
       if (r_kb_g(g)) {
-        bucket=wr_find_termhash(g,rotp(g,(r_kb_g(g))->hash_neg_groundunits),xatomptr,hash);
-      }
-      if (bucket!=NULL) {         
-        /*       
-        printf("\ncutoff by kb ground hash as pos!\n"); 
-        wr_print_term(g,xatom);
-        printf("\n bucket:\n");
-        wr_print_clause(g,bucket);        
-        */
-        cuts++;
-        rptr[tmp+LIT_META_POS]=0; // mark cutoff lit metas as 0
-        if ((g->cut_clvec)[0]>cuts+1) {
-          (g->cut_clvec)[cuts]=(gint)bucket;
-          (g->cut_clvec)[cuts+1]=(gint)NULL;
-        }  
-        (g->stat_lit_hash_cut_ok)++;   
-        //return 0;
-      }
+#ifdef DEBUG
+        printf("\nexternal kb r_kb_g(g) present");
+#endif          
+        bucket=wr_find_termhash(g,rotp(g,(r_kb_g(g))->hash_neg_groundunits),xatomptr,hash);      
+        if (bucket!=NULL) {         
+  #ifdef DEBUG        
+          printf("\ncutoff by kb ground hash as pos!\n"); 
+          wr_print_term(g,xatom);
+          printf("\n bucket:\n");
+          wr_print_clause(g,bucket);        
+  #endif        
+          cuts++;
+          rptr[tmp+LIT_META_POS]=0; // mark cutoff lit metas as 0
+          if ((g->cut_clvec)[0]>cuts+1) {
+            (g->cut_clvec)[cuts]=(gint)bucket;
+            (g->cut_clvec)[cuts+1]=(gint)NULL;
+          }  
+          (g->stat_lit_hash_cut_ok)++;   
+          //return 0;
+        }
+      }  
     } 
     //blt=wr_build_calc_term(g,rptr[tmp+LIT_ATOM_POS]);       
   }
-  // printf("\n! wr_derived_cl_cut_and_subsume is returning %d \n",cuts);
+#ifdef DEBUG  
+  printf("\n! wr_derived_cl_cut_and_subsume is returning %d \n",cuts);
+#endif  
   return cuts;  
 }
 

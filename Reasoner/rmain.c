@@ -71,8 +71,8 @@ void show_cur_time(void);
 //#define DEBUG
 #undef DEBUG
 
-//#define SHOWTIME
-#undef SHOWTIME
+#define SHOWTIME
+//#undef SHOWTIME
 
 /* ====== Functions ============== */
 
@@ -216,7 +216,7 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
     //else if ((g->print_level_flag)<=40) wr_set_detailed_printout(g);
     else wr_set_detailed_printout(g);
 
-    wr_set_detailed_printout(g);
+    //wr_set_detailed_printout(g);
 
     if (g->print_runs) {
       printf("\n**** run %d starts\n",iter+1);          
@@ -272,6 +272,7 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
       break;
     }
     // ok, clauses found and clause lists initialized
+    (g->kb_g)=NULL;
     res=wr_genloop(g);
 
     /*
@@ -388,23 +389,25 @@ int wr_init_active_passive_lists_from_all(glb* g) {
   //void* kb_db;
   int count=0;
 
-  //printf("\n wr_init_active_passive_lists_from_all called\n");
+  printf("\n wr_init_active_passive_lists_from_all called\n");
   //kb_db=g->kb_db;
-  //printf("\n db is %d and child_db is %d\n",(int)db,(int)child_db);
+  printf("\n db is %d and child_db is %d\n",(int)db,(int)child_db);
 
   // if two db-s, this will take the clauses from the shared db
   
   //count=wr_init_active_passive_lists_from_one(g,db,db);
 
   if (db!=child_db) {
-    //printf("\n separate child kb found, using\n");
+    printf("\n separate child kb found, using\n");
 
     // if two db-s, this will take the clauses from the local db:
     count+=wr_init_active_passive_lists_from_one(g,db,child_db);
     
     //g->db=kb_db;
   } else {
-    //printf("\n external kb NOT found\n");
+    printf("\n external kb NOT found\n");
+
+    count=wr_init_active_passive_lists_from_one(g,db,db);
   } 
   //printf("\n wr_init_active_passive_lists_from_all returns %d\n",count);
   return count;
