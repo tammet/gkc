@@ -416,6 +416,7 @@ gptr wr_process_given_cl(glb* g, gptr given_cl_cand, gptr buf) {
   printf("\nwr_process_given_cl to do wr_build_calc_cl \n");
 #endif    
   given_cl=wr_build_calc_cl(g,given_cl_cand);
+  if (!given_cl) return NULL;
 #ifdef DEBUG
   printf("\nwr_process_given_cl got a given_cl \n");
   wr_print_clause(g,given_cl); 
@@ -476,6 +477,7 @@ gptr wr_add_given_cl_active_list(glb* g, gptr given_cl, gptr given_cl_metablock,
 #endif          
   wr_process_given_cl_setupsubst(g,build_buffer,2,0); 
   active_cl=wr_build_calc_cl(g,given_cl);
+  if (!active_cl) return NULL;
   wr_process_given_cl_cleanupsubst(g); 
   if (active_cl==NULL) return NULL; // could be memory err
 #ifdef DEBUG

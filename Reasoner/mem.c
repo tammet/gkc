@@ -106,7 +106,8 @@ void* wr_inkb_malloc(glb* g, int bytes) {
 #ifdef DEBUG  
   printf("\nwr_inkb_malloc bytes %d\n",bytes); 
 #endif
-  tmp=wg_rawalloc(g->db,bytes+sizeof(gint));   
+  tmp=wg_rawalloc(g->db,bytes+sizeof(gint));
+  if (tmp==NULL) return NULL;
   ntmp=(void*)((char*)tmp+sizeof(gint));
 #ifdef DEBUG  
   printf("\nwr_inkb_malloc got tmp %ld ntmp %ld size at tmp %ld\n",
@@ -122,6 +123,7 @@ void* wr_inkb_calloc(glb* g, size_t nmemb, int bytes) {
   printf("\nwr_inkb_calloc nmemb %d bytes each %d altogether %d\n",nmemb,bytes,nmemb*bytes);
 #endif
   tmp=wg_rawalloc(g->db,(nmemb*bytes)+sizeof(gint));
+  if (tmp==NULL) return NULL;
   ntmp=(void*)((char*)tmp+sizeof(gint));
   memset(ntmp,0,(nmemb*bytes));
 #ifdef DEBUG  
@@ -146,6 +148,7 @@ void* wr_inkb_realloc(glb* g, void* p, int bytes) {
   printf("old size %ld\n",size);
 #endif  
   tmp=wg_rawalloc(g->db,bytes+sizeof(gint));
+  if (tmp==NULL) return NULL;
   ntmp=(void*)((char*)tmp+sizeof(gint));
   
   memcpy(ntmp,p,size);

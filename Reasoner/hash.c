@@ -580,8 +580,7 @@ int wr_clterm_add_hashlist_withpath(glb* g, vec hashvec, gint hash, gint term, g
     // no hash chain yet: add first len-containing node
     prevnode=wr_clterm_alloc_hashnode(g);
     if (prevnode==NULL) {
-      printf("\nCP2\n");
-      wr_sys_exiterr(g,"could not allocate node for hashlist in cl_store_res_terms");
+      wr_sys_exiterr(g,"could not allocate node for hashlist in wr_clterm_add_hashlist_withpath");
       return 1;
     }  
     hashvec[hash]=pto(db,prevnode);
@@ -597,8 +596,7 @@ int wr_clterm_add_hashlist_withpath(glb* g, vec hashvec, gint hash, gint term, g
   // make new node and add to chain
   node=wr_clterm_alloc_hashnode(g);
   if (node==NULL) {
-    printf("\nCP2\n");
-    wr_sys_exiterr(g,"could not allocate node for hashlist in cl_store_res_terms");
+    wr_sys_exiterr(g,"could not allocate node for hashlist in wr_clterm_add_hashlist_withpath");
     return 1;
   } 
   //printf("\nnode for hash %d allocated as ptr %d and pto(db,node) %d\n",hash,node,pto(db,node));
@@ -650,8 +648,7 @@ int wr_clterm_add_hashlist_offset_withpath(glb* g, vec hashvec, gint hash, gint 
     // no hash chain yet: add first len-containing node
     prevnode=wr_clterm_alloc_hashnode(g);
     if (prevnode==NULL) {
-      printf("\nCP2\n");
-      wr_sys_exiterr(g,"could not allocate node for hashlist in cl_store_res_terms");
+      wr_sys_exiterr(g,"could not allocate node for hashlist in wr_clterm_add_hashlist_offset_withpath");
       return 1;
     }  
     hashvec[hash]=pto(db,prevnode);
@@ -668,8 +665,7 @@ int wr_clterm_add_hashlist_offset_withpath(glb* g, vec hashvec, gint hash, gint 
   // make new node and add to chain
   node=wr_clterm_alloc_hashnode(g);
   if (node==NULL) {
-    printf("\nCP2\n");
-    wr_sys_exiterr(g,"could not allocate node for hashlist in cl_store_res_terms");
+    wr_sys_exiterr(g,"could not allocate node for hashlist in wr_clterm_add_hashlist_offset_withpath");
     return 1;
   } 
   //printf("\nnode for hash %d allocated as ptr %d and pto(db,node) %d\n",hash,node,pto(db,node));  

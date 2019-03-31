@@ -131,6 +131,7 @@ void* wg_rawalloc(void* db, gint wantedbytes) {
                     //length+RECORD_HEADER_GINTS);                    
   if (!offset) {
     show_data_error_nr(db,"cannot rawalloc bytes ",wantedbytes);
+    return NULL;
   }
   /*
   dbstore(db, offset+RECORD_META_POS*sizeof(gint), 0);
@@ -203,7 +204,7 @@ void* wg_create_raw_record(void* db, wg_int length) {
       wg_log_encval(db, 0);
     }
 #endif
-    return 0;
+    return NULL;
   }
 
   /* Init header */

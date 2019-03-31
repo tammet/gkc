@@ -193,7 +193,8 @@ gptr wr_build_calc_cl(glb* g, gptr xptr) {
 
     // allocate space
     if ((g->build_buffer)!=NULL) {
-      yptr=wr_alloc_from_cvec(g,g->build_buffer,(RECORD_HEADER_GINTS+xlen));       
+      yptr=wr_alloc_from_cvec(g,g->build_buffer,(RECORD_HEADER_GINTS+xlen));
+      if (yptr==NULL) return NULL;       
        // copy rec header and clause header
       ilimit=RECORD_HEADER_GINTS+1; // this should change with probabs!!!!
       for(i=0;i<RECORD_HEADER_GINTS+CLAUSE_EXTRAHEADERLEN;i++) {
@@ -202,6 +203,7 @@ gptr wr_build_calc_cl(glb* g, gptr xptr) {
       }  
     } else {
       yptr=wg_create_raw_record(db,xlen); 
+      if (yptr==NULL) return NULL;
        // copy rec header and clause header
       ilimit=RECORD_HEADER_GINTS+1; // this should change with probabs!!!!
       for(i=0;i<RECORD_HEADER_GINTS+CLAUSE_EXTRAHEADERLEN;i++) {

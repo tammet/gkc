@@ -496,9 +496,10 @@ int main(int argc, char **argv) {
      else if(argc>(i+1) && !strcmp(argv[i],"-readkb")){
       wg_int err;
 #ifdef _WIN32
-      shmsize=1000000000; // 2000 meg
+      shmsize=1000000000; // 1G
 #else
-      shmsize=2000000000; 
+      //shmsize=2000000000; 
+      shmsize=4000000000; // 4G
 #endif      
       printf("\nto -readkb");
       gkc_show_cur_time();

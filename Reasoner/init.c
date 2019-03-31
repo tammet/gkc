@@ -191,6 +191,10 @@ int wr_init_db_clause_indexes(glb* g, void* db) {
     // start allocating from record area instead of g->build_buffer 
     (g->build_buffer)=NULL;
     given_cl=wr_process_given_cl(g,(gptr)rec, NULL);
+    if (!given_cl) {
+      printf("\nwr_process_given_cl failed\n");
+      return -1;
+    }
     if ( ((gint)given_cl==ACONST_FALSE) || ((gint)given_cl==ACONST_TRUE) ||
           (given_cl==NULL) ) {
 #ifdef DEBUG
@@ -218,7 +222,7 @@ int wr_init_db_clause_indexes(glb* g, void* db) {
     }  
 
     // start allocating from record area instead of g->build_buffer 
-    given_cl=wr_add_given_cl_active_list(g,given_cl,given_cl_metablock,1,NULL);
+    given_cl=wr_add_given_cl_active_list(g,given_cl,given_cl_metablock,0,NULL);
 #ifdef DEBUG 
     printf("\ngiven_cl after wr_add_given_cl_active_list\n");
     wg_print_record(db,given_cl);
