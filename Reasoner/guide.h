@@ -35,7 +35,7 @@
 cJSON* wr_parse_guide_file(int argc, char **argv, char** guidebuf);
 cJSON* wr_parse_guide_str(char* buf);
 int wr_parse_guide_strategy_set(glb* g, char* stratname);
-int wr_parse_guide_section(glb* g, cJSON *guide, int runnr);
+int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr);
 int wr_parse_guide_strategy(glb* g, cJSON *guide);
 
 void cjson_test(glb* g);

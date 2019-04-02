@@ -765,6 +765,8 @@ void* wr_parse_clauselist(glb* g,void* mpool,cvec clvec,void* clauselist) {
   int i;
   void* propfun;
   void *frm, *flt, *fltpart;
+  gint cell;
+  gcell *cellptr;
   
 #ifdef DEBUG  
   DPRINTF("wr_parse_clauselist starting with clauselist\n");  
@@ -818,7 +820,18 @@ void* wr_parse_clauselist(glb* g,void* mpool,cvec clvec,void* clauselist) {
       //wg_mpool_print(db,cl); 
       //printf("\n");
       record=wr_parse_clause(g,mpool,cl,clvec,vardata,propfun,name,role);    
-      if (!record) continue; // parsing failed if NULL    
+      if (!record) continue; // parsing failed if NULL 
+      // add record to the clauselist in db
+      cell=alloc_listcell(db);
+      if (!cell) {
+        show_parse_error(db,"\nfailed to allocate a cell\n");
+        return NULL;
+      }  
+      cellptr = (gcell *) offsettoptr(db, cell);
+      (cellptr->car) = ptrtooffset(db, record);
+      (cellptr->cdr) = (dbmemsegh(db)->clauselist);
+      (dbmemsegh(db)->clauselist) = cell;       
+      // add to resultlist, which is not really needed   
       resultlist=wg_mkpair(db,mpool,record,resultlist); // not really needed!!
       if (!resultlist) {
         show_parse_error(db,"\nfailed to add a clause to resultlist\n");
@@ -1521,7 +1534,8 @@ static int show_parse_error(void* db, char* format, ...) {
   printf("*** Parser error: ");
   vprintf (format, args);
   va_end (args);
-  return -1;
+  exit(1);
+  return -1;  
 }
 
 static int show_parse_warning(void* db, char* format, ...) {

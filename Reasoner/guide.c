@@ -88,8 +88,8 @@ cJSON* wr_parse_guide_file(int argc, char **argv, char** guidebuf) {
 
   //printf("\nto wr_parse_guide_file %s\n",argv[3]);
 
-  if (argc<4) {
-    // default case
+  if (argc<3) {
+    // default case: no guide file
     len=strlen(DEFAULT_GUIDE);
     buf = (char*)malloc(len + 10);
     *guidebuf=buf;
@@ -99,17 +99,18 @@ cJSON* wr_parse_guide_file(int argc, char **argv, char** guidebuf) {
     }
     strncpy(buf,DEFAULT_GUIDE,len); 
     guide=wr_parse_guide_str(buf);
+    printf("Using default strategy.");
     return guide;
   } 
   // file case
   
-  filename=argv[3];
+  filename=argv[2];  
 #ifdef _WIN32
   if(fopen_s(&fp, filename, "rb")) {
 #else
   if(!(fp = fopen(filename, "rb"))) {
 #endif    
-    wr_errprint2("cannot open file", filename);
+    wr_errprint2("cannot open strategy file", filename);
     return NULL;
   }     
   // get the length
@@ -120,17 +121,18 @@ cJSON* wr_parse_guide_file(int argc, char **argv, char** guidebuf) {
   buf = (char*)malloc(len + 10);
   *guidebuf=buf;
   if (!buf) {
-    wr_errprint2("failed to allocate memory for the guide file", filename);
+    wr_errprint2("failed to allocate memory for the strategy file", filename);
     return NULL;
   }
   if (fread(buf, 1, len, fp)<len) {
     fclose(fp);
-    wr_errprint2("cannot read the guide file", filename);
+    wr_errprint2("cannot read the strategy file", filename);
     return NULL;
   }
   buf[len] = '\0';
   if (fp!=NULL) fclose(fp);
-  guide=wr_parse_guide_str(buf);    
+  guide=wr_parse_guide_str(buf);
+  printf("Using strategy from %s.\n",filename);
   return guide; 
 }
 
@@ -144,7 +146,7 @@ cJSON* wr_parse_guide_str(char* buf) {
   if (guide==NULL) {
     errorptr=(char*)cJSON_GetErrorPtr();
     if (errorptr!=NULL) {      
-      wr_errprint2("Incorrect json in guide before ",errorptr);
+      wr_errprint2("Incorrect json in strategy before ",errorptr);
       return NULL;
     }
     wr_errprint("Empty guide");
@@ -153,15 +155,16 @@ cJSON* wr_parse_guide_str(char* buf) {
   return guide;
 }
 
-int wr_parse_guide_section(glb* g, cJSON *guide, int runnr) {  
+int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr) {  
   cJSON *elem=NULL, *run=NULL;
   char *key, *errstr; //, *valuestr;
   int i,tmp; // valueint
   int runcount=0; //, runfound=0;
+  char* out;
 
   if (!json_isobject(guide)) {    
     errstr=cJSON_Print(guide);
-    wr_warn2(g,"misunderstood section in the guide:\n ", errstr);
+    wr_warn2(g,"misunderstood section in the strategy:\n ", errstr);
     if (errstr) free(errstr);
     return -1;
   }
@@ -214,14 +217,14 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr) {
     else if (!strcmp(key,"runs")) {
       //printf("\nmax_seconds %d\n", json_valueint(elem));
       if (runnr<0) {
-        wr_warn(g,"do not use nested runs sections in guide");
+        wr_warn(g,"do not use nested runs sections in strategy");
       } else {  
         if (json_isnumber(elem)) {
           elem=elem->next;
           continue;
         }
         if (!json_isarray(elem)) {        
-          wr_warn(g,"runs value in guide must be an array or 0");        
+          wr_warn(g,"runs value in strategy must be an array or 0");        
           return -1;
         }
         // loop over runs, find and use the runnr section
@@ -229,7 +232,10 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr) {
         for(i=0; run; i++, run=run->next) {
           if (i==runnr) {
             //runfound=1;
-            tmp=wr_parse_guide_section(g,run,-1);
+            tmp=wr_parse_guide_section(g,run,-1,outstr);
+            //printf("\n wr_parse_guide_section: \n");
+            out=cJSON_Print(run);            
+            *outstr=out;
             if (tmp<0) return -1;            
           } 
         }
@@ -238,7 +244,7 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr) {
     } 
 
     else {
-      wr_warn2(g,"unknown setting in the guide: ", key);
+      wr_warn2(g,"unknown setting in the strategy: ", key);
     }
     
     elem=elem->next;
@@ -278,7 +284,7 @@ int wr_parse_guide_strategy_set(glb* g, char* stratname) {
   } else if (!strcmp(stratname,"query_focus")) {
     (g->queryfocus_strat)=1;   
   } else {
-    wr_warn2(g,"unknown strategy in the guide: ", stratname);
+    wr_warn2(g,"unknown strategy: ", stratname);
   }
 
   return 0;

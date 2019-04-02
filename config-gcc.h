@@ -11,7 +11,7 @@
  */
 
 /* Use additional validation checks */
-#define CHECK 1
+//#define CHECK 1
 
 /* Journal file directory */
 #define DBLOG_DIR "/tmp"
@@ -36,7 +36,7 @@
 /* #undef NO_MINUS_C_MINUS_O */
 
 /* Name of package */
-#define PACKAGE "whitedb"
+#define PACKAGE "gkc"
 
 /* Define to the address where bug reports for this package should be sent. */
 #define PACKAGE_BUGREPORT ""
@@ -45,13 +45,13 @@
 #define PACKAGE_NAME "GKC"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "gkc 0.2-beta"
+#define PACKAGE_STRING "gkc 0.2-gamma"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "gkc"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "0.2-beta"
+#define PACKAGE_VERSION "0.2-gamma"
 
 /* Define to necessary symbol if this constant uses a non-standard name on
    your system. */
@@ -82,7 +82,7 @@
 #define USE_REASONER 1
 
 /* Version number of package */
-#define VERSION "0.2-beta"
+#define VERSION "0.2-gamma"
 
 /* Package major version */
 #define VERSION_MAJOR 0
@@ -91,4 +91,4 @@
 #define VERSION_MINOR 2
 
 /* Package revision number */
-#define VERSION_REV 0
+#define VERSION_REV 3

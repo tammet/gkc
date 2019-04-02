@@ -480,6 +480,7 @@ typedef struct _db_memsegment_header {
 #ifdef USE_REASONER
   void* kb_db; /** pointer to the knowledge base shared mem db, if available */
   gint rglb; /** offset to the reasoner global block */
+  gint clauselist; /** offset of the beginning of the clause list */
 #endif  
   // areas
   db_area_header datarec_area_header;

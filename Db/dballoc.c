@@ -115,6 +115,7 @@ gint wg_init_db_memsegment_with_kb(void* db, gint key, gint size, void* kb) {
 #ifdef USE_REASONER
   dbh->kb_db=kb;
   dbh->rglb=0;
+  dbh->clauselist=0;
   //printf("\n in wg_init_db_memsegment_with_kb  dbh->kb_db is %d\n",(int)dbh->kb_db);
 #endif
 #ifdef CHECK

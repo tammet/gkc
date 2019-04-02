@@ -64,6 +64,7 @@ void wg_show_database(void* db);
 int init_shared_database(void* db) {
   glb* g;
   db_memsegment_header* dbh = dbmemsegh(db);
+  int tmp;
 
 #ifdef DEBUG
   printf("\ninit_shared_database starts\n");
@@ -122,7 +123,8 @@ int init_shared_database(void* db) {
   wg_show_strhash(db);
   printf("\nwg_show_strhash ends\n");
 #endif 
-  wr_init_db_clause_indexes(g,db);
+  tmp=wr_init_db_clause_indexes(g,db);
+  if (tmp<0) return -1;
   return 0;
 }
 
@@ -144,29 +146,10 @@ int wr_init_db_clause_indexes(glb* g, void* db) {
   wr_clear_all_varbanks(g);
   wr_process_given_cl_setupsubst(g,g->given_termbuf,1,1);   
   (g->proof_found)=0;
-  
-  // loop over initial clauses
 
-  rec = wg_get_first_raw_record(db);
-  while(rec) {      
-    if ((wg_rec_is_rule_clause(db,rec) || wg_rec_is_fact_clause(db,rec)) ) {
-#ifdef DEBUG      
-      printf("\ninitial rec with len %ld\n",wg_get_record_len(db,rec));
-      wg_print_record(db,rec);      
-#endif      
-      cell=alloc_listcell(db);
-      cellptr = (gcell *) offsettoptr(db, cell);
-      (cellptr->car) = ptrtooffset(db, rec);
-      (cellptr->cdr) = (g->initial_cl_list);
-      (g->initial_cl_list) = cell;           
-    }
-    rec = wg_get_next_raw_record(db,rec);    
-  }
-  
-  // next loop over collected clauses
- 
-  cell=g->initial_cl_list;
-  while(cell) {        
+  // loop over clauses
+  cell=(dbmemsegh(db)->clauselist);
+  while(cell) {         
     cellptr=(gcell *) offsettoptr(db, cell);
     rec=offsettoptr(db,cellptr->car);
     if (g->alloc_err) {
@@ -228,8 +211,7 @@ int wr_init_db_clause_indexes(glb* g, void* db) {
     wg_print_record(db,given_cl);
 #endif                
     cell=cellptr->cdr;
-  }
-  printf("\nrules_found %d facts_found %d \n",rules_found,facts_found);
+  }  
 #ifdef DEBUG            
   printf("\nrules_found %d facts_found %d \n",rules_found,facts_found); 
 #endif   
@@ -316,11 +298,11 @@ void wr_show_database_details(glb* passedg,void* db, char* desc) {
   // show records in db   
   
   printf("\n\n** clauses\n");
-  //rec = wg_get_first_raw_record(db);
-  cell=g->initial_cl_list;
-  while(cell) {        
+
+  cell=(dbmemsegh(db)->clauselist);
+  while(cell) {         
     cellptr=(gcell *) offsettoptr(db, cell);
-    rec=offsettoptr(db,cellptr->car);    
+    rec=offsettoptr(db,cellptr->car);
     rlen=wg_get_record_len(db,rec);   
 
     if ((wg_rec_is_rule_clause(db,rec) || wg_rec_is_fact_clause(db,rec)) ) {
@@ -328,8 +310,7 @@ void wr_show_database_details(glb* passedg,void* db, char* desc) {
       wg_print_record(db,rec);
       printf("\n as clause \n");
       wr_print_clause(g,rec);
-    }
-    //rec = wg_get_next_raw_record(db,rec);    
+    }    
     cell=cellptr->cdr;
   }
   

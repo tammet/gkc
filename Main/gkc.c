@@ -82,6 +82,8 @@ extern "C" {
 #define FLAGS_FORCE 0x1
 #define FLAGS_LOGGING 0x2
 
+//#define SHOWTIME
+
 /* Helper macros for database lock management */
 
 #define RLOCK(d,i) i = wg_start_read(d); \
@@ -114,6 +116,7 @@ extern "C" {
 gint parse_shmsize(char *arg);
 gint parse_flag(char *arg);
 int parse_memmode(char *arg);
+char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsize);
 wg_query_arg *make_arglist(void *db, char **argv, int argc, int *sz);
 void free_arglist(void *db, wg_query_arg *arglist, int sz);
 void query(void *db, char **argv, int argc);
@@ -150,51 +153,31 @@ echo 500000000  > /proc/sys/kernel/shmmax
 */
 
 void usage(char *prog) {
-  printf("usage: gkc <problem file>\n"\
-         "or   : gkc -prove <problem file> <strategy file>\n");
-/*  
-#ifdef USE_REASONER
-    printf("    importotter <filename> - import facts/rules from "\
-    "otter syntax file.\n"\
-    "    importprolog <filename> - import facts/rules from "\
-    "prolog syntax file.\n"\
-    "    runreasoner - run the reasoner on facts/rules in the database.\n");
-#endif
-#ifdef HAVE_RAPTOR
-  printf("    exportrdf <col> <filename> - export data to a RDF/XML file.\n"\
-    "    importrdf <pref> <suff> <filename> - import data from a RDF file.\n");
-#endif
-#ifdef USE_DBLOG
-  printf("    replay <filename> - replay a journal file.\n");
-#endif
-  printf("    info - print information about the memory database.\n"\
-    "    add <value1> .. - store data row (only int or str recognized)\n"\
-    "    select <number of rows> [start from] - print db contents.\n"\
-    "    query <col> \"<cond>\" <value> .. - basic query.\n"\
-    "    del <col> \"<cond>\" <value> .. - like query. Matching rows "\
-    "are deleted from database.\n"\
-    "    addjson [filename] - store a json document.\n"\
-    "    findjson <json> - find documents with matching keys/values.\n"\
-    "    createindex <column> - create ttree index\n" \
-    "    createhash <columns> - create hash index (JSON support)\n" \
-    "    dropindex <index id> - delete an index\n" \
-    "    listindex - list all indexes in database\n");
-#ifdef _WIN32
-  printf("    server [-l] [size] - provide persistent shared memory for "\
-    "other processes (-l: enable logging in the database). Will allocate "\
-    "requested amount of memory and sleep; "\
-    "Ctrl+C aborts and releases the memory.\n");
-#else
-  printf("    create [-l] [size [mode]] - create empty db of given size "\
-    "(-l: enable logging in the database, mode: segment permissions "\
-    "(octal)).\n");
-#endif
-  printf("\nCommands may have variable number of arguments. "\
-    "Commands that take values as arguments have limited support "\
-    "for parsing various data types (see manual for details). Size "\
-    "may be given as bytes or in larger units by appending k, M or G "\
-    "to the size argument.\n");
-*/    
+  printf("usage:\n"\
+         "basic proof search with a default strategy:\n"\
+         "  gkc <problem file>\n"\
+         "proof search with a strategy selection file:\n"\
+         "  gkc -prove <problem file> <strategy file>\n"\
+         "-readkb, -provekb, -deletekb are available on Linux and OSX only: \n"\
+         "parse and load a file into shared memory database:\n"\
+         "  gkc -readkb <axioms file>\n"\
+         "proof search using the shared memory database as prepared additional axioms:\n"\
+         "  gkc -provekb <problem file> <strategy file>\n"\
+         "delete the present shared memory database (not necessary for reading a new one):\n"\
+         "  gkc -deletekb\n"\
+         "show gkc version:\n"\
+         "  gkc -version\n"\
+         "\n"\
+         "where:\n"\
+         "  <problem file> should be in TPTP FOF or CNF syntax or Otter CNF syntax\n"\
+         "  <strategy file> is in json: see neg.txt, runs.txt in Examples\n"\
+         "  <axioms file> is like a <problem file> \n"\
+         "\n"\
+         "additional optional parameters:\n"\
+         "  -mbsize <megabytes to allocate>\n"\
+         "   if omitted, 1000 megabytes assumed\n"\
+         "  -mbnr <shared memory database nr>\n"\
+         "   if omitted, 8000 used\n");
 }
 
 /** Handle the user-supplied database size (or pick a reasonable
@@ -269,6 +252,109 @@ int parse_memmode(char *arg) {
   return 0;
 }
 
+/** Parse command line args prior to detecting actual command
+ *  
+ *  cmdstr: command string
+ *  mbnr: memory base number
+ *  mbsize: size number to allocate
+ * 
+ */
+
+char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsize) {
+  int i,alen,nargc;
+  char* arg;
+  char c;
+  char **nargv;
+  int nr;
+  
+  // init nargv: an array of non-command args, i.e. filenames
+  nargc=0;
+  nargv=(char**)malloc(sizeof(char*)*argc);
+  for(i=0;i<argc;i++) {
+    nargv[i]=NULL;
+  }
+  // loop over all command line elements
+  for(i=0; i<argc; i++) {
+    //printf("\n i %d",i);
+    arg=argv[i];
+    alen=strlen(arg);
+    //printf("\n i %d arg %s len %d",i,arg,alen);
+    if (alen<1) continue;
+    c=arg[0];
+    if (c=='-') {
+      // keyword
+      if (!(strncmp(arg,"-mbnr",10))) {
+        if ((i+1)<argc) {
+          //printf("\n cmd %s param %s",arg,argv[i+1]);
+          i++;
+          if (!(sscanf(argv[i], "%d", &nr))) {
+            printf("Error: keyword %s argument must be a number, not %s\n",
+                   arg,argv[i]);
+            exit(1);       
+          } else {
+            //printf("\n parsed nr %d\n",nr);
+            if (nr<1) {
+              printf("Error: -mbnr argument should be at least 1, not %s\n",argv[i]);
+              exit(1);
+            }
+            *mbnr=nr;
+          }
+        } else {
+          printf("Error: missing parameter to keyword %s\n",arg);
+          exit(1);
+        } 
+      } else if (!(strncmp(arg,"-mbsize",10))) {
+        if ((i+1)<argc) {
+          //printf("\n cmd %s param %s",arg,argv[i+1]);
+          i++;
+          if (!(sscanf(argv[i], "%d", &nr))) {
+            printf("Error: keyword %s argument must be a number, not %s\n",
+                    arg,argv[i]);
+            exit(1);
+          } else {
+            //printf("\n parsed nr %d\n",nr);
+            if (nr<10) {
+              printf("Error: -mbsize argument should be at least 10 (megabytes), not %s\n",argv[i]);
+              exit(1);
+            }
+            if (nr>=100000) {
+              printf("Error: -mbsize argument means megabytes: %s is too big\n",argv[i]);
+              exit(1);
+            }
+            *mbsize=nr;
+          }
+        } else {
+          printf("Error: missing parameter to keyword %s\n",arg);
+          exit(1);
+        }
+      } else if (!(strncmp(arg,"-prove",10)) || 
+                !(strncmp(arg,"-readkb",10)) ||
+                !(strncmp(arg,"-provekb",10)) || 
+                !(strncmp(arg,"-deletekb",10)) ||
+                !(strncmp(arg,"-help",10)) || 
+                !(strncmp(arg,"--help",10)) || 
+                !(strncmp(arg,"-version",10)) || 
+                !(strncmp(arg,"--version",10)) ) {
+        //printf("\n cmd %s",arg);
+        *cmdstr=argv[i];
+      } else {
+        printf("Error: unknown keyword %s \n",arg);
+        usage(argv[0]);
+        exit(1);
+      }
+
+    } else {
+      // norm value
+      nargv[nargc]=argv[i];
+      //printf("\n nargc %d nargv[nargc] %s",nargc,nargv[nargc]);
+      nargc++;     
+    }    
+  }
+  //printf("\nexiting\n");
+  return nargv;
+}
+
+
 /** top level for the database command line tool
 *
 *
@@ -277,781 +363,278 @@ int parse_memmode(char *arg) {
 int main(int argc, char **argv) {
 
   char *shmname = NULL;
+  char shmnamebuf[16];
   void *shmptr = NULL;
   void *shmptrlocal = NULL;
-  int i, scan_to;
-  gint shmsize, shmsize2;
-  wg_int rlock = 0;
-  wg_int wlock = 0;
-  int islocaldb=0; // lreasoner sets to 1 to avoid detaching db at the end
+  int i; //, scan_to;
+  gint shmsize=0, shmsize2=0;
+  //wg_int rlock = 0;
+  //wg_int wlock = 0;
+  int mbnr=0, mbsize=0; // parsed from cmd line
+  char* cmdstr=NULL; // parsed from cmd line
+  char** cmdfiles; // parsed from cmd line
+  int cmdfileslen; // computed below
+  int tmp;
+  //int islocaldb=0; // lreasoner sets to 1 to avoid detaching db at the end
 
-  /* look for commands in argv[1] or argv[2] */
-  
-  if(argc < 3) scan_to = argc;
-  else scan_to = 3;
-  shmsize = 0; /* 0 size causes default size to be used */
+//#ifdef _WIN32  
+//  shmname="8000";
+//#endif  
 
-  /* 1st loop through, shmname is NULL for default. If
-   * the first argument is not a recognizable command, it
-   * is assumed to be the shmname and the next argument
-   * is checked against known commands.
-   */
-#ifdef _WIN32  
-  shmname="8000";
-#endif  
-
-  //printf("\nargc %d argv[0] %s scan_to %d\n",argc,argv[0],scan_to);
-  for(i=1; i<scan_to; i++) {
-    if (!strcmp(argv[i],"help") || !strcmp(argv[i],"-h")) {
-      usage(argv[0]);
-      exit(0);
-    }
-    if (!strcmp(argv[i],"version") || !strcmp(argv[i],"-v")) {
-      wg_print_code_version();
-      exit(0);
-    }
-    if (!strcmp(argv[i],"free")) {
-      /* free shared memory */
-      wg_delete_database(shmname);
-      exit(0);
-    }
-    if(argc>(i+1) && !strcmp(argv[i],"import")){
-      wg_int err, minsize, maxsize;
-      int flags = 0;
-
-      if(argv[i+1][0] == '-') {
-        flags = parse_flag(argv[++i]);
-        if(argc<=(i+1)) {
-          /* Filename argument missing */
-          usage(argv[0]);
-          exit(1);
-        }
-      }
-
-      err = wg_check_dump(NULL, argv[i+1], &minsize, &maxsize);
-      if(err) {
-        fprintf(stderr, "Import failed.\n");
-        break;
-      }
-
-      shmptr=wg_attach_memsegment(shmname, minsize, maxsize, 1,
-        (flags & FLAGS_LOGGING), 0);
-      if(!shmptr) {
-        fprintf(stderr, "Failed to attach to database.\n");
-        exit(1);
-      }
-
-      /* Locking is handled internally by the dbdump.c functions */
-      err = wg_import_dump(shmptr,argv[i+1]);
-      if(!err)
-        printf("Database imported.\n");
-      else if(err<-1)
-        fprintf(stderr, "Fatal error in wg_import_dump, db may have"\
-          " become corrupt\n");
-      else
-        fprintf(stderr, "Import failed.\n");
-      break;
-    }
-    else if(argc>(i+1) && !strcmp(argv[i],"export")){
-      wg_int err;
-      int flags = 0;
-
-      if(argv[i+1][0] == '-') {
-        flags = parse_flag(argv[++i]);
-        if(argc<=(i+1)) {
-          /* Filename argument missing */
-          usage(argv[0]);
-          exit(1);
-        }
-      }
-
-      shmptr=wg_attach_existing_database(shmname);
-      if(!shmptr) {
-        fprintf(stderr, "Failed to attach to database.\n");
-        exit(1);
-      }
-
-      /* Locking is handled internally by the dbdump.c functions */
-      if(flags & FLAGS_FORCE)
-        err = wg_dump_internal(shmptr,argv[i+1], 0);
-      else
-        err = wg_dump(shmptr,argv[i+1]);
-
-      if(err<-1)
-        fprintf(stderr, "Fatal error in wg_dump, db may have"\
-          " become corrupt\n");
-      else if(err)
-        fprintf(stderr, "Export failed.\n");
-      break;
-    }
-#ifdef USE_DBLOG
-    else if(argc>(i+1) && !strcmp(argv[i],"replay")){
-      wg_int err;
-
-      shmptr=wg_attach_database(shmname, shmsize);
-      if(!shmptr) {
-        fprintf(stderr, "Failed to attach to database.\n");
-        exit(1);
-      }
-
-      WLOCK(shmptr, wlock);
-      err = wg_replay_log(shmptr,argv[i+1]);
-      WULOCK(shmptr, wlock);
-      if(!err)
-        printf("Log suggessfully imported from file.\n");
-      else if(err<-1)
-        fprintf(stderr, "Fatal error when importing, database may have "\
-          "become corrupt\n");
-      else
-        fprintf(stderr, "Failed to import log (database unmodified).\n");
-      break;
-    }
-#endif
-    else if(argc>(i+1) && !strcmp(argv[i],"exportcsv")){
-      shmptr=wg_attach_existing_database(shmname);
-      if(!shmptr) {
-        fprintf(stderr, "Failed to attach to database.\n");
-        exit(1);
-      }
-
-      RLOCK(shmptr, rlock);
-      wg_export_db_csv(shmptr,argv[i+1]);
-      RULOCK(shmptr, rlock);
-      break;
-    }
-    else if(argc>(i+1) && !strcmp(argv[i],"importcsv")){
-      wg_int err;
-
-      shmptr=wg_attach_database(shmname, shmsize);
-      if(!shmptr) {
-        fprintf(stderr, "Failed to attach to database.\n");
-        exit(1);
-      }
-
-      WLOCK(shmptr, wlock);
-      err = wg_import_db_csv(shmptr,argv[i+1]);
-      WULOCK(shmptr, wlock);
-      if(!err)
-        printf("Data imported.\n");
-      else if(err<-1)
-        fprintf(stderr, "Fatal error when importing, data may be partially"\
-          " imported\n");
-      else
-        fprintf(stderr, "Import failed.\n");
-      break;
-    }
-
-#ifdef USE_REASONER
-    else if(argc>(i+1) && !strcmp(argv[i],"importprolog")){
-      wg_int err;
-       
-      shmptr=wg_attach_database(shmname, shmsize);
-      if(!shmptr) {
-        fprintf(stderr, "Failed to attach to database.\n");
-        exit(1);
-      }
-      err = wg_import_prolog_file(shmptr,argv[i+1]);
-      if(!err)
-        printf("Data imported.\n");
-      else if(err<-1)
-        fprintf(stderr, "Fatal error when importing, data may be partially"\
-          " imported\n");
-      else
-        fprintf(stderr, "Import failed.\n");
-      break;
-    }
-    else if(argc>(i+1) && !strcmp(argv[i],"importotter")){
-      wg_int err;
-#ifdef _WIN32
-      shmsize=1000000000; // 2000 meg
-#else
-      shmsize=2000000000; 
-#endif      
-      printf("\nto import otter\n");
-      gkc_show_cur_time();
-      shmptr=wg_attach_database(shmname, shmsize);
-      if(!shmptr) {
-        fprintf(stderr, "Failed to attach to database.\n");
-        exit(1);
-      }
-      printf("\nto wg_import_otter_file\n");
-      gkc_show_cur_time();
-      err = wg_import_otter_file(shmptr,argv[i+1],1);
-      printf("\nexited wg_import_otter_file\n");
-      gkc_show_cur_time();
-      if(!err)
-        printf("Data imported.\n");
-      else if(err<-1)
-        fprintf(stderr, "Fatal error when importing otter file, data may be partially"\
-          " imported\n");
-      else
-        fprintf(stderr, "Import failed.\n");
-
-
-      wg_show_database(shmptr);
-
-      break;
-
-    }
-     else if(argc>(i+1) && !strcmp(argv[i],"-readkb")){
-      wg_int err;
-#ifdef _WIN32
-      shmsize=1000000000; // 1G
-#else
-      //shmsize=2000000000; 
-      shmsize=4000000000; // 4G
-#endif      
-      printf("\nto -readkb");
-      gkc_show_cur_time();
-
-      wg_delete_database(shmname);
-      printf("\nprevious memory database deleted\n");
-      gkc_show_cur_time();
-
-      shmptr=wg_attach_database(shmname, shmsize);
-      if(!shmptr) {
-        fprintf(stderr, "Failed to attach to database.\n");
-        exit(1);
-      }
-      printf("\nto wg_import_otter_file %s\n",argv[i+1]);
-      gkc_show_cur_time();
-      err = wg_import_otter_file(shmptr,argv[i+1],1);
-      printf("\nexited wg_import_otter_file\n");
-      gkc_show_cur_time();
-      if(!err)
-        printf("Data imported.\n");
-      else if(err<-1)
-        fprintf(stderr, "Fatal error when importing otter file, data may be partially"\
-          " imported\n");
-      else
-        fprintf(stderr, "Import failed.\n");
-
-      //wg_show_database(shmptr);
-
-      printf("\nstarting to init_shared_database\n");      
-      gkc_show_cur_time();
-
-      init_shared_database(shmptr);
-
-      printf("\nexited init_shared_database\n");      
-      gkc_show_cur_time();
-
-      //wg_show_database(shmptr);
-
-      //(((glb*)(offsettoptr(shmptr,(dbmemsegh(shmptr)->rglb))))->stat_built_cl)=10;
-      (db_rglb(shmptr)->stat_built_cl)=25;
-      //wr_show_stats(offsettoptr(shmptr,(dbmemsegh(shmptr)->rglb)));
-      wr_show_stats(db_rglb(shmptr),1);
-
-      //wr_show_database_details(NULL,shmptr,"shared db");
-
-      break;
-
-
-    } else if(argc>i && (!strcmp(argv[i],"runreasoner"))) {
-      //wg_int err;
-
-      printf("\nto wg_attach_existing_database\n");
-      gkc_show_cur_time(); 
-      shmptr=wg_attach_existing_database(shmname);
-      if(!shmptr) {
-        fprintf(stderr, "Failed to attach to database.\n");
-        exit(1);
-      }
-      //printf("about to call wg_run_reasoner\n");
-      wg_show_database(shmptr);
-      printf("\nto wg_run_reasoner\n");
-      gkc_show_cur_time();
-      //err = 
-      wg_run_reasoner(shmptr,argc,argv);
-      //if(!err);
-        //printf("wg_run_reasoner finished ok.\n");
-      //else
-        //fprintf(stderr, "wg_run_reasoner finished with an error %d.\n",err);
-      //break;
-      wg_show_database(shmptr);
-      break;
-
-    } else if(argc>i && !strcmp(argv[i],"qrun")){
-      wg_int err;
-
-      printf("\nqrun starts\n");
-      gkc_show_cur_time();
-      shmptr=wg_attach_existing_database(shmname);
-      if(!shmptr) {
-        fprintf(stderr, "Failed to attach to database.\n");
-        exit(1);
-      }
-      printf("\ndb attached, showing attached shared memory db\n");
-      //printf("about to call wg_run_reasoner\n");
-      wg_show_database(shmptr);
-
-      // --- create a new temporary local db ---
-      shmsize2=100000000;
-      printf("\nto wg_attach_local_database_with_kb\n");
-      gkc_show_cur_time();
-      shmptrlocal=(void*)(wg_attach_local_database_with_kb(shmsize2,(void*)shmptr));
-      if(!shmptrlocal) {
-        fprintf(stderr, "Failed to attach local database.\n");
-        exit(1);
-      }
-      //wg_set_kb_db(shmptrlocal,shmptr); // set the kb field of local db to shared db    
-      islocaldb=1;
-      err=0;
-      printf("\nto wg_import_otter_file\n");
-      gkc_show_cur_time();
-      err = wg_import_otter_file(shmptrlocal,argv[i+1],0);
-      if(!err)
-        printf("Data imported.\n");
-      else if(err<-1)
-        fprintf(stderr, "Fatal error when importing otter file, data may be partially"\
-          " imported\n");
-      else
-        fprintf(stderr, "Import failed.\n");      
-      printf("\nshowing local db\n");  
-      wg_show_database(shmptrlocal);
-      // ---- local db created ------
-
-      printf("\nto call wg_run_reasoner\n");
-      gkc_show_cur_time();
-      err = wg_run_reasoner(shmptr,argc,argv);
-      //if(!err);
-        //printf("wg_run_reasoner finished ok.\n");
-      //else
-        //fprintf(stderr, "wg_run_reasoner finished with an error %d.\n",err);
-      //break;
-      printf("\nwg_run_reasoner returned\n");
-      gkc_show_cur_time();
-      printf("\nshowing shared memory db\n"); 
-      wg_show_database(shmptr);
-      printf("\nqrun exits\n");
-      break;
-
-    } else if(argc>i && !strcmp(argv[i],"-querykb")){
-      wg_int err;
-
-      printf("\n-querykb starts with external shmname %s\n",shmname);
-      gkc_show_cur_time();
-      shmptr=wg_attach_existing_database(shmname);
-      if(!shmptr) {
-        fprintf(stderr, "Failed to attach to database.\n");
-        exit(1);
-      }
-      /*
-      printf("\ndb attached, showing attached shared memory db shmptr %ld\n",
-        (unsigned long int)((gint)shmptr));
-      gkc_show_cur_time();
-      //printf("about to call wg_run_reasoner\n");
-      wr_show_database_details(NULL,shmptr,"shmptr");
-      */ 
-
-      //wr_show_database_details(NULL,shmptr,"shmptr");
-      //exit(0); 
-      // --- create a new temporary local db ---
-      shmsize2=100000000;     
-      printf("\nto wg_attach_local_database_with_kb with shmptr %ld\n",
-        (unsigned long int)((gint)shmptr));
-      gkc_show_cur_time();
-      shmptrlocal=wg_attach_local_database_with_kb(shmsize2,(void*)shmptr);
- 
-      /*
-      printf("\nto show headers right after return from attach:\n");
-      printf("\nshmptrlocal is %lx and gint %ld\n",
-        (unsigned long int)shmptrlocal,(gint)shmptrlocal);
-      wr_show_database_headers(shmptrlocal);
-      */
-
-      //shmptrlocal=wg_attach_local_database(shmsize2);
-      printf("\nshmptrlocal is %lx and gint %ld\n",
-        (unsigned long int)shmptrlocal,(gint)shmptrlocal);
-      gkc_show_cur_time();
-      //shmptrlocal=wg_attach_local_database(shmsize2);
-      if(!shmptrlocal) {
-        fprintf(stderr, "Failed to attach local database.\n");
-        exit(1);
-      }
-      //wg_set_kb_db(shmptrlocal,shmptr); // set the kb field of local db to shared db    
-      islocaldb=1;
-      err=0;
-      //wr_show_database_headers(shmptrlocal);
-
-      //wr_show_database_details(NULL,shmptrlocal,"shmptrlocal");
-      // exit(0);
-
-      printf("\nqrun1 to wg_import_otter_file from argv[i+1] %s\n",argv[i+1]);
-      gkc_show_cur_time();
-      err = wg_import_otter_file(shmptrlocal,argv[i+1],0);
-      if(!err)
-        printf("Data imported from %s.\n",argv[i+1]);
-      else if(err<-1)
-        fprintf(stderr, "Fatal error when importing otter file, data may be partially"\
-          " imported\n");
-      else
-        fprintf(stderr, "Import failed.\n");      
-      //printf("\nshowing local db\n");  
-      //gkc_show_cur_time();
-      
-      //wr_show_database_headers(shmptrlocal);
-      //wr_show_database_details(NULL,shmptrlocal,"shmptrlocal");
-
-      
-      // ---- local db created ------
-
-      printf("\nto call wg_run_reasoner\n");
-      gkc_show_cur_time();
-      err = wg_run_reasoner(shmptrlocal,argc,argv);
-      //if(!err);
-        //printf("wg_run_reasoner finished ok.\n");
-      //else
-        //fprintf(stderr, "wg_run_reasoner finished with an error %d.\n",err);
-      //break;
-      printf("\nwg_run_reasoner returned\n");
-      gkc_show_cur_time();
-
-
-      //printf("\nshowing shared memory db\n"); 
-      //wr_show_database_details(NULL,shmptr,"shmptr");
-      printf("\n-querykb exits\n");
-      break;  
-
-    } else if(argc>i && 
-                  (!strcmp(argv[i],"lrunreasoner") ||
-                   !strcmp(argv[i],"-prove")))  {
-      wg_int err;
-#ifdef _WIN32
-      shmsize=1000000000; // 2000 meg
-#else
-      shmsize=2000000000; 
-#endif
-      //shmsize=20000000;
-      shmptr=wg_attach_local_database(shmsize);
-      if(!shmptr) {
-        fprintf(stderr, "Failed to attach local database.\n");
-        exit(1);
-      }
-      islocaldb=1;
-      err = wg_import_otter_file(shmptr,argv[i+1],0);
-      if(!err)
-        printf("Data imported.\n");
-      else if(err<-1)
-        fprintf(stderr, "Fatal error when importing otter file, data may be partially"\
-          " imported\n");
-      else
-        fprintf(stderr, "Import failed.\n");      
-      //wg_show_database(shmptr);
-      //printf("about to call wg_run_reasoner\n");
-      err = wg_run_reasoner(shmptr,argc,argv);
-      //wg_show_database(shmptr);
-      //if(!err);
-        //printf("wg_run_reasoner finished ok.\n");
-      //else
-        //fprintf(stderr, "wg_run_reasoner finished with an error %d.\n",err);
-      //break;
-      break;
-    } else if(i==1 && argc==2) {
-      wg_int err;
-#ifdef _WIN32
-      shmsize=1000000000; // 2000 meg
-#else
-      shmsize=2000000000; 
-#endif
-      //shmsize=20000000;
-      shmptr=wg_attach_local_database(shmsize);
-      if(!shmptr) {
-        fprintf(stderr, "Failed to attach local database.\n");
-        exit(1);
-      }
-      islocaldb=1;
-      err = wg_import_otter_file(shmptr,argv[1],0);
-      if(!err)
-        printf("Data imported.\n");
-      else if(err<-1)
-        fprintf(stderr, "Fatal error when importing otter file, data may be partially"\
-          " imported\n");
-      else
-        fprintf(stderr, "Import failed.\n");      
-      //wg_show_database(shmptr);
-      //printf("about to call wg_run_reasoner\n");
-      err = wg_run_reasoner(shmptr,argc,argv);
-      //wg_show_database(shmptr);
-      //if(!err);
-        //printf("wg_run_reasoner finished ok.\n");
-      //else
-        //fprintf(stderr, "wg_run_reasoner finished with an error %d.\n",err);
-      //break;
-      break;
-    }
-
-#endif
-
-#ifdef HAVE_RAPTOR
-    else if(argc>(i+2) && !strcmp(argv[i],"exportrdf")){
-      wg_int err;
-      int pref_fields = atol(argv[i+1]);
-
-      shmptr=wg_attach_existing_database(shmname);
-      if(!shmptr) {
-        fprintf(stderr, "Failed to attach to database.\n");
-        exit(1);
-      }
-
-      printf("Exporting with %d prefix fields.\n", pref_fields);
-      RLOCK(shmptr, rlock);
-      err = wg_export_raptor_rdfxml_file(shmptr, pref_fields, argv[i+2]);
-      RULOCK(shmptr, rlock);
-      if(err)
-        fprintf(stderr, "Export failed.\n");
-      break;
-    }
-    else if(argc>(i+3) && !strcmp(argv[i],"importrdf")){
-      wg_int err;
-      int pref_fields = atol(argv[i+1]);
-      int suff_fields = atol(argv[i+2]);
-
-      shmptr=wg_attach_database(shmname, shmsize);
-      if(!shmptr) {
-        fprintf(stderr, "Failed to attach to database.\n");
-        exit(1);
-      }
-
-      printf("Importing with %d prefix fields, %d suffix fields.\n,",
-        pref_fields, suff_fields);
-      WLOCK(shmptr, wlock);
-      err = wg_import_raptor_file(shmptr, pref_fields, suff_fields,
-        wg_rdfparse_default_callback, argv[i+3]);
-      WULOCK(shmptr, wlock);
-      if(!err)
-        printf("Data imported.\n");
-      else if(err<-1)
-        fprintf(stderr, "Fatal error when importing, data may be partially"\
-          " imported\n");
-      else
-        fprintf(stderr, "Import failed.\n");
-      break;
-    }
-#endif
-    else if(!strcmp(argv[i], "info")) {
-      shmptr=wg_attach_existing_database(shmname);
-      if(!shmptr) {
-        fprintf(stderr, "Failed to attach to database.\n");
-        exit(1);
-      }
-      RLOCK(shmptr, rlock);
-      segment_stats(shmptr);
-      RULOCK(shmptr, rlock);
-      break;
-    }
-#ifdef _WIN32
-    else if(!strcmp(argv[i],"server")) {
-      int flags = 0;
-      if(argc>(i+1) && argv[i+1][0] == '-') {
-        flags = parse_flag(argv[++i]);
-      }
-
-      if(argc>(i+1)) {
-        shmsize = parse_shmsize(argv[i+1]);
-        if(!shmsize)
-          fprintf(stderr, "Failed to parse memory size, using default.\n");
-      }
-      shmptr=wg_attach_memsegment(shmname, shmsize, shmsize, 1,
-        (flags & FLAGS_LOGGING), 0);
-      if(!shmptr) {
-        fprintf(stderr, "Failed to attach to database.\n");
-        exit(1);
-      }
-      printf("Press Ctrl-C to end and release the memory.\n");
-      while(_getch() != 3);
-      break;
-    }
-#else
-    else if(!strcmp(argv[i],"create")) {
-      int flags = 0, mode = 0;
-      if(argc>(i+1) && argv[i+1][0] == '-') {
-        flags = parse_flag(argv[++i]);
-      }
-
-      if(argc>(i+1)) {
-        shmsize = parse_shmsize(argv[i+1]);
-        if(!shmsize)
-          fprintf(stderr, "Failed to parse memory size, using default.\n");
-      }
-      if(argc>(i+2)) {
-        mode = parse_memmode(argv[i+2]);
-        if(mode == 0)
-          fprintf(stderr, "Invalid permission mode, using default.\n");
-      }
-      shmptr=wg_attach_memsegment(shmname, shmsize, shmsize, 1,
-        (flags & FLAGS_LOGGING), mode);
-      if(!shmptr) {
-        fprintf(stderr, "Failed to attach to database.\n");
-        exit(1);
-      }
-      break;
-    }
-#endif
-    else if(argc>(i+1) && !strcmp(argv[i],"select")) {
-      int rows = atol(argv[i+1]);
-      int from = 0;
-
-      if(!rows) {
-        fprintf(stderr, "Invalid number of rows.\n");
-        exit(1);
-      }
-      if(argc > (i+2))
-        from = atol(argv[i+2]);
-
-      shmptr=wg_attach_existing_database(shmname);
-      if(!shmptr) {
-        fprintf(stderr, "Failed to attach to database.\n");
-        exit(1);
-      }
-      RLOCK(shmptr, rlock);
-      selectdata(shmptr, rows, from);
-      RULOCK(shmptr, rlock);
-      break;
-    }
-    else if(argc>(i+1) && !strcmp(argv[i],"add")) {
-      int err;
-      shmptr=wg_attach_database(shmname, shmsize);
-      if(!shmptr) {
-        fprintf(stderr, "Failed to attach to database.\n");
-        exit(1);
-      }
-      WLOCK(shmptr, wlock);
-      err = add_row(shmptr, argv+i+1, argc-i-1);
-      WULOCK(shmptr, wlock);
-      if(!err)
-        printf("Row added.\n");
-      break;
-    }
-    else if(argc>(i+2) && !strcmp(argv[i],"del")) {
-      shmptr=wg_attach_existing_database(shmname);
-      if(!shmptr) {
-        fprintf(stderr, "Failed to attach to database.\n");
-        exit(1);
-      }
-      /* Delete works like query(), except deletes the matching rows */
-      del(shmptr, argv+i+1, argc-i-1);
-      break;
-      break;
-    }
-    else if(argc>(i+3) && !strcmp(argv[i],"query")) {
-      shmptr=wg_attach_existing_database(shmname);
-      if(!shmptr) {
-        fprintf(stderr, "Failed to attach to database.\n");
-        exit(1);
-      }
-      /* Query handles it's own locking */
-      query(shmptr, argv+i+1, argc-i-1);
-      break;
-    }
-    else if(argc>i && !strcmp(argv[i],"addjson")){
-      wg_int err;
-
-      shmptr=wg_attach_database(shmname, shmsize);
-      if(!shmptr) {
-        fprintf(stderr, "Failed to attach to database.\n");
-        exit(1);
-      }
-
-      WLOCK(shmptr, wlock);
-      /* the filename parameter is optional */
-      err = wg_parse_json_file(shmptr, (argc>(i+1) ? argv[i+1] : NULL));
-      WULOCK(shmptr, wlock);
-      if(!err)
-        printf("JSON document imported.\n");
-      else if(err<-1)
-        fprintf(stderr, "Fatal error when importing, data may be partially"\
-          " imported\n");
-      else
-        fprintf(stderr, "Import failed.\n");
-      break;
-    }
-    else if(argc>(i+1) && !strcmp(argv[i],"findjson")) {
-      shmptr=wg_attach_existing_database(shmname);
-      if(!shmptr) {
-        fprintf(stderr, "Failed to attach to database.\n");
-        exit(1);
-      }
-      WLOCK(shmptr, wlock);
-      findjson(shmptr, argv[i+1]);
-      WULOCK(shmptr, wlock);
-      break;
-    }
-    else if(argc>(i+1) && !strcmp(argv[i], "createindex")) {
-      int col;
-      shmptr = (void *) wg_attach_database(shmname, shmsize);
-      if(!shmptr) {
-        fprintf(stderr, "Failed to attach to database.\n");
-        exit(1);
-      }
-      sscanf(argv[i+1], "%d", &col);
-      WLOCK(shmptr, wlock);
-      wg_create_index(shmptr, col, WG_INDEX_TYPE_TTREE, NULL, 0);
-      WULOCK(shmptr, wlock);
-      break;
-    }
-    else if(argc>(i+1) && !strcmp(argv[i], "createhash")) {
-      gint cols[MAX_INDEX_FIELDS], col_count, j;
-      shmptr = (void *) wg_attach_database(shmname, shmsize);
-      if(!shmptr) {
-        fprintf(stderr, "Failed to attach to database.\n");
-        exit(1);
-      }
-      col_count = 0;
-      for(j = i+1; j<argc; j++) {
-        int col;
-        sscanf(argv[j], "%d", &col);
-        cols[col_count++] = col;
-      }
-      WLOCK(shmptr, wlock);
-      wg_create_multi_index(shmptr, cols, col_count,
-        WG_INDEX_TYPE_HASH_JSON, NULL, 0);
-      WULOCK(shmptr, wlock);
-      break;
-    }
-    else if(argc>(i+1) && !strcmp(argv[i], "dropindex")) {
-      int index_id;
-      shmptr = (void *) wg_attach_database(shmname, shmsize);
-      if(!shmptr) {
-        fprintf(stderr, "Failed to attach to database.\n");
-        exit(1);
-      }
-      sscanf(argv[i+1], "%d", &index_id);
-      WLOCK(shmptr, wlock);
-      if(wg_drop_index(shmptr, index_id))
-        fprintf(stderr, "Failed to drop index.\n");
-      else
-        printf("Index dropped.\n");
-      WULOCK(shmptr, wlock);
-      break;
-    }
-    else if(!strcmp(argv[i], "listindex")) {
-      shmptr = (void *) wg_attach_database(shmname, shmsize);
-      if(!shmptr) {
-        fprintf(stderr, "Failed to attach to database.\n");
-        exit(1);
-      }
-      RLOCK(shmptr, rlock);
-      print_indexes(shmptr, stdout);
-      RULOCK(shmptr, rlock);
-      break;
-    }
-
-    shmname = argv[1]; /* no match, assume shmname was given */
-  }
-
-  if(i==scan_to) {
-    /* loop completed normally ==> no commands found */
+  if (argc<2) {
     usage(argv[0]);
+    exit(0);
   }
-  if(shmptr && !islocaldb) {
-    RULOCK(shmptr, rlock);
-    WULOCK(shmptr, wlock);
-    wg_detach_database(shmptr);
+  cmdfiles=parse_cmdline(argc,argv,&cmdstr,&mbnr,&mbsize);     
+  //printf("\n parsed cmdstr %s mbnr %d mbsize %d\n",cmdstr,mbnr,mbsize);
+  cmdfileslen=0;
+  for(i=0;i<argc;i++) {    
+    //printf("\n cmdfiles i %d value %s",i,cmdfiles[i]);
+    if (cmdfiles[i]!=NULL) cmdfileslen++;
+    else break;
+  }  
+  
+  if (cmdstr==NULL) {
+    cmdstr="-prove";
+  } else if (!(strncmp(cmdstr,"-help",10)) || 
+      !(strncmp(cmdstr,"--help",10)) ) {
+    usage(argv[0]);
+    exit(0);
+  } else if (!(strncmp(cmdstr,"-version",10)) || 
+             !(strncmp(cmdstr,"--version",10)) ) {
+    wg_print_code_version();
+    exit(0); 
   }
-  exit(0);
+
+  //printf("\ncmdstr %s cmdfileslen %d\n",cmdstr,cmdfileslen);
+
+  if (mbsize==0) {
+    shmsize = 1000000000; // 1G
+    shmsize2 = shmsize;
+  } else {
+    shmsize=(gint)mbsize*(gint)1000000; // mbsize given on cmdline is in megabytes
+    shmsize2 = shmsize;
+  }
+
+  if (mbnr==0) {
+    shmname="1000";
+  } else {
+    snprintf(shmnamebuf,15,"%d",mbnr);   
+    shmname=shmnamebuf;
+  }
+
+  //printf("\nmbsize %d shmsize %ld shmsize2 %ld shmname %s\n",
+  //  mbsize,shmsize,shmsize2,shmname);
+
+  // -deletekb
+
+  if (!(strncmp(cmdstr,"-deletekb",15))) {
+    /* free shared memory */
+#ifdef _WIN32      
+    printf("Error: -readkb, -provekb, -deletekb are available on Linux and OSX only\n");
+    exit(0);
+#endif      
+    wg_delete_database(shmname);
+    exit(0);
+  }
+
+  // -readkb
+
+  if(!(strncmp(cmdstr,"-readkb",15))) {
+    wg_int err;
+#ifdef _WIN32      
+    printf("Error: -readkb, -provekb, -deletekb are available on Linux and OSX only\n");
+    exit(0);
+#endif        
+    if (cmdfileslen<2) {
+      printf("Error: -readkb needs a file as an argument\n");
+      exit(1);
+    }   
+    if (mbsize && mbsize<1000) {
+      printf("Error: -readkb needs at least 1000 megabytes: change -mbsize argument \n");
+      exit(1);
+    }        
+#ifdef SHOWTIME  
+    printf("\nto -readkb\n");      
+    gkc_show_cur_time();
+#endif
+    wg_delete_database(shmname);
+#ifdef SHOWTIME      
+    printf("\nprevious memory database deleted\n");
+    gkc_show_cur_time();
+#endif
+    shmptr=wg_attach_database(shmname, shmsize);
+    if(!shmptr) {
+      fprintf(stderr, "Failed to attach to database.\n");
+      exit(1);
+    }
+#ifdef SHOWTIME       
+    printf("\nto wg_import_otter_file %s\n",cmdfiles[1]);
+    gkc_show_cur_time();
+#endif      
+    err = wg_import_otter_file(shmptr,cmdfiles[1],1);
+#ifdef SHOWTIME       
+    printf("\nexited wg_import_otter_file\n");
+    gkc_show_cur_time();
+#endif      
+    if(!err)
+      printf("Data parsed into the shared memory db, starting to build indexes.");
+    else if(err<-1)
+      fprintf(stderr, "Fatal error when reading otter file, data may be partially"\
+        " imported\n");
+    else {
+      fprintf(stderr, "Reading failed.\n");
+      wg_delete_database(shmname);
+      exit(1);
+    }
+    //wg_show_database(shmptr);
+#ifdef SHOWTIME 
+    printf("\nstarting to init_shared_database\n");      
+    gkc_show_cur_time();
+#endif
+    tmp=init_shared_database(shmptr);
+    if (tmp<0) {
+      printf("\nDb creation failed.\n");
+      wg_delete_database(shmname);
+      exit(1);
+    }  
+    printf("\nDb ready in shared memory.\n");   
+#ifdef SHOWTIME         
+    gkc_show_cur_time();
+#endif
+    
+    //wr_show_stats(db_rglb(shmptr),1);
+    //wr_show_database_details(NULL,shmptr,"shared db");
+
+    exit(0);
+  }
+
+  // -provekb
+
+  if(!(strncmp(cmdstr,"-provekb",15))) {
+    wg_int err;
+#ifdef _WIN32      
+    printf("Error: -readkb, -provekb, -deletekb are available on Linux and OSX only\n");
+    exit(0);
+#endif
+    if (cmdfileslen<2) {
+      printf("Error: -provekb needs a file as an argument\n");
+      exit(1);
+    }      
+#ifdef SHOWTIME 
+    printf("\n-querykb starts with external shmname %s\n",shmname);
+    gkc_show_cur_time();
+#endif      
+    shmptr=wg_attach_existing_database(shmname);
+    if(!shmptr) {
+      fprintf(stderr, "Failed to attach to database.\n");
+      exit(1);
+    }
+    printf("Using the existing shared memory kb %s.\n",shmname);
+#ifdef SHOWTIME       
+    printf("\ndb attached, showing attached shared memory db shmptr %ld\n",
+      (unsigned long int)((gint)shmptr));
+    gkc_show_cur_time();
+    //wr_show_database_details(NULL,shmptr,"shmptr");
+#endif      
+    // --- create a new temporary local db ---
+    shmsize2=100000000;     
+#ifdef SHOWTIME      
+    printf("\nto wg_attach_local_database_with_kb with shmptr %ld\n",
+      (unsigned long int)((gint)shmptr));
+    gkc_show_cur_time();
+#endif      
+    shmptrlocal=wg_attach_local_database_with_kb(shmsize2,(void*)shmptr);
+#ifdef SHOWTIME
+    printf("\nshmptrlocal is %lx and gint %ld\n",
+      (unsigned long int)shmptrlocal,(gint)shmptrlocal);
+    gkc_show_cur_time();
+#endif      
+    if(!shmptrlocal) {
+      fprintf(stderr, "Failed to attach local database.\n");
+      exit(1);
+    }        
+    //islocaldb=1;
+    err=0;
+#ifdef SHOWTIME
+    printf("\nqrun1 to wg_import_otter_file from argv[i+1] %s\n",cmdfiles[1]);
+    gkc_show_cur_time();
+#endif      
+    err = wg_import_otter_file(shmptrlocal,cmdfiles[1],0);
+    if(!err)
+      printf("Data read from %s.\n",cmdfiles[1]);
+    else if(err<-1)
+      fprintf(stderr, "Fatal error when reading otter file, data may be partially"\
+        " imported\n");
+    else
+      fprintf(stderr, "Import failed.\n");           
+    
+    // ---- local db created ------
+#ifdef SHOWTIME
+    printf("\nto call wg_run_reasoner\n");
+    gkc_show_cur_time();
+#endif      
+    err = wg_run_reasoner(shmptrlocal,cmdfileslen,cmdfiles);
+    //if(!err);
+      //printf("wg_run_reasoner finished ok.\n");
+    //else
+      //fprintf(stderr, "wg_run_reasoner finished with an error %d.\n",err);
+    //break;
+#ifdef SHOWTIME      
+    printf("\nwg_run_reasoner returned\n");
+    gkc_show_cur_time();
+#endif
+    //printf("\nshowing shared memory db\n"); 
+    //wr_show_database_details(NULL,shmptr,"shmptr");
+    //printf("\n-querykb exits\n");
+    exit(0);  
+  }
+
+  // -prove
+  
+  if(!(strncmp(cmdstr,"-prove",15))) {
+    wg_int err;
+  /*    
+  #ifdef _WIN32
+    shmsize=1000000000; // 2000 meg
+  #else
+    shmsize=2000000000; 
+  #endif
+    //shmsize=20000000;
+  */    
+    if (cmdfileslen<2) {
+      printf("Error: -prove needs a file as an argument\n");
+      exit(1);
+    }  
+    shmptr=wg_attach_local_database(shmsize);
+    if(!shmptr) {
+      fprintf(stderr, "Failed to attach local database.\n");
+      exit(1);
+    }
+    //islocaldb=1;
+    err = wg_import_otter_file(shmptr,cmdfiles[1],0);
+    if(!err)
+       printf("Data read from %s.\n",cmdfiles[1]);
+    else if(err<-1)
+      fprintf(stderr, "Fatal error when importing otter file, data may be partially"\
+        " imported\n");
+    else
+      fprintf(stderr, "Import failed.\n");      
+    //wg_show_database(shmptr);
+    //printf("about to call wg_run_reasoner\n");
+    err = wg_run_reasoner(shmptr,cmdfileslen,cmdfiles);
+    //wg_show_database(shmptr);
+    //if(!err);
+      //printf("wg_run_reasoner finished ok.\n");
+    //else
+      //fprintf(stderr, "wg_run_reasoner finished with an error %d.\n",err);
+    //break;
+
+    exit(0);
+  }  
 }
+
+
 
 /** Parse row matching parameters from the command line
  *

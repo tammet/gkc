@@ -12,7 +12,7 @@
 # before running make: pre-built parser sources will be used in this case.
 
 CC = gcc
-CFLAGS = -O2 -Wall # -Wmissing-field-initializers
+CFLAGS = -O2 -Wall -static# -Wmissing-field-initializers
 LIBS = -lm
 
 TESTING = true

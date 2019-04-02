@@ -71,8 +71,8 @@ void show_cur_time(void);
 //#define DEBUG
 #undef DEBUG
 
-#define SHOWTIME
-//#undef SHOWTIME
+//#define SHOWTIME
+#undef SHOWTIME
 
 /* ====== Functions ============== */
 
@@ -90,8 +90,10 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
   char* guidebuf=NULL;
   cJSON *guide=NULL;
   int clause_count=0;
-  int have_shared_kb=0; // set to 1 if external shared db present
- 
+  //int have_shared_kb=0; // set to 1 if external shared db present
+  char* guidetext;
+  int exit_on_proof=1; // set to 0 to clean memory and not call exit at end
+
   /*
     int i;
     printf("\nargc %d\n",argc);
@@ -143,7 +145,7 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
 #ifdef DEBUG
     printf("\nseparate child_db and kb_db\n");
 #endif    
-    have_shared_kb=1;
+    //have_shared_kb=1;
     child_db=db;
     db=kb_db;    
 
@@ -160,7 +162,7 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
 #ifdef DEBUG
     printf("\njust one single db \n");
 #endif 
-    have_shared_kb=0;
+    //have_shared_kb=0;
     child_db=db;
     kb_db=db;
     kb_g=NULL;
@@ -185,22 +187,15 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
       return -1;
     }   
 #ifdef DEBUG
-    printf("\nnow db is %d and child_db is %d \n",(int)db,(int)child_db);
+    printf("\nnow db is %ld and child_db is %ld \n",(gint)db,(gint)child_db);
 #endif    
     (g->child_db)=child_db;
     (g->db)=db;
 
-
-    //printf("\nin wg_run_reasoner have_shared_kb: %d \n",have_shared_kb);
-    if (have_shared_kb) {
-       //printf("\nin wg_run_reasoner have_shared_kb is true\n")
-      //wr_show_stats(g->kb_g,0); 
-      //wg_show_strhash(((glb*)(g->kb_g))->db);          
-    }    
-
     (g->current_run_nr)=iter;
     if (iter==0) (g->allruns_start_clock)=clock();  
-    guideres=wr_parse_guide_section(g,guide,iter);
+    guidetext=NULL;
+    guideres=wr_parse_guide_section(g,guide,iter,&guidetext);
     if (guideres<0) {
       // error in guide requiring stop      
       if (guidebuf!=NULL) free(guidebuf);
@@ -208,7 +203,7 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
       sys_free(g);
       return -1;
     }
-    
+   
     if (!(g->print_flag)) (g->print_level_flag)=0;
     if ((g->print_level_flag)<0) (g->print_level_flag)=default_print_level;
     if ((g->print_level_flag)==0) wr_set_no_printout(g);
@@ -219,10 +214,15 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
     //else if ((g->print_level_flag)<=40) wr_set_detailed_printout(g);
     else wr_set_detailed_printout(g);
 
-    //wr_set_detailed_printout(g);
 
-    if (g->print_runs) {
-      printf("\n**** run %d starts\n",iter+1);          
+    if (g->print_runs) {      
+      if (guidetext!=NULL) {   
+        printf("\n**** run %d starts with strategy\n",iter+1); 
+        printf("%s\n",guidetext);
+        free(guidetext);
+      } else {
+        printf("\n**** run %d starts\n",iter+1);
+      }          
     }  
 
     (g->cl_keep_weightlimit)=(g->cl_maxkeep_weightlimit);
@@ -230,12 +230,8 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
     (g->cl_keep_depthlimit)=(g->cl_maxkeep_depthlimit);
     (g->cl_keep_lengthlimit)=(g->cl_maxkeep_lengthlimit);   
 
-    //clock_t t1=clock();
     tmp=wr_glb_init_shared_complex(g); // creates and fills in shared tables, substructures, etc: 0.03 secs
-    //clock_t t2=clock();
-    //printf("wr_glb_init_shared_complex seconds: %d %d %f\n",
-    //  t1,t2,(float)(t2 -t1) / (float)CLOCKS_PER_SEC);
-      
+
     if (tmp) {
       wr_errprint("cannot init shared complex datastructures");
       if (guidebuf!=NULL) free(guidebuf);
@@ -258,7 +254,37 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
     printf("\nto call wr_init_active_passive_lists_from_all\n");
     show_cur_time();
 #endif    
-    clause_count=wr_init_active_passive_lists_from_all(g);
+    
+    // if two db-s, this will take the clauses from the shared db     
+    clause_count=0;
+    if (db!=child_db) {
+      // two separate db-s
+      //printf("\n separate child kb found, using\n");
+      if (!(g->queryfocus_strat)) {
+        // for non-queryfocus_strat read the clauses from the 
+        // external shared mem db and do not use the
+        // indexes present there
+        //printf("\n(g->initial_cl_list) is %ld\n",(gint)((r_kb_g(g))->initial_cl_list));
+#ifdef DEBUG 
+        printf("\n**** starting to read from the external shared mem kb\n");
+#endif        
+        clause_count+=wr_init_active_passive_lists_from_one(g,db,db);        
+        (g->kb_g)=NULL;        
+      }
+      // if two db-s, this will take the clauses from the local db:
+#ifdef DEBUG 
+      printf("\n**** starting to read from the local db kb\n");
+#endif      
+      clause_count+=wr_init_active_passive_lists_from_one(g,db,child_db);      
+    } else {
+      // one single db      
+#ifdef DEBUG 
+        printf("\n external kb NOT found\n");
+        printf("\n**** starting to read from the single local db\n");
+#endif
+      clause_count=wr_init_active_passive_lists_from_one(g,db,db);      
+    } 
+
 #ifdef SHOWTIME     
     printf("\nreturned from wr_init_active_passive_lists_from_all\n");
     show_cur_time();
@@ -300,10 +326,17 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
     }   
     if (res==0) {
       // proof found 
+      if (exit_on_proof) {
+#ifdef SHOWTIME       
+        printf("\nexiting\n");
+        show_cur_time();  
+#endif              
+        exit(0);
+      }
 #ifdef SHOWTIME       
       printf("\nto call wr_glb_free\n");
       show_cur_time();  
-#endif      
+#endif            
       wr_glb_free(g);
 #ifdef SHOWTIME       
       printf("\nwr_glb_free returns\n");
@@ -325,25 +358,6 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
   return res;  
 } 
 
-/*
-glb* wg_init_reasoner(void *db, int argc, char **argv) {
-  glb* g;
-    
-  dprintf("init starts\n");
-  g=wr_glb_new_full(db);
-  if (g==NULL) {
-    printf("Error: cannot allocate enough memory during reasoner initialization\n");
-    return NULL;
-  }
-  dprintf("glb made\n");
-  dprintf("cycling over clauses to make active passive lists\n"); 
-  wr_init_active_passive_lists_std(g);
-  //wr_init_active_passive_lists_factactive(g);   
-  //wr_init_active_passive_lists_ruleactive(g);
-  dprintf("active passive lists made\n");  
-  return g;  
-}  
-*/
 
 int wg_import_otter_file(void *db, char* filename, int iskb) {  
   glb* g;
@@ -385,39 +399,9 @@ int wg_import_prolog_file(void *db, char* filename) {
   return res;  
 }
 
-int wr_init_active_passive_lists_from_all(glb* g) {
-  void* db=g->db;             // if two db-s, db is the shared db 
-  void* child_db=g->child_db; // if two db-s, child_db is the local db
-  //void* kb_db=g->kb_db;
-  //void* kb_db;
-  int count=0;
-
-  printf("\n wr_init_active_passive_lists_from_all called\n");
-  //kb_db=g->kb_db;
-  printf("\n db is %ld and child_db is %ld\n",(gint)db,(gint)child_db);
-
-  // if two db-s, this will take the clauses from the shared db
-  
-  //count=wr_init_active_passive_lists_from_one(g,db,db);
-  
-  if (db!=child_db) {
-    printf("\n separate child kb found, using\n");
-
-    // if two db-s, this will take the clauses from the local db:
-    count+=wr_init_active_passive_lists_from_one(g,db,child_db);
-    
-    //g->db=kb_db;
-  } else {
-    printf("\n external kb NOT found\n");
-
-    count=wr_init_active_passive_lists_from_one(g,db,db);
-  } 
-  printf("\n wr_init_active_passive_lists_from_all returns %d\n",count);
-  return count;
-}  
 
 int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
-  void *rec;
+  void *rec=NULL;
   //void* db=(g->db);
   //int i;
   gint clmeta;
@@ -426,45 +410,19 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
   int rules_found=0;
   int facts_found=0;
   gint weight;
+  gint cell=0;
+  gcell *cellptr=NULL;
 
+  //printf("\n ** wr_init_active_passive_lists_from_one called ** \n");
   (g->proof_found)=0;
-
-  //for(i=0;i<10;i++) printf(" %d ",(int)((rotp(g,g->clqueue))[i])); printf("\n");
-  rec = wg_get_first_raw_record(child_db);
-
   wr_clear_all_varbanks(g); 
   wr_process_given_cl_setupsubst(g,g->given_termbuf,1,1); 
-  
-  /*
-  while(rec) {     
-    printf("\nnext rec from db: \n");
-    printf("\nas from child_db: ");
-    wg_print_record(child_db,rec);
-    printf("\nas from db: ");
-    wg_print_record(db,rec);
-    printf("\n");
-    if (wg_rec_is_rule_clause(db,rec) || wg_rec_is_fact_clause(db,rec) ) {
-      CP1
-      clmeta=wr_calc_clause_meta(g,rec,given_cl_metablock);
-      CP2
-      wr_add_cl_to_unithash(g,rec,clmeta);
-      CP3
-    }
-      printf("\nhash_neg_groundunits\n");
-      wr_print_termhash(g,rotp(g,g->hash_neg_groundunits));
-      printf("\nhash_pos_groundunits\n");
-      wr_print_termhash(g,rotp(g,g->hash_pos_groundunits));
-    rec = wg_get_next_raw_record(child_db,rec);    
-  }
-  return 0;
-  */
-  
-  while(rec) {     
-    /*
-    printf("\n next rec from db: ");
-    wg_print_record(db,rec);
-    printf("\n");
-    */
+
+  cell=(dbmemsegh(child_db)->clauselist);
+  while(cell) {     
+    cellptr=(gcell *) offsettoptr(child_db, cell);
+    rec=offsettoptr(child_db,cellptr->car);
+
     if (g->alloc_err) {
       wr_errprint("\nbuffer overflow, terminating\n");
       wr_show_stats(g,1);      
@@ -476,11 +434,9 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
     printf("\n next rec from db: ");
     wg_print_record(db,rec);
     printf("\n");
-
-    printf("\RECORD_META_POS %d RECORD_META_RULE_CLAUSE %d\n",RECORD_META_POS,RECORD_META_RULE_CLAUSE);
-    printf("\n at *((gint*)(rec)+RECORD_META_POS) %d\n",(int)(*((gint*)(rec)+RECORD_META_POS)));
-
-    printf("\n & RECORD_META_RULE_CLAUSE with  *((gint*)(rec)+RECORD_META_POS) %d\n",(int)(*((gint*)(rec)+RECORD_META_POS) & RECORD_META_RULE_CLAUSE));
+    //printf("\nRECORD_META_POS %d RECORD_META_RULE_CLAUSE %d\n",RECORD_META_POS,RECORD_META_RULE_CLAUSE);
+    //printf("\n at *((gint*)(rec)+RECORD_META_POS) %d\n",(int)(*((gint*)(rec)+RECORD_META_POS)));
+    //printf("\n & RECORD_META_RULE_CLAUSE with  *((gint*)(rec)+RECORD_META_POS) %d\n",(int)(*((gint*)(rec)+RECORD_META_POS) & RECORD_META_RULE_CLAUSE));
 #endif
 
     if (wg_rec_is_rule_clause(db,rec)) {
@@ -488,6 +444,7 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
       clmeta=wr_calc_clause_meta(g,rec,given_cl_metablock);
       wr_add_cl_to_unithash(g,rec,clmeta);
 #ifdef DEBUG      
+      printf("\n+++++++ nrec is a rule  "); 
       wr_print_rule_clause_otter(g, (gint *) rec,(g->print_clause_detaillevel));
       printf("\n"); 
 
@@ -507,10 +464,6 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
         given_cl=wr_process_given_cl(g,(gptr)rec, g->given_termbuf);
         if ( ((gint)given_cl==ACONST_FALSE) || ((gint)given_cl==ACONST_TRUE) ||
              (given_cl==NULL) ) {
-          /*     
-          dp("\n rule clause was simplified while adding to sos, original:\n");
-          wr_print_clause(g,(gptr)rec);
-          */
           rec = wg_get_next_raw_record(child_db,rec); 
           continue;
         };
@@ -538,6 +491,7 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
       clmeta=wr_calc_clause_meta(g,rec,given_cl_metablock);
       wr_add_cl_to_unithash(g,rec,clmeta);
 #ifdef DEBUG      
+      printf("\n+++++++ nrec is a fact  ");
       wr_print_fact_clause_otter(g, (gint *) rec,(g->print_clause_detaillevel));
       printf("\n"); 
 
@@ -590,76 +544,13 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
 #endif  
     }             
     //for(i=0;i<10;i++) printf(" %d ",(int)((rotp(g,g->clqueue))[i])); printf("\n");
-    rec = wg_get_next_raw_record(child_db,rec);    
+    cell=cellptr->cdr;    
   }
 #ifdef DEBUG            
   printf("\nrules_found %d facts_found %d \n",rules_found,facts_found); 
 #endif   
   return rules_found+facts_found;
 }
-
-
-/*
-int wr_init_active_passive_lists_factactive(glb* g) {
-  void *rec;
-  void* db=(g->db);
-  //int i;
-  
-  (g->proof_found)=0;
-  //for(i=0;i<10;i++) printf(" %d ",(int)((rotp(g,g->clqueue))[i])); printf("\n");
-  rec = wg_get_first_raw_record(db);
-  while(rec) {
-    if (wg_rec_is_rule_clause(db,rec)) {
-#ifdef DEBUG       
-      wr_print_rule_clause_otter(g, (gint *) rec);
-      printf("\n"); 
-#endif      
-      //wr_push_clqueue_cl(g,rec);      
-      wr_push_cl_clpick_queues(g,(g->clpick_queues),rec,-1); // -1 means we do not know weight      
-    } else if (wg_rec_is_fact_clause(db,rec)) {
-#ifdef DEBUG       
-      wr_print_fact_clause_otter(g, (gint *) rec);
-      printf("\n"); 
-#endif      
-      wr_push_clactive_cl(g,rec);
-    }               
-    //for(i=0;i<10;i++) printf(" %d ",(int)((rotp(g,g->clqueue))[i])); printf("\n");
-    rec = wg_get_next_raw_record(db,rec);    
-  }
-  return 0;
-}
-*/
-
-/*
-int wr_init_active_passive_lists_ruleactive(glb* g) {
-  void *rec;
-  void* db=(g->db);
-  //int i;
-  
-  (g->proof_found)=0;
-  //for(i=0;i<10;i++) printf(" %d ",(int)((rotp(g,g->clqueue))[i])); printf("\n");
-  rec = wg_get_first_raw_record(db);
-  while(rec) {
-    if (wg_rec_is_rule_clause(db,rec)) {
-#ifdef DEBUG       
-      wr_print_rule_clause_otter(g, (gint *) rec);
-      printf("\n"); 
-#endif      
-      wr_push_clactive_cl(g,rec);      
-    } else if (wg_rec_is_fact_clause(db,rec)) {
-#ifdef DEBUG       
-      wr_print_fact_clause_otter(g, (gint *) rec);
-      printf("\n"); 
-#endif      
-      //wr_push_clqueue_cl(g,rec);
-      wr_push_cl_clpick_queues(g,(g->clpick_queues),rec,-1); // -1 means we do not know weight
-    }               
-    //for(i=0;i<10;i++) printf(" %d ",(int)((rotp(g,g->clqueue))[i])); printf("\n");
-    rec = wg_get_next_raw_record(db,rec);    
-  }
-  return 0;
-}
-*/
 
 
 /* ------------------------

@@ -422,7 +422,7 @@ void* wg_attach_local_database(gint size) {
 void* wg_attach_local_database_with_kb(gint size, void* kb) {
   void* shm;
 
-  printf("\nwg_attach_local_database_with_kb called\n");
+  //printf("\nwg_attach_local_database_with_kb called\n");
 #ifdef USE_DATABASE_HANDLE
   printf("\nwg_attach_local_database_with_kb USE_DATABASE_HANDLE\n");
   printf("")
@@ -430,11 +430,9 @@ void* wg_attach_local_database_with_kb(gint size, void* kb) {
   if(!dbhandle)
     return NULL;
 #endif
-
   if (size<=0) size=DEFAULT_MEMDBASE_SIZE;
-
   shm = (void *) malloc(size);
-  printf("\nwg_attach_local_database_with_kb malloced shm ptr %lx\n",(unsigned long int)shm);
+  //printf("\nwg_attach_local_database_with_kb malloced shm ptr %lx\n",(unsigned long int)shm);
   if (shm==NULL) {
     show_memory_error("malloc failed");
     return NULL;
@@ -444,9 +442,9 @@ void* wg_attach_local_database_with_kb(gint size, void* kb) {
     ((db_handle *) dbhandle)->db = shm;
     if(wg_init_db_memsegment_with_kb(dbhandle, 0, size, kb)) {
 #else
-    printf("\nwg_attach_local_database_with_kb to wg_init_db_memsegment_with_kb\n");
+    //printf("\nwg_attach_local_database_with_kb to wg_init_db_memsegment_with_kb\n");
     if(wg_init_db_memsegment_with_kb(shm, 0, size, kb)) {
-      printf("\nwg_attach_local_database_with_kb passed wg_init_db_memsegment_with_kb with 1\n");
+      //printf("\nwg_attach_local_database_with_kb passed wg_init_db_memsegment_with_kb with 1\n");
 #endif
       show_memory_error("Database initialization failed");
       free(shm);
@@ -566,16 +564,34 @@ void wg_print_code_version(void) {
   int i = 1;
   char *i_bytes = (char *) &i;
 
-  printf("\nlibwgdb version: %d.%d.%d\n", VERSION_MAJOR, VERSION_MINOR,
+  printf("\ngkc version: %d.%d.%d\n", VERSION_MAJOR, VERSION_MINOR,
     VERSION_REV);
   printf("byte order: %s endian\n", (i_bytes[0]==1 ? "little" : "big"));
   printf("compile-time features:\n"\
+    "  db checks: %s\n"\
+    "  logging: %s\n"\
+    "  database handle: %s\n"\
     "  64-bit encoded data: %s\n"\
     "  queued locks: %s\n"\
     "  chained nodes in T-tree: %s\n"\
     "  record backlinking: %s\n"\
     "  child databases: %s\n"\
     "  index templates: %s\n",
+#ifdef CHECK    
+  "yes",
+#else
+  "no",
+#endif    
+#ifdef USE_DBLOG
+  "yes",
+#else
+  "no",
+#endif    
+#ifdef USE_DATABASE_HANDLE
+  "yes",
+#else
+  "no",
+#endif   
     (MEMSEGMENT_FEATURES & FEATURE_BITS_64BIT ? "yes" : "no"),
     (MEMSEGMENT_FEATURES & FEATURE_BITS_QUEUED_LOCKS ? "yes" : "no"),
     (MEMSEGMENT_FEATURES & FEATURE_BITS_TTREE_CHAINED ? "yes" : "no"),
