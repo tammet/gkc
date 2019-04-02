@@ -5,10 +5,14 @@ GKC is a reasoning system for large knowledge bases.
 
 For compiled binaries for Linux and Windows, 
 as well as instructions for running gkc and logfiles of
-experimental runs, see the releases v0.1-beta and v0.1-alpha:
+experimental runs, see the releases v0.1-gamma
+(this is the latest relase) and older v0.1-beta
+and v.0.1-alpha:
 
+* https://github.com/tammet/gkc/releases/tag/v0.1-gamma
 * https://github.com/tammet/gkc/releases/tag/v0.1-beta
 * https://github.com/tammet/gkc/releases/tag/v0.1-alpha
+
 
 Compiling
 ---------
@@ -90,6 +94,10 @@ The TPTP problems and axioms are not included in the gkc distribution:
 for the TPTP syntax and problems, see http://www.tptp.org/
 * `strategy_file_name` is a json-syntax file for giving options and strategies to gkc. See and use the
 example files `unit.txt`, `neg.txt`, `runs.txt` in the `Examples` folder.
+
+For all options of running gkc, including the shared memory database usage, see
+
+    ./gkc -help
 
 
 Experimental results
