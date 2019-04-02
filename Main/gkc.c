@@ -177,7 +177,7 @@ void usage(char *prog) {
          "  -mbsize <megabytes to allocate>\n"\
          "   if omitted, 1000 megabytes assumed\n"\
          "  -mbnr <shared memory database nr>\n"\
-         "   if omitted, 8000 used\n");
+         "   if omitted, 1000 used\n");
 }
 
 /** Handle the user-supplied database size (or pick a reasonable

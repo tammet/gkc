@@ -1534,7 +1534,8 @@ static int show_parse_error(void* db, char* format, ...) {
   printf("*** Parser error: ");
   vprintf (format, args);
   va_end (args);
-  return -1;
+  exit(1);
+  return -1;  
 }
 
 static int show_parse_warning(void* db, char* format, ...) {
