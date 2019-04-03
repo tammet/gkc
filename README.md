@@ -94,6 +94,10 @@ for the TPTP syntax and problems, see http://www.tptp.org/
 * `strategy_file_name` is a json-syntax file for giving options and strategies to gkc. See and use the
 example files `unit.txt`, `neg.txt`, `runs.txt` in the `Examples` folder.
 
+GKC can parse and prepare a large axiom file into a shared memory database to perform quick
+independent queries upon this pre-built base. The memory database can be dumped to a disk for 
+quick loading later. 
+
 For all options of running gkc, including the shared memory database usage, see
 
     ./gkc -help
