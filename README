@@ -115,7 +115,7 @@ The following is a list of available commands as output by `./gkc -help`:
     load a shared memory database from a file:
     gkc -loadkb <dump file>
     parse and load a file into shared memory database and write this to a file:
-    gkc -readwritekb <filename> <dump file>
+    gkc -readwritekb <axioms file> <dump file>
     delete the present shared memory database (not necessary for reading a new one):
     gkc -deletekb
     show gkc version:
