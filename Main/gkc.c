@@ -136,12 +136,12 @@ echo 500000000  > /proc/sys/kernel/shmmax
 */
 
 void usage(char *prog) {
-  printf("usage:\n"\
+  printf("gkc is a reasoner for large knowledge bases.\n\n"\
+         "usage:\n"\
          "basic proof search with a default strategy:\n"\
          "  gkc <problem file>\n"\
          "proof search with a strategy selection file:\n"\
-         "  gkc -prove <problem file> <strategy file>\n"\
-         "-readkb, -provekb, -deletekb are available on Linux and OSX only: \n"\
+         "  gkc -prove <problem file> <strategy file>\n"\         
          "parse and load a file into shared memory database:\n"\
          "  gkc -readkb <axioms file>\n"\
          "proof search using the shared memory database as prepared additional axioms:\n"\
