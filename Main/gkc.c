@@ -27,8 +27,6 @@
 
 /* ====== Includes =============== */
 
-
-
 #include <limits.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -59,7 +57,7 @@ extern "C" {
 #include "../Db/dbdata.h"
 #include "../Db/dbdump.h"
 #include "../Db/dblog.h"
-#include "../Db/dbquery.h"
+//#include "../Db/dbquery.h"
 #include "../Db/dbutil.h"
 #include "../Db/dblock.h"
 #include "../Db/dbjson.h"
@@ -68,16 +66,18 @@ extern "C" {
 #include "../Builtparser/dbparse.h"
 #include "../Reasoner/rmain.h"
 #include "../Reasoner/init.h"
-//#include "../Db/dbapi.h"
+#include "../Db/dbapi.h"
 #endif
 
 
 
 /* ====== Private defs =========== */
 
+/*
 #ifdef _WIN32
-#define sscanf sscanf_s  /* XXX: This will break for string parameters */
+#define sscanf sscanf_s  // XXX: This will break for string parameters 
 #endif
+*/
 
 #define FLAGS_FORCE 0x1
 #define FLAGS_LOGGING 0x2
@@ -107,39 +107,22 @@ extern "C" {
         i = 0; \
     }
 
-/* === this should come from dbapi.h ========== */
-
-//void* wg_attach_local_database_with_kb(wg_int size, void* kb);
-
 /* ======= Private protos ================ */
 
 gint parse_shmsize(char *arg);
 gint parse_flag(char *arg);
 int parse_memmode(char *arg);
 char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsize);
-wg_query_arg *make_arglist(void *db, char **argv, int argc, int *sz);
-void free_arglist(void *db, wg_query_arg *arglist, int sz);
-void query(void *db, char **argv, int argc);
-void del(void *db, char **argv, int argc);
-void selectdata(void *db, int howmany, int startingat);
-int add_row(void *db, char **argv, int argc);
-wg_json_query_arg *make_json_arglist(void *db, char *json, int *sz,
- void **doc);
-void findjson(void *db, char *json);
-void print_indexes(void *db, FILE *f);
-
 void wg_set_kb_db(void* db, void* kb);
 void segment_stats(void *db);
 void wg_show_strhash(void* db);
-
 void wg_show_database(void* db);
 void gkc_show_cur_time(void);
 
-#define SHOW_CONTENTS 1
+//#define SHOW_CONTENTS 1
 //#undef SHOW_CONTENTS
 
 /* ====== Functions ============== */
-
 
 /*
 how to set 500 meg of shared memory:
@@ -377,10 +360,6 @@ int main(int argc, char **argv) {
   int tmp;
   //int islocaldb=0; // lreasoner sets to 1 to avoid detaching db at the end
 
-//#ifdef _WIN32  
-//  shmname="8000";
-//#endif  
-
   if (argc<2) {
     usage(argv[0]);
     exit(0);
@@ -431,7 +410,7 @@ int main(int argc, char **argv) {
   if (!(strncmp(cmdstr,"-deletekb",15))) {
     /* free shared memory */
 #ifdef _WIN32      
-    printf("Error: -readkb, -provekb, -deletekb are available on Linux and OSX only\n");
+    printf("Error: -deletekb are available on Linux and OSX only\n");
     exit(0);
 #endif      
     wg_delete_database(shmname);
@@ -442,10 +421,7 @@ int main(int argc, char **argv) {
 
   if(!(strncmp(cmdstr,"-readkb",15))) {
     wg_int err;
-#ifdef _WIN32      
-    printf("Error: -readkb, -provekb, -deletekb are available on Linux and OSX only\n");
-    exit(0);
-#endif        
+
     if (cmdfileslen<2) {
       printf("Error: -readkb needs a file as an argument\n");
       exit(1);
@@ -501,11 +477,15 @@ int main(int argc, char **argv) {
     printf("\nDb ready in shared memory.\n");   
 #ifdef SHOWTIME         
     gkc_show_cur_time();
-#endif
-    
+#endif    
     //wr_show_stats(db_rglb(shmptr),1);
     //wr_show_database_details(NULL,shmptr,"shared db");
-
+#ifdef _WIN32    
+    //char c1,c2;
+    printf ("Shared memory kb is available while this program is running.\n");
+    printf ("Press any key to free shared memory kb and exit . . .\n");
+    _getch();
+#endif    
     exit(0);
   }
 
@@ -513,10 +493,7 @@ int main(int argc, char **argv) {
 
   if(!(strncmp(cmdstr,"-provekb",15))) {
     wg_int err;
-#ifdef _WIN32      
-    printf("Error: -readkb, -provekb, -deletekb are available on Linux and OSX only\n");
-    exit(0);
-#endif
+
     if (cmdfileslen<2) {
       printf("Error: -provekb needs a file as an argument\n");
       exit(1);
@@ -535,7 +512,7 @@ int main(int argc, char **argv) {
     printf("\ndb attached, showing attached shared memory db shmptr %ld\n",
       (unsigned long int)((gint)shmptr));
     gkc_show_cur_time();
-    //wr_show_database_details(NULL,shmptr,"shmptr");
+    wr_show_database_details(NULL,shmptr,"shmptr");
 #endif      
     // --- create a new temporary local db ---
     shmsize2=100000000;     
@@ -594,14 +571,7 @@ int main(int argc, char **argv) {
   
   if(!(strncmp(cmdstr,"-prove",15))) {
     wg_int err;
-  /*    
-  #ifdef _WIN32
-    shmsize=1000000000; // 2000 meg
-  #else
-    shmsize=2000000000; 
-  #endif
-    //shmsize=20000000;
-  */    
+
     if (cmdfileslen<2) {
       printf("Error: -prove needs a file as an argument\n");
       exit(1);
@@ -634,287 +604,6 @@ int main(int argc, char **argv) {
   }  
 }
 
-
-
-/** Parse row matching parameters from the command line
- *
- *  argv should point to the part in argument list where the
- *  parameters start.
- *
- *  If the parsing is successful, *sz holds the size of the argument list.
- *  Otherwise that value should be ignored; the return value of the
- *  function should be used to check for success.
- */
-wg_query_arg *make_arglist(void *db, char **argv, int argc, int *sz) {
-  int c, i, j, qargc;
-  char cond[80];
-  wg_query_arg *arglist;
-  gint encoded;
-
-  qargc = argc / 3;
-  *sz = qargc;
-  arglist = (wg_query_arg *) malloc(qargc * sizeof(wg_query_arg));
-  if(!arglist)
-    return NULL;
-
-  for(i=0,j=0; i<qargc; i++) {
-    arglist[i].value = WG_ILLEGAL;
-  }
-
-  for(i=0,j=0; i<qargc; i++) {
-    int cnt = 0;
-    cnt += sscanf(argv[j++], "%d", &c);
-    cnt += sscanf(argv[j++], "%79s", cond);
-    encoded = wg_parse_and_encode_param(db, argv[j++]);
-
-    if(cnt!=2 || encoded==WG_ILLEGAL) {
-      fprintf(stderr, "failed to parse query parameters\n");
-      free_arglist(db, arglist, qargc);
-      return NULL;
-    }
-
-    arglist[i].column = c;
-    arglist[i].value = encoded;
-    if(!strncmp(cond, "=", 1))
-        arglist[i].cond = WG_COND_EQUAL;
-    else if(!strncmp(cond, "!=", 2))
-        arglist[i].cond = WG_COND_NOT_EQUAL;
-    else if(!strncmp(cond, "<=", 2))
-        arglist[i].cond = WG_COND_LTEQUAL;
-    else if(!strncmp(cond, ">=", 2))
-        arglist[i].cond = WG_COND_GTEQUAL;
-    else if(!strncmp(cond, "<", 1))
-        arglist[i].cond = WG_COND_LESSTHAN;
-    else if(!strncmp(cond, ">", 1))
-        arglist[i].cond = WG_COND_GREATER;
-    else {
-      fprintf(stderr, "invalid condition %s\n", cond);
-      free_arglist(db, arglist, qargc);
-      return NULL;
-    }
-  }
-
-  return arglist;
-}
-
-/** Free the argument list created by make_arglist()
- *
- */
-void free_arglist(void *db, wg_query_arg *arglist, int sz) {
-  if(arglist) {
-    int i;
-    for(i=0; i<sz; i++) {
-      if(arglist[i].value != WG_ILLEGAL) {
-        wg_free_query_param(db, arglist[i].value);
-      }
-    }
-    free(arglist);
-  }
-}
-
-/** Basic query functionality
- */
-void query(void *db, char **argv, int argc) {
-  int qargc;
-  void *rec = NULL;
-  wg_query *q;
-  wg_query_arg *arglist;
-  gint lock_id;
-
-  arglist = make_arglist(db, argv, argc, &qargc);
-  if(!arglist)
-    return;
-
-  if(!(lock_id = wg_start_read(db))) {
-    fprintf(stderr, "failed to get lock on database\n");
-    goto abrt1;
-  }
-
-  q = wg_make_query(db, NULL, 0, arglist, qargc);
-  if(!q)
-    goto abrt2;
-
-/*  printf("query col: %d type: %d\n", q->column, q->qtype); */
-  rec = wg_fetch(db, q);
-  while(rec) {
-    wg_print_record(db, (gint *) rec);
-    printf("\n");
-    rec = wg_fetch(db, q);
-  }
-
-  wg_free_query(db, q);
-abrt2:
-  wg_end_read(db, lock_id);
-abrt1:
-  free_arglist(db, arglist, qargc);
-}
-
-/** Delete rows
- *  Like query(), except the selected rows are deleted.
- */
-void del(void *db, char **argv, int argc) {
-  int qargc;
-  void *rec = NULL;
-  wg_query *q;
-  wg_query_arg *arglist;
-  gint lock_id;
-
-  arglist = make_arglist(db, argv, argc, &qargc);
-  if(!arglist)
-    return;
-
-  /* Use maximum isolation */
-  if(!(lock_id = wg_start_write(db))) {
-    fprintf(stderr, "failed to get lock on database\n");
-    goto abrt1;
-  }
-
-  q = wg_make_query(db, NULL, 0, arglist, qargc);
-  if(!q)
-    goto abrt2;
-
-  if(q->res_count > 0) {
-    printf("Deleting %d rows...", (int) q->res_count);
-    rec = wg_fetch(db, q);
-    while(rec) {
-      wg_delete_record(db, (gint *) rec);
-      rec = wg_fetch(db, q);
-    }
-    printf(" done\n");
-  }
-
-  wg_free_query(db, q);
-abrt2:
-  wg_end_write(db, lock_id);
-abrt1:
-  free_arglist(db, arglist, qargc);
-}
-
-/** Print rows from database
- *
- */
-void selectdata(void *db, int howmany, int startingat) {
-
-  void *rec = wg_get_first_record(db);
-  int i, count;
-
-  for(i=0;i<startingat;i++){
-    if(rec == NULL) return;
-    rec=wg_get_next_record(db,rec);
-  }
-
-  count=0;
-  while(rec != NULL) {
-    wg_print_record(db, (gint *) rec);
-    printf("\n");
-    count++;
-    if(count == howmany) break;
-    rec=wg_get_next_record(db,rec);
-  }
-
-  return;
-}
-
-/** Add one row of data in database.
- *
- */
-int add_row(void *db, char **argv, int argc) {
-  int i;
-  void *rec;
-  gint encoded;
-
-  rec = wg_create_record(db, argc);
-  if (rec==NULL) {
-    fprintf(stderr, "Record creation error\n");
-    return -1;
-  }
-  for(i=0; i<argc; i++) {
-    encoded = wg_parse_and_encode(db, argv[i]);
-    if(encoded == WG_ILLEGAL) {
-      fprintf(stderr, "Parsing or encoding error\n");
-      return -1;
-    }
-    wg_set_field(db, rec, i, encoded);
-  }
-
-  return 0;
-}
-
-/** Parse a JSON argument from command line.
- *  *sz contains the arglist size
- *  *doc contains the parsed JSON document, to be deleted later
- */
-wg_json_query_arg *make_json_arglist(void *db, char *json, int *sz,
- void **doc) {
-  wg_json_query_arg *arglist;
-  void *document;
-  gint i, reclen;
-
-  if(wg_check_json(db, json) || wg_parse_json_param(db, json, &document))
-    return NULL;
-
-  if(!is_schema_object(document)) {
-    fprintf(stderr, "Invalid input JSON (must be an object)\n");
-    wg_delete_document(db, document);
-    return NULL;
-  }
-
-  reclen = wg_get_record_len(db, document);
-  arglist = malloc(sizeof(wg_json_query_arg) * reclen);
-  if(!arglist) {
-    fprintf(stderr, "Failed to allocate memory\n");
-    wg_delete_document(db, document);
-    return NULL;
-  }
-
-  for(i=0; i<reclen; i++) {
-    void *rec = wg_decode_record(db, wg_get_field(db, document, i));
-    gint key = wg_get_field(db, rec, WG_SCHEMA_KEY_OFFSET);
-    gint value = wg_get_field(db, rec, WG_SCHEMA_VALUE_OFFSET);
-    if(key == WG_ILLEGAL || value == WG_ILLEGAL) {
-      free(arglist);
-      wg_delete_document(db, document);
-      return NULL;
-    }
-    arglist[i].key = key;
-    arglist[i].value = value;
-  }
-
-  *sz = reclen;
-  *doc = document;
-  return arglist;
-}
-
-/** JSON query
- */
-void findjson(void *db, char *json) {
-  int qargc;
-  void *rec = NULL, *document = NULL;
-  wg_query *q;
-  wg_json_query_arg *arglist;
-
-  arglist = make_json_arglist(db, json, &qargc, &document);
-  if(!arglist)
-    return;
-
-  q = wg_make_json_query(db, arglist, qargc);
-  if(!q)
-    goto abort;
-
-  rec = wg_fetch(db, q);
-  while(rec) {
-    wg_print_json_document(db, NULL, NULL, rec);
-    printf("\n");
-    rec = wg_fetch(db, q);
-  }
-
-  wg_free_query(db, q);
-abort:
-  free(arglist);
-  if(document) {
-    wg_delete_document(db, document);
-  }
-}
 
 /** Print information about the memory database.
  */
@@ -968,73 +657,6 @@ void segment_stats(void *db) {
   }
 }
 
-void print_indexes(void *db, FILE *f) {
-  int column;
-  db_memsegment_header* dbh = dbmemsegh(db);
-  gint *ilist;
-
-  if(!dbh->index_control_area_header.number_of_indexes) {
-    fprintf(f, "No indexes in the database.\n");
-    return;
-  }
-  else {
-    fprintf(f, "col\ttype\tmulti\tid\tmask\n");
-  }
-
-  for(column=0; column<=MAX_INDEXED_FIELDNR; column++) {
-    ilist = &dbh->index_control_area_header.index_table[column];
-    while(*ilist) {
-      gcell *ilistelem = (gcell *) offsettoptr(db, *ilist);
-      if(ilistelem->car) {
-        char typestr[3];
-        wg_index_header *hdr = \
-          (wg_index_header *) offsettoptr(db, ilistelem->car);
-        typestr[2] = '\0';
-        switch(hdr->type) {
-          case WG_INDEX_TYPE_TTREE:
-            typestr[0] = 'T';
-            typestr[1] = '\0';
-            break;
-          case WG_INDEX_TYPE_TTREE_JSON:
-            typestr[0] = 'T';
-            typestr[1] = 'J';
-            break;
-          case WG_INDEX_TYPE_HASH:
-            typestr[0] = '#';
-            typestr[1] = '\0';
-            break;
-          case WG_INDEX_TYPE_HASH_JSON:
-            typestr[0] = '#';
-            typestr[1] = 'J';
-            break;
-          default:
-            break;
-        }
-        fprintf(f, "%d\t%s\t%d\t%d\t%s\n",
-          column,
-          typestr,
-          (int) hdr->fields,
-          (int) ilistelem->car,
-#ifndef USE_INDEX_TEMPLATE
-          "-");
-#else
-          (hdr->template_offset ? "Y" : "N"));
-#endif
-      }
-      ilist = &ilistelem->cdr;
-    }
-  }
-}
-
-/*
-
-
-
-void wg_set_kb_db(void* db, void* kb) {
-  db_memsegment_header* dbh = dbmemsegh(db);
-  dbh->kb_db=kb;
-}
-*/
 // ============ showing database contents for development ============
 
 void wg_show_database(void* db) {

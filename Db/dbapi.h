@@ -186,9 +186,13 @@ wg_int wg_get_encoded_type(void* db, wg_int data);
 wg_int wg_free_encoded(void* db, wg_int data);
 
 /* -------- encoding and decoding data: records contain encoded data only ---------- */
-
+#ifdef USE_REASONER
+wg_int wg_encode_null(void* db, char* data);
+char* wg_decode_null(void* db, wg_int data);
+#else
 wg_int wg_encode_null(void* db, wg_int data);
 wg_int wg_decode_null(void* db, wg_int data);
+#endif
 
 // int
 
