@@ -25,22 +25,21 @@ To compile the Linux or OS X binary yourself, use the
     compile.sh
   
 script in the top folder creating a static binary gkc 
-in the top folder. This script copies one header file,
-calls gcc once and does nothing else. The result 
-is the binary `gkc` in the top folder.
+in the top folder. This script calls gcc once,
+the result is the binary `gkc` in the top folder.
 
 We have tested compilation with gcc 5.4 and clang 3.8
 under Ubuntu 16_04 and with clang under OS X Mojave: 
 if the OS X compilation fails, remove the -static flag
 from compile.sh and then try again. 
 
-To compile the Windows binary yourself, use the
+To compile the Windows 32-bit binary yourself, use the
 
     compile.bat
 
 script in the top folder creating an executable `gkc.exe`
 in the fop folder. We have tested compilation under 
-the 64-bit Windows  10 with the 2017 Visual Studio C
+the 64-bit Windows 10 with the 2017 Visual Studio C
 community edition command-line tool cl.
 
 To compile with a simple makefile under Linux, do
@@ -81,9 +80,9 @@ In order to select options and strategies, run gkc as
 
     ./gkc -prove problem_file_name strategy_file_name
 
-example:
+Example:
 
-    ./gkc -prove /opt/TPTP/Problems/NUM/NUM925+5.p runs.txt
+    ./gkc -prove /opt/TPTP/Problems/NUM/NUM925+5.p Examples/runs.txt
 
 where
 * `-prove` is a command to gkc
