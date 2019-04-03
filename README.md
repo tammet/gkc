@@ -148,4 +148,4 @@ for the seven largest problems from the previous set.
 * The runs.txt strategy file was used for proof search as logged 
 in `gkc_v01_on_cascj9fof.tar.gz`
 * The query.txt strategy file was used for proof search logged 
-in `gkc_v01_on_large_opencyc.tar.gz`
+in `gkc_v01_on_large_opencyc.tar.gz`.
