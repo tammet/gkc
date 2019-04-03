@@ -95,8 +95,9 @@ for the TPTP syntax and problems, see http://www.tptp.org/
 example files `unit.txt`, `neg.txt`, `runs.txt` in the `Examples` folder.
 
 GKC can parse and prepare a large axiom file into a shared memory database to perform quick
-independent queries upon this pre-built base. The memory database can be dumped to a disk for 
-quick loading later. 
+independent queries upon this pre-built base. Several shared memory databases may be present
+at the same time: use different memory database numbers for indicating which to load or use.
+The memory database can be dumped to a disk for quick loading later. 
 
 The following is a list of available commands as output by `./gkc -help`:
     
