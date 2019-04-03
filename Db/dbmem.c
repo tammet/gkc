@@ -572,8 +572,8 @@ void wg_print_code_version(void) {
 #ifdef _WIN64
   printf("Windows 64 bit version\n");
 #endif
-  printf("integer size: %d bytes\n", sizeof(int));
-  printf("pointer size: %d bytes\n", sizeof(int*));
+  printf("integer size: %d bytes\n", (int)(sizeof(int)));
+  printf("pointer size: %d bytes\n", (int)(sizeof(int*)));
   printf("byte order: %s endian\n", (i_bytes[0]==1 ? "little" : "big"));
   printf("compile-time features:\n"\
     "  db checks: %s\n"\

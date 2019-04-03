@@ -146,6 +146,10 @@ void usage(char *prog) {
          "  gkc -readkb <axioms file>\n"\
          "proof search using the shared memory database as prepared additional axioms:\n"\
          "  gkc -provekb <problem file> <strategy file>\n"\
+         "write the present shared memory database to a file:\n"\
+         "  gkc -writekb <filename>\n"\
+         "load a shared memory database from a file:\n"\
+         "  gkc -loadkb <filename>\n"\
          "delete the present shared memory database (not necessary for reading a new one):\n"\
          "  gkc -deletekb\n"\
          "show gkc version:\n"\
@@ -314,6 +318,8 @@ char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsiz
                 !(strncmp(arg,"-readkb",10)) ||
                 !(strncmp(arg,"-provekb",10)) || 
                 !(strncmp(arg,"-deletekb",10)) ||
+                !(strncmp(arg,"-writekb",10)) ||
+                !(strncmp(arg,"-loadkb",10)) ||
                 !(strncmp(arg,"-help",10)) || 
                 !(strncmp(arg,"--help",10)) || 
                 !(strncmp(arg,"-version",10)) || 
@@ -405,17 +411,41 @@ int main(int argc, char **argv) {
   //printf("\nmbsize %d shmsize %ld shmsize2 %ld shmname %s\n",
   //  mbsize,shmsize,shmsize2,shmname);
 
-  // -deletekb
+   // -prove
+  
+  if(!(strncmp(cmdstr,"-prove",15))) {
+    wg_int err;
 
-  if (!(strncmp(cmdstr,"-deletekb",15))) {
-    /* free shared memory */
-#ifdef _WIN32      
-    printf("Error: -deletekb are available on Linux and OSX only\n");
+    if (cmdfileslen<2) {
+      printf("Error: -prove needs a file as an argument\n");
+      exit(1);
+    }  
+    shmptr=wg_attach_local_database(shmsize);
+    if(!shmptr) {
+      fprintf(stderr, "Failed to attach local database.\n");
+      exit(1);
+    }
+    //islocaldb=1;
+    err = wg_import_otter_file(shmptr,cmdfiles[1],0);
+    if(!err)
+       printf("Data read from %s.\n",cmdfiles[1]);
+    else if(err<-1)
+      fprintf(stderr, "Fatal error when importing otter file, data may be partially"\
+        " imported\n");
+    else
+      fprintf(stderr, "Import failed.\n");      
+    //wg_show_database(shmptr);
+    //printf("about to call wg_run_reasoner\n");
+    err = wg_run_reasoner(shmptr,cmdfileslen,cmdfiles);
+    //wg_show_database(shmptr);
+    //if(!err);
+      //printf("wg_run_reasoner finished ok.\n");
+    //else
+      //fprintf(stderr, "wg_run_reasoner finished with an error %d.\n",err);
+    //break;
+
     exit(0);
-#endif      
-    wg_delete_database(shmname);
-    exit(0);
-  }
+  }  
 
   // -readkb
 
@@ -567,41 +597,90 @@ int main(int argc, char **argv) {
     exit(0);  
   }
 
-  // -prove
-  
-  if(!(strncmp(cmdstr,"-prove",15))) {
-    wg_int err;
+  // -writekb
+
+  if (!(strncmp(cmdstr,"-writekb",15))) {
+     wg_int err;
+     int flags = 0;
 
     if (cmdfileslen<2) {
-      printf("Error: -prove needs a file as an argument\n");
+      printf("Error: -writekb needs a file as an argument.\n");
       exit(1);
     }  
-    shmptr=wg_attach_local_database(shmsize);
+    shmptr=wg_attach_existing_database(shmname);
     if(!shmptr) {
-      fprintf(stderr, "Failed to attach local database.\n");
+      printf("Error: failed to attach local database.\n");
       exit(1);
     }
-    //islocaldb=1;
-    err = wg_import_otter_file(shmptr,cmdfiles[1],0);
-    if(!err)
-       printf("Data read from %s.\n",cmdfiles[1]);
-    else if(err<-1)
-      fprintf(stderr, "Fatal error when importing otter file, data may be partially"\
-        " imported\n");
-    else
-      fprintf(stderr, "Import failed.\n");      
-    //wg_show_database(shmptr);
-    //printf("about to call wg_run_reasoner\n");
-    err = wg_run_reasoner(shmptr,cmdfileslen,cmdfiles);
-    //wg_show_database(shmptr);
-    //if(!err);
-      //printf("wg_run_reasoner finished ok.\n");
-    //else
-      //fprintf(stderr, "wg_run_reasoner finished with an error %d.\n",err);
-    //break;
 
+    /* Locking is handled internally by the dbdump.c functions */
+    if(flags & FLAGS_FORCE)
+      err = wg_dump_internal(shmptr,cmdfiles[1], 0);
+    else
+      err = wg_dump(shmptr,cmdfiles[1]);
+
+    if(err<-1) {
+      printf("Error: cannot write to file, kb may have"\
+        " become corrupt\n");
+      exit(1);  
+    } else if(err) {
+      printf("Error: writing failed.\n");
+      exit(1);
+    }
     exit(0);
-  }  
+  }
+
+  // -loadkb
+
+  if (!(strncmp(cmdstr,"-loadkb",15))) {
+    wg_int err, minsize, maxsize;
+    int flags = 0;  
+
+    if (cmdfileslen<2) {
+      printf("Error: -loadkb needs a file as an argument.\n");
+      exit(1);
+    }  
+    err = wg_check_dump(NULL, cmdfiles[1], &minsize, &maxsize);
+    if(err) {
+      printf("Error: loading failed, problem with %s.\n",cmdfiles[1]);
+      exit(1);
+    }
+
+    shmptr=wg_attach_memsegment(shmname, minsize, maxsize, 1,
+      (flags & FLAGS_LOGGING), 0);
+    if(!shmptr) {
+      printf("Error: failed to attach local database.\n");
+      exit(1);
+    }
+
+    // Locking is handled internally by the dbdump.c functions
+    err = wg_import_dump(shmptr,cmdfiles[1]);
+    if(!err)
+      printf("Database imported.\n");
+    else if(err<-1) {
+      printf("Error: failed to load, db may have"\
+        " become corrupt.\n");
+      exit(1);  
+    } else {
+      printf("Error: loading failed.\n");
+      exit(1);
+    }
+    //wr_show_database_details(NULL,shmptr,"shmptr");
+    exit(0);
+  }
+
+   // -deletekb
+
+  if (!(strncmp(cmdstr,"-deletekb",15))) {
+    /* free shared memory */
+#ifdef _WIN32      
+    printf("Error: -deletekb is available on Linux and OSX only\n");
+    exit(0);
+#endif      
+    wg_delete_database(shmname);
+    exit(0);
+  }
+
 }
 
 
