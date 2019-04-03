@@ -141,15 +141,17 @@ void usage(char *prog) {
          "basic proof search with a default strategy:\n"\
          "  gkc <problem file>\n"\
          "proof search with a strategy selection file:\n"\
-         "  gkc -prove <problem file> <strategy file>\n"\         
+         "  gkc -prove <problem file> <strategy file>\n"\
          "parse and load a file into shared memory database:\n"\
          "  gkc -readkb <axioms file>\n"\
          "proof search using the shared memory database as prepared additional axioms:\n"\
          "  gkc -provekb <problem file> <strategy file>\n"\
-         "write the present shared memory database to a file:\n"\
-         "  gkc -writekb <filename>\n"\
+         "write the present shared memory database to a file for fast loading:\n"\
+         "  gkc -writekb <dump file>\n"\
          "load a shared memory database from a file:\n"\
-         "  gkc -loadkb <filename>\n"\
+         "  gkc -loadkb <dump file>\n"\
+         "parse and load a file into shared memory database and write this to a file:\n"\
+         "  gkc -readwritekb <filename> <dump file>\n"\
          "delete the present shared memory database (not necessary for reading a new one):\n"\
          "  gkc -deletekb\n"\
          "show gkc version:\n"\
@@ -157,8 +159,9 @@ void usage(char *prog) {
          "\n"\
          "where:\n"\
          "  <problem file> should be in TPTP FOF or CNF syntax or Otter CNF syntax\n"\
-         "  <strategy file> is in json: see neg.txt, runs.txt in Examples\n"\
+         "  <strategy file> is an optional json file: see neg.txt, runs.txt in Examples\n"\
          "  <axioms file> is like a <problem file> \n"\
+         "  <dump file> stores the parsed and prepared database for fast loading \n"\
          "\n"\
          "additional optional parameters:\n"\
          "  -mbsize <megabytes to allocate>\n"\
@@ -320,6 +323,7 @@ char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsiz
                 !(strncmp(arg,"-deletekb",10)) ||
                 !(strncmp(arg,"-writekb",10)) ||
                 !(strncmp(arg,"-loadkb",10)) ||
+                !(strncmp(arg,"-readwritekb",15)) ||  
                 !(strncmp(arg,"-help",10)) || 
                 !(strncmp(arg,"--help",10)) || 
                 !(strncmp(arg,"-version",10)) || 
@@ -456,10 +460,17 @@ int main(int argc, char **argv) {
       printf("Error: -readkb needs a file as an argument\n");
       exit(1);
     }   
+#ifdef _WIN32      
+    if (mbsize && mbsize<100) {
+      printf("Error:-readkb needs at least 100 megabytes: change -mbsize argument \n");
+      exit(1);
+    }        
+#else
     if (mbsize && mbsize<1000) {
       printf("Error: -readkb needs at least 1000 megabytes: change -mbsize argument \n");
       exit(1);
-    }        
+    }
+#endif         
 #ifdef SHOWTIME  
     printf("\nto -readkb\n");      
     gkc_show_cur_time();
@@ -665,7 +676,104 @@ int main(int argc, char **argv) {
       printf("Error: loading failed.\n");
       exit(1);
     }
+#ifdef _WIN32    
+    printf ("Shared memory kb is available while this program is running.\n");
+    printf ("Press any key to free shared memory kb and exit . . .\n");
+    _getch();
+#endif  
     //wr_show_database_details(NULL,shmptr,"shmptr");
+    exit(0);
+  }
+
+   if(!(strncmp(cmdstr,"-readwritekb",15))) {
+    wg_int err;
+    int flags = 0;
+
+    if (cmdfileslen<3) {
+      printf("Error: -readwritekb needs a data file and a dump filename as arguments\n");
+      exit(1);
+    }   
+#ifdef _WIN32      
+    if (mbsize && mbsize<100) {
+      printf("Error: -readwritekb needs at least 100 megabytes: change -mbsize argument \n");
+      exit(1);
+    }        
+#else
+    if (mbsize && mbsize<1000) {
+      printf("Error: -readwritekb needs at least 1000 megabytes: change -mbsize argument \n");
+      exit(1);
+    }
+#endif
+#ifdef SHOWTIME  
+    printf("\nto -readkb\n");      
+    gkc_show_cur_time();
+#endif
+    wg_delete_database(shmname);
+#ifdef SHOWTIME      
+    printf("\nprevious memory database deleted\n");
+    gkc_show_cur_time();
+#endif
+    shmptr=wg_attach_database(shmname, shmsize);
+    if(!shmptr) {
+      fprintf(stderr, "Failed to attach to database.\n");
+      exit(1);
+    }
+#ifdef SHOWTIME       
+    printf("\nto wg_import_otter_file %s\n",cmdfiles[1]);
+    gkc_show_cur_time();
+#endif      
+    err = wg_import_otter_file(shmptr,cmdfiles[1],1);
+#ifdef SHOWTIME       
+    printf("\nexited wg_import_otter_file\n");
+    gkc_show_cur_time();
+#endif      
+    if(!err)
+      printf("Data parsed into the shared memory db, starting to build indexes.");
+    else if(err<-1)
+      fprintf(stderr, "Fatal error when reading otter file, data may be partially"\
+        " imported\n");
+    else {
+      fprintf(stderr, "Reading failed.\n");
+      wg_delete_database(shmname);
+      exit(1);
+    }
+    //wg_show_database(shmptr);
+#ifdef SHOWTIME 
+    printf("\nstarting to init_shared_database\n");      
+    gkc_show_cur_time();
+#endif
+    tmp=init_shared_database(shmptr);
+    if (tmp<0) {
+      printf("\nDb creation failed.\n");
+      wg_delete_database(shmname);
+      exit(1);
+    }  
+    printf("\nDb ready in shared memory.\n");   
+#ifdef SHOWTIME         
+    gkc_show_cur_time();
+#endif 
+
+    /* Locking is handled internally by the dbdump.c functions */
+    if(flags & FLAGS_FORCE)
+      err = wg_dump_internal(shmptr,cmdfiles[2], 0);
+    else
+      err = wg_dump(shmptr,cmdfiles[2]);
+
+    if(err<-1) {
+      printf("Error: cannot write to file, kb may have"\
+        " become corrupt\n");
+      exit(1);  
+    } else if(err) {
+      printf("Error: writing failed.\n");
+      exit(1);
+    }
+    printf("Database written to file %s and remains present in memory.\n",cmdfiles[2]);
+#ifdef _WIN32    
+    //char c1,c2;
+    printf ("Shared memory kb is available while this program is running.\n");
+    printf ("Press any key to free shared memory kb and exit . . .\n");
+    _getch();
+#endif    
     exit(0);
   }
 
