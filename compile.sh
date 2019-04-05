@@ -28,7 +28,8 @@ ${CC} -O2 -Wall -Wmissing-field-initializers -static -o gkc \
   Reasoner/glb.c  Reasoner/mem.c  \
   Reasoner/printerrutils.c  Reasoner/rgenloop.c  Reasoner/rmain.c  Reasoner/subsume.c  Reasoner/unify.c \
   Reasoner/resolve.c Reasoner/simp.c Reasoner/strat.c Reasoner/history.c Reasoner/prob.c Reasoner/hash.c \
-  Reasoner/clmeta.c Reasoner/guide.c  Reasoner/propagate.c Reasoner/init.c\
+  Reasoner/clmeta.c Reasoner/guide.c  Reasoner/propagate.c Reasoner/init.c \
+  Reasoner/analyze.c Reasoner/chains.c \
   Printer/dbotterprint.c \
   Builtparser/dbotter.tab.c  Builtparser/dbotter.yy.c  Builtparser/dbparse.c  Builtparser/dbprolog.tab.c \
   Builtparser/dbprolog.yy.c Builtparser/dbclausify.c \

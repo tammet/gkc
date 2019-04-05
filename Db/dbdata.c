@@ -2883,6 +2883,7 @@ static gint find_create_longstr(void* db, char* data, char* extrastr, gint type,
     dbstore(db,offset+LONGSTR_RHASH_POS*sizeof(gint),encode_smallint(rhash)); // encoded 0: no hash yet
     //dbstore(db,offset+LONGSTR_RHASH_POS*sizeof(gint),tmp); // encoded 0: no hash yet
     dbstore(db,offset+LONGSTR_RMETA_POS*sizeof(gint),tmp); // encoded 0: no meta yet
+    dbstore(db,offset+LONGSTR_TAXONOMY_POS*sizeof(gint),0); // 0: no taxonomy yet
 #endif    
     // encode
     res=encode_longstr_offset(offset);

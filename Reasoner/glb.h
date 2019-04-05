@@ -358,7 +358,37 @@ typedef struct {
   int tmp8;
   int tmp9;
 
-  /* averages and measures */
+  /* input clause set analysis */
+
+  int in_clause_count;
+  int in_rule_clause_count;
+  int in_fact_clause_count;
+  int in_answer_clause_count;
+  int in_ground_clause_count;
+  int in_unit_clause_count;
+  int in_horn_clause_count;
+  int in_pos_clause_count;
+  int in_neg_clause_count;
+  int in_poseq_clause_count;
+  int in_negeq_clause_count;
+  int in_min_length;
+  int in_max_length;
+  int in_min_depth;
+  int in_max_depth;
+  int in_min_size;
+  int in_max_size;
+  int in_min_vars;
+  int in_max_vars;
+  float in_average_length;
+  float in_average_depth;
+  int in_predicate_count;
+  int in_funsymb_count;
+  int in_axiom_count;
+  int in_assumption_count;
+  int in_goal_count;
+
+
+  /* run averages and measures */
   
   int current_run_nr;
   double avg_kept_weight;
@@ -366,7 +396,7 @@ typedef struct {
   clock_t allruns_start_clock;
   //clock_t allruns_end_clock;
   clock_t run_start_clock;
-  //clock_t run_end_clock;
+  //clock_t run_end_clock;  
 
 } glb;
 

@@ -26,6 +26,8 @@ libReasoner_la_SOURCES = types.h rincludes.h \
   clterm.c clterm.h\
   mem.c mem.h\
   init.c init.h\
+  analyze.c analyze.h\
+  chains.c chains.h\
   ../Main/gkc.c\
   ../cjson/cjson.c ../cjson/cjson.h\
   ../Test/dbtest.c ../Test/dbtest.h

@@ -12,6 +12,7 @@ cl /O2 /W2 /w34005 /Fegkc ^
   Reasoner/rmain.c  Reasoner/subsume.c  Reasoner/unify.c Reasoner/resolve.c ^
   Reasoner/simp.c Reasoner/strat.c Reasoner/history.c Reasoner/prob.c ^
   Reasoner/hash.c Reasoner/clmeta.c Reasoner/guide.c  Reasoner/propagate.c ^
+  Reasoner/analyze.c Reasoner/chains.c ^
   Reasoner/init.c ^
   Printer/dbotterprint.c ^
   Builtparser/dbotter.tab.c  Builtparser/dbotter.yy.c  Builtparser/dbparse.c ^

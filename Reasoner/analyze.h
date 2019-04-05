@@ -21,60 +21,29 @@
 *
 */
 
- /** @file rincludes.h
- *   standard includes for reasoner c files
+ /** @file analyze.h
+ * Analyze the clause set before search.
  */
 
 
-#ifndef DEFINED_RINCLUDES_H
-#define DEFINED_RINCLUDES_H
+#ifndef DEFINED_ANALYZE_H
+#define DEFINED_ANALYZE_H
 
 /* ==== Includes ==== */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-
-#ifdef _WIN32
-#include "../config-w32.h"
-#else
-#include "../config.h"
-#endif
-
-#define UNUSED(x) (void)(x);
-
-#include "mem.h" 
 #include "glb.h"
-#include "clterm.h"
-#include "unify.h"
-#include "build.h"
-#include "clstore.h"
-#include "clmeta.h"
-#include "history.h"
-#include "prob.h"
-#include "hash.h"
-#include "subsume.h"
-#include "propagate.h"
-#include "derive.h"
-#include "simp.h"
-#include "strat.h"
-#include "resolve.h"
-#include "rgenloop.h"
-#include "rmain.h"
-#include "printerrutils.h"
-#include "guide.h"
-#include "init.h"
-#include "analyze.h"
-#include "chains.h"
-#include "../cjson/cjson.h"
-#include "../Db/dbutil.h"
-#include "../Printer/dbotterprint.h"
-#include "../Test/dbtest.h"
+
 
 /* ==== Global defines ==== */
 
 
 
 /* ==== Protos ==== */
+
+int wr_analyze_clause_list(glb* g, gint clauselist);
+int wr_analyze_clause(glb* g, gptr cl);
+int wr_analyze_term(glb* g, gint x, int depth, int* size, int* maxdepth) ;
+
+void wr_show_in_stats(glb* g);
 
 #endif

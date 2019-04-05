@@ -289,6 +289,33 @@ int wr_glb_init_simple(glb* g) {
   (g->tmp8)=0;
   (g->tmp9)=0;
 
+  (g->in_clause_count)=0;
+  (g->in_rule_clause_count)=0;
+  (g->in_fact_clause_count)=0;
+  (g->in_answer_clause_count)=0;
+  (g->in_ground_clause_count)=0;
+  (g->in_unit_clause_count)=0;
+  (g->in_horn_clause_count)=0;
+  (g->in_pos_clause_count)=0;
+  (g->in_neg_clause_count)=0;
+  (g->in_poseq_clause_count)=0;
+  (g->in_negeq_clause_count)=0;
+  (g->in_min_length)=100000;
+  (g->in_max_length)=0;
+  (g->in_min_depth)=100000;
+  (g->in_max_depth)=0;
+  (g->in_min_size)=100000;
+  (g->in_max_size)=0;
+  (g->in_min_vars)=100000;
+  (g->in_max_vars)=0;
+  (g->in_average_length)=0;
+  (g->in_average_depth)=0;
+  (g->in_predicate_count)=0;
+  (g->in_funsymb_count)=0;
+  (g->in_axiom_count)=0;
+  (g->in_assumption_count)=0;
+  (g->in_goal_count)=0;
+
   (g->avg_kept_weight)=0;
   (g->passed_ratio)=0;
   

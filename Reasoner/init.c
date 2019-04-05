@@ -123,7 +123,9 @@ int init_shared_database(void* db) {
   wg_show_strhash(db);
   printf("\nwg_show_strhash ends\n");
 #endif 
-  tmp=wr_init_db_clause_indexes(g,db);
+  tmp=wr_analyze_clause_list(g,(dbmemsegh(g->db))->clauselist);
+  if (!tmp) return -1;
+  tmp=wr_init_db_clause_indexes(g,g->db);
   if (tmp<0) return -1;
   return 0;
 }
