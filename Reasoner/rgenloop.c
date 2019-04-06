@@ -288,11 +288,10 @@ int wr_genloop(glb* g) {
     if (g->alloc_err) return -1;
     // resolve with equality reflexive atom X=X
 
-    /*
+    
     if (g->use_equality) {
       wr_resolve_equality_reflexive(g,given_cl,given_cl_as_active); 
-    } 
-    */ 
+    }      
     if (g->proof_found) return 0;
     if (g->alloc_err) return -1;  
     // do all resolutions with the given clause
@@ -532,7 +531,7 @@ gptr wr_add_given_cl_active_list(glb* g, gptr given_cl, gptr given_cl_metablock,
   if ((g->use_equality) && (g->use_equality_strat)) {   
     wr_cl_store_para_terms(g,active_cl);
   } else {
-    printf("\n!!!!!!!!!!!!! no equality\n");
+    //printf("\n!!!!!!!!!!!!! no equality\n");
   }  
 
   (g->stat_given_used)++;  // stats   

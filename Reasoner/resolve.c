@@ -55,8 +55,8 @@ extern "C" {
   
 /* ====== Private headers and defs ======== */
 
-#define DEBUG
-//#undef DEBUG
+//#define DEBUG
+#undef DEBUG
 #define QUIET
 //#undef QUIET
 
