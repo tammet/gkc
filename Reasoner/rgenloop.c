@@ -287,7 +287,12 @@ int wr_genloop(glb* g) {
     wr_factor(g,given_cl,given_cl_as_active);
     if (g->alloc_err) return -1;
     // resolve with equality reflexive atom X=X
-    wr_resolve_equality_reflexive(g,given_cl,given_cl_as_active); 
+
+    /*
+    if (g->use_equality) {
+      wr_resolve_equality_reflexive(g,given_cl,given_cl_as_active); 
+    } 
+    */ 
     if (g->proof_found) return 0;
     if (g->alloc_err) return -1;  
     // do all resolutions with the given clause
@@ -295,12 +300,16 @@ int wr_genloop(glb* g) {
     wr_resolve_binary_all_active(g,given_cl,given_cl_as_active); 
     if (g->proof_found) return 0;
     if (g->alloc_err) return -1;    
-    wr_paramodulate_from_all_active(g,given_cl,given_cl_as_active);    
-    if (g->proof_found) return 0;
-    if (g->alloc_err) return -1;          
-    wr_paramodulate_into_all_active(g,given_cl,given_cl_as_active);    
-    if (g->proof_found) return 0;
-    if (g->alloc_err) return -1;       
+    
+    if (g->use_equality) {
+      wr_paramodulate_from_all_active(g,given_cl,given_cl_as_active);    
+      if (g->proof_found) return 0;
+      if (g->alloc_err) return -1;          
+      wr_paramodulate_into_all_active(g,given_cl,given_cl_as_active);    
+      if (g->proof_found) return 0;
+      if (g->alloc_err) return -1;       
+    }
+    
   } 
 }  
 
@@ -519,7 +528,12 @@ gptr wr_add_given_cl_active_list(glb* g, gptr given_cl, gptr given_cl_metablock,
 
   //  store neg and pos preds to hash_neg/pos_atoms and store para terms
   wr_cl_store_res_terms(g,active_cl);
-  wr_cl_store_para_terms(g,active_cl);
+  
+  if (g->use_equality) {   
+    wr_cl_store_para_terms(g,active_cl);
+  } else {
+    printf("\n!!!!!!!!!!!!! no equality\n");
+  }  
 
   (g->stat_given_used)++;  // stats   
   return active_cl;

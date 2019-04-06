@@ -230,6 +230,8 @@ typedef struct {
   int posunitpara_strat;
   int back_subsume;
   int propagate;
+  int use_equality_strat; // general strategy
+  int use_equality; // current principle
   int use_comp_funs_strat; // general strategy
   int use_comp_funs; // current principle
   
@@ -371,6 +373,7 @@ typedef struct {
   int in_neg_clause_count;
   int in_poseq_clause_count;
   int in_negeq_clause_count;
+  int in_unitposeq_clause_count;
   int in_min_length;
   int in_max_length;
   int in_min_depth;
@@ -383,6 +386,7 @@ typedef struct {
   float in_average_depth;
   int in_predicate_count;
   int in_funsymb_count;
+  int in_extaxiom_count;
   int in_axiom_count;
   int in_assumption_count;
   int in_goal_count;

@@ -70,9 +70,9 @@ int wr_cl_is_goal(glb* g, gptr cl) {
   int htype;
 
   
-  printf("\n wr_cl_is_goal:");
-  wr_print_clause(g,cl);
-  printf("\n");
+  //printf("\n wr_cl_is_goal:");
+  //wr_print_clause(g,cl);
+  //printf("\n");
   
   hist=wr_get_history(g,cl);
   if (hist) {
@@ -83,7 +83,7 @@ int wr_cl_is_goal(glb* g, gptr cl) {
     if (!prior) return 0;
     decprior=wr_decode_priority(g,prior);
     if (decprior==WR_HISTORY_GOAL_ROLENR) {
-      printf("\n is goal!\n");
+      //printf("\n is goal!\n");
       return 1;
     } else {
       //printf("\n not marked given\n");
@@ -250,12 +250,13 @@ int wr_initial_select_active_cl(glb* g, gptr cl) {
   dp("\ncheck initial cl: ");
   wr_print_clause(g,cl);
   dprintf("\n");
+  printf("\n(g->queryfocusneg_strat): %d\n",(g->queryfocusneg_strat));
 #endif
-  /*
-  printf("\ncheck initial cl: ");
-  wr_print_clause(g,cl);
-  printf("\n");
-  */
+  
+  //printf("\ncheck initial cl: ");
+  //wr_print_clause(g,cl);
+  //printf("\n");
+  
   history=wr_get_history(g,cl); 
   if (!history) return 1;
   htype=wg_get_encoded_type(db,history);  
@@ -309,11 +310,15 @@ int wr_initial_select_active_cl(glb* g, gptr cl) {
     //else return 0;
   }
   // here we have queryfocusneg_strat
-  if (decpriority>1) return 1;
+
+  //if (decpriority>1) return 1;  
   ruleflag=wg_rec_is_rule_clause(db,cl);
+  //printf("\n ruleflag: %d\n",ruleflag);
   if (!ruleflag) {
     len=1;  
     poscount=1;
+    if ((g->cl_pick_queue_strategy)==1)
+    return 0;
   } else {
     len = wg_count_clause_atoms(db, cl);
     for(i=0; i<len; i++) {          
@@ -329,12 +334,48 @@ int wr_initial_select_active_cl(glb* g, gptr cl) {
   //if (len==1) res=1;  
   if (anscount>0 || negcount==len)  res=0;
   else res=1;
-  
+ 
   /*
   dp("\ncheck initial cl res is %d \n",res)
   */
   return res;
 }
+
+/*
+int recalc_cl_priority(g,gptr cl, int decprior) {
+  if ((g->cl_pick_queue_strategy)==2) {
+      // make non-included axioms assumptions and positive conjecture part assumptions
+      if (decpriority==WR_HISTORY_GOAL_ROLENR && wr_is_positive_unit_cl(g,cl)) 
+        decpriority=WR_HISTORY_ASSUMPTION_ROLENR;        
+      else if (decpriority==WR_HISTORY_AXIOM_ROLENR && (g->parse_is_included_file))
+        decpriority=WR_HISTORY_ASSUMPTION_ROLENR;       
+  } else if ((g->cl_pick_queue_strategy)==3) {
+    // only fully negative clauses of goal made goal and no assumptions (ie made axioms)
+    if (decpriority==WR_HISTORY_GOAL_ROLENR && !wr_is_negative_cl(g,cl))
+      decpriority=WR_HISTORY_AXIOM_ROLENR;  
+    else if (decpriority==WR_HISTORY_ASSUMPTION_ROLENR)  
+      decpriority=WR_HISTORY_AXIOM_ROLENR; // !! wrong had no effect
+  }
+  return decpriority; 
+}
+
+// in clstore.c:
+
+
+ if ((g->cl_pick_queue_strategy)==2) {
+      // make non-included axioms assumptions and positive conjecture part assumptions
+      if (decprior==WR_HISTORY_GOAL_ROLENR && wr_is_positive_unit_cl(g,cl)) 
+        decprior=WR_HISTORY_ASSUMPTION_ROLENR;        
+      else if (decprior==WR_HISTORY_AXIOM_ROLENR) // && (g->parse_is_included_file))
+        decprior=WR_HISTORY_ASSUMPTION_ROLENR;       
+    } else if ((g->cl_pick_queue_strategy)==3) {
+      // only fully negative clauses of goal made goal and no assumptions (ie made axioms)
+      if (decprior==WR_HISTORY_GOAL_ROLENR && !wr_is_negative_cl(g,cl))
+        decprior=WR_HISTORY_AXIOM_ROLENR;  
+      else if (decprior==WR_HISTORY_ASSUMPTION_ROLENR)  
+        decprior=WR_HISTORY_AXIOM_ROLENR; // !! had no effect before
+    } 
+*/
 
 /* -------------
 

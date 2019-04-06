@@ -159,7 +159,7 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr) {
   cJSON *elem=NULL, *run=NULL;
   char *key, *errstr; //, *valuestr;
   int i,tmp; // valueint
-  int runcount=0; //, runfound=0;
+  int runcount=0, runfound=0;
   char* out;
 
   if (!json_isobject(guide)) {    
@@ -231,7 +231,7 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr) {
         run=elem->child;        
         for(i=0; run; i++, run=run->next) {
           if (i==runnr) {
-            //runfound=1;
+            runfound=1;
             tmp=wr_parse_guide_section(g,run,-1,outstr);
             //printf("\n wr_parse_guide_section: \n");
             out=cJSON_Print(run);            
@@ -248,7 +248,13 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr) {
     }
     
     elem=elem->next;
-  }  
+  }
+
+  if (!runfound && guide!=NULL) {
+    out=cJSON_Print(guide); 
+    *outstr=out;    
+  }
+
   return runcount;
 }
 

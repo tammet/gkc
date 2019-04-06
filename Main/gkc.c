@@ -66,6 +66,7 @@ extern "C" {
 #include "../Builtparser/dbparse.h"
 #include "../Reasoner/rmain.h"
 #include "../Reasoner/init.h"
+#include "../Reasoner/analyze.h"
 #include "../Db/dbapi.h"
 #endif
 
@@ -592,6 +593,13 @@ int main(int argc, char **argv) {
     printf("\nto call wg_run_reasoner\n");
     gkc_show_cur_time();
 #endif      
+    /*
+    glb* xg=wr_glb_new_simple(shmptrlocal);
+    wr_glb_init_local_complex(xg); 
+    tmp=wr_analyze_clause_list(xg,(dbmemsegh(shmptrlocal))->clauselist);
+    wr_show_in_stats(xg);
+    exit(0);
+    */
     err = wg_run_reasoner(shmptrlocal,cmdfileslen,cmdfiles);
     //if(!err);
       //printf("wg_run_reasoner finished ok.\n");

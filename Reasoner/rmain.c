@@ -81,9 +81,10 @@ void show_cur_time(void);
 int wg_run_reasoner(void *db, int argc, char **argv) {
   glb* g;    // our g (globals)
   glb* kb_g; // our copy of the g (globals) of the external shared db 
-  glb* rglb; // ptr to g (globals) of the external shared db 
+  glb* rglb=NULL; // ptr to g (globals) of the external shared db 
   void* kb_db;
   void* child_db;
+  void* tmp_db;
   int res=1;
   int default_print_level=10;
   int iter,guideres=0,tmp;
@@ -155,7 +156,13 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
     memcpy(kb_g,rglb,sizeof(glb));
     // now kb_g should contain the same things as rglb
     // set the db ptr of kb_g to the shared db
-    (kb_g->db)=kb_db;    
+    (kb_g->db)=kb_db; 
+#ifdef DEBUG       
+    printf("\n** input stats for kb_g ****** \n");
+    show_cur_time();
+    wr_show_in_stats(kb_g);
+    printf("\n");
+#endif   
   } else {
     
     // just one single db 
@@ -170,6 +177,8 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
   
   //printf("\n** clactivesubsume data from external:\n"); 
   //wr_show_clactivesubsume(kb_g);
+
+ 
 
   for(iter=0; 1; iter++) {  
 #ifdef DEBUG    
@@ -259,7 +268,23 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
     clause_count=0;
     if (db!=child_db) {
       // two separate db-s
-      //printf("\n separate child kb found, using\n");
+#ifdef DEBUG
+      printf("\n *** separate (local) child kb found, using\n");
+#endif      
+      // analyze local clauses; have to temporarily replace g->db to child
+      tmp_db=g->db;
+      g->db=child_db;
+      tmp=wr_analyze_clause_list(g,(dbmemsegh(g->child_db))->clauselist);
+      g->db=tmp_db;
+      // wr_show_in_stats(g);  // show local stats
+      // wr_show_in_stats(rglb); // show global stats
+#ifdef DEBUG
+      printf("\n** input stats for local g ****** \n");
+      show_cur_time();
+      wr_show_in_stats(g);
+      printf("\n"); 
+      //exit(0);
+#endif
       if (!(g->queryfocus_strat)) {
         // for non-queryfocus_strat read the clauses from the 
         // external shared mem db and do not use the
@@ -267,10 +292,24 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
         //printf("\n(g->initial_cl_list) is %ld\n",(gint)((r_kb_g(g))->initial_cl_list));
 #ifdef DEBUG 
         printf("\n**** starting to read from the external shared mem kb\n");
-#endif        
+#endif              
         clause_count+=wr_init_active_passive_lists_from_one(g,db,db);        
         (g->kb_g)=NULL;        
+      } else {
+        // queryfocus case
+        // if no goals, set negative-or-ans-into passive initialization strat
+        if (!(g->in_goal_count)) {
+          (g->queryfocusneg_strat)=1;
+        } else {
+          (g->queryfocusneg_strat)=0;
+        }
+       /// ----
       }
+      // if no equality, do not initialize indexes and do not try to use
+      
+      if (!(g->in_poseq_clause_count) && !(rglb->in_poseq_clause_count)) (g->use_equality)=0;
+      else (g->use_equality)=(g->use_equality_strat);
+      
       // if two db-s, this will take the clauses from the local db:
 #ifdef DEBUG 
       printf("\n**** starting to read from the local db kb\n");
@@ -279,9 +318,33 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
     } else {
       // one single db      
 #ifdef DEBUG 
-        printf("\n external kb NOT found\n");
-        printf("\n**** starting to read from the single local db\n");
+        printf("\n external kb NOT found\n");      
+        printf("\n** starting to calc input stats for g ****** \n");
+        show_cur_time();
+#endif          
+        tmp=wr_analyze_clause_list(g,(dbmemsegh(g->db))->clauselist);
+        if (!tmp) return -1;
+#ifdef DEBUG
+        printf("\n** input stats for g ****** \n");
+        show_cur_time();
+        wr_show_in_stats(g);
+        printf("\n");   
 #endif
+      // if no goals, set negative-or-ans-into passive initialization strat
+      if (!(g->in_goal_count)) {
+        (g->queryfocusneg_strat)=1;
+      } else {
+        (g->queryfocusneg_strat)=0;
+      }
+      // if no equality, do not initialize indexes and do not try to use
+      
+      if (!(g->in_poseq_clause_count)) (g->use_equality)=0;
+      else (g->use_equality)=(g->use_equality_strat);
+      
+      /// ----
+#ifdef DEBUG       
+      printf("\n**** starting to read from the single local db\n");      
+#endif      
       clause_count=wr_init_active_passive_lists_from_one(g,db,db);      
     } 
 

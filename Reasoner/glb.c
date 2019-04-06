@@ -161,6 +161,8 @@ int wr_glb_init_simple(glb* g) {
   (g->res_shortarglen_limit)=0; // max non-ans len of the shortest res argument (generalization of unit)
   (g->back_subsume)=0;
   (g->propagate)=0;
+  (g->use_equality_strat)=1; // general strategy
+  (g->use_equality)=1; // current principle
   (g->posunitpara_strat)=0;
   (g->use_comp_funs_strat)=1;
   (g->use_comp_funs)=1;
@@ -300,6 +302,7 @@ int wr_glb_init_simple(glb* g) {
   (g->in_neg_clause_count)=0;
   (g->in_poseq_clause_count)=0;
   (g->in_negeq_clause_count)=0;
+  (g->in_unitposeq_clause_count)=0;
   (g->in_min_length)=100000;
   (g->in_max_length)=0;
   (g->in_min_depth)=100000;
@@ -312,6 +315,7 @@ int wr_glb_init_simple(glb* g) {
   (g->in_average_depth)=0;
   (g->in_predicate_count)=0;
   (g->in_funsymb_count)=0;
+  (g->in_extaxiom_count)=0;
   (g->in_axiom_count)=0;
   (g->in_assumption_count)=0;
   (g->in_goal_count)=0;
