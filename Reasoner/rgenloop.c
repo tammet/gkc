@@ -529,7 +529,7 @@ gptr wr_add_given_cl_active_list(glb* g, gptr given_cl, gptr given_cl_metablock,
   //  store neg and pos preds to hash_neg/pos_atoms and store para terms
   wr_cl_store_res_terms(g,active_cl);
   
-  if (g->use_equality) {   
+  if ((g->use_equality) && (g->use_equality_strat)) {   
     wr_cl_store_para_terms(g,active_cl);
   } else {
     printf("\n!!!!!!!!!!!!! no equality\n");

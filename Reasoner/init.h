@@ -41,7 +41,7 @@
 
 /* ==== Protos ==== */
 
-int init_shared_database(void* db);
+int init_shared_database(void* db, char* guidefilename);
 
 void wr_show_database_details(glb* g,void* db, char* desc);
 void wr_show_database_headers(void* db);

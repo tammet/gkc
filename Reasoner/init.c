@@ -61,10 +61,15 @@ void wg_show_database(void* db);
 
 ====================================================== */
 
-int init_shared_database(void* db) {
+int init_shared_database(void* db, char* guidefilename) {
   glb* g;
   db_memsegment_header* dbh = dbmemsegh(db);
   int tmp;
+  char* guidebuf=NULL;
+  cJSON *guide=NULL;
+  char* argvbuf[4];
+  char* guidetext;
+  int guideres=0;
 
 #ifdef DEBUG
   printf("\ninit_shared_database starts\n");
@@ -100,6 +105,25 @@ int init_shared_database(void* db) {
 #ifdef DEBUG  
   printf("\ninit_shared_database returned from wr_glb_init_simple\n");
 #endif 
+
+  if (guidefilename!=NULL) {
+    argvbuf[2]=guidefilename;
+    printf("\n");
+    guide=wr_parse_guide_file(3,argvbuf,&guidebuf);
+    if (guide==NULL) {
+      if (guidebuf!=NULL) free(guidebuf);
+      return -1;
+    }
+    guidetext=NULL;
+    guideres=wr_parse_guide_section(g,guide,0,&guidetext);
+    if (guideres<0) {
+      // error in guide requiring stop      
+      if (guidebuf!=NULL) free(guidebuf);
+      if (guide!=NULL) cJSON_Delete(guide);      
+    }
+  }  
+  //printf("\n(g->use_equality_strat) %d\n",(g->use_equality_strat));
+
   if (wr_glb_init_shared_complex(g)) {
     wr_errprint("cannot initialize complex part of shared db");
     return -1;
@@ -125,7 +149,13 @@ int init_shared_database(void* db) {
 #endif 
   tmp=wr_analyze_clause_list(g,(dbmemsegh(g->db))->clauselist);
   if (!tmp) return -1;
+  
+  // temporarily set queryfocus-strat to disable equality ordering
+  tmp=(g->queryfocus_strat);  
+  (g->queryfocus_strat)=1;
   tmp=wr_init_db_clause_indexes(g,g->db);
+  (g->queryfocus_strat)=tmp;
+
   if (tmp<0) return -1;
   return 0;
 }

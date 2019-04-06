@@ -503,7 +503,8 @@ int wr_cl_store_para_terms(glb* g, gptr cl) {
       b=tptr[RECORD_HEADER_GINTS+(g->unify_funarg2pos)];                 
       atype=wg_get_encoded_type(db,a);
       btype=wg_get_encoded_type(db,b); 
-      eqtermorder=wr_order_eqterms(g,a,b,NULL);
+      if (g->queryfocus_strat) eqtermorder=3;
+      else eqtermorder=wr_order_eqterms(g,a,b,NULL);
       // eqtermorder values:
       // 0: none bigger, neither ok for para
       // 1: a bigger than b (prohibits b)

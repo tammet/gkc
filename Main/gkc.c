@@ -510,7 +510,8 @@ int main(int argc, char **argv) {
     printf("\nstarting to init_shared_database\n");      
     gkc_show_cur_time();
 #endif
-    tmp=init_shared_database(shmptr);
+    if (cmdfileslen==3) tmp=init_shared_database(shmptr,cmdfiles[2]);
+    else tmp=init_shared_database(shmptr,NULL);
     if (tmp<0) {
       printf("\nDb creation failed.\n");
       wg_delete_database(shmname);
@@ -693,7 +694,7 @@ int main(int argc, char **argv) {
     exit(0);
   }
 
-   if(!(strncmp(cmdstr,"-readwritekb",15))) {
+  if(!(strncmp(cmdstr,"-readwritekb",15))) {
     wg_int err;
     int flags = 0;
 
@@ -750,7 +751,8 @@ int main(int argc, char **argv) {
     printf("\nstarting to init_shared_database\n");      
     gkc_show_cur_time();
 #endif
-    tmp=init_shared_database(shmptr);
+    if (cmdfileslen==4) tmp=init_shared_database(shmptr,cmdfiles[3]);
+    else tmp=init_shared_database(shmptr,NULL);    
     if (tmp<0) {
       printf("\nDb creation failed.\n");
       wg_delete_database(shmname);

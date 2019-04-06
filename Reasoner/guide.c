@@ -207,6 +207,9 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr) {
     } else if (!strcmp(key,"max_length")) {
       //printf("max_length %d\n", json_valueint(elem));
       (g->cl_maxkeep_lengthlimit)=json_valueint(elem);
+    } else if (!strcmp(key,"equality")) {
+      //printf("equality %d\n", json_valueint(elem));
+      (g->use_equality_strat)=json_valueint(elem);  
     } else if (!strcmp(key,"query_preference")) {
       //printf("query_preference %d\n", json_valueint(elem));
       (g->cl_pick_queue_strategy)=json_valueint(elem);

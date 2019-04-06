@@ -55,8 +55,8 @@ extern "C" {
   
 /* ====== Private headers and defs ======== */
 
-//#define DEBUG
-#undef DEBUG
+#define DEBUG
+//#undef DEBUG
 #define QUIET
 //#undef QUIET
 
@@ -503,7 +503,8 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active) {
 
       a=tptr[RECORD_HEADER_GINTS+(g->unify_funarg1pos)];
       b=tptr[RECORD_HEADER_GINTS+(g->unify_funarg2pos)];
-      eqtermorder=wr_order_eqterms(g,a,b,NULL);
+      if (g->queryfocus_strat) eqtermorder=3;
+      else eqtermorder=wr_order_eqterms(g,a,b,NULL);
 
       atype=wg_get_encoded_type(db,a);
       btype=wg_get_encoded_type(db,b);
