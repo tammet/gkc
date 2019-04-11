@@ -543,7 +543,9 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active) {
         printf("\n");
         wr_print_term(g,b);  
         printf("\n");
+#endif         
         eqtermorder=wr_order_eqterms(g,a,b,NULL);
+#ifdef DEBUG        
         printf("\n eqtermorder: %d\n",eqtermorder);
 #endif 
         // var types are not ok for from eq arg
@@ -928,7 +930,7 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
   xterm=term; // subterm in the given cl, for which we search for eq unifier in hash 
   xcl=cl; // given cl the subterms of which are matched with eq args in active
 #ifdef DEBUG 
-  printf("\nin wr_paramodulate_into_subterms_all_active fun hash is: %d litnr % origtermpath %d for fun and term:\n",
+  printf("\nin wr_paramodulate_into_subterms_all_active fun hash is: %d litnr %d origtermpath %d for fun and term:\n",
     (int)hash,litnr,origtermpath);
   wr_print_term(g,fun);
   printf("\n");  

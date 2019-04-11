@@ -252,18 +252,23 @@ int wr_initial_select_active_cl(glb* g, gptr cl) {
   dprintf("\n");
   printf("\n(g->queryfocusneg_strat): %d\n",(g->queryfocusneg_strat));
 #endif
-  
-  //printf("\ncheck initial cl: ");
-  //wr_print_clause(g,cl);
-  //printf("\n");
-  
+
+  /*
+  CP3
+  printf("\ncheck initial cl: ");
+  wr_print_clause(g,cl);
+  printf("\n");
+  printf("\n(g->queryfocusneg_strat): %d\n",(g->queryfocusneg_strat));
+  */
+
   history=wr_get_history(g,cl); 
   if (!history) return 1;
   htype=wg_get_encoded_type(db,history);  
   if (htype!=WG_RECORDTYPE) return 1;
   priority=wr_get_history_record_field(g,otp(db,history),HISTORY_PRIORITY_POS);
   decpriority=wg_decode_int(db,priority);
-
+  
+  //CP4
   //printf("\ndecpriority before: %d \n",decpriority);
 
   if ((g->cl_pick_queue_strategy)==2) {
@@ -280,6 +285,7 @@ int wr_initial_select_active_cl(glb* g, gptr cl) {
       decpriority=WR_HISTORY_AXIOM_ROLENR; // !! wrong had no effect
   } 
 
+  //CP5
   //printf("\ndecpriority after: %d \n",decpriority);
 
   if (!(g->queryfocusneg_strat)) {
@@ -310,7 +316,7 @@ int wr_initial_select_active_cl(glb* g, gptr cl) {
     //else return 0;
   }
   // here we have queryfocusneg_strat
-
+  //CP10
   //if (decpriority>1) return 1;  
   ruleflag=wg_rec_is_rule_clause(db,cl);
   //printf("\n ruleflag: %d\n",ruleflag);

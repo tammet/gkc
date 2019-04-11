@@ -374,6 +374,7 @@ typedef struct {
   int in_poseq_clause_count;
   int in_negeq_clause_count;
   int in_unitposeq_clause_count;
+  int in_chain_clause_count;
   int in_min_length;
   int in_max_length;
   int in_min_depth;

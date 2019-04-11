@@ -431,14 +431,19 @@ int main(int argc, char **argv) {
       exit(1);
     }
     //islocaldb=1;
-    err = wg_import_otter_file(shmptr,cmdfiles[1],0);
-    if(!err)
-       printf("Data read from %s.\n",cmdfiles[1]);
-    else if(err<-1)
-      fprintf(stderr, "Fatal error when importing otter file, data may be partially"\
+    err = wg_import_otter_file(shmptr,cmdfiles[1],0);   
+    if(!err) {
+      printf("Data read from %s.\n",cmdfiles[1]);
+    } else if(err<-1) {
+      fprintf(stderr, "Fatal error when reading otter file, data may be partially"\
         " imported\n");
-    else
-      fprintf(stderr, "Import failed.\n");      
+      exit(1);   
+    } else {
+      fprintf(stderr, "Import failed.\n");           
+      exit(1); 
+    }  
+
+
     //wg_show_database(shmptr);
     //printf("about to call wg_run_reasoner\n");
     err = wg_run_reasoner(shmptr,cmdfileslen,cmdfiles);
@@ -581,13 +586,16 @@ int main(int argc, char **argv) {
     gkc_show_cur_time();
 #endif      
     err = wg_import_otter_file(shmptrlocal,cmdfiles[1],0);
-    if(!err)
+    if(!err) {
       printf("Data read from %s.\n",cmdfiles[1]);
-    else if(err<-1)
+    } else if(err<-1) {
       fprintf(stderr, "Fatal error when reading otter file, data may be partially"\
         " imported\n");
-    else
+      exit(1);   
+    } else {
       fprintf(stderr, "Import failed.\n");           
+      exit(1); 
+    }  
     
     // ---- local db created ------
 #ifdef SHOWTIME

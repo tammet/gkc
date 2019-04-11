@@ -147,7 +147,7 @@ int init_shared_database(void* db, char* guidefilename) {
   wg_show_strhash(db);
   printf("\nwg_show_strhash ends\n");
 #endif 
-  tmp=wr_analyze_clause_list(g,(dbmemsegh(g->db))->clauselist);
+  tmp=wr_analyze_clause_list(g,db,db);
   if (!tmp) return -1;
   
   // temporarily set queryfocus-strat to disable equality ordering
@@ -156,6 +156,7 @@ int init_shared_database(void* db, char* guidefilename) {
   tmp=wr_init_db_clause_indexes(g,g->db);
   (g->queryfocus_strat)=tmp;
 
+  //printf("\n (g->in_chain_clause_count) %d \n",(g->in_chain_clause_count));
   if (tmp<0) return -1;
   return 0;
 }

@@ -2,7 +2,7 @@
 * $Id:  $
 * $Version: $
 *
-* Copyright (c) Priit Järv 2009, 2010, 2011, 2013, 2014
+* Copyright (c) Priit Jï¿½rv 2009, 2010, 2011, 2013, 2014
 *
 * This file is part of WhiteDB
 *
@@ -1427,6 +1427,8 @@ static void futex_wake(volatile gint *addr1, int val1)
 
 
 /* ------------ error handling ---------------- */
+
+
 
 static gint show_lock_error(void *db, char *errmsg) {
 #ifdef WG_NO_ERRPRINT

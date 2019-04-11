@@ -1075,6 +1075,8 @@ gptr wr_pick_from_clpick_queues(glb* g, gptr queues, gptr given_cl_metablock) {
   printf("\n!!!! wr_pick_from_clpick_queues starts with queuenr %d \n",(g->next_pick_given_queue_block_nr));
 #endif 
 
+  // wr_print_clpick_queues(g,rotp(g,g->clpick_queues));
+
   // first try to take from the designated next_pick_given_queue_block_nr
   queuenr=(g->next_pick_given_queue_block_nr);
   if (queuenr>=NROF_CLPICK_QUEUES) {

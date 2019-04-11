@@ -303,6 +303,7 @@ int wr_glb_init_simple(glb* g) {
   (g->in_poseq_clause_count)=0;
   (g->in_negeq_clause_count)=0;
   (g->in_unitposeq_clause_count)=0;
+  (g->in_chain_clause_count)=0;
   (g->in_min_length)=100000;
   (g->in_max_length)=0;
   (g->in_min_depth)=100000;

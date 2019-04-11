@@ -55,8 +55,9 @@ extern "C" {
 ====================================================== */
 
 
-int wr_analyze_clause_list(glb* g, gint clauselist) {
-  void* db=g->db;
+
+int wr_analyze_clause_list(glb* g, void* db, void* child_db) {
+  //void* db=g->db;
   gint cell;
   gcell *cellptr;
   gptr rec;
@@ -69,12 +70,15 @@ int wr_analyze_clause_list(glb* g, gint clauselist) {
   //(g->varstack)[1]=2; // first free elem
 
   wr_clear_all_varbanks(g);
-  cell=clauselist;
-  while(cell) {         
-    cellptr=(gcell *) offsettoptr(db, cell);
-    rec=offsettoptr(db,cellptr->car);
+
+  cell=(dbmemsegh(child_db)->clauselist);
+  while(cell) {     
+    cellptr=(gcell *) offsettoptr(child_db, cell);
+    rec=offsettoptr(child_db,cellptr->car);
+    
     //printf("\n\n*** rec nr %d\n",n);
     //wg_print_record(db,rec);
+
     tmp=wr_analyze_clause(g,rec);
     if (!tmp) {
       // something wrong with the clause
@@ -89,7 +93,6 @@ int wr_analyze_clause_list(glb* g, gint clauselist) {
 
   return 1;  
 }
-
 
 int wr_analyze_clause(glb* g, gptr cl) {
   void* db=g->db;
@@ -107,13 +110,22 @@ int wr_analyze_clause(glb* g, gptr cl) {
   gint priority, decprior=0; // name
   //char* namestr;
 
-  //printf("\n");
-  //wr_print_clause(g,cl); 
-  
+  /*
+  printf("\n wr_analyze_clause \n");
+  wr_print_clause(g,cl); 
+  printf("\n");
+  wg_print_record(g,cl); 
+  printf("\n");
+  */
+
   history=wr_get_history(g,cl);
   if (history) {
+    
     historyptr=otp(db,history);
     hlen=wg_get_record_len(db,historyptr);
+    
+    //CP1
+    //printf("\nhlen %d\n",hlen);
     if (hlen==HISTORY_PREFIX_LEN) {
       // input clause
       /*
@@ -126,8 +138,11 @@ int wr_analyze_clause(glb* g, gptr cl) {
       }
       */
       //wr_print_history_extra(g,history);
+      
       priority = wr_get_history_record_field(db,historyptr,HISTORY_PRIORITY_POS);
       decprior=wr_decode_priority(g,priority);
+      //CP2
+      //printf("\n decprior %d\n",decprior);
       /*
       if (decprior==WR_HISTORY_GOAL_ROLENR) printf(",goal] ");
       else if (decprior==WR_HISTORY_ASSUMPTION_ROLENR) printf(",assumption] ");
@@ -311,7 +326,7 @@ int wr_analyze_term(glb* g, gint x, int depth, int* size, int* maxdepth) {
 
 
 void wr_show_in_stats(glb* g) {
-
+  //printf("\nwr_show_in_stats called\n");
   if (!(g->print_stats)) return;
     
   printf("\ninput clause set statistics:\n");
@@ -329,6 +344,7 @@ void wr_show_in_stats(glb* g) {
   printf("in_poseq_clause_count:   %13d\n",g->in_poseq_clause_count);
   printf("in_negeq_clause_count:   %13d\n",g->in_negeq_clause_count);
   printf("in_unitposeq_clause_count:  %10d\n",g->in_unitposeq_clause_count);
+  printf("in_chain_clause_count:   %13d\n", g->in_chain_clause_count);
   printf("in_min_length: %13d\n",g->in_min_length);
   printf("in_max_length: %13d\n",g->in_max_length);
   printf("in_min_depth:  %13d\n",g->in_min_depth);

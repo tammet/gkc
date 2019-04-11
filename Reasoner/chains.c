@@ -58,7 +58,7 @@ extern "C" {
 void check_process_chain_clause(glb* g, gptr cl) {
   void* db=g->db;
   int len, start, a0end, a1end;
-  gint atom0, atom1, meta0, meta1, negsymb, possymb;
+  gint atom0, atom1, meta0, meta1; // negsymb, possymb;
   gptr a0ptr, a1ptr;
 
   len=wg_count_clause_atoms(db,cl);
@@ -81,27 +81,28 @@ void check_process_chain_clause(glb* g, gptr cl) {
   if (a0ptr[start+1]!=a1ptr[start+1] ||
       !isvar(a0ptr[start+1])) 
     return;
-
-  printf("\nappears to be chain clause ok");
+  
+  // printf("\nappears to be chain clause ok");
 
   if (wg_atom_meta_is_neg(db,meta0) &&
       !wg_atom_meta_is_neg(db,meta1)) {
-    negsymb=a0ptr[start];
-    possymb=a1ptr[start];
+    //negsymb=a0ptr[start];
+    //possymb=a1ptr[start];
   } else if (!wg_atom_meta_is_neg(db,meta0) &&
              wg_atom_meta_is_neg(db,meta1)) {
-    negsymb=a1ptr[start];
-    possymb=a0ptr[start];
+    //negsymb=a1ptr[start];
+    //possymb=a0ptr[start];
   } else {
     // same polarity
     return;
   }
 
-  printf("\nnegsymb ");
-  wr_print_term(g,negsymb);
-  printf("\npossymb "); 
-  wr_print_term(g,possymb);
-  printf("\n");
+  (g->in_chain_clause_count)++;
+  //printf("\nnegsymb ");
+  //wr_print_term(g,negsymb);
+  //printf("\npossymb "); 
+  //wr_print_term(g,possymb);
+  //printf("\n");
 }
 
 #ifdef __cplusplus

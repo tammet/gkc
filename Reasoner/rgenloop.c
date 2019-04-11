@@ -156,11 +156,8 @@ int wr_genloop(glb* g) {
       return -1;
     }         
     //wr_show_clactive(g);
-    
     //picked_given_cl_cand=wr_pick_given_cl(g,given_cl_metablock);    
     picked_given_cl_cand=wr_pick_from_clpick_queues(g,rotp(g,g->clpick_queues),given_cl_metablock);
-
-
 
     if (!picked_given_cl_cand && !(g->stat_given_candidates)) {
        if ((g->print_flag) && (g->print_runs)) printf("No candidate clauses found.\n");

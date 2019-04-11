@@ -84,7 +84,7 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
   glb* rglb=NULL; // ptr to g (globals) of the external shared db 
   void* kb_db;
   void* child_db;
-  void* tmp_db;
+  //void* tmp_db;
   int res=1;
   int default_print_level=10;
   int iter,guideres=0,tmp;
@@ -94,39 +94,6 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
   //int have_shared_kb=0; // set to 1 if external shared db present
   char* guidetext;
   int exit_on_proof=1; // set to 0 to clean memory and not call exit at end
-
-  /*
-    int i;
-    printf("\nargc %d\n",argc);
-    for(i=0;i<argc;i++) {
-      printf("arg %d is %s\n",i,argv[i]);
-    }
-  */
-/*
-#ifdef CHECK
-  printf("\ndb CHECK macro is on\n");
-#else
-  printf("\ndb CHECK macro is off\n");
-#endif
-
-#ifdef USE_DBLOG
-  printf("\ndb USE_DBLOG macro is on\n");
-#else
-  printf("\ndb USE_DBLOG macro is off\n");
-#endif
-
-#ifdef USE_DATABASE_HANDLE
-  printf("\ndb USE_DATABASE_HANDLE macro is on\n");
-#else
-  printf("\ndb USE_DATABASE_HANDLE macro is off\n");
-#endif
-
-#ifdef MALLOC_HASHNODES
-  printf("\ndb MALLOC_HASHNODES macro is on\n");
-#else
-  printf("\ndb MALLOC_HASHNODES macro is off\n");
-#endif
-*/
 
   guide=wr_parse_guide_file(argc,argv,&guidebuf);
   if (guide==NULL) {
@@ -238,9 +205,7 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
     (g->cl_keep_sizelimit)=(g->cl_maxkeep_sizelimit);
     (g->cl_keep_depthlimit)=(g->cl_maxkeep_depthlimit);
     (g->cl_keep_lengthlimit)=(g->cl_maxkeep_lengthlimit);   
-
     tmp=wr_glb_init_shared_complex(g); // creates and fills in shared tables, substructures, etc: 0.03 secs
-
     if (tmp) {
       wr_errprint("cannot init shared complex datastructures");
       if (guidebuf!=NULL) free(guidebuf);
@@ -263,7 +228,6 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
     printf("\nto call wr_init_active_passive_lists_from_all\n");
     show_cur_time();
 #endif    
-    
     // if two db-s, this will take the clauses from the shared db     
     clause_count=0;
     if (db!=child_db) {
@@ -272,10 +236,15 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
       printf("\n *** separate (local) child kb found, using\n");
 #endif      
       // analyze local clauses; have to temporarily replace g->db to child
+      /*
       tmp_db=g->db;
       g->db=child_db;
-      tmp=wr_analyze_clause_list(g,(dbmemsegh(g->child_db))->clauselist);
-      g->db=tmp_db;
+      */
+      //tmp=wr_analyze_clause_list2(g,tmp_db,(dbmemsegh(g->child_db))->clauselist);
+
+      tmp=wr_analyze_clause_list(g,db,child_db);
+      //g->db=tmp_db;
+
       // wr_show_in_stats(g);  // show local stats
       // wr_show_in_stats(rglb); // show global stats
 #ifdef DEBUG
@@ -297,6 +266,10 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
         (g->kb_g)=NULL;        
       } else {
         // queryfocus case
+
+        //CP0
+        //printf("\n (g->in_goal_count %d\n",(g->in_goal_count));
+
         // if no goals, set negative-or-ans-into passive initialization strat
         if (!(g->in_goal_count)) {
           (g->queryfocusneg_strat)=1;
@@ -322,7 +295,7 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
         printf("\n** starting to calc input stats for g ****** \n");
         show_cur_time();
 #endif          
-        tmp=wr_analyze_clause_list(g,(dbmemsegh(g->db))->clauselist);
+        tmp=wr_analyze_clause_list(g,db,db);
         if (!tmp) return -1;
 #ifdef DEBUG
         printf("\n** input stats for g ****** \n");
@@ -344,7 +317,7 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
       /// ----
 #ifdef DEBUG       
       printf("\n**** starting to read from the single local db\n");      
-#endif      
+#endif     
       clause_count=wr_init_active_passive_lists_from_one(g,db,db);      
     } 
 
@@ -365,12 +338,15 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
     }
     // ok, clauses found and clause lists initialized
     //(g->kb_g)=NULL;
+    //printf("\n(g->use_equality) %d (g->use_equality_strat) %d\n",(g->use_equality),(g->use_equality_strat));
+     
+    wr_show_in_stats(g);
+    //wr_print_clpick_queues(g,(g->clpick_queues));
     res=wr_genloop(g);
-
-    /*
-    printf("\nwr_genloop exited, showing database details\n");
-    wr_show_database_details(g,NULL,"local g");
-    */
+    
+    //printf("\nwr_genloop exited, showing database details\n");
+    //wr_show_database_details(g,NULL,"local g");
+    
 
     if (g->print_flag) { 
       if (res==0) {
@@ -491,6 +467,14 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
       wr_show_stats(g,1);      
       exit(0);
     }     
+    
+    /*
+    printf("\n next clause from db: ");
+    wg_print_record(db,rec);
+    printf("\n");
+    wr_print_clause(g,rec);
+    printf("\n");
+    */
 
 #ifdef DEBUG
     // #define wg_rec_is_rule_clause(db,rec) (*((gint*)(rec)+RECORD_META_POS) & RECORD_META_RULE_CLAUSE)
@@ -503,9 +487,11 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
 #endif
 
     if (wg_rec_is_rule_clause(db,rec)) {
+
       rules_found++;
       clmeta=wr_calc_clause_meta(g,rec,given_cl_metablock);
       wr_add_cl_to_unithash(g,rec,clmeta);
+
 #ifdef DEBUG      
       printf("\n+++++++ nrec is a rule  "); 
       wr_print_rule_clause_otter(g, (gint *) rec,(g->print_clause_detaillevel));
@@ -524,18 +510,26 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
 #endif       
 
       if (g->queryfocus_strat && wr_initial_select_active_cl(g,(gptr)rec)) {
+
+        //printf("\nrule clause selected active: ");
+        //wr_print_clause(g,rec);
+        //printf("\n");
+
+
         given_cl=wr_process_given_cl(g,(gptr)rec, g->given_termbuf);
         if ( ((gint)given_cl==ACONST_FALSE) || ((gint)given_cl==ACONST_TRUE) ||
              (given_cl==NULL) ) {
-          rec = wg_get_next_raw_record(child_db,rec); 
+          //rec = wg_get_next_raw_record(child_db,rec); 
+          cell=cellptr->cdr;   
           continue;
         };
         wr_sort_cl(g,given_cl);
         //given_cl_as_active=wr_add_given_cl_active_list(g,(gptr)rec);
         given_cl_as_active=wr_add_given_cl_active_list
-                             (g,given_cl,given_cl_metablock,0,g->active_termbuf);
+                             (g,given_cl,given_cl_metablock,0,g->active_termbuf);                           
         if (given_cl_as_active==NULL) {
           //if (g->alloc_err) return -1;
+          cell=cellptr->cdr;
           continue; 
         }    
       } else {
@@ -550,6 +544,7 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
       } 
 
     } else if (wg_rec_is_fact_clause(db,rec)) {
+
       facts_found++;
       clmeta=wr_calc_clause_meta(g,rec,given_cl_metablock);
       wr_add_cl_to_unithash(g,rec,clmeta);
@@ -570,7 +565,16 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
       wr_print_termhash(g,rotp(g,g->hash_pos_groundunits));
 #endif      
       
+      //printf("\nfact clause: ");
+      //wr_print_clause(g,rec);
+      //printf("\n");
+
       if (g->queryfocus_strat && wr_initial_select_active_cl(g,(gptr)rec)) {
+
+        //printf("\nfact clause selected active: ");
+        //wr_print_clause(g,rec);
+        //printf("\n");
+
         given_cl=wr_process_given_cl(g,(gptr)rec,g->given_termbuf);
         if ( ((gint)given_cl==ACONST_FALSE) || ((gint)given_cl==ACONST_TRUE) ||
              (given_cl==NULL) ) {
@@ -578,11 +582,12 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
           dp("\n fact clause was simplified while adding to sos, original:\n");
           wr_print_clause(g,(gptr)rec);
           */
-          rec = wg_get_next_raw_record(child_db,rec); 
+          //rec = wg_get_next_raw_record(child_db,rec);
+          cell=cellptr->cdr;    
           continue;
         }
         given_cl_as_active=wr_add_given_cl_active_list
-                            (g,given_cl,given_cl_metablock,1,g->active_termbuf);
+                            (g,given_cl,given_cl_metablock,1,g->active_termbuf);                        
         if (given_cl_as_active==NULL) {
           if (g->alloc_err) return -1;
           //continue; 
@@ -607,6 +612,7 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
 #endif  
     }             
     //for(i=0;i<10;i++) printf(" %d ",(int)((rotp(g,g->clqueue))[i])); printf("\n");
+    //printf("\n cell %ld cellptr->cdr %ld\n",(gint)cell,(gint)(cellptr->cdr));
     cell=cellptr->cdr;    
   }
 #ifdef DEBUG            
