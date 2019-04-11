@@ -3,14 +3,12 @@ gkc
 
 GKC is a reasoning system for large knowledge bases.
 
-For compiled binaries for Linux and Windows, 
-as well as instructions for running gkc and logfiles of
-experimental runs, see the releases v0.1-gamma
-(this is the latest relase) and older v0.1-beta
-and v.0.1-alpha:
+For compiled binaries for Linux and Windows, as well as 
+instructions for running gkc, see the latest release v0.1-delta.
+The logfiles of experimental runs along with the corresponding
+binaries are found in v.0.1-alpha:
 
-* https://github.com/tammet/gkc/releases/tag/v0.1-gamma
-* https://github.com/tammet/gkc/releases/tag/v0.1-beta
+* https://github.com/tammet/gkc/releases/tag/v0.1-delta
 * https://github.com/tammet/gkc/releases/tag/v0.1-alpha
 
 
