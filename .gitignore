@@ -44,7 +44,6 @@ Makefile
 whitedb.pc
 compile
 config.guess
-config.h
 configure
 depcomp
 install-sh
