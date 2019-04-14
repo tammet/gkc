@@ -110,13 +110,13 @@ int wr_analyze_clause(glb* g, gptr cl) {
   gint priority, decprior=0; // name
   //char* namestr;
 
-  /*
+  
   printf("\n wr_analyze_clause \n");
   wr_print_clause(g,cl); 
   printf("\n");
-  wg_print_record(g,cl); 
+  wg_print_record(g->db,cl); 
   printf("\n");
-  */
+  
 
   history=wr_get_history(g,cl);
   if (history) {
@@ -185,7 +185,7 @@ int wr_analyze_clause(glb* g, gptr cl) {
       poseq++;
       uniteq++;
     } 
-    tmp=wr_analyze_term(g,pto(db,cl),0,&size,&maxdepth);
+    tmp=wr_analyze_term(g,pto(db,cl),0,&size,&maxdepth,1);
   } else if (wg_rec_is_rule_clause(db,cl)) {
     //printf("\nrule");
     ruleflag=1;
@@ -206,7 +206,7 @@ int wr_analyze_clause(glb* g, gptr cl) {
           if (len<2) uniteq++;
         }  
       } 
-      tmp=wr_analyze_term(g,atom,0,&size,&maxdepth);
+      tmp=wr_analyze_term(g,atom,0,&size,&maxdepth,!wg_atom_meta_is_neg(db,meta));
       if (!tmp) {
         // something wrong with the atom
         printf("\nError: found an incorrectly encoded clause\n");
@@ -279,21 +279,48 @@ int wr_analyze_clause(glb* g, gptr cl) {
 
 
 
-int wr_analyze_term(glb* g, gint x, int depth, int* size, int* maxdepth) {
+int wr_analyze_term(glb* g, gint x, int depth, int* size, int* maxdepth, int polarity) {
   void* db;
   gptr xptr;
   int i, start, end;  
-  int w;
-    
-  //printf("wr_analyze_term called with x %d type %d depth %d size %d maxdepth %d\n",
-  //       x,wg_get_encoded_type(g->db,x),depth,*size,*maxdepth);
-  //wr_print_term(g,x);
-  //printf("\n");
+  int w, dtype;
+  gint ucount, ucountpos, ucountneg;
 
+  /*  
+  printf("wr_analyze_term called with x %d type %d depth %d size %d maxdepth %d\n",
+         x,wg_get_encoded_type(g->db,x),depth,*size,*maxdepth);
+  wr_print_term(g,x);
+  printf("\n");
+  */
   if (!isdatarec(x)) {
     // now we have a simple value  
     (*size)++;
-    if (!isvar(x)) return 10;
+    if (!isvar(x)) {
+      db=g->db;
+      dtype=wg_get_encoded_type(db,x);
+      
+      if (dtype==WG_URITYPE) {
+        printf("\nuri: ");
+        printf(" %s \n", wg_decode_unistr(db,x,WG_URITYPE));
+        ucount=wg_decode_uri_count(db,x);
+
+        ucountpos=ucount >> URI_COUNT_POSCOUNT_SHIFT;
+        if (ucountpos>30000) ucountpos=30000;
+        ucountneg=ucount & URI_COUNT_NEGCOUNT_MASK;
+        if (ucountneg>10000) ucountneg=10000;
+
+        printf("\npolarity %d nucount %ld ucountpos %ld ucountneg %ld\n",polarity,ucount,ucountpos,ucountneg);
+
+        if (polarity) ucountpos++;
+        else ucountneg++;
+        
+        ucount=ucountpos << URI_COUNT_POSCOUNT_SHIFT;        
+        ucount=ucount | ucountneg;
+        wg_set_uri_count(db,x,ucount);
+      }
+      
+      return 10;
+    }  
     // here x is a var    
     if (VARVAL_DIRECT(x,(g->varbanks))==UNASSIGNED) {
       // a new var 
@@ -319,7 +346,7 @@ int wr_analyze_term(glb* g, gint x, int depth, int* size, int* maxdepth) {
   if (depth>(*maxdepth)) *maxdepth=depth;
   for(i=start;i<end;i++) {
     if (!xptr[i]) return 0; // should not have 0 in args
-    w=w+wr_analyze_term(g,xptr[i],depth,size,maxdepth);      
+    w=w+wr_analyze_term(g,xptr[i],depth,size,maxdepth,polarity);      
   }   
   return 1;
 }  

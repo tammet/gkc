@@ -2382,6 +2382,57 @@ wg_int wg_decode_uri_rmeta(void* db, wg_int data) {
 }
 
 /*
+  set count field to int: will encode int during that
+*/
+
+wg_int wg_set_uri_count(void* db, wg_int data, wg_int count) {
+  gint* objptr;
+  gint* fldptr;
+  //gint fldval;
+
+#ifdef CHECK
+  if (!dbcheck(db)) {
+    show_data_error(db,"wrong database pointer given wg_set_uri_count");
+    return -1;
+  }
+  if (!data) {
+    show_data_error(db,"data given to wg_set_uri_count is 0, not an encoded string");
+    return -1;
+  } 
+#endif
+  objptr = (gint *) offsettoptr(db,decode_longstr_offset(data));
+  fldptr=((gint*)objptr)+LONGSTR_RCOUNT_POS;
+  *fldptr=wg_encode_int(db, count); 
+  return 0;
+}
+
+/*
+  get count field, decoding int stored there
+*/
+
+wg_int wg_decode_uri_count(void* db, wg_int data) {
+  gint* objptr;
+  gint* fldptr;
+  gint fldval;
+
+#ifdef CHECK
+  if (!dbcheck(db)) {
+    show_data_error(db,"wrong database pointer given to wg_decode_uri_count");
+    return -1;
+  }
+  if (!data) {
+    show_data_error(db,"data given to wg_decode_uri_count is 0, not an encoded string");
+    return -1;
+  } 
+#endif
+  objptr = (gint *) offsettoptr(db,decode_longstr_offset(data));
+  fldptr=((gint*)objptr)+LONGSTR_RCOUNT_POS;
+  fldval=*fldptr;
+  return wg_decode_int(db,fldval);
+}
+
+
+/*
   set rhash field to int: will encode int during that
 */
 
@@ -2883,6 +2934,7 @@ static gint find_create_longstr(void* db, char* data, char* extrastr, gint type,
     dbstore(db,offset+LONGSTR_RHASH_POS*sizeof(gint),encode_smallint(rhash)); // encoded 0: no hash yet
     //dbstore(db,offset+LONGSTR_RHASH_POS*sizeof(gint),tmp); // encoded 0: no hash yet
     dbstore(db,offset+LONGSTR_RMETA_POS*sizeof(gint),tmp); // encoded 0: no meta yet
+    dbstore(db,offset+LONGSTR_RCOUNT_POS*sizeof(gint),tmp); // encoded 0: no counts yet
     dbstore(db,offset+LONGSTR_TAXONOMY_POS*sizeof(gint),0); // 0: no taxonomy yet
 #endif    
     // encode

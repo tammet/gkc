@@ -231,6 +231,8 @@ void* wg_rawalloc(void* db, gint wantedbytes);
 
 wg_int wg_set_uri_rmeta(void* db, wg_int data, wg_int meta);
 wg_int wg_decode_uri_rmeta(void* db, wg_int data);
+wg_int wg_set_uri_count(void* db, wg_int data, wg_int count);
+wg_int wg_decode_uri_count(void* db, wg_int data);
 wg_int wg_set_uri_rhash(void* db, wg_int data, wg_int rhash);
 wg_int wg_decode_uri_rhash(void* db, wg_int data);
 
@@ -638,7 +640,7 @@ gint usage from start:
 */
 
 
-#define LONGSTR_HEADER_GINTS 9 /** including obj length gint */
+#define LONGSTR_HEADER_GINTS 10 /** including obj length gint */
 
 #define LONGSTR_META_POS 1 /** metainfo, incl object type (longstr/xmlliteral/uri/blob/datarec etc)
    last byte (low 0) object type (WG_STRTYPE,WG_XMLLITERALTYPE, etc)
@@ -657,7 +659,8 @@ gint usage from start:
 
 #define LONGSTR_RHASH_POS 6 /**  hash used by reasoner:  if 0 not calculated yet */
 #define LONGSTR_RMETA_POS 7 /**  metaflags gint used by reasoner:  if 0 not calculated yet */
-#define LONGSTR_TAXONOMY_POS 8 /**  taxonomy relations pointer used by reasoner: if 0 none available */
+#define LONGSTR_RCOUNT_POS 8 /**  counts gint used by reasoner:  if 0 not calculated yet */
+#define LONGSTR_TAXONOMY_POS 9 /**  taxonomy relations pointer used by reasoner: if 0 none available */
 
 /* --------- error handling ------------ */
 

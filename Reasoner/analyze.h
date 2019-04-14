@@ -36,13 +36,18 @@
 
 /* ==== Global defines ==== */
 
+// fit occurrence counts into one gint
+
+#define URI_COUNT_POSCOUNT_SHIFT 16  // shift decoded val this much to right to get poscount: shift 16 bits
+#define URI_COUNT_POSCOUNT_MASK 0xEFFF<<URI_COUNT_POSCOUNT_SHIF  // mask decoded val with this to get poscont
+#define URI_COUNT_NEGCOUNT_MASK 0x1FFF  // mask decoded val with this to get negcount: 13 last bits ie 5+8 bits
 
 
 /* ==== Protos ==== */
 
 int wr_analyze_clause_list(glb* g, void* db, void* child_db);
 int wr_analyze_clause(glb* g, gptr cl);
-int wr_analyze_term(glb* g, gint x, int depth, int* size, int* maxdepth) ;
+int wr_analyze_term(glb* g, gint x, int depth, int* size, int* maxdepth, int polarity);
 
 void wr_show_in_stats(glb* g);
 
