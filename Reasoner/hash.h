@@ -56,6 +56,10 @@
 
 #define MAXHASHPOS 30
 
+
+#define WR_HASH_ADD(toadd,orig) ((toadd) + ((orig) << 6) + ((orig) << 16) - (orig))
+#define WR_HASH_NORM(tonorm,maxsize) (1+((abs(tonorm)) % ((maxsize)-2)))
+
 /* ==== Protos ==== */
 
 
@@ -65,6 +69,10 @@ int wr_term_hashstore(glb* g, void* hashdata, gint atom, gptr cl);
 gint wr_term_complexhash(glb* g, gint* hasharr, gint hashposbits, gint term);
 gint wr_atom_funhash(glb* g, gint atom);
 gint wr_term_funhash(glb* g, gint term);
+
+int wr_atom_calc_prefhashes(glb* g, gint x, gint* prefhashes);
+int wr_atom_calc_prefhashes_aux(glb* g, gint x, int* preflen, gint* prefhashes);
+
 gint wr_lit_hash(glb* g, gint x);
 gint wr_term_hash(glb* g, gint x);
 gint wr_term_basehash(glb* g, gint enc);

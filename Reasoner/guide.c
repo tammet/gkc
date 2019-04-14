@@ -210,6 +210,9 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr) {
     } else if (!strcmp(key,"equality")) {
       //printf("equality %d\n", json_valueint(elem));
       (g->use_equality_strat)=json_valueint(elem);  
+    } else if (!strcmp(key,"weight_select_ratio")) {
+      //printf("weight_select_ratio %d\n", json_valueint(elem));
+      (g->pick_given_queue_ratio)=json_valueint(elem);          
     } else if (!strcmp(key,"query_preference")) {
       //printf("query_preference %d\n", json_valueint(elem));
       (g->cl_pick_queue_strategy)=json_valueint(elem);

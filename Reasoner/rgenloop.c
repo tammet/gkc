@@ -253,6 +253,10 @@ int wr_genloop(glb* g) {
     }
     // -- check part 2 ends ---
 
+#ifdef RECORD_HISTORY_ORDER
+    wr_set_history_record_given_order(g,
+      rotp(g,wr_get_history(g,given_cl)));  
+#endif    
     if (g->print_final_given_cl) {
       wr_printf("\n*** given %d: ",(g->stat_given_used));
       wr_print_clause(g,given_cl);   
@@ -523,6 +527,7 @@ gptr wr_add_given_cl_active_list(glb* g, gptr given_cl, gptr given_cl_metablock,
   //wr_show_clactivesubsume(g);
 
   //  store neg and pos preds to hash_neg/pos_atoms and store para terms
+  
   wr_cl_store_res_terms(g,active_cl);
   
   if ((g->use_equality) && (g->use_equality_strat)) {   

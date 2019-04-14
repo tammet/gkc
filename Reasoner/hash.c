@@ -257,6 +257,72 @@ gint wr_term_funhash(glb* g, gint term) {
 }
 
 
+int wr_atom_calc_prefhashes(glb* g, gint x, gint* prefhashes) {
+  int preflen=0;
+
+  *prefhashes=(gint)0;
+  (*(prefhashes+1))=(gint)0;
+  (*(prefhashes+2))=(gint)0;
+#ifdef DEBUG
+  printf("\nwr_atom_calc_prefhashes called with ");
+  wg_print_record(g->db,rotp(g,x));
+  printf("\n");
+#endif
+  wr_atom_calc_prefhashes_aux(g,x,&preflen,prefhashes);
+
+  //*prefhashes=*prefhashes+(gint)0;
+  //(*(prefhashes+1))=(*(prefhashes+1))+(gint)1;
+  //(*(prefhashes+2))=(*(prefhashes+2))+(gint)2;
+#ifdef DEBUG
+  printf("\n preflen %d prefhashes %ld %ld %ld\n",
+    preflen,
+    *prefhashes,
+    (*(prefhashes+1)),
+    (*(prefhashes+2)) );
+#endif
+  return preflen;
+}  
+
+
+int wr_atom_calc_prefhashes_aux(glb* g, gint x, int* preflen, gint* prefhashes) {
+  void* db;
+  gptr xptr;
+  int i, start, end;
+  gint hash;
+    
+  //printf("\nwr_atom_calc_prefhashes_aux called with x %ld type %ld\n",x,wg_get_encoded_type(g->db,x));
+
+  if (!isdatarec(x)) {
+    // now we have a simple value      
+    if (isvar(x)) {
+      return 0;    
+    } else {      
+      hash=wr_term_basehash(g,x);
+      // !! needs bitshifting improvement !!
+      (*preflen)++;
+      if (*preflen==1) (*prefhashes)=hash; 
+      else if (*preflen==2) (*(prefhashes+1))=WR_HASH_ADD(hash,(*(prefhashes)));
+      else if (*preflen>=3) {
+        (*(prefhashes+2))=WR_HASH_ADD(hash,(*(prefhashes+1)));
+        return 0;
+      }  
+      //else return 0;
+    } 
+    return 1;  
+  }   
+  // now we have a datarec
+  db=g->db;
+  xptr=decode_record(db,x);
+  start=wr_term_unify_startpos(g);
+  end=wr_term_unify_endpos(g,xptr); 
+  for(i=start;i<end;i++) {
+    if (!wr_atom_calc_prefhashes_aux(g,xptr[i],preflen,prefhashes)) return 0;      
+  }   
+  return 1;
+} 
+
+
+
 /* =====================================================
 
   proper hash funs for atoms and terms
@@ -626,7 +692,7 @@ int wr_clterm_add_hashlist_offset_withpath(glb* g, vec hashvec, gint hash, gint 
   vlen=VEC_LEN(hashvec);  
   if ((hash>=vlen) || (hash<1)) { 
     // err case
-    printf("\nCP1 hash %d vlen %d\n",(int)hash,(int)vlen);
+    printf("\nCP2 hash %d vlen %d\n",(int)hash,(int)vlen);
     if  (hash>=vlen)  {
        printf("\nhash>=vlen hash %d vlen %d\n",(int)hash,(int)vlen);
     }

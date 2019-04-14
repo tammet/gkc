@@ -54,6 +54,27 @@ where
 
 */
 
+#define RECORD_HISTORY_ORDER
+
+#ifdef RECORD_HISTORY_ORDER
+
+#define HISTORY_PRIORITY_POS 0
+#define HISTORY_NAME_POS 1
+#define HISTORY_DERIVED_ORDER_POS 2
+#define HISTORY_GIVEN_ORDER_POS 3
+
+#define HISTORY_PREFIX_LEN 4
+#define HISTORY_DERIVATION_TAG_POS HISTORY_PREFIX_LEN+0
+
+#define HISTORY_PARENT1_POS HISTORY_PREFIX_LEN+1
+#define HISTORY_PARENT2_POS HISTORY_PREFIX_LEN+2
+
+#define HISTORY_PATH_POS HISTORY_PREFIX_LEN+1
+#define HISTORY_PARA_PARENT1_POS HISTORY_PREFIX_LEN+2
+#define HISTORY_PARA_PARENT2_POS HISTORY_PREFIX_LEN+3
+
+#else
+
 #define HISTORY_PRIORITY_POS 0
 #define HISTORY_NAME_POS 1
 
@@ -66,6 +87,9 @@ where
 #define HISTORY_PATH_POS HISTORY_PREFIX_LEN+1
 #define HISTORY_PARA_PARENT1_POS HISTORY_PREFIX_LEN+2
 #define HISTORY_PARA_PARENT2_POS HISTORY_PREFIX_LEN+3
+
+#endif
+
 
 #define WR_HISTORY_TAG_RESOLVE 1
 #define WR_HISTORY_TAG_FACTORIAL 2
@@ -122,6 +146,9 @@ int wr_get_history_pos2(glb* g, gint head);
 
 void wr_set_history(glb* g, gptr clause, gint history);
 gint wr_get_history(glb* g, gptr clause);
+
+void wr_set_history_record_derived_order(glb* g, gptr rec);
+void wr_set_history_record_given_order(glb* g, gptr rec);
 
 void wr_show_history(glb* g, gint history);
 gptr wr_flatten_history(glb* g, void* mpool, gint history, gptr cl, int depth, int* clnr, void **assoc);

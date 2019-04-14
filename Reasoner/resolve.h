@@ -33,6 +33,8 @@
 #include "types.h"
 #include "glb.h"
 
+#define ATOM_PREFHASH_MAXLEN 3
+
 void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active);
 void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active);
 void wr_factor(glb* g, gptr cl, gptr cl_as_active);

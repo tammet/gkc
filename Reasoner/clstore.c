@@ -51,6 +51,8 @@ extern "C" {
 #undef XDEBUG
 //#define DEBUGHASH
 
+//#define SIMPLE_ACTIVE_SEARCH_HASH
+
 /* ====== Private headers ======== */
   
 
@@ -299,7 +301,7 @@ hash adding:
 
 int wr_cl_store_res_terms(glb* g, gptr cl) {    
   void* db=g->db;
-  int i;
+  int i,j;
   int len;      
   int ruleflag; // 0 if not rule
   int posok=1;  // default allow
@@ -315,6 +317,8 @@ int wr_cl_store_res_terms(glb* g, gptr cl) {
   int posadded=0;
   vec hashvec;
   int tmp;
+  int preflen;
+  gint prefhashes[ATOM_PREFHASH_MAXLEN+1];
   
 #ifdef DEBUG
   printf("cl_store_res_terms called on cl: "); 
@@ -370,22 +374,38 @@ int wr_cl_store_res_terms(glb* g, gptr cl) {
       }      
     }
     if (addflag) {
-      hash=wr_atom_funhash(g,atom);
-#ifdef XDEBUG 
-      printf("before adding to hash negflag: %d hash: %d\n",negflag,(int)hash);
-#endif      
-      if (negflag) hashvec=rotp(g,g->hash_neg_atoms);
-      else hashvec=rotp(g,g->hash_pos_atoms);
 #ifdef XDEBUG 
       printf("adding to hash g->hash_pos_atoms or g->hash_neg_atoms in wr_cl_store_res_terms\n");
 #endif       
-      tmp=wr_clterm_add_hashlist(g,hashvec,hash,atom,cl);
+
+#ifdef SIMPLE_ACTIVE_SEARCH_HASH
+      hash=wr_atom_funhash(g,atom);
+      preflen=1;
+#else
+      preflen=wr_atom_calc_prefhashes(g,atom,prefhashes);        
+#endif
+      if (negflag) hashvec=rotp(g,g->hash_neg_atoms);
+      else hashvec=rotp(g,g->hash_pos_atoms);
 #ifdef XDEBUG 
-      printf("adding to hash ended with %d\n",tmp);
+      printf("before adding to hash negflag: %d hash: %d\n",negflag,(int)hash);
+#endif     
+      for(j=0;j<preflen;j++) {
+#ifdef SIMPLE_ACTIVE_SEARCH_HASH
+#else        
+        hash=WR_HASH_NORM(WR_HASH_ADD(preflen-1,prefhashes[j]),NROF_CLTERM_HASHVEC_ELS);
+#endif    
+        //printf("\n storing preflen %d j %d prefhashes[j] %d hash %d \n",preflen,j,prefhashes[j],hash);    
+#ifdef DEBUG        
+        printf("\n storing preflen %d j %d prefhashes[j] %d hash %d \n",preflen,j,prefhashes[j],hash);
+#endif        
+        tmp=wr_clterm_add_hashlist(g,hashvec,hash,atom,cl);  
+#ifdef XDEBUG 
+        printf("adding to hash ended with %d\n",tmp);
 #endif       
-      if (tmp) {
-        wr_sys_exiterr2int(g,"adding term to hashlist in cl_store_res_terms, code ",tmp);
-        return 1;        
+        if (tmp) {
+          wr_sys_exiterr2int(g,"adding term to hashlist in cl_store_res_terms, code ",tmp);
+          return 1;        
+        }  
       }  
 #ifdef DEBUGHASH      
       //printf("\nhash table after adding:");      
@@ -897,7 +917,7 @@ gint wr_create_clpick_queues(glb* g, int count) {
     printf("\n-- queue nr %d ---\n",i);
 #endif    
     queues[i+CLPICK_QUEUE_GIVEN_POS]=2; // 0 contains len and 1 contains next free,  first real is 2
-    queues[i+CLPICK_PRIORQUEUE_RATIO]=4;
+    queues[i+CLPICK_PRIORQUEUE_RATIO]=(g->pick_given_queue_ratio); // 4 is normal
     queues[i+CLPICK_PRIORQUEUE_RATIO_COUNTER]=0;
     if (i==1) {
       // goalassumption
@@ -905,8 +925,8 @@ gint wr_create_clpick_queues(glb* g, int count) {
       else queues[i+CLPICK_THIS_QUEUE_RATIO]=1;
     } else if (i==11) {
       // goal
-      if (g->cl_pick_queue_strategy) queues[i+CLPICK_THIS_QUEUE_RATIO]=4;
-      else queues[i+CLPICK_THIS_QUEUE_RATIO]=1;  // 4
+      if (g->cl_pick_queue_strategy) queues[i+CLPICK_THIS_QUEUE_RATIO]=4; // 4
+      else queues[i+CLPICK_THIS_QUEUE_RATIO]=1;  // 1
     } else if (i==21) {
       // assumption      
       queues[i+CLPICK_THIS_QUEUE_RATIO]=1;  
@@ -977,7 +997,10 @@ void wr_push_cl_clpick_queues(glb* g, gint queues_offset, gptr cl, int weight) {
         decprior=WR_HISTORY_AXIOM_ROLENR;  
       else if (decprior==WR_HISTORY_ASSUMPTION_ROLENR)  
         decprior=WR_HISTORY_AXIOM_ROLENR; // !! had no effect before
-    } 
+    } else if ((g->cl_pick_queue_strategy)==4) {
+      // everything in one, axiom queue, regardless of polarity or role
+      decprior=WR_HISTORY_AXIOM_ROLENR;   
+    }   
 
 #ifdef QADDDEBUG
      printf("\ndecprior changed to %d\n",decprior);
@@ -1072,10 +1095,16 @@ gptr wr_pick_from_clpick_queues(glb* g, gptr queues, gptr given_cl_metablock) {
   int loopflag=0;
 
 #ifdef QPICKDEBUG
+  //int qn=0;
   printf("\n!!!! wr_pick_from_clpick_queues starts with queuenr %d \n",(g->next_pick_given_queue_block_nr));
+  //while(1) {
+  //  blockstart=1+(queuenr*CLPICK_QUEUE_BLOCKGINTS);    
+  //  qn++;
+  //}  
 #endif 
 
-  // wr_print_clpick_queues(g,rotp(g,g->clpick_queues));
+  //wr_print_clpick_queues(g,rotp(g,g->clpick_queues));
+  //wr_print_clpick_queue_sizes(g,rotp(g,g->clpick_queues));
 
   // first try to take from the designated next_pick_given_queue_block_nr
   queuenr=(g->next_pick_given_queue_block_nr);
@@ -1191,7 +1220,7 @@ gptr wr_pick_from_clpick_queues_aux(glb* g, gptr queues, int queuenr, gptr given
 
 #ifdef QPICKDEBUG   
       if (cl!=NULL) {
-        printf("\n\n  picking from priority queue the clause: ");
+        printf("\n\n  picking from queue nr %d priority queue the clause: ",queuenr);
         wr_print_clause(g,cl);
         printf("\n");
         //wr_print_priorqueue(g,queue); 
@@ -1204,7 +1233,7 @@ gptr wr_pick_from_clpick_queues_aux(glb* g, gptr queues, int queuenr, gptr given
         printf("\npicked cl from queue nr %d priority queue",queuenr);
 #endif        
 #ifdef QPICKDEBUG                   
-        printf("\n  priority queue with max priority %d, max used priority %d: \n",
+        printf("\n  priority queue with max priority %d, max used priority %d \n",
                 (int)(queue[PRIORQUEUE_ARR_LEN_POS]-2),
                 (int)(queue[PRIORQUEUE_MAX_USED_PRIOR_POS]));  
 #endif
@@ -1233,6 +1262,7 @@ gptr wr_pick_from_clpick_queues_aux(glb* g, gptr queues, int queuenr, gptr given
       simplequeue_given_pos=queues[i+CLPICK_QUEUE_GIVEN_POS]; // take the next cl from this pos at queue
       next=CVEC_NEXT(simplequeue);
 #ifdef QPICKDEBUG       
+      printf("\n  simplequeue max len %d count %d, elems:\n",(int)(simplequeue[0]),(int)(simplequeue[1]));
       /*
       printf("\n  simplequeue max len %d count %d, elems:\n",(int)(simplequeue[0]),(int)(simplequeue[1]));
       for(j=2;j<simplequeue[0] && j<simplequeue[1];j++) {
@@ -1252,7 +1282,7 @@ gptr wr_pick_from_clpick_queues_aux(glb* g, gptr queues, int queuenr, gptr given
           printf("\npicked cl from queue nr %d simple queue",queuenr);
 #endif           
   #ifdef QPICKDEBUG       
-          printf("\n\n  picking from simple queue the clause: ");
+          printf("\n\n  picking from queue nr %d simple queue the clause: ",queuenr);
           wr_print_clause(g,cl); 
           printf("\n");
           /*
@@ -1376,6 +1406,7 @@ void wr_free_clpick_queues(glb* g, gint* queues) {
   print all queues
 */
 
+
 void wr_print_clpick_queues(glb* g, gint* queues) {
   int i,j;
   gint limit;
@@ -1387,13 +1418,13 @@ void wr_print_clpick_queues(glb* g, gint* queues) {
     printf("\nqueues is NULL\n");
     return;    
   }  
-  /*
-  limit=queues[0];
-  for(i=0; i<limit; i++) {
-    printf("\ni %d queues[i] %d ",i,queues[i]);
-  } 
-  return; 
-  */
+  
+  //limit=queues[0];
+  //for(i=0; i<limit; i++) {
+  //  printf("\ni %d queues[i] %d ",i,queues[i]);
+  //} 
+  //return; 
+  
   printf("\ng->clpick_given: %d",(int)(g->clpick_given));
 
   limit=queues[0];
@@ -1431,6 +1462,156 @@ void wr_print_clpick_queues(glb* g, gint* queues) {
 }
 
 
+
+void wr_print_clpick_queue_sizes(glb* g, gint* queues) {
+  int i;
+  gint limit;
+  gint simplequeue_offset;
+  gptr simplequeue;
+
+  printf("\n*** g->clpick_queues sizes ****\n");
+  if (!queues) {
+    printf("\nqueues is NULL\n");
+    return;    
+  }  
+  
+  //limit=queues[0];
+  //for(i=0; i<limit; i++) {
+  //  printf("\ni %d queues[i] %d ",i,queues[i]);
+  //} 
+  //return; 
+  
+  printf("\ng->clpick_given: %d",(int)(g->clpick_given));
+
+  limit=queues[0];
+  printf("\ng->clpick_given vec len (el 0): %d",(int)limit);
+  printf("\nNROF_CLPICK_QUEUES: %d",NROF_CLPICK_QUEUES);
+  // do big block-size steps over array
+  for(i=1; i<limit && i<(NROF_CLPICK_QUEUES*CLPICK_QUEUE_BLOCKGINTS); i=i+CLPICK_QUEUE_BLOCKGINTS) {
+    printf("\n-- queue nr %d ---\n",i);
+    printf("\nCLPICK_QUEUE_GIVEN_POS: %d",(int)(queues[i+CLPICK_QUEUE_GIVEN_POS]));
+    printf("\nCLPICK_PRIORQUEUE_RATIO: %d",(int)(queues[i+CLPICK_PRIORQUEUE_RATIO]));
+    printf("\nCLPICK_PRIORQUEUE_RATIO_COUNTER: %d",(int)(queues[i+CLPICK_PRIORQUEUE_RATIO_COUNTER]));
+    printf("\nCLPICK_THIS_QUEUE_RATIO: %d",(int)(queues[i+CLPICK_THIS_QUEUE_RATIO]));
+    printf("\nCLPICK_THIS_QUEUE_RATIO_COUNTER: %d",(int)(queues[i+CLPICK_THIS_QUEUE_RATIO_COUNTER]));
+
+    if (queues[i+CLPICK_QUEUE_POS]!=0) {
+
+      simplequeue_offset=queues[i+CLPICK_QUEUE_POS];
+      simplequeue=rotp(g,simplequeue_offset);
+      //printf("\nlen of queue: %d",(int)(rotp(g,queues[i+CLPICK_QUEUE_POS])[0])); 
+      printf("\nsimplequeue max len %d count %d\n",(int)(simplequeue[0]),(int)(simplequeue[1]));
+
+      //for(j=2;j<simplequeue[0] && j<simplequeue[1];j++) {
+      //  printf("\n %d: ",j);
+      //  wr_print_clause(g,(gptr)(simplequeue[j]));        
+      //} 
+
+    } else {
+      printf("\nsimplequeue is 0");  
+    }
+    if (queues[i+CLPICK_PRIORQUEUE_POS]!=0) {
+      wr_print_priorqueue_sizes(g,rotp(g,queues[i+CLPICK_PRIORQUEUE_POS]));
+    } else {
+      printf("\npriorqueue is 0");    
+    }  
+  }    
+   printf("\n* g->clpick_queues content ends *\n");
+}
+
+/*
+void OLD___wr_print_clpick_queue_sizes(glb* g, gint* queues) {
+  int i; //,j;
+  gint limit;
+  gint simplequeue_offset;
+  gptr simplequeue;
+  int prior,max_used_prior,elstart;
+  gint* queue;
+
+  printf("\n*** g->clpick_queues sizes ****\n");
+  if (!queues) {
+    printf("\nqueues is NULL\n");
+    return;    
+  }  
+  
+  //limit=queues[0];
+  //for(i=0; i<limit; i++) {
+  //  printf("\ni %d queues[i] %d ",i,queues[i]);
+  //} 
+  //return; 
+  
+  printf("\ng->clpick_given: %d",(int)(g->clpick_given));
+
+  limit=queues[0];
+  printf("\ng->clpick_given vec len (el 0): %d",(int)limit);
+  printf("\nNROF_CLPICK_QUEUES: %d",NROF_CLPICK_QUEUES);
+  // do big block-size steps over array
+  for(i=1; i<limit && i<(NROF_CLPICK_QUEUES*CLPICK_QUEUE_BLOCKGINTS); i=i+CLPICK_QUEUE_BLOCKGINTS) {
+    printf("\n-- queue nr %d ---\n",i);
+    printf("\nCLPICK_QUEUE_GIVEN_POS: %d",(int)(queues[i+CLPICK_QUEUE_GIVEN_POS]));
+    printf("\nCLPICK_PRIORQUEUE_RATIO: %d",(int)(queues[i+CLPICK_PRIORQUEUE_RATIO]));
+    printf("\nCLPICK_PRIORQUEUE_RATIO_COUNTER: %d",(int)(queues[i+CLPICK_PRIORQUEUE_RATIO_COUNTER]));
+    printf("\nCLPICK_THIS_QUEUE_RATIO: %d",(int)(queues[i+CLPICK_THIS_QUEUE_RATIO]));
+    printf("\nCLPICK_THIS_QUEUE_RATIO_COUNTER: %d",(int)(queues[i+CLPICK_THIS_QUEUE_RATIO_COUNTER]));
+
+    if (queues[i+CLPICK_QUEUE_POS]!=0) {
+
+      simplequeue_offset=queues[i+CLPICK_QUEUE_POS];
+      simplequeue=rotp(g,simplequeue_offset);
+      //printf("\nlen of queue: %d",(int)(rotp(g,queues[i+CLPICK_QUEUE_POS])[0])); 
+      printf("\nsimplequeue max len %d count %d, elems:\n",(int)(simplequeue[0]),(int)(simplequeue[1]));
+      
+      //for(j=2;j<simplequeue[0] && j<simplequeue[1];j++) {
+      //  printf("\n %d: ",j);
+      //  wr_print_clause(g,(gptr)(simplequeue[j]));        
+      //} 
+      
+    } else {
+      printf("\nsimplequeue is 0");  
+    }
+    if (queues[i+CLPICK_PRIORQUEUE_POS]!=0) {
+      queue=rotp(g,queues[i+CLPICK_PRIORQUEUE_POS]);
+      max_used_prior=queue[PRIORQUEUE_MAX_USED_PRIOR_POS];
+      printf("\n");
+      printf("priority queue with max priority %d, max used priority %d: \n",
+        (int)(queue[PRIORQUEUE_ARR_LEN_POS]-2),
+        max_used_prior
+      );  
+
+      for(prior=0;prior<=max_used_prior;prior++) {  
+        queue=rotp(g,queues[i+CLPICK_PRIORQUEUE_POS]);
+        elstart=(prior+1)*PRIORQUEUE_NODE_GINT_NR; // each prior has a block of N gints    
+        if (queue[elstart+PRIORQUEUE_ARR_OFFSET_POS]) {
+          printf("clauses with priority %d bucket size %d next free %d next pick %d\n",
+            prior,
+            (int)(queue[elstart+PRIORQUEUE_ARR_LEN_POS]),
+            (int)(queue[elstart+PRIORQUEUE_NEXT_FREE_INDEX_POS]),
+            (int)(queue[elstart+PRIORQUEUE_NEXT_PICK_INDEX_POS])
+          );
+          
+          //bucket=rotp(g,queue[elstart+PRIORQUEUE_ARR_OFFSET_POS]);      
+          //for(i=0;i<queue[elstart+PRIORQUEUE_NEXT_FREE_INDEX_POS];i++) {
+          //  cl=rotp(g,bucket[i]);
+          //  if (i==queue[elstart+PRIORQUEUE_NEXT_PICK_INDEX_POS]) {
+          //    printf("%d [pick] ",i);
+          //  } else {
+          //    printf("%d: ",i);
+          //  }
+          //  wr_print_clause(g,cl);
+          //  printf("\n");
+          //}
+          
+        }
+      }
+
+      wr_print_priorqueue(g,rotp(g,queues[i+CLPICK_PRIORQUEUE_POS]));
+    } else {
+      printf("\npriorqueue is 0");    
+    }  
+  }    
+  printf("\n* g->clpick_queues content ends *\n");
+}
+*/
 
 /* =====================================================
 
@@ -1654,6 +1835,47 @@ void wr_print_priorqueue(glb* g, gint* queue) {
         wr_print_clause(g,cl);
         printf("\n");
       }
+    }
+  }
+}
+
+
+
+void wr_print_priorqueue_sizes(glb* g, gint* queue) {
+  int max_used_prior;
+  int elstart; // start of a bucket el in the queue 
+  gint* bucket;
+  gint* cl;
+  int prior,i;
+  
+  max_used_prior=queue[PRIORQUEUE_MAX_USED_PRIOR_POS];
+  printf("\n");
+  printf("priority queue with max priority %d, max used priority %d: \n",
+    (int)(queue[PRIORQUEUE_ARR_LEN_POS]-2),
+    max_used_prior
+  );  
+  for(prior=0;prior<=max_used_prior;prior++) {  
+    elstart=(prior+1)*PRIORQUEUE_NODE_GINT_NR; // each prior has a block of N gints    
+    if (queue[elstart+PRIORQUEUE_ARR_OFFSET_POS]) {
+      printf("clauses with priority %d bucket size %d next free %d next pick %d\n",
+        prior,
+        (int)(queue[elstart+PRIORQUEUE_ARR_LEN_POS]),
+        (int)(queue[elstart+PRIORQUEUE_NEXT_FREE_INDEX_POS]),
+        (int)(queue[elstart+PRIORQUEUE_NEXT_PICK_INDEX_POS])
+      );
+      
+      bucket=rotp(g,queue[elstart+PRIORQUEUE_ARR_OFFSET_POS]);      
+      for(i=0;i<queue[elstart+PRIORQUEUE_NEXT_FREE_INDEX_POS] && i<2;i++) {
+        cl=rotp(g,bucket[i]);
+        if (i==queue[elstart+PRIORQUEUE_NEXT_PICK_INDEX_POS]) {
+          printf("%d [pick] ",i);
+        } else {
+          printf("%d: ",i);
+        }
+        wr_print_clause(g,cl);
+        printf("\n");
+      }
+      
     }
   }
 }

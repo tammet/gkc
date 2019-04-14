@@ -63,6 +63,8 @@ extern "C" {
 //#define USE_RES_TERMS // loop over active clauses in wr_resolve_binary_all_active
 
 
+//#define SIMPLE_ACTIVE_SEARCH_HASH
+
 /* ======= Private protos ================ */
 
 
@@ -94,6 +96,8 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active) {
   int dbused;
   int negadded=0;
   int posadded=0;
+  int preflen, plen;
+  gint prefhashes[ATOM_PREFHASH_MAXLEN+1];
   
  
 #ifdef DEBUG
@@ -127,6 +131,7 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active) {
       wr_print_record(g,wg_decode_record(db,xatom));
 #endif      
       hash=wr_atom_funhash(g,xatom);
+      preflen=wr_atom_calc_prefhashes(g,xatom,prefhashes);
       //printf("hash %d: \n",hash);
       addflag=1;
     } else {       
@@ -145,7 +150,12 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active) {
         wr_print_record(g,wg_decode_record(db,xatom));
         printf("negflag %d\n",negflag);             
 #endif                 
+
+#ifdef SIMPLE_ACTIVE_SEARCH_HASH
         hash=wr_atom_funhash(g,xatom);
+#else        
+        preflen=wr_atom_calc_prefhashes(g,xatom,prefhashes);
+#endif        
         //printf("hash %d\n",hash);
         addflag=1;
       }     
@@ -164,11 +174,13 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active) {
         if (dbused==0) {
           if (negflag) hashvec=rotp(g,g->hash_pos_atoms);
           else hashvec=rotp(g,g->hash_neg_atoms);   
+          //printf("\n**** in wr_resolve_binary_all_active dbused %d hashvec is *****\n",dbused);
 #ifdef DEBUG
           printf("\n**** in wr_resolve_binary_all_active dbused %d hashvec is *****\n",dbused);
           wr_clterm_hashlist_print(g,hashvec);
 #endif
         } else {
+          //printf("\n**** in wr_resolve_binary_all_active dbused %d hashvec is *****\n",dbused);
 #ifdef DEBUG
           printf("\n**** in wr_resolve_binary_all_active dbused %d hashvec is *****\n",dbused);
           //wr_clterm_hashlist_print(g,hashvec);
@@ -180,8 +192,11 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active) {
 #ifdef DEBUG            
             wr_clterm_hashlist_print(g,hashvec);            
 #endif            
-          }        
-        }
+          } else {
+            // no external database
+            break;
+          }       
+        }         
 
   #ifndef QUIET      
         printf("\n----- inner wr_genloop cycle (active hash list) starts ----------\n"); 
@@ -189,121 +204,169 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active) {
         printf("\nhash %ld\n",hash);
   #endif             
         
-        //wr_clterm_hashlist_print(g,hashvec);       
-        hlen=wr_clterm_hashlist_len(g,hashvec,hash);
-        if (hlen==0) {
-  #ifdef DEBUG        
-          printf("no matching atoms in hash\n");
-  #endif        
-          continue;
-        }     
-        node=wr_clterm_hashlist_start(g,hashvec,hash);
-        if (!node)  {
-          wr_sys_exiterr(g,"apparently wrong hash given to wr_clterm_hashlist_start");
-          return;
-        }      
-        while(node!=0) {    
-          yatom=(otp(db,node))[CLTERM_HASHNODE_TERM_POS];
-          ycl=otp(db,(otp(db,node))[CLTERM_HASHNODE_CL_POS]);
-          /*
-          printf("after while(node!=0): \n");
-          printf("ycl: \n");
-          wr_print_clause(g,ycl);                   
-          printf("xcl: \n");
-          wr_print_clause(g,xcl);
-          printf("xatom: \n");
-          wr_print_clause(g,xatom);
-          */
-          if ((g->back_subsume) && wr_blocked_clause(g,ycl)) {
-            /*
-            printf("\nCP1 blocked clause: \n");          
-            wr_print_clause(g,ycl);
-            printf("\n");
-            */
-            node=wr_clterm_hashlist_next(g,hashvec,node);
-            continue;
+        // now loop over different hash preflens of the given atom
+
+#ifdef SIMPLE_ACTIVE_SEARCH_HASH
+        for(plen=0;plen<1;plen++) {          
+#else        
+        for(plen=0;plen<ATOM_PREFHASH_MAXLEN;plen++) {   
+          if (preflen==1) {
+            //p(X,Z):
+            //p with fullpreflen 1
+            //p with fullpreflen 2
+            //p with fullpreflen 3
+            //hash=prefhashes[0]+plen;
+            hash=WR_HASH_NORM(WR_HASH_ADD(plen,prefhashes[0]),NROF_CLTERM_HASHVEC_ELS);
+          } else if (preflen==2) {
+            //p(a,Z):
+            //p with fullpreflen 1
+            //p,a with fullpreflen 2
+            //p,a with fullpreflen 3  
+            if (plen==0) // hash=prefhashes[0]+plen;
+              hash=WR_HASH_NORM(WR_HASH_ADD(plen,prefhashes[0]),NROF_CLTERM_HASHVEC_ELS);
+            else // hash=prefhashes[1]+plen;
+              hash=WR_HASH_NORM(WR_HASH_ADD(plen,prefhashes[1]),NROF_CLTERM_HASHVEC_ELS);
+          } else {
+            // preflen 3
+            //p(a,b):  
+            //p with fullpreflen 1
+            //p,a with fullpreflen 2
+            //p,a,b with fullpreflen 3
+            //hash=prefhashes[plen]+plen;
+            hash=WR_HASH_NORM(WR_HASH_ADD(plen,prefhashes[plen]),NROF_CLTERM_HASHVEC_ELS);
           }
-          if (g->print_active_cl) {
-            printf("\n* active: ");
-            wr_print_clause(g,ycl); 
-            //printf("\n");
-          }  
+#endif                      
+#ifdef DEBUG
+          printf("\n looking for hash %ld for plen %d preflen %d\n",hash,plen,preflen);
+#endif
           /*
-          printf("\n* active: ");
-          wr_print_clause(g,ycl);    
+          if (preflen==ATOM_PREFHASH_MAXLEN-1) {
+            // plen==2
+            hash=prefhashes[plen]+plen;
+          } else if (preflen==ATOM_PREFHASH_MAXLEN-2) {
+            // plen==1
+            hash=prefhashes[plen]+plen;
+          } else {
+            // plen==0
+          }  
           */
-          
-          if ((g->res_shortarglen_limit) && (nonanslen>(g->res_shortarglen_limit))) {
-            // must check that ycl is unit
-            if (wr_count_cl_nonans_atoms(g,ycl) > (g->res_shortarglen_limit)) {
-              // cannot use: continue loop
+
+          //wr_clterm_hashlist_print(g,hashvec);       
+          hlen=wr_clterm_hashlist_len(g,hashvec,hash);
+          if (hlen==0) {
+    #ifdef DEBUG        
+            printf("no matching atoms in hash\n");
+    #endif        
+            continue;
+          }     
+          node=wr_clterm_hashlist_start(g,hashvec,hash);
+          if (!node)  {
+            wr_sys_exiterr(g,"apparently wrong hash given to wr_clterm_hashlist_start");
+            return;
+          }      
+          while(node!=0) {    
+            yatom=(otp(db,node))[CLTERM_HASHNODE_TERM_POS];
+            ycl=otp(db,(otp(db,node))[CLTERM_HASHNODE_CL_POS]);
+            /*
+            printf("after while(node!=0): \n");
+            printf("ycl: \n");
+            wr_print_clause(g,ycl);                   
+            printf("xcl: \n");
+            wr_print_clause(g,xcl);
+            printf("xatom: \n");
+            wr_print_clause(g,xatom);
+            */
+            if ((g->back_subsume) && wr_blocked_clause(g,ycl)) {
+              /*
+              printf("\nCP1 blocked clause: \n");          
+              wr_print_clause(g,ycl);
+              printf("\n");
+              */
               node=wr_clterm_hashlist_next(g,hashvec,node);
               continue;
+            }
+            if (g->print_active_cl) {
+              printf("\n* active: ");
+              wr_print_clause(g,ycl); 
+              //printf("\n");
             }  
-          }
-          
-  #ifdef DEBUG        
-          printf("\nxatom ");
-          wr_print_term(g,xatom);
-          printf(" in xcl ");
-          wr_print_clause(g,xcl);
-          printf("yatom ");
-          wr_print_term(g,yatom);
-          printf(" in ycl ");
-          wr_print_clause(g,ycl);
-          //wg_print_record(db,ycl);
-          //printf("calling equality check\n");
-          wr_print_vardata(g);
-  #endif          
-          //printf("!!!!!!!!!!!!!!!!!!!!! before unification\n");
-          //wr_print_vardata(g); 
-          //printf("CLEAR\n");
-          //wr_clear_varstack(g,g->varstack);           
-          //wr_print_vardata(g); 
-          //printf("START UNIFICATION\n");
-          
-          ures=wr_unify_term(g,xatom,yatom,1); // uniquestrflag=1
-  #ifdef DEBUG        
-          printf("unification check res: %d\n",ures);
-  #endif        
-          //wr_print_vardata(g);
-          //wr_print_vardata(g);
-          //wr_clear_varstack(g,g->varstack);
-          //wr_print_vardata(g);
-          if (ures) {
-            // build and process the new clause
-  #ifdef DEBUG         
-            printf("\nin wr_resolve_binary_all_active to call wr_process_resolve_result\n");
-  #endif           
-            wr_process_resolve_result(g,xatom,xcl,yatom,ycl,cl_as_active); 
-  #ifdef DEBUG           
-            printf("\nin wr_resolve_binary_all_active after wr_process_resolve_result\n");
-            printf("\nxatom\n");
+            /*
+            printf("\n* active: ");
+            wr_print_clause(g,ycl);    
+            */
+            
+            if ((g->res_shortarglen_limit) && (nonanslen>(g->res_shortarglen_limit))) {
+              // must check that ycl is unit
+              if (wr_count_cl_nonans_atoms(g,ycl) > (g->res_shortarglen_limit)) {
+                // cannot use: continue loop
+                node=wr_clterm_hashlist_next(g,hashvec,node);
+                continue;
+              }  
+            }
+            
+    #ifdef DEBUG        
+            printf("\nxatom ");
             wr_print_term(g,xatom);
-            printf("\nyatom\n");
+            printf(" in xcl ");
+            wr_print_clause(g,xcl);
+            printf("yatom ");
             wr_print_term(g,yatom);
-            printf("!!!!! wr_resolve_binary_all_active after  wr_process_resolve_result queue is\n");
+            printf(" in ycl ");
+            wr_print_clause(g,ycl);
+            //wg_print_record(db,ycl);
+            //printf("calling equality check\n");
+            wr_print_vardata(g);
+    #endif          
+            //printf("!!!!!!!!!!!!!!!!!!!!! before unification\n");
+            //wr_print_vardata(g); 
+            //printf("CLEAR\n");
+            //wr_clear_varstack(g,g->varstack);           
+            //wr_print_vardata(g); 
+            //printf("START UNIFICATION\n");
+            
+            ures=wr_unify_term(g,xatom,yatom,1); // uniquestrflag=1
+    #ifdef DEBUG        
+            printf("unification check res: %d\n",ures);
+    #endif        
+            //wr_print_vardata(g);
+            //wr_print_vardata(g);
+            //wr_clear_varstack(g,g->varstack);
+            //wr_print_vardata(g);
+            if (ures) {
+              // build and process the new clause
+    #ifdef DEBUG         
+              printf("\nin wr_resolve_binary_all_active to call wr_process_resolve_result\n");
+    #endif           
+              wr_process_resolve_result(g,xatom,xcl,yatom,ycl,cl_as_active); 
+    #ifdef DEBUG           
+              printf("\nin wr_resolve_binary_all_active after wr_process_resolve_result\n");
+              printf("\nxatom\n");
+              wr_print_term(g,xatom);
+              printf("\nyatom\n");
+              wr_print_term(g,yatom);
+              printf("!!!!! wr_resolve_binary_all_active after  wr_process_resolve_result queue is\n");
+              wr_show_clqueue(g);
+              printf("\nqueue ended\n");
+    #endif             
+              if (g->proof_found || g->alloc_err) {
+                wr_clear_varstack(g,g->varstack);          
+                return;          
+              }  
+            }
+    #ifdef DEBUG
+            printf("wr_resolve_binary_all_active before wr_clear_varstack queue is\n");
             wr_show_clqueue(g);
             printf("\nqueue ended\n");
-  #endif             
-            if (g->proof_found || g->alloc_err) {
-              wr_clear_varstack(g,g->varstack);          
-              return;          
-            }  
-          }
-  #ifdef DEBUG
-          printf("wr_resolve_binary_all_active before wr_clear_varstack queue is\n");
-          wr_show_clqueue(g);
-          printf("\nqueue ended\n");
-  #endif         
-          wr_clear_varstack(g,g->varstack);              
-          //wr_print_vardata(g);
-          // get next node;
-          node=wr_clterm_hashlist_next(g,hashvec,node);       
-        } /* over one single hash vector */
-  #ifdef DEBUG      
-        printf("\nexiting node loop\n");      
-  #endif      
+    #endif         
+            wr_clear_varstack(g,g->varstack);              
+            //wr_print_vardata(g);
+            // get next node;
+            node=wr_clterm_hashlist_next(g,hashvec,node);               
+          } /* over one single hash vector */
+    #ifdef DEBUG      
+          printf("\nexiting node loop\n");      
+    #endif      
+        } /* over different preflens of the given atom */
       } /* over local and external db hash vectors */
     }  
   }         

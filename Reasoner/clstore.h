@@ -143,11 +143,13 @@ int wr_cl_ismarked_given(glb* g, gptr cl);
 void wr_cl_mark_given(glb* g, gptr cl);
 void wr_free_clpick_queues(glb* g, gint* queue);
 void wr_print_clpick_queues(glb* g, gint* queues);
+void wr_print_clpick_queue_sizes(glb* g, gint* queues);
 
 gint* wr_make_priorqueue(glb* g, int maxprior);
 gint* wr_push_priorqueue(glb* g, gint* queue, gptr cl, int prior);
 gint* wr_pick_priorqueue(glb* g, gint* queue);
 void wr_free_priorqueue(glb* g, gint* queue);
 void wr_print_priorqueue(glb* g, gint* queue);
+void wr_print_priorqueue_sizes(glb* g, gint* queue);
 
 #endif

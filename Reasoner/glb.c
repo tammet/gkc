@@ -137,8 +137,8 @@ int wr_glb_init_simple(glb* g) {
   /* strategy selection */    
 
   (g->hyperres_strat)=0;
-  (g->pick_given_queue_ratio)=4;
-  (g->pick_given_queue_ratio_counter)=0;
+  (g->pick_given_queue_ratio)=4;         // this is used for all queues to diff btw priority and simple
+  (g->pick_given_queue_ratio_counter)=0; // this is not used for queues
   (g->next_pick_given_queue_block_nr)=0;
 
   (g->cl_depth_penalty)=0;
