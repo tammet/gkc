@@ -61,7 +61,7 @@ int wr_analyze_clause_list(glb* g, void* db, void* child_db) {
   gint cell;
   gcell *cellptr;
   gptr rec;
-  int n=0, tmp;
+  int n=0, tmp, haveextdb=0;
 
   // loop over clauses
   //cell=(dbmemsegh(db)->clauselist);
@@ -69,6 +69,8 @@ int wr_analyze_clause_list(glb* g, void* db, void* child_db) {
   //(g->varstack)=wr_cvec_new(g,NROF_VARBANKS*NROF_VARSINBANK); 
   //(g->varstack)[1]=2; // first free elem
 
+  if (db!=child_db) haveextdb=1;
+  else haveextdb=0;
   wr_clear_all_varbanks(g);
 
   cell=(dbmemsegh(child_db)->clauselist);
@@ -78,8 +80,8 @@ int wr_analyze_clause_list(glb* g, void* db, void* child_db) {
     
     //printf("\n\n*** rec nr %d\n",n);
     //wg_print_record(db,rec);
-
-    tmp=wr_analyze_clause(g,rec);
+    
+    tmp=wr_analyze_clause(g,rec,haveextdb);
     if (!tmp) {
       // something wrong with the clause
       wr_clear_all_varbanks(g);
@@ -94,7 +96,7 @@ int wr_analyze_clause_list(glb* g, void* db, void* child_db) {
   return 1;  
 }
 
-int wr_analyze_clause(glb* g, gptr cl) {
+int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
   void* db=g->db;
   gint history;
   gptr historyptr;
@@ -110,13 +112,13 @@ int wr_analyze_clause(glb* g, gptr cl) {
   gint priority, decprior=0; // name
   //char* namestr;
 
-  
+  /*  
   printf("\n wr_analyze_clause \n");
   wr_print_clause(g,cl); 
   printf("\n");
   wg_print_record(g->db,cl); 
   printf("\n");
-  
+  */
 
   history=wr_get_history(g,cl);
   if (history) {
@@ -185,7 +187,7 @@ int wr_analyze_clause(glb* g, gptr cl) {
       poseq++;
       uniteq++;
     } 
-    tmp=wr_analyze_term(g,pto(db,cl),0,&size,&maxdepth,1);
+    tmp=wr_analyze_term(g,pto(db,cl),0,&size,&maxdepth,1,haveextdb);
   } else if (wg_rec_is_rule_clause(db,cl)) {
     //printf("\nrule");
     ruleflag=1;
@@ -206,7 +208,8 @@ int wr_analyze_clause(glb* g, gptr cl) {
           if (len<2) uniteq++;
         }  
       } 
-      tmp=wr_analyze_term(g,atom,0,&size,&maxdepth,!wg_atom_meta_is_neg(db,meta));
+      tmp=wr_analyze_term(g,atom,0,
+            &size,&maxdepth,!wg_atom_meta_is_neg(db,meta),haveextdb);
       if (!tmp) {
         // something wrong with the atom
         printf("\nError: found an incorrectly encoded clause\n");
@@ -279,7 +282,8 @@ int wr_analyze_clause(glb* g, gptr cl) {
 
 
 
-int wr_analyze_term(glb* g, gint x, int depth, int* size, int* maxdepth, int polarity) {
+int wr_analyze_term(glb* g, gint x, 
+      int depth, int* size, int* maxdepth, int polarity, int haveextdb) {
   void* db;
   gptr xptr;
   int i, start, end;  
@@ -299,21 +303,22 @@ int wr_analyze_term(glb* g, gint x, int depth, int* size, int* maxdepth, int pol
       db=g->db;
       dtype=wg_get_encoded_type(db,x);
       
-      if (dtype==WG_URITYPE) {
+      if (dtype==WG_URITYPE && !haveextdb) {        
         printf("\nuri: ");
         printf(" %s \n", wg_decode_unistr(db,x,WG_URITYPE));
         ucount=wg_decode_uri_count(db,x);
-
-        ucountpos=ucount >> URI_COUNT_POSCOUNT_SHIFT;
-        if (ucountpos>30000) ucountpos=30000;
-        ucountneg=ucount & URI_COUNT_NEGCOUNT_MASK;
-        if (ucountneg>10000) ucountneg=10000;
+        ucountpos=ucount >> URI_COUNT_POSCOUNT_SHIFT;        
+        ucountneg=ucount & URI_COUNT_NEGCOUNT_MASK;        
 
         printf("\npolarity %d nucount %ld ucountpos %ld ucountneg %ld\n",polarity,ucount,ucountpos,ucountneg);
 
-        if (polarity) ucountpos++;
-        else ucountneg++;
-        
+        if (polarity) {
+          ucountpos++;
+          if (ucountpos>(1<<URI_COUNT_POSCOUNT_SHIFT)) ucountpos=(1<<URI_COUNT_POSCOUNT_SHIFT);
+        } else {
+          ucountneg++;
+          if (ucountneg>URI_COUNT_NEGCOUNT_MASK) ucountneg=URI_COUNT_NEGCOUNT_MASK;
+        }                  
         ucount=ucountpos << URI_COUNT_POSCOUNT_SHIFT;        
         ucount=ucount | ucountneg;
         wg_set_uri_count(db,x,ucount);
@@ -346,7 +351,7 @@ int wr_analyze_term(glb* g, gint x, int depth, int* size, int* maxdepth, int pol
   if (depth>(*maxdepth)) *maxdepth=depth;
   for(i=start;i<end;i++) {
     if (!xptr[i]) return 0; // should not have 0 in args
-    w=w+wr_analyze_term(g,xptr[i],depth,size,maxdepth,polarity);      
+    w=w+wr_analyze_term(g,xptr[i],depth,size,maxdepth,polarity,haveextdb);      
   }   
   return 1;
 }  

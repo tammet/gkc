@@ -205,12 +205,13 @@ void wr_set_stratlimits_cl(glb* g, gptr cl, int ruleflag, int len, int* posok, i
   anscount=0; // count all ans (assume non-neg)
   for(i=0; i<len; i++) {          
     meta=wg_get_rule_clause_atom_meta(db,cl,i);
+    atom=wg_get_rule_clause_atom(db,cl,i);
     if (wg_atom_meta_is_neg(db,meta)) negcount++;
-    else {
-      atom=wg_get_rule_clause_atom(db,cl,i);
+    else {      
       if (wr_answer_lit(g,atom)) anscount++; 
       else poscount++;
-    } 
+    }
+    wr_calc_atom_hardness(g,meta,atom);
   }
   *nonanslen=len-anscount;
   // prohibit pos or neg       
@@ -382,6 +383,94 @@ int recalc_cl_priority(g,gptr cl, int decprior) {
         decprior=WR_HISTORY_AXIOM_ROLENR; // !! had no effect before
     } 
 */
+
+
+/*
+
+ hardness 
+
+*/
+
+int wr_calc_atom_hardness(glb* g, gint meta, gint atom) {
+  void* db=g->db;
+  int size=0, maxdepth=0, polarity=0;
+
+  printf("\n wr_calc_atom_hardness for ");
+  wr_print_atom_otter(g,atom,1);
+  printf("\n");
+  
+  wr_calc_atom_hardness_aux(g,atom,&size,&maxdepth,
+    !wg_atom_meta_is_neg(db,meta)polarity,0);
+  return 1;
+}
+
+int wr_calc_atom_hardness_aux(glb* g, gint x, 
+      int depth, int* size, int* maxdepth, int polarity, int haveextdb) {
+  void* db;
+  gptr xptr;
+  int i, start, end;  
+  int w, dtype;
+  gint ucount, ucountpos, ucountneg;
+
+   
+  printf("wr_calc_atom_hardness_aux called with x %d type %d depth %d size %d maxdepth %d\n",
+         x,wg_get_encoded_type(g->db,x),depth,*size,*maxdepth);
+  wr_print_term(g,x);
+  printf("\n");
+  
+  if (!isdatarec(x)) {
+    // now we have a simple value  
+    (*size)++;
+    if (!isvar(x)) {
+      db=g->db;
+      dtype=wg_get_encoded_type(db,x);
+      
+      if (dtype==WG_URITYPE && !haveextdb) {        
+        printf("\nuri: ");
+        printf(" %s \n", wg_decode_unistr(db,x,WG_URITYPE));
+        ucount=wg_decode_uri_count(db,x);
+
+        ucountpos=ucount >> URI_COUNT_POSCOUNT_SHIFT;
+        if (ucountpos>30000) ucountpos=30000;
+        ucountneg=ucount & URI_COUNT_NEGCOUNT_MASK;
+        if (ucountneg>10000) ucountneg=10000;
+
+        printf("\npolarity %d nucount %ld ucountpos %ld ucountneg %ld\n",polarity,ucount,ucountpos,ucountneg);
+
+      }
+      
+      return 10;
+    }  
+    // here x is a var    
+    if (VARVAL_DIRECT(x,(g->varbanks))==UNASSIGNED) {
+      // a new var 
+      //printf("\n a new var %ld where *(g->tmp_unify_vc) %ld\n",x,*(g->tmp_unify_vc));
+      SETVAR(x,encode_smallint(1),g->varbanks,g->varstack,g->tmp_unify_vc);
+      //printf("\n after setvar *(g->tmp_unify_vc) %ld\n",*(g->tmp_unify_vc));
+      //printf("\n new var\n");
+      return 1;
+    } else {
+      // a var seen before
+      //printf("\n old var\n");
+      //printf("\n an old var %ld\n",x);
+      return 2;
+    }       
+  }   
+  // now we have a datarec
+  db=g->db;
+  xptr=decode_record(db,x);
+  start=wr_term_unify_startpos(g);
+  end=wr_term_unify_endpos(g,xptr);
+  w=0;    
+  depth++;
+  if (depth>(*maxdepth)) *maxdepth=depth;
+  for(i=start;i<end;i++) {
+    if (!xptr[i]) return 0; // should not have 0 in args
+    w=w+wr_analyze_term(g,xptr[i],depth,size,maxdepth,polarity,haveextdb);      
+  }   
+  return 1;
+}
+
 
 /* -------------
 

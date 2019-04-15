@@ -43,6 +43,10 @@ int wr_order_resolvable_atom(glb* g, int negflag,
       int negok, int posok, int negadded, int posadded);
 int wr_initial_select_active_cl(glb* g, gptr cl);
 
+
+gint wr_calc_atom_hardness(glb* g, gint meta, gint atom);
+gint wr_calc_atom_hardness_aux(glb* g, gint term);
+
 int wr_order_eqterms(glb* g, gint a, gint b, gptr vb);
 
 void wr_clear_countedvarlist(glb* g, cvec varlist);

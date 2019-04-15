@@ -46,8 +46,9 @@
 /* ==== Protos ==== */
 
 int wr_analyze_clause_list(glb* g, void* db, void* child_db);
-int wr_analyze_clause(glb* g, gptr cl);
-int wr_analyze_term(glb* g, gint x, int depth, int* size, int* maxdepth, int polarity);
+int wr_analyze_clause(glb* g, gptr cl, int haveextdb);
+int wr_analyze_term(glb* g, gint x, 
+      int depth, int* size, int* maxdepth, int polarity, int haveextdb);
 
 void wr_show_in_stats(glb* g);
 
