@@ -96,12 +96,15 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active) {
   int dbused;
   int negadded=0;
   int posadded=0;
-  int preflen, plen;
+  int preflen, plen, resolvedliterals;
+  int hardness;
+  int max_hardness=MIN_HARDNESS;
+  int max_pos_hardness=MIN_HARDNESS, max_neg_hardness=MIN_HARDNESS;
   gint prefhashes[ATOM_PREFHASH_MAXLEN+1];
   
  
 #ifdef DEBUG
-  printf("wr_resolve_binary_all_active called for clause ");
+  printf("\n!!!!!!! wr_resolve_binary_all_active called for clause ");
   wr_print_clause(g,cl);
   printf("\n");     
   wr_print_vardata(g);
@@ -113,6 +116,9 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active) {
   else len=1;  
   // for negpref check out if negative literals present
   wr_set_stratlimits_cl(g,cl,ruleflag,len,&posok,&negok,&nonanslen);
+  // find hardness of literals: which to choose for resolution
+  if (len<2) max_hardness=MIN_HARDNESS;
+  else max_hardness=wr_calc_clause_hardnesses(g,cl,&max_pos_hardness,&max_neg_hardness);
 
   xcl=cl; 
 #ifdef DEBUG
@@ -120,8 +126,14 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active) {
           ruleflag,len,posok,negok);
 #endif  
   // loop over literals
-  for(i=0; i<len; i++) {  
-    if ((g->queryfocus_strat) && i>0) break; // only the first lit of given allowed for query strat
+  resolvedliterals=0;
+  for(i=0; i<len; i++) { 
+    if (len<2) hardness=MIN_HARDNESS;
+    else hardness=(g->tmp_hardnessinf_vec)[i+1];    
+    if (g->queryfocus_strat) {
+      if (resolvedliterals) break;
+      else if (hardness<max_hardness) continue;     
+    }  
     negflag=0;
     addflag=0;
     if (!ruleflag) {
@@ -140,7 +152,9 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active) {
       // if ok to resolve upon, set addflag=1
       xatom=wg_get_rule_clause_atom(db,xcl,i);               
       if (!wr_answer_lit(g,xatom) && 
-           wr_order_resolvable_atom(g,negflag,negok,posok,negadded,posadded)) {
+           wr_order_resolvable_atom(g,negflag,negok,posok,negadded,posadded,
+                                    //0,0,0)) {
+                                    hardness,max_neg_hardness,max_pos_hardness)){
         if (negflag) negadded++; 
         else posadded++;                     
 #ifdef DEBUG            
@@ -163,7 +177,15 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active) {
     // xcl: active clause
     // xatom: active atom
     if (!xatom) continue;
-    if (addflag) {      
+    if (addflag) {     
+      resolvedliterals++; 
+
+      /* 
+      printf("\natom resolved upon:\n");              
+      wr_print_record(g,wg_decode_record(db,xatom));
+      printf("\n");
+      */
+
       // now loop over hash vectors for all active unification candidates
       // ycl: cand clause
       // yatom: cand atom
@@ -874,7 +896,8 @@ void wr_paramodulate_into_all_active(glb* g, gptr cl, gptr cl_as_active) {
       // if ok to resolve upon, set addflag=1
       xatom=wg_get_rule_clause_atom(db,xcl,i); 
       if (!wr_answer_lit(g,xatom) && 
-           wr_order_resolvable_atom(g,negflag,negok,posok,negadded,posadded)) {
+           wr_order_resolvable_atom(g,negflag,negok,posok,negadded,posadded,
+                                    0,0,0)) {
         if (negflag) negadded++; 
         else posadded++;           
 #ifdef DEBUG            

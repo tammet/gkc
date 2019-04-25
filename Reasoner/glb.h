@@ -156,7 +156,8 @@ typedef struct {
   //vec tmp2_cl_vec;
   
   vec tmp_litinf_vec;  // used by subsumption  
-  
+  vec tmp_hardnessinf_vec; // used by hardness calc
+
   cvec given_termbuf;
   cvec simplified_termbuf;
   cvec derived_termbuf;    

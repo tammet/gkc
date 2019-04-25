@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -203,16 +204,25 @@ void wr_set_stratlimits_cl(glb* g, gptr cl, int ruleflag, int len, int* posok, i
   poscount=0; // count non-ans positive atoms
   negcount=0; 
   anscount=0; // count all ans (assume non-neg)
-  for(i=0; i<len; i++) {          
-    meta=wg_get_rule_clause_atom_meta(db,cl,i);
-    atom=wg_get_rule_clause_atom(db,cl,i);
-    if (wg_atom_meta_is_neg(db,meta)) negcount++;
-    else {      
-      if (wr_answer_lit(g,atom)) anscount++; 
-      else poscount++;
+  /*
+  printf("\n clause in wr_set_stratlimits_cl\n");
+  wr_print_clause(g,cl);
+  printf("\n");
+  */
+  if (!ruleflag) {    
+    if (wr_answer_lit(g,rpto(g,atom))) anscount++;
+    poscount++;
+  } else {
+    for(i=0; i<len; i++) {          
+      meta=wg_get_rule_clause_atom_meta(db,cl,i);
+      atom=wg_get_rule_clause_atom(db,cl,i);
+      if (wg_atom_meta_is_neg(db,meta)) negcount++;
+      else {      
+        if (wr_answer_lit(g,atom)) anscount++; 
+        else poscount++;
+      }          
     }
-    wr_calc_atom_hardness(g,meta,atom);
-  }
+  }  
   *nonanslen=len-anscount;
   // prohibit pos or neg       
   if (g->negpref_strat) {
@@ -224,14 +234,16 @@ void wr_set_stratlimits_cl(glb* g, gptr cl, int ruleflag, int len, int* posok, i
 }
 
 int wr_order_resolvable_atom(glb* g, int negflag,  
-      int negok, int posok, int negadded, int posadded) {
+      int negok, int posok, int negadded, int posadded,
+      int hardness, int max_neg_hardness, int max_pos_hardness) {
+        
   if (g->negpref_strat) {
-    if (negflag && negok && !negadded) return 1;
+    if (negflag && negok && !negadded && hardness==max_neg_hardness) return 1;
     else if (!negflag && posok) return 1;
     else return 0;
   }
   if (g->pospref_strat) {
-    if (!negflag && posok && !posadded) return 1;
+    if (!negflag && posok && !posadded && hardness==max_pos_hardness) return 1;
     else if (negflag && negok) return 1;
     else return 0;
   }
@@ -391,65 +403,162 @@ int recalc_cl_priority(g,gptr cl, int decprior) {
 
 */
 
-int wr_calc_atom_hardness(glb* g, gint meta, gint atom) {
+int wr_calc_clause_hardnesses(glb* g, gptr cl, 
+      int* max_pos_hardness, int* max_neg_hardness) {
   void* db=g->db;
-  int size=0, maxdepth=0, polarity=0;
+  int atomnr,i, polarity,hardness;  
+  int max_hardness=MIN_HARDNESS;
+  gint meta, atom; 
 
+  UNUSED(db);
+  if (!wg_rec_is_rule_clause(db,cl)) return MIN_HARDNESS;
+  /*
+  printf("\nwr_calc_clause_hardnesses for \n");  
+  wr_print_clause(g,cl);
+  printf("\n");
+  */
+  atomnr=wg_count_clause_atoms(db,cl);
+  for(i=0;i<atomnr;i++) {
+    meta=wg_get_rule_clause_atom_meta(db,cl,i);  
+    atom=wg_get_rule_clause_atom(db,cl,i);  
+    if (wg_atom_meta_is_neg(db,meta)) polarity=0;
+    else polarity=1;
+    /*
+    printf("\n  atom ");
+    wr_print_term(g,atom);
+    printf("\n  hardness ");
+    */
+    if (wr_answer_lit(g,atom)) hardness=MIN_HARDNESS;
+    else hardness=wr_calc_atom_hardness(g,polarity,atom);
+
+    //hardness=0;
+
+    (g->tmp_hardnessinf_vec)=wr_vec_store(g,g->tmp_hardnessinf_vec,i+1,hardness);
+    if (hardness>max_hardness) max_hardness=hardness;
+    if (!polarity) {if (hardness>(*max_neg_hardness)) (*max_neg_hardness)=hardness;}
+    else {if (hardness>(*max_pos_hardness)) (*max_pos_hardness)=hardness;}
+
+    //printf("%d\n",hardness);
+  }
+  return max_hardness;
+}
+
+
+int wr_calc_atom_hardness(glb* g, int polarity, gint atom) {
+  //void* db=g->db;  
+  int vc_tmp;
+  atom_hardnesscalc hdata; // = {0,0,0,0,0,0,0,0};
+  int hardness=0;
+
+  /*
   printf("\n wr_calc_atom_hardness for ");
   wr_print_atom_otter(g,atom,1);
   printf("\n");
-  
-  wr_calc_atom_hardness_aux(g,atom,&size,&maxdepth,
-    !wg_atom_meta_is_neg(db,meta)polarity,0);
-  return 1;
+  */
+
+  hdata.size=0;
+  hdata.maxdepth=0;
+  hdata.newvars=0;
+  hdata.repvars=0;
+  hdata.atomposocc=0;
+  hdata.atomnegocc=0;
+  hdata.internposocc=0;
+  hdata.internnegocc=0;  
+
+  vc_tmp=*(g->tmp_unify_vc);
+  wr_calc_atom_hardness_aux(g,atom,0,0,&hdata,polarity,0);
+  if (vc_tmp!=*(g->tmp_unify_vc)) {
+    wr_clear_varstack_topslice(g,g->varstack,vc_tmp);
+  }  
+
+  hardness=(hdata.size-hdata.newvars)*5;
+  //printf("result hardness cp0 %d\n",hardness);
+  if (polarity) {
+    // positive
+    if (!hdata.atomnegocc) {
+      hardness=100*hardness; 
+    } else hardness-=round(log10((double)hdata.atomnegocc));
+    if (!hdata.internnegocc) {
+      //hardness+=5;
+    } else hardness-=round(log10((double)hdata.internnegocc)/(double)4);  
+  } else {
+    // negative
+    if (!hdata.atomposocc) {
+      hardness=100*hardness; 
+    } else hardness-=round(log10((double)hdata.atomposocc));
+    if (!hdata.internnegocc) {
+      //hardness+=5;
+    } else hardness-=round(log10((double)hdata.internposocc)/(double)4);
+  }
+  /*
+  printf("\nresult hardness %d polarity %d maxdepth %d size %d newvars %d repvars %d\n",
+    hardness, polarity,hdata.maxdepth,hdata.size,hdata.newvars,hdata.repvars);
+  printf("\n       atomposocc %ld,atomnegocc %ld,internposocc %ld,internnegocc %ld;\n",
+    hdata.atomposocc,hdata.atomnegocc,hdata.internposocc,hdata.internnegocc); 
+  */
+  return hardness;
 }
 
-int wr_calc_atom_hardness_aux(glb* g, gint x, 
-      int depth, int* size, int* maxdepth, int polarity, int haveextdb) {
+int wr_calc_atom_hardness_aux(glb* g, gint x, int depth, int pos,
+      atom_hardnesscalc* hptr, int polarity, int haveextdb) {
   void* db;
   gptr xptr;
-  int i, start, end;  
+  int i, start, end, apos;
   int w, dtype;
   gint ucount, ucountpos, ucountneg;
 
-   
-  printf("wr_calc_atom_hardness_aux called with x %d type %d depth %d size %d maxdepth %d\n",
-         x,wg_get_encoded_type(g->db,x),depth,*size,*maxdepth);
+  /*
+  printf("wr_calc_atom_hardness_aux called with x %d type %d depth %d size %d maxdepth %d\
+         newvars,repvars\n",
+         x,wg_get_encoded_type(g->db,x),depth,size,maxdepth,newvars,repvars);
   wr_print_term(g,x);
   printf("\n");
-  
+  */
+
   if (!isdatarec(x)) {
     // now we have a simple value  
-    (*size)++;
+    (hptr->size)++;
     if (!isvar(x)) {
       db=g->db;
       dtype=wg_get_encoded_type(db,x);
       
-      if (dtype==WG_URITYPE && !haveextdb) {        
-        printf("\nuri: ");
-        printf(" %s \n", wg_decode_unistr(db,x,WG_URITYPE));
-        ucount=wg_decode_uri_count(db,x);
+      if (dtype==WG_URITYPE && !haveextdb) {    
 
+        //printf("\nuri: ");
+        //printf(" %s \n", wg_decode_unistr(db,x,WG_URITYPE));
+
+        ucount=wg_decode_uri_count(db,x);
         ucountpos=ucount >> URI_COUNT_POSCOUNT_SHIFT;
         if (ucountpos>30000) ucountpos=30000;
         ucountneg=ucount & URI_COUNT_NEGCOUNT_MASK;
         if (ucountneg>10000) ucountneg=10000;
 
-        printf("\npolarity %d nucount %ld ucountpos %ld ucountneg %ld\n",polarity,ucount,ucountpos,ucountneg);
-
+        if (depth==1 && pos==0) {
+          (hptr->atomposocc)=ucountpos;
+          (hptr->atomnegocc)=ucountneg;
+        } else {
+          (hptr->internposocc)+=ucountpos;
+          (hptr->internnegocc)+=ucountneg;
+        }
+        /*
+        printf("\npolarity %d depth %d ucountpos %ld ucountneg %ld\n",polarity,depth,ucountpos,ucountneg);
+        printf("\n(hptr->atomposocc) %d (hptr->atomnegocc) %d \n",
+          (hptr->atomposocc),(hptr->atomnegocc));
+        */
       }
-      
       return 10;
     }  
     // here x is a var    
     if (VARVAL_DIRECT(x,(g->varbanks))==UNASSIGNED) {
       // a new var 
+      (hptr->newvars)++;
       //printf("\n a new var %ld where *(g->tmp_unify_vc) %ld\n",x,*(g->tmp_unify_vc));
       SETVAR(x,encode_smallint(1),g->varbanks,g->varstack,g->tmp_unify_vc);
       //printf("\n after setvar *(g->tmp_unify_vc) %ld\n",*(g->tmp_unify_vc));
       //printf("\n new var\n");
       return 1;
     } else {
+      (hptr->repvars)++;
       // a var seen before
       //printf("\n old var\n");
       //printf("\n an old var %ld\n",x);
@@ -463,10 +572,11 @@ int wr_calc_atom_hardness_aux(glb* g, gint x,
   end=wr_term_unify_endpos(g,xptr);
   w=0;    
   depth++;
-  if (depth>(*maxdepth)) *maxdepth=depth;
+  if (depth>(hptr->maxdepth)) (hptr->maxdepth)=depth;
+  apos=0;
   for(i=start;i<end;i++) {
-    if (!xptr[i]) return 0; // should not have 0 in args
-    w=w+wr_analyze_term(g,xptr[i],depth,size,maxdepth,polarity,haveextdb);      
+    w=w+wr_calc_atom_hardness_aux(g, xptr[i], depth, apos, hptr, polarity, haveextdb);
+    apos++;      
   }   
   return 1;
 }

@@ -31,6 +31,21 @@
 
 #include "glb.h"
 
+
+#define MIN_HARDNESS -100000000
+
+typedef struct {  
+  int size;
+  int maxdepth;
+  int newvars;
+  int repvars;
+  gint atomposocc;
+  gint atomnegocc;
+  gint internposocc;
+  gint internnegocc;
+} atom_hardnesscalc;
+
+
 int wr_cl_is_goal(glb* g, gptr cl);
 int wr_cl_is_assumption(glb* g, gptr cl);
 
@@ -40,12 +55,15 @@ int wr_count_cl_nonans_atoms(glb* g, gptr cl);
 
 void wr_set_stratlimits_cl(glb* g, gptr cl, int ruleflag, int len, int* posok, int* negok, int* nonanslen);
 int wr_order_resolvable_atom(glb* g, int negflag,
-      int negok, int posok, int negadded, int posadded);
+      int negok, int posok, int negadded, int posadded,
+      int hardness, int max_neg_hardness, int max_pos_hardness);
 int wr_initial_select_active_cl(glb* g, gptr cl);
 
-
-gint wr_calc_atom_hardness(glb* g, gint meta, gint atom);
-gint wr_calc_atom_hardness_aux(glb* g, gint term);
+int wr_calc_clause_hardnesses(glb* g, gptr cl, 
+      int* max_pos_hardness, int* max_neg_hardness);
+int wr_calc_atom_hardness(glb* g, int polarity, gint atom);
+int wr_calc_atom_hardness_aux(glb* g, gint x, int depth, int pos,
+      atom_hardnesscalc* hptr, int polarity, int haveextdb);
 
 int wr_order_eqterms(glb* g, gint a, gint b, gptr vb);
 

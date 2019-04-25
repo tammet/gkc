@@ -426,6 +426,7 @@ int wr_glb_init_local_complex(glb* g) {
   (g->active_termbuf)=NULL;
   (g->cut_clvec)=NULL;
   (g->tmp_litinf_vec)=NULL; 
+  (g->tmp_hardnessinf_vec)=NULL;
   
   // then create space
   
@@ -469,6 +470,7 @@ int wr_glb_init_local_complex(glb* g) {
   (g->cut_clvec)=wr_vec_new(g,NROF_CUT_CLVEC_ELS);
     
   (g->tmp_litinf_vec)=wr_vec_new(g,MAX_CLAUSE_LEN); // used by subsumption
+  (g->tmp_hardnessinf_vec)=wr_vec_new(g,MAX_CLAUSE_LEN); // used by subsumption
   
 
   //(g->derived_termbuf_freeindex)=2;
@@ -573,6 +575,7 @@ int wr_glb_free_local_complex(glb* g) {
   wr_vec_free(g,g->simplified_termbuf);
   wr_vec_free(g,g->derived_termbuf);        
   wr_vec_free(g,g->tmp_litinf_vec);  
+  wr_vec_free(g,(g->tmp_hardnessinf_vec));
   
   wr_str_free(g,(g->parse_skolem_prefix));
   (g->parse_skolem_prefix)=NULL;

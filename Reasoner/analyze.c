@@ -304,13 +304,13 @@ int wr_analyze_term(glb* g, gint x,
       dtype=wg_get_encoded_type(db,x);
       
       if (dtype==WG_URITYPE && !haveextdb) {        
-        printf("\nuri: ");
-        printf(" %s \n", wg_decode_unistr(db,x,WG_URITYPE));
+        //printf("\nuri: ");
+        //printf(" %s \n", wg_decode_unistr(db,x,WG_URITYPE));
         ucount=wg_decode_uri_count(db,x);
         ucountpos=ucount >> URI_COUNT_POSCOUNT_SHIFT;        
         ucountneg=ucount & URI_COUNT_NEGCOUNT_MASK;        
 
-        printf("\npolarity %d nucount %ld ucountpos %ld ucountneg %ld\n",polarity,ucount,ucountpos,ucountneg);
+        //printf("\npolarity %d nucount %ld ucountpos %ld ucountneg %ld\n",polarity,ucount,ucountpos,ucountneg);
 
         if (polarity) {
           ucountpos++;
