@@ -46,6 +46,8 @@ extern "C" {
 //#define DEBUG
 #undef DEBUG
 
+#define USE_TERM_META
+
 /* ======= Private protos ================ */
 
 
@@ -171,6 +173,12 @@ gptr wr_build_calc_cl(glb* g, gptr xptr) {
   int i;
   gint tmp;
   int ilimit;
+
+/*
+printf("\nwr_build_calc_cl called\n");
+wr_print_record(g,xptr);
+printf("\n");
+*/
 
 #ifdef DEBUG
   printf("\nwr_build_calc_cl called, g->build_buffer ptr is %lx \n", (unsigned long int)g->build_buffer); 
@@ -348,6 +356,10 @@ gint wr_build_calc_term(glb* g, gint x) {
   int ilimit;
   int substflag;
   int comp;
+#ifdef USE_TERM_META_EXPERIMENTAL  
+  int hasvars=0;
+  gint smeta,tmeta=0;
+#endif  
 
   /*  
   printf("wr_build_calc_term called with x %d type %d\n",x,wg_get_encoded_type(g->db,x));
@@ -392,6 +404,13 @@ gint wr_build_calc_term(glb* g, gint x) {
   } else {  
     db=g->db;
     xptr=decode_record(db,x);
+#ifdef USE_TERM_META    
+    // return ground terms without change or copy
+    if (issmallint(xptr[RECORD_HEADER_GINTS+TERM_META_POS]) && 
+        (xptr[RECORD_HEADER_GINTS+TERM_META_POS] & TERMMETA_GROUND_MASK)) {
+      return x;
+    }
+#endif       
     xlen=get_record_len(xptr);
     // allocate space
     if ((g->build_buffer)!=NULL) {       
@@ -403,7 +422,13 @@ gint wr_build_calc_term(glb* g, gint x) {
     if (yptr==NULL) return WG_ILLEGAL;
     // copy rec header and term header
     ilimit=RECORD_HEADER_GINTS+(g->unify_firstuseterm);
-    for(i=0;i<ilimit;i++) yptr[i]=xptr[i];        
+    for(i=0;i<ilimit;i++) yptr[i]=xptr[i];    
+#ifdef USE_TERM_META    
+    // set termmeta to 0 if smallint (and not ground: but this we already know)    
+    if (issmallint(yptr[RECORD_HEADER_GINTS+TERM_META_POS]) && (g->build_subst)) {
+      yptr[RECORD_HEADER_GINTS+TERM_META_POS]=0;
+    }
+#endif    
     // loop over term elems, i already correct
     if (g->unify_maxuseterms) {
       if (((g->unify_maxuseterms)+(g->unify_firstuseterm))<xlen) 
@@ -417,10 +442,17 @@ gint wr_build_calc_term(glb* g, gint x) {
     for(;i<uselen;i++) {
       //printf("wr_build_calc_term loop i %d xptr[i] %d\n",i,xptr[i]);
       if (!substflag && !isdatarec(xptr[i])) yptr[i]=xptr[i];       
-      else {tmp=wr_build_calc_term(g,xptr[i]);
-            if (tmp==WG_ILLEGAL) return WG_ILLEGAL;
-            //printf("wr_build_calc_term loop tmp %d \n",(gint)tmp);
-            yptr[i]=tmp;
+      else {
+        tmp=wr_build_calc_term(g,xptr[i]);
+        if (tmp==WG_ILLEGAL) return WG_ILLEGAL;
+#ifdef USE_TERM_META_EXPERIMENTAL
+        smeta=decode_smallint(*(wg_decode_record(db,tmp)+(RECORD_HEADER_GINTS+TERM_META_POS)));
+        tmeta=tmeta+(smeta & TERMMETA_SIZE_MASK);
+        if (tmeta>TERMMETA_SIZE_MASK) tmeta=TERMMETA_SIZE_MASK;
+        if (!(smeta & TERMMETA_GROUND_MASK)) hasvars=1;
+#endif        
+        //printf("wr_build_calc_term loop tmp %d \n",(gint)tmp);
+        yptr[i]=tmp;
       }  
     }
     // copy term footer (in addition to rec/term header), i already correct
@@ -429,7 +461,12 @@ gint wr_build_calc_term(glb* g, gint x) {
       for(;i<ilimit;i++) {
         yptr[i]=xptr[i];     
       }  
-    }          
+    }
+#ifdef USE_TERM_META_EXPERIMENTAL
+    if (!hasvars) tmeta=tmeta | TERMMETA_GROUND_MASK;
+    tmeta=encode_smallint(tmeta);
+    *(yptr+(RECORD_HEADER_GINTS+TERM_META_POS))=tmeta;
+#endif              
     if (g->use_comp_funs) {
       comp=wr_computable_termptr(g,yptr);
       if (comp) {
@@ -535,7 +572,13 @@ gint wr_build_calc_term_replace(glb* g, gint x, int replpos, gint replterm, int*
     if (yptr==NULL) return WG_ILLEGAL;
     // copy rec header and term header
     ilimit=RECORD_HEADER_GINTS+(g->unify_firstuseterm);
-    for(i=0;i<ilimit;i++) yptr[i]=xptr[i];        
+    for(i=0;i<ilimit;i++) yptr[i]=xptr[i];      
+    // set termmeta to 0 if smallint
+#ifdef USE_TERM_META     
+    if (issmallint(yptr[RECORD_HEADER_GINTS+TERM_META_POS])) {
+      yptr[RECORD_HEADER_GINTS+TERM_META_POS]=0;
+    }  
+#endif    
     //printf("wr_build_calc_term i %d \n",i);
     // loop over term elems, i already correct
     if (g->unify_maxuseterms) {

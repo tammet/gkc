@@ -227,6 +227,7 @@ int wr_glb_init_simple(glb* g) {
   
   (g->stat_built_cl)=0;
   (g->stat_derived_cl)=0;
+  (g->stat_derived_partial_hyper_cl)=0;
   (g->stat_binres_derived_cl)=0;
   (g->stat_propagated_derived_cl)=0;
   (g->stat_factor_derived_cl)=0;
@@ -239,6 +240,7 @@ int wr_glb_init_simple(glb* g) {
   (g->stat_internlimit_discarded_cl)=0;
   (g->stat_internlimit_discarded_para)=0;
   (g->stat_given_candidates)=0;
+  (g->stat_given_candidates_hyper)=0;
   (g->stat_given_used)=0;
   (g->stat_simplified)=0;
   (g->stat_simplified_given)=0;
@@ -423,8 +425,10 @@ int wr_glb_init_local_complex(glb* g) {
   (g->simplified_termbuf)=NULL;
   (g->derived_termbuf)=NULL;
   (g->queue_termbuf)=NULL;
+  (g->hyper_termbuf)=NULL;
   (g->active_termbuf)=NULL;
   (g->cut_clvec)=NULL;
+  (g->hyper_queue)=NULL;
   (g->tmp_litinf_vec)=NULL; 
   (g->tmp_hardnessinf_vec)=NULL;
   
@@ -458,6 +462,9 @@ int wr_glb_init_local_complex(glb* g) {
  
   (g->queue_termbuf)=wr_cvec_new(g,NROF_QUEUE_TERMBUF_ELS);
   (g->queue_termbuf)[1]=2;
+
+  (g->hyper_termbuf)=wr_cvec_new(g,NROF_HYPER_TERMBUF_ELS);
+  (g->hyper_termbuf)[1]=2; 
   
   (g->active_termbuf)=wr_cvec_new(g,NROF_ACTIVE_TERMBUF_ELS);
   (g->active_termbuf)[1]=2;
@@ -468,6 +475,10 @@ int wr_glb_init_local_complex(glb* g) {
 #endif
 
   (g->cut_clvec)=wr_vec_new(g,NROF_CUT_CLVEC_ELS);
+
+  (g->hyper_queue)=wr_cvec_new(g,NROF_HYPER_QUEUE_ELS);
+  (g->hyper_queue)[1]=3; // next free pos in the queue (initially for empty queue 3)
+  (g->hyper_queue)[2]=3; // next pos to pick for given (initially for empty queue 3)
     
   (g->tmp_litinf_vec)=wr_vec_new(g,MAX_CLAUSE_LEN); // used by subsumption
   (g->tmp_hardnessinf_vec)=wr_vec_new(g,MAX_CLAUSE_LEN); // used by subsumption
@@ -565,6 +576,7 @@ int wr_glb_free_shared_complex(glb* g) {
 
 int wr_glb_free_local_complex(glb* g) {  
   wr_vec_free(g,g->queue_termbuf);
+  wr_vec_free(g,g->hyper_termbuf);
   wr_vec_free(g,g->active_termbuf);  
   wr_vec_free(g,g->cut_clvec); 
   wr_vec_free(g,g->varstack); 
@@ -611,6 +623,11 @@ void wr_print_glb_memarea(glb* g, gptr p) {
   if ( p>=(g->queue_termbuf)+2 &&
        p<=(g->queue_termbuf)+((g->queue_termbuf)[1]) ) {
     printf("queue_termbuf\n");
+    return;
+  }
+  if ( p>=(g->hyper_termbuf)+2 &&
+       p<=(g->hyper_termbuf)+((g->hyper_termbuf)[1]) ) {
+    printf("hyper_termbuf\n");
     return;
   }
   if ( p>=(g->active_termbuf)+2 &&

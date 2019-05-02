@@ -10,6 +10,12 @@
 # If bison and flex are not available, set below 
 # USEBISON = false
 # before running make: pre-built parser sources will be used in this case.
+#
+# gprof-enabled compilation: 
+# - enable -pg flag 
+# - run ./gkc ... creating gmon.out
+# - run gprof gkc gmon.out > res.txt
+# - look at the result: less res.txt
 
 CC = gcc
 CFLAGS = -O2 -Wall -static # -Wmissing-field-initializers 

@@ -944,6 +944,26 @@ gint wr_create_clpick_queues(glb* g, int count) {
   return clpick_queues;
 }
 
+/*
+ 
+  push to hyper-queues
+
+*/
+
+int wr_push_cl_hyper_queue(glb* g, cvec queue, gptr cl, int weight) {
+  //int qlen;
+  gint clo;
+  cvec newqueue;
+  
+  clo=rpto(g,cl);
+  newqueue=wr_cvec_push(g,queue,clo);  
+  if (newqueue==NULL) return 0;
+  if (queue!=newqueue) {
+    (g->hyper_queue)=newqueue;
+  }
+  return 1;
+}
+
 
 /*
 
@@ -1083,6 +1103,37 @@ int wr_is_negative_cl(glb* g, gptr cl) {
   }
   return 1;  
 }
+
+/*
+  
+  Pick given cl from hyper queue and detect/reset queue if nothing left
+
+  queue[0] - queue array length
+  queue[1] - next free pos in the queue (initially for empty queue 3)
+  queue[2] - next pos to pick for given (initially for empty queue 3)
+
+*/
+
+gptr wr_pick_from_hyper_queue(glb* g, gptr queue, gptr given_cl_metablock)  {
+  gint pos;
+  gint res;
+
+  if (!queue) return NULL;
+  pos=queue[2];
+  if (queue[1]<=3 || pos>=queue[1]) return NULL;
+  // now there is something to pick
+  res=queue[pos];
+  pos++;
+  if (pos>=queue[1]) {
+    // everything is picked: set queue to initial situation
+    queue[1]=3;
+    queue[2]=3;
+  } else {
+    queue[2]=pos;
+  }
+  return rotp(g,res);
+}
+  
 
 
 gptr wr_pick_from_clpick_queues(glb* g, gptr queues, gptr given_cl_metablock) { 

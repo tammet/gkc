@@ -287,6 +287,8 @@ int wr_parse_guide_strategy_set(glb* g, char* stratname) {
     (g->negpref_strat)=1;
   } else if (!strcmp(stratname,"positive_pref")) {
     (g->pospref_strat)=1;
+  } else if (!strcmp(stratname,"hyper")) {
+    (g->hyperres_strat)=1;  
   } else if (!strcmp(stratname,"unit")) {
     (g->res_shortarglen_limit)=1;  
   } else if (!strcmp(stratname,"double")) {

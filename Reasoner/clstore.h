@@ -133,10 +133,12 @@ int wr_decode_para_termpath_litnr(glb* g, int n);
 int wr_decode_para_termpath_pos(glb* g, int n);
 
 gint wr_create_clpick_queues(glb* g, int count);
+int wr_push_cl_hyper_queue(glb* g, cvec queue, gptr cl, int weight);
 void wr_push_cl_clpick_queues(glb* g, gint queues_offset, gptr cl, int weight);
 int wr_is_positive_unit_cl(glb* g, gptr cl);
 int wr_is_negative_cl(glb* g, gptr cl);
-gptr wr_pick_from_clpick_queues(glb* g, gptr queues, gptr given_cl_metablock);
+
+gptr wr_pick_from_hyper_queue(glb* g, gptr queue, gptr given_cl_metablock);
 gptr wr_pick_from_clpick_queues(glb* g, gptr queues, gptr given_cl_metablock);
 gptr wr_pick_from_clpick_queues_aux(glb* g, gptr queues, int queuenr, gptr given_cl_metablock);
 int wr_cl_ismarked_given(glb* g, gptr cl);

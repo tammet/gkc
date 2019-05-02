@@ -48,6 +48,8 @@ extern "C" {
 
 #define WEIGHT_VARS
 
+#define STORE_TERMMETA
+
 /* ====== Private headers ======== */
   
 static void wr_inssort_cl(glb* g, gptr cl, int len);  
@@ -282,7 +284,7 @@ gint wr_calc_clause_meta(glb* g, gptr xptr, gptr cl_metablock) {
   if (!ruleflag) {
     //printf("\nnot a ruleclause\n");
     negflag=0;
-    wr_calc_term_meta(g,encode_datarec_offset(pto(db,xptr)),0,0,&litmeta);
+    //wr_calc_term_meta(g,encode_datarec_offset(pto(db,xptr)),0,0,&litmeta);
     clmeta.length=1;
     clmeta.neglength=0;
     clmeta.groundlength=!litmeta.hasvars;
@@ -435,22 +437,35 @@ gint wr_lithash_to_bitmask(glb* g, int hash) {
   return 1<<pos;
 }
 
-void wr_calc_term_meta(glb* g, gint x, int depth, int pos, term_metacalc* metaptr) {
+/*
+
+  Recursively calculates term metainf (ground / size) and stores to the term
+  meta pos: 
+  do not apply to not-rule-clauses since these should have the history at the
+  term meta pos
+
+*/
+
+
+gint wr_calc_term_meta(glb* g, gint x, int depth, int pos, term_metacalc* metaptr) {
   void* db;
   gptr xptr;
-  int i, start, end;
+  int i, start, end, hasvars;
   gint hash;
+  gint smeta,tmeta;
     
   //printf("wr_calc_term_meta called with x %d type %d\n",x,wg_get_encoded_type(g->db,x));
   if (!isdatarec(x)) {
     // now we have a simple value  
     (metaptr->size)++;
     if (!isvar(x)) {
-      (metaptr->weight)+=CONSTANT_WEIGHT;    
+      (metaptr->weight)+=CONSTANT_WEIGHT;
+      tmeta=1 | TERMMETA_GROUND_MASK;   
     } else {
       (metaptr->weight)+=VAR_WEIGHT;
       (metaptr->hasvars)=1;
       if (depth==1) (metaptr->topvars)++;
+      tmeta=1;
     }
     if (!(metaptr->hasvars)) {  
       hash=wr_term_basehash(g,x);
@@ -460,7 +475,7 @@ void wr_calc_term_meta(glb* g, gint x, int depth, int pos, term_metacalc* metapt
       else if (metaptr->preflen==2) (metaptr->pref2hash)=(metaptr->prefhash);
       else if (metaptr->preflen==3) (metaptr->pref3hash)=(metaptr->prefhash);
     } 
-    return;  
+    return tmeta;  
   }   
   // now we have a datarec
   db=g->db;
@@ -468,14 +483,20 @@ void wr_calc_term_meta(glb* g, gint x, int depth, int pos, term_metacalc* metapt
   start=wr_term_unify_startpos(g);
   end=wr_term_unify_endpos(g,xptr);
   if ((metaptr->depth)<(depth+1)) (metaptr->depth)=depth+1;
+  tmeta=0;
+  hasvars=0;
   for(i=start;i<end;i++) {
-    wr_calc_term_meta(g,xptr[i],depth+1,i-start,metaptr);      
+    smeta=wr_calc_term_meta(g,xptr[i],depth+1,i-start,metaptr);    
+    tmeta=tmeta+(smeta & TERMMETA_SIZE_MASK);
+    if (tmeta>TERMMETA_SIZE_MASK) tmeta=TERMMETA_SIZE_MASK;
+    if (!(smeta & TERMMETA_GROUND_MASK)) hasvars=1;
   }   
-  return;
-}  
-
-
-
+  if (!hasvars) tmeta=tmeta | TERMMETA_GROUND_MASK;
+#ifdef STORE_TERMMETA
+  xptr[start-TERMMETA_POS_DIFF]=wg_encode_int(db,tmeta);
+#endif  
+  return tmeta;
+}
 
 
 void wr_print_cl_meta(glb* g, gint meta1) {

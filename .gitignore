@@ -18,6 +18,8 @@
 *.sub
 *.obj
 
+ajut*
+
 .libs/*
 autom4te.cache/
 
@@ -58,7 +60,7 @@ test-driver
 
 tmp
 Rtest/
-
+Locdoc/
 
 
 

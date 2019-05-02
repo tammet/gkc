@@ -63,8 +63,10 @@ int wr_cl_derived_is_answer(glb* g,gptr cl);
 void wr_process_resolve_result_setupsubst(glb* g);
 void wr_process_resolve_result_setupgivencopy(glb* g);
 void wr_process_resolve_result_setupquecopy(glb* g);
+void wr_process_resolve_result_setuphypercopy(glb* g);
 void wr_process_resolve_result_setupclpickstackcopy(glb* g) ;
 void wr_process_simp_setupquecopy(glb* g);
+
 
 void wr_process_resolve_result_cleanupsubst(glb* g);
 

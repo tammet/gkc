@@ -2,7 +2,7 @@
 * $Id:  $
 * $Version: $
 *
-* Copyright (c) Priit Järv 2010
+* Copyright (c) Priit Jï¿½rv 2010
 *
 * This file is part of WhiteDB
 *
@@ -85,7 +85,8 @@ error_callback(errnumber, buffer); \
 free(buffer); \
 } 
 #else
-#define LOG_ERROR(errnumber, errformat, errmessage, ...) fprintf(stderr, errformat, errmessage, ##__VA_ARGS__)
+//#define LOG_ERROR(errnumber, errformat, errmessage, ...) fprintf(stderr, errformat, errmessage, ##__VA_ARGS__)
+#define LOG_ERROR(errnumber, errformat, errmessage, ...) printf(errformat, errmessage, ##__VA_ARGS__)
 #endif
 
 /* Separate raptor API (copied in rdfapi.h) */

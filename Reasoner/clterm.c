@@ -88,7 +88,7 @@ inline int wr_term_unify_endpos(glb* g, gptr term) {
 }
 #endif
   
-/* ---------------- wg functions --------------------- */  
+/* ---------------- wr functions --------------------- */  
   
 void* wr_create_rule_clause(glb* g, int litnr) {
   void* res;
@@ -106,6 +106,7 @@ void* wr_create_fact_clause(glb* g, int litnr) {
   res=wg_create_raw_record(g->db,(g->unify_firstuseterm)+litnr+(g->unify_footerlen));
   if (!res) return NULL;
   *((gint*)res+RECORD_META_POS)=RECORD_META_FACT_CLAUSE;
+  *((gint*)res+(RECORD_HEADER_GINTS+TERM_META_POS))=0;
   return res;  
 } 
 
@@ -115,6 +116,7 @@ void* wr_create_atom(glb* g, int termnr) {
   res=wg_create_raw_record(g->db,(g->unify_firstuseterm)+termnr+(g->unify_footerlen));
   if (!res) return NULL;
   *((gint*)res+RECORD_META_POS)=(RECORD_META_NOTDATA | RECORD_META_ATOM);
+  *((gint*)res+(RECORD_HEADER_GINTS+TERM_META_POS))=0;
   return res;  
 } 
 
@@ -125,6 +127,7 @@ void* wr_create_term(glb* g, int termnr) {
   res=wg_create_raw_record(g->db,(g->unify_firstuseterm)+termnr+(g->unify_footerlen));
   if (!res) return NULL;
   *((gint*)res+RECORD_META_POS)=(RECORD_META_NOTDATA | RECORD_META_TERM);
+  *((gint*)res+(RECORD_HEADER_GINTS+TERM_META_POS))=0;
   return res;  
 } 
 
@@ -136,6 +139,7 @@ void* wr_convert_atom_fact_clause(glb* g, void* atom, int isneg) {
   res=atom;
   if (!res) return NULL;
   *((gint*)res+RECORD_META_POS)=(RECORD_META_ATOM | RECORD_META_FACT_CLAUSE);
+  *((gint*)res+(RECORD_HEADER_GINTS+TERM_META_POS))=0;
   return res;  
 } 
 

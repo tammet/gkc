@@ -793,9 +793,11 @@ void wr_show_stats(glb* g, int show_local_complex) {
   printf("total seconds: %f\n",
     (float)(clock() - (g->allruns_start_clock)) / (float)CLOCKS_PER_SEC);
   printf("stat_given_used: %d\n",g->stat_given_used);
-  printf("stat_given_candidates: %d\n",g->stat_given_candidates); 
+  printf("stat_given_candidates:   %d\n",g->stat_given_candidates); 
+  printf("stat_given_candidates_h: %d\n",g->stat_given_candidates_hyper); 
   //printf("stat_derived_cl: %d\n",g->stat_derived_cl);
-  printf("stat_binres_derived_cl: %d\n",g->stat_binres_derived_cl);
+  printf("stat_binres_derived_cl:   %d\n",g->stat_binres_derived_cl);
+  printf("stat_binres_derived_cl_h: %d\n",g->stat_derived_partial_hyper_cl);
   printf("stat_propagated_derived_cl: %d\n",g->stat_propagated_derived_cl);
   printf("stat_factor_derived_cl: %d\n",g->stat_factor_derived_cl);
   printf("stat_para_derived_cl: %d\n",g->stat_para_derived_cl);
@@ -863,6 +865,8 @@ void wr_show_stats(glb* g, int show_local_complex) {
     
     if ((g->queue_termbuf)!=NULL) 
       printf("queue_termbuf els %d used %d\n",(int)((g->queue_termbuf)[0]),(int)((g->queue_termbuf)[1]-1));
+    if ((g->hyper_termbuf)!=NULL) 
+      printf("hyper_termbuf els %d used %d\n",(int)((g->hyper_termbuf)[0]),(int)((g->hyper_termbuf)[1]-1));  
     if ((g->active_termbuf)!=NULL) 
       printf("active_termbuf els %d used %d\n",(int)((g->active_termbuf)[0]),(int)((g->active_termbuf)[1]-1));
     if ((g->varstack)!=NULL) 

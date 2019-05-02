@@ -214,15 +214,9 @@ void wr_process_resolve_result
   
   if ((g->hyperres_strat) &&  !wr_hyperres_satellite_tmpres(g,rptr,rpos)){
     // must still cut something off: not fully finished hyperres
-    //partialresflag=1;   
-    //wr_process_resolve_result_setupclpickstackcopy(g); 
-    wr_process_resolve_result_setupgivencopy(g);    
-    // store buffer pos to be restored later
-    given_termbuf_storednext=(gint)(g->build_buffer);
-    //g->build_buffer=malloc(1024);
-    //given_termbuf_storednext=CVEC_NEXT(g->given_termbuf); 
-    // allocate a new vector
-    g->build_buffer=wr_cvec_new(g,BUILD_BUFFER_SIZE);  // !!!!!!!!!! problem
+    //partialresflag=1;      
+    wr_process_resolve_result_setuphypercopy(g); // use g->queue_hyperbuf as g->build_buffer
+    initial_queue_termbuf_next=CVEC_NEXT(g->build_buffer); // to be restored if not actually used
   } else {
     // fully formed, storable result
     //partialresflag=0;
@@ -261,21 +255,27 @@ void wr_process_resolve_result
 
   if ((g->hyperres_strat) &&  !wr_hyperres_satellite_cl(g,res)) { 
     // hyperresolution case: not a finished clause yet, must cut off some 
-    printf("wr_process_resolve_result hyperres-strat and not satellite\n");
+    //printf("\nwr_process_resolve_result hyperres-strat and not satellite\n");
     ++(g->stat_hyperres_partial_cl);
+    ++(g->stat_derived_partial_hyper_cl);
     if (g->print_partial_derived_cl) {
-      printf("\n+ partial derived: ");
+      printf("\n+ partial derived by mp: ");
       wr_print_clause(g,res);
-    }  
-    //wr_push_clpickstack_cl(g,res);
-    wr_clear_varstack(g,g->varstack);
-    //wr_clear_all_varbanks(g);
-    //wr_print_vardata(g);
-    wr_resolve_binary_all_active(g,res,xcl_as_active); // !!! problem with xcl_as_active      
-    // restore buffer pos to situation before building the current clause
-    wr_vec_free(g,g->build_buffer);    // !!!!!!!!!! problem         
-    g->build_buffer=(gptr)given_termbuf_storednext;      
-    //CVEC_NEXT(g->given_termbuf)=given_termbuf_storednext;
+    }
+    weight=wr_calc_clause_weight(g,res,&size,&depth,&length);
+    avg=(g->avg_kept_weight);       
+    //printf(" weight %d average %f count %d \n",weight,(g->avg_kept_weight),(g->stat_kept_cl));
+    if (!wr_derived_weight_check(g,avg,weight,size,depth,length)) {
+      (g->stat_weight_discarded_cl)++;
+      CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
+      if (g->print_derived_cl) printf("\nw discarded overweight");
+      return;
+    }
+    tmp=wr_push_cl_hyper_queue(g,(g->hyper_queue),res,weight);     
+    if (!tmp) {
+      wr_alloc_err(g,"could not store into hyper_queue in wr_process_resolve_result ");
+      return; // could not alloc memory, could not store clause
+    }
   } else {           
     // ordinary case (not partial hyperres): resulting clause is finished
     if (g->print_derived_cl) {
@@ -465,7 +465,7 @@ void wr_process_factor_result
     return;
   } 
 
-  if ((g->hyperres_strat) &&  !wr_hyperres_satellite_cl(g,res)) { 
+  if (0) { //((g->hyperres_strat) &&  !wr_hyperres_satellite_cl(g,res)) { 
     // hyperresolution case: not a finished clause yet, must cut off some 
     ++(g->stat_hyperres_partial_cl);
     if (g->print_partial_derived_cl) {
@@ -689,7 +689,7 @@ void wr_process_paramodulate_result
   // check whether should be stored as a ruleclause or not
   ruleflag=wr_process_resolve_result_isrulecl(g,rptr,rpos);  
   // create new record
-  if ((g->hyperres_strat) &&  !wr_hyperres_satellite_tmpres(g,rptr,rpos)){
+  if (0) { // ((g->hyperres_strat) &&  !wr_hyperres_satellite_tmpres(g,rptr,rpos)){
     // must still cut something off: not fully finished hyperres
     //partialresflag=1;   
     //wr_process_resolve_result_setupclpickstackcopy(g); 
@@ -762,7 +762,7 @@ void wr_process_paramodulate_result
   }
 
   // start storing to queues and hashes
-  if ((g->hyperres_strat) &&  !wr_hyperres_satellite_cl(g,res)) { 
+  if (0) { // ((g->hyperres_strat) &&  !wr_hyperres_satellite_cl(g,res)) { 
     // hyperresolution case: not a finished clause yet, must cut off some 
     printf("wr_process_paramodulate_result hyperres-strat and not satellite\n");
     ++(g->stat_hyperres_partial_cl);
@@ -979,6 +979,9 @@ gptr wr_derived_build_cl_from_initial_cl(glb* g, gptr rptr, int rpos, int rulefl
   db=g->db;
   if (ruleflag) {   
     // resulting clause was a rule
+    
+    //printf("\nwr_derived_build_cl_from_initial_cl rule case \n");
+
     meta=RECORD_META_RULE_CLAUSE;
     datalen=rpos*LIT_WIDTH;
     res=wr_create_raw_record(g,CLAUSE_EXTRAHEADERLEN+datalen,meta,g->build_buffer);
@@ -1007,8 +1010,26 @@ gptr wr_derived_build_cl_from_initial_cl(glb* g, gptr rptr, int rpos, int rulefl
     ++(g->stat_built_cl);    
   } else {
     // resulting clause was not a rule
+
+    /*
+    printf("\nwr_derived_build_cl_from_initial_cl notrule case \n");
+    wr_print_term_otter(g,rptr[LIT_ATOM_POS],1000);
+    printf("\n");
+    //wg_print_record(db,rptr[LIT_ATOM_POS]);
+    printf("\n");
+    */
+
     meta=RECORD_META_FACT_CLAUSE;
     blt=wr_build_calc_term(g,rptr[LIT_ATOM_POS]);
+
+    /*
+    printf("\nwr_derived_build_cl_from_initial_cl notrule case built blt\n");
+    wr_print_term_otter(g,blt,1000);
+    printf("\n");
+    //wg_print_record(db,rptr[LIT_ATOM_POS]);
+    printf("\n");
+    */
+
     if (blt==WG_ILLEGAL) {
       ++(g->stat_internlimit_discarded_cl);
       wr_alloc_err(g,"could not build new atom blt in wr_process_resolve_result ");
@@ -1017,7 +1038,16 @@ gptr wr_derived_build_cl_from_initial_cl(glb* g, gptr rptr, int rpos, int rulefl
     res=otp(db,blt);
     wr_set_history(g,res,history); 
     res[RECORD_META_POS]=meta;
-     ++(g->stat_built_cl);
+    ++(g->stat_built_cl);
+
+    /*
+    printf("\nwr_derived_build_cl_from_initial_cl notrule case built res\n");
+    wr_print_clause(g,res) ;
+    printf("\n");
+    //wg_print_record(db,rptr[LIT_ATOM_POS]);
+    printf("\n");
+    */
+
   } 
   return res;
 }
@@ -1253,7 +1283,9 @@ int wr_hyperres_satellite_cl(glb* g,gptr cl) {
 /**
   satellite is a fully-built hypperesolution result, not temporary result
   
-*/
+
+*/  
+
 
 int wr_hyperres_satellite_tmpres(glb* g,gptr tmpres, int respos) {
   int i;
@@ -1269,6 +1301,7 @@ int wr_hyperres_satellite_tmpres(glb* g,gptr tmpres, int respos) {
   }
   return 1;    
 } 
+
 
 
 /* -----------
@@ -1323,6 +1356,17 @@ void wr_process_resolve_result_setupquecopy(glb* g) {
   //g->build_buffer=NULL; // build everything into tmp buffer (vs main area)
   //(g->given_termbuf)[1]=2; // reuse given_termbuf
   g->build_buffer=g->queue_termbuf;
+  g->build_rename=0;   // do var renaming   
+  g->use_comp_funs=0;
+}
+
+void wr_process_resolve_result_setuphypercopy(glb* g) {
+  g->build_subst=0;     // subst var values into vars
+  g->build_calc=0;      // do fun and pred calculations
+  g->build_dcopy=0;     // copy nonimmediate data (vs return ptr)
+  //g->build_buffer=NULL; // build everything into tmp buffer (vs main area)
+  //(g->given_termbuf)[1]=2; // reuse given_termbuf
+  g->build_buffer=g->hyper_termbuf;
   g->build_rename=0;   // do var renaming   
   g->use_comp_funs=0;
 }

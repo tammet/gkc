@@ -43,6 +43,7 @@
 
 #include "../Reasoner/history.h"
 #include "../Reasoner/clterm.h"
+#include "../Reasoner/clmeta.h"
 
 #include "dbotterprint.h"
 
@@ -51,6 +52,8 @@
 
 //#define DEBUG
 #undef DEBUG
+
+#define PRINT_TERMMETA
 
 /* ======== Data ========================= */
 
@@ -247,8 +250,18 @@ void wr_print_atom_otter(glb* g, gint rec, int printlevel) {
 #endif
   recptr=wg_decode_record(db, rec);
   len = wg_get_record_len(db, recptr);
-  //printf("[");
+  //printf("["); 
+  //wg_print_record(g->db,rec);
   for(i=0; i<len; i++) {
+#ifdef PRINT_TERMMETA    
+    if ((i==(g->unify_firstuseterm)-1) && (wg_get_field(db,recptr,i)!=0) &&
+        !isdatarec(wg_get_field(db,recptr,i)) ) {
+      printf("%d.%d",
+               (int)((wg_decode_int(db,wg_get_field(db, recptr, i)) & TERMMETA_GROUND_MASK) ? 1 : 0),
+               (int)(wg_decode_int(db,wg_get_field(db, recptr, i)) & TERMMETA_SIZE_MASK)
+      );
+    }
+#endif    
     if (i<(g->unify_firstuseterm)) continue;
     if(i>((g->unify_firstuseterm)+1)) printf(",");
     enc = wg_get_field(db, recptr, i);
@@ -293,6 +306,15 @@ void wr_print_term_otter(glb* g, gint rec,int printlevel) {
   recptr=wg_decode_record(db, rec);
   len = wg_get_record_len(db, recptr);
   for(i=0; i<len; i++) {
+#ifdef PRINT_TERMMETA    
+    if ((i==(g->unify_firstuseterm)-1) && (wg_get_field(db,recptr,i)!=0) &&
+        !isdatarec(wg_get_field(db,recptr,i))) {
+      printf("%d.%d",
+               (int)((wg_decode_int(db,wg_get_field(db, recptr, i)) & TERMMETA_GROUND_MASK) ? 1 : 0),
+               (int)(wg_decode_int(db,wg_get_field(db, recptr, i)) & TERMMETA_SIZE_MASK)
+      );
+    }
+#endif
     if (i<(g->unify_firstuseterm)) continue;
     if(i>((g->unify_firstuseterm)+1)) printf(",");
     enc = wg_get_field(db, recptr, i);
@@ -302,12 +324,12 @@ void wr_print_term_otter(glb* g, gint rec,int printlevel) {
     if(parent)
       enc = wg_encode_parent_data(parent, enc);
 #endif
-#endif
+#endif     
     if (wg_get_encoded_type(db, enc)==WG_RECORDTYPE) {
       wr_print_term_otter(g,enc,printlevel);
     } else {  
       wr_print_simpleterm_otter(g, enc,printlevel);
-    }       
+    }           
     if (i==(g->unify_firstuseterm)) printf("(");
   }
   printf(")");

@@ -50,14 +50,16 @@
 #define NROF_SIMPLIFIED_TERMBUF_ELS 100000
 
 #ifdef _WIN32
-#define NROF_QUEUE_TERMBUF_ELS   50000000                              
-#define NROF_ACTIVE_TERMBUF_ELS  50000000 
+#define NROF_QUEUE_TERMBUF_ELS    50000000                              
+#define NROF_ACTIVE_TERMBUF_ELS   50000000 
 #else
 #define NROF_QUEUE_TERMBUF_ELS   100000000
+#define NROF_HYPER_TERMBUF_ELS    10000000
 #define NROF_ACTIVE_TERMBUF_ELS  100000000
 #endif
 
 #define NROF_CUT_CLVEC_ELS   100
+#define NROF_HYPER_QUEUE_ELS 100000
 
 #define NROF_VARBANKS   5 
 #define NROF_VARSINBANK 1000
@@ -162,9 +164,11 @@ typedef struct {
   cvec simplified_termbuf;
   cvec derived_termbuf;    
   cvec queue_termbuf;
+  cvec hyper_termbuf;
   cvec active_termbuf;
 
   cvec cut_clvec; // used for storing cutters of a derived clause
+  cvec hyper_queue; // storing partially derived clauses during hyperres for picking as given
 
   /* parser configuration */
   
@@ -298,6 +302,7 @@ typedef struct {
   
   int stat_built_cl;
   int stat_derived_cl;
+  int stat_derived_partial_hyper_cl;
   int stat_binres_derived_cl;
   int stat_propagated_derived_cl;
   int stat_factor_derived_cl;
@@ -311,7 +316,8 @@ typedef struct {
   int stat_internlimit_discarded_cl;
   int stat_internlimit_discarded_para;
   int stat_given_candidates;
-  int stat_given_used;
+  int stat_given_candidates_hyper;
+  int stat_given_used;  
   int stat_simplified;
   int stat_simplified_given;
   int stat_simplified_derived;

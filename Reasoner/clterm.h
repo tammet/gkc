@@ -141,7 +141,17 @@ where we use 29 bits:
 #define ATOM_META_PREFHASH_MASK 0xFF
 #define ATOM_META_PREFHASH_SHIFT 0
 
+#define TERM_META_POS 0
 
+/*
+
+in clterm.h:
+
+#define TERMMETA_POS_DIFF 1
+#define TERMMETA_GROUND_MASK    0x100000
+#define TERMMETA_SIZE_MASK        0xFFFF
+
+*/
 
 
 /* ============= external funs defs ============ */

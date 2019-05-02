@@ -43,6 +43,8 @@ extern "C" {
 //#define DEBUG  
 #undef DEBUG
   
+#define USE_TERM_META
+
 /* ====== Private headers and defs ======== */
 
 static gint wr_occurs_in(glb* g, gint x, gint y, gptr vb);
@@ -82,7 +84,7 @@ gint wr_unify_term_aux(glb* g, gint x, gint y, int uniquestrflag) {
   gint encx,ency;
   gint tmp; // used by VARVAL_F macro
   gptr xptr,yptr;
-  int xlen,ylen,uselen,ilimit,i;
+  int xlen,ylen,uselen,ilimit,i,isground;
   
 #ifdef DEBUG
   printf("wr_unify_term_aux called with x %d ",x);
@@ -148,6 +150,7 @@ gint wr_unify_term_aux(glb* g, gint x, gint y, int uniquestrflag) {
     return 0;  
   } else {
   // x and y are both complex terms     
+    isground=0; // default, set to 1 if metainfos show that for both  
     db=g->db;
     xptr=decode_record(db,x);
     yptr=decode_record(db,y);
@@ -155,6 +158,18 @@ gint wr_unify_term_aux(glb* g, gint x, gint y, int uniquestrflag) {
     ylen=get_record_len(yptr);
     if (g->unify_samelen) {
       if (xlen!=ylen) return 0;
+#ifdef USE_TERM_META      
+      encx=*(xptr+(RECORD_HEADER_GINTS+TERM_META_POS));
+      ency=*(yptr+(RECORD_HEADER_GINTS+TERM_META_POS));  
+      if (issmallint(encx) && issmallint(ency)) {        
+        if ((decode_smallint(encx) & TERMMETA_GROUND_MASK) && 
+            (decode_smallint(ency) & TERMMETA_GROUND_MASK) ) {
+          // both terms are ground    
+          if (encx!=ency) return 0; // ground term can unify only ground with same size
+          isground=1;          
+        }
+      }      
+#endif      
       uselen=xlen;      
     } else {
       if (xlen<=ylen) uselen=xlen;
@@ -168,7 +183,12 @@ gint wr_unify_term_aux(glb* g, gint x, gint y, int uniquestrflag) {
     for(i=RECORD_HEADER_GINTS+(g->unify_firstuseterm); i<ilimit; i++) {
       encx=*(xptr+i);
       ency=*(yptr+i);
-      if (encx!=ency && !wr_unify_term_aux(g,encx,ency,uniquestrflag)) return 0;
+      if (encx!=ency && 
+           ((isground) ?
+             !wr_equal_term(g,encx,ency,uniquestrflag)
+             :
+             !wr_unify_term_aux(g,encx,ency,uniquestrflag)) ) 
+        return 0;
     }      
     return 1;        
   }        
@@ -200,6 +220,12 @@ static gint wr_occurs_in(glb* g, gint x, gint y, gptr vb) {
     if (((g->unify_maxuseterms)+(g->unify_firstuseterm))<ylen) 
       ylen=(g->unify_firstuseterm)+(g->unify_maxuseterms);
   }    
+#ifdef USE_TERM_META      
+  yi=*(yptr+(RECORD_HEADER_GINTS+TERM_META_POS));  
+  if (issmallint(yi) && (decode_smallint(yi) & TERMMETA_GROUND_MASK)) {
+    return 0;
+  }      
+#endif     
   ilimit=RECORD_HEADER_GINTS+ylen;
   for(i=RECORD_HEADER_GINTS+(g->unify_firstuseterm); i<ilimit; i++) {     
     yi=*(yptr+i);
@@ -290,6 +316,16 @@ gint wr_match_term_aux(glb* g, gint x, gint y, int uniquestrflag) {
     ylen=get_record_len(yptr);
     if (g->unify_samelen) {
       if (xlen!=ylen) return 0;
+#ifdef USE_TERM_META       
+      encx=*(xptr+(RECORD_HEADER_GINTS+TERM_META_POS));
+      ency=*(yptr+(RECORD_HEADER_GINTS+TERM_META_POS));  
+      if (issmallint(encx) && issmallint(ency)) {
+        if (encx>ency) return 0; // term with bigger termmeta cannot subs one with smaller
+        if (decode_smallint(encx) & TERMMETA_GROUND_MASK) {
+          if (encx!=ency) return 0; // ground term can subs only ground with same size
+        }
+      }
+#endif      
       uselen=xlen;      
     } else {
       if (xlen<=ylen) uselen=xlen;
@@ -594,6 +630,13 @@ gint wr_equal_term(glb* g, gint x, gint y, int uniquestrflag) {
     ylen=get_record_len(yptr);
     if (g->unify_samelen) {
       if (xlen!=ylen) return 0;
+#ifdef USE_TERM_META            
+      encx=*(xptr+(RECORD_HEADER_GINTS+TERM_META_POS));
+      ency=*(yptr+(RECORD_HEADER_GINTS+TERM_META_POS));  
+      if (issmallint(encx) && issmallint(ency)) {        
+        if (encx!=ency) return 0;         
+      }      
+#endif      
       uselen=xlen;      
     } else {
       if (xlen<=ylen) uselen=xlen;
