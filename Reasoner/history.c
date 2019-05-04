@@ -579,7 +579,7 @@ void wr_show_history(glb* g, gint history) {
   } else {
     //wr_print_record(g,otp(db,history))
     wr_flatten_history(g,mpool,history,NULL,0,&clnr,&assoc);
-  }
+  }  
   assoc=wg_reverselist(db,mpool,assoc); 
   wr_print_flat_history(g,mpool,clnr,&assoc);
   // print last step
@@ -700,7 +700,9 @@ char* wr_print_one_history
   char namebuf1[20];  
   char orderbuf[80];
   gptr historyptr;
-  
+#ifdef RECORD_HISTORY_ORDER  
+  int o1,o2;
+#endif
   if (!history) {
     // empty history
     printf("\n %s: [] ",clns);
@@ -709,16 +711,17 @@ char* wr_print_one_history
     return clns;
   } 
 #ifdef RECORD_HISTORY_ORDER
-  snprintf(orderbuf,79," %8ld %6ld",
-      wg_decode_int(db,
-        wr_get_history_record_field(g,otp(db,history),HISTORY_DERIVED_ORDER_POS)),
-      wg_decode_int(db,
-        wr_get_history_record_field(g,otp(db,history),HISTORY_GIVEN_ORDER_POS))
+  o1=wr_get_history_record_field(g,otp(db,history),HISTORY_DERIVED_ORDER_POS);
+  o2=wr_get_history_record_field(g,otp(db,history),HISTORY_GIVEN_ORDER_POS);
+  snprintf(orderbuf,79," %8ld %6ld",o1,o2);
+  /*
+      ((o1) ? wg_decode_int(db,o1) : -1),
+      ((o2) ? wg_decode_int(db,o2) : -1)     
   );
+  */
 #else
   orderbuf[0]=(char)0;      
 #endif  
-
   len=wg_get_record_len(db,otp(db,history)); 
   if (len==HISTORY_PREFIX_LEN) {
     // input clause

@@ -179,12 +179,12 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active) {
     if (!xatom) continue;
     if (addflag) {     
       resolvedliterals++; 
-
-      /* 
-      printf("\natom resolved upon:\n");              
-      wr_print_record(g,wg_decode_record(db,xatom));
-      printf("\n");
-      */
+       
+      //printf("\natom resolved upon:\n");              
+      //wr_print_record(g,wg_decode_record(db,xatom));
+      //wr_print_term(g,xatom);
+      //printf("\n");
+      
 
       // now loop over hash vectors for all active unification candidates
       // ycl: cand clause

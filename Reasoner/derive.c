@@ -39,7 +39,7 @@ extern "C" {
 
 
 //#define DEBUG
-#undef DEBUG
+//#undef DEBUG
 //#define DEBUGHASH
 
 

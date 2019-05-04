@@ -266,9 +266,10 @@ gint wr_litmeta_to_gint(glb* g,term_metacalc* metaptr) {
 
 
 gint wr_calc_clause_meta(glb* g, gptr xptr, gptr cl_metablock) {
+  void* db=g->db;
   term_metacalc litmeta = {0,0,0,0,0,0,0,0,0,0,0};
   cl_metacalc clmeta = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-  void* db;
+  
   int ruleflag, negflag;       
   gint xatomnr; 
   gint xmeta, xatom; 
@@ -278,8 +279,8 @@ gint wr_calc_clause_meta(glb* g, gptr xptr, gptr cl_metablock) {
   
   //printf("\nwr_calc_clause_meta called on \n"); 
   //wr_print_clause(g,xptr);
-  
-  db=g->db;
+ 
+  UNUSED(db);
   ruleflag=wg_rec_is_rule_clause(db,xptr);  
   if (!ruleflag) {
     //printf("\nnot a ruleclause\n");
@@ -306,8 +307,14 @@ gint wr_calc_clause_meta(glb* g, gptr xptr, gptr cl_metablock) {
     //clmetagint=clmetagint|RECORD_META_FACT_CLAUSE; // ??
     //xptr[RECORD_META_POS]=clmetagint;
     //wr_print_term_metacalc(g,&litmeta);      
-  } else {        
-    //printf("\nis a ruleclause\n");
+  } else {  
+    /*      
+    printf("\nis a ruleclause\n");
+    wr_print_clause(g,xptr);
+    printf("\n");
+    wg_print_record(db,xptr);
+    printf("\n");
+    */
     // loop over clause elems
     xatomnr=wg_count_clause_atoms(db,xptr);
     clmeta.length=xatomnr;    
@@ -483,18 +490,39 @@ gint wr_calc_term_meta(glb* g, gint x, int depth, int pos, term_metacalc* metapt
   start=wr_term_unify_startpos(g);
   end=wr_term_unify_endpos(g,xptr);
   if ((metaptr->depth)<(depth+1)) (metaptr->depth)=depth+1;
+#ifdef USE_TERM_META  
   tmeta=0;
   hasvars=0;
+#endif  
   for(i=start;i<end;i++) {
-    smeta=wr_calc_term_meta(g,xptr[i],depth+1,i-start,metaptr);    
+    smeta=wr_calc_term_meta(g,xptr[i],depth+1,i-start,metaptr);  
+#ifdef USE_TERM_META        
     tmeta=tmeta+(smeta & TERMMETA_SIZE_MASK);
     if (tmeta>TERMMETA_SIZE_MASK) tmeta=TERMMETA_SIZE_MASK;
     if (!(smeta & TERMMETA_GROUND_MASK)) hasvars=1;
+#endif    
   }   
+#ifdef USE_TERM_META    
   if (!hasvars) tmeta=tmeta | TERMMETA_GROUND_MASK;
 #ifdef STORE_TERMMETA
-  xptr[start-TERMMETA_POS_DIFF]=wg_encode_int(db,tmeta);
+  xptr[start-TERMMETA_POS_DIFF]=encode_smallint(tmeta);
+  /*
+  if (xptr[start-TERMMETA_POS_DIFF]==0 || !isdatarec(xptr[start-TERMMETA_POS_DIFF])) {    
+    printf("\nOK %ld %ld\n",xptr[start-TERMMETA_POS_DIFF],tmeta);
+    wg_print_record(db,xptr);
+    printf(" end\n");
+    xptr[start-TERMMETA_POS_DIFF]=encode_smallint(tmeta);
+    
+  } else {
+    printf("\nPROBLEM %ld \n",xptr[start-TERMMETA_POS_DIFF]);
+    wr_print_term(g,rpto(g,xptr));
+    printf("\n");
+    wg_print_record(db,xptr);
+    printf("\n");
+  } 
+  */ 
 #endif  
+#endif
   return tmeta;
 }
 
@@ -564,6 +592,7 @@ void wr_print_gint_hashmask(glb* g, gint meta) {
 
 */
 
+/*
 gint wr_decorate_clause(glb* g, gptr xptr) {
   term_metacalc litmeta = {0,0,0,0,0,0,0,0,0,0,0};
   term_metacalc clmeta;
@@ -604,15 +633,7 @@ gint wr_decorate_clause(glb* g, gptr xptr) {
       wr_calc_term_meta(g,xatom,0,i,&litmeta);  
       litmetagint=wr_litmeta_to_gint(g,&litmeta);
       if (wg_atom_meta_is_neg(db,xmeta)) litmetagint=litmetagint|ATOM_META_NEG_RAWMASK;
-      /*
-      if (wg_atom_meta_is_neg(db,litmetagint)!=wg_atom_meta_is_neg(db,xmeta)) {
-        printf("\n *?*?*? wrong %d %d %d %d\n",
-          litmetagint,xmeta,wg_atom_meta_is_neg(db,litmetagint),wg_atom_meta_is_neg(db,xmeta));
-        wr_print_term(g,xatom);
-        wr_print_clause(g,xptr);
-        wr_print_term_metacalc(g,&litmeta);
-      } 
-      */ 
+     
       //if (wg_atom_meta_is_neg(db,xmeta)) litmetagint=ATOM_META_NEG;
       //else litmetagint=0;
       wg_set_rule_clause_atom_meta(db,xptr,i,litmetagint); // !!!
@@ -648,12 +669,15 @@ gint wr_decorate_clause(glb* g, gptr xptr) {
   return litmetagint;
 } 
 
+*/
+
 /*
 
   change term by replacing the first el of each record with metainfo
 
 */
 
+/*
 
 void wr_decorate_term(glb* g, gint x, int depth, int pos, term_metacalc* metaptr) { 
   void* db;
@@ -691,6 +715,7 @@ void wr_decorate_term(glb* g, gint x, int depth, int pos, term_metacalc* metaptr
   return;
 }   
 
+*/
 
 /* -----------------------------
 

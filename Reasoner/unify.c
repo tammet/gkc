@@ -43,8 +43,6 @@ extern "C" {
 //#define DEBUG  
 #undef DEBUG
   
-#define USE_TERM_META
-
 /* ====== Private headers and defs ======== */
 
 static gint wr_occurs_in(glb* g, gint x, gint y, gptr vb);
@@ -320,9 +318,9 @@ gint wr_match_term_aux(glb* g, gint x, gint y, int uniquestrflag) {
       encx=*(xptr+(RECORD_HEADER_GINTS+TERM_META_POS));
       ency=*(yptr+(RECORD_HEADER_GINTS+TERM_META_POS));  
       if (issmallint(encx) && issmallint(ency)) {
-        if (encx>ency) return 0; // term with bigger termmeta cannot subs one with smaller
+        if (encx>ency) { return 0; } // term with bigger termmeta cannot subs one with smaller
         if (decode_smallint(encx) & TERMMETA_GROUND_MASK) {
-          if (encx!=ency) return 0; // ground term can subs only ground with same size
+          if (encx!=ency) { return 0; } // ground term can subs only ground with same size
         }
       }
 #endif      
@@ -630,12 +628,20 @@ gint wr_equal_term(glb* g, gint x, gint y, int uniquestrflag) {
     ylen=get_record_len(yptr);
     if (g->unify_samelen) {
       if (xlen!=ylen) return 0;
-#ifdef USE_TERM_META            
+#ifdef USE_TERM_META                  
       encx=*(xptr+(RECORD_HEADER_GINTS+TERM_META_POS));
       ency=*(yptr+(RECORD_HEADER_GINTS+TERM_META_POS));  
       if (issmallint(encx) && issmallint(ency)) {        
-        if (encx!=ency) return 0;         
-      }      
+        if (encx!=ency) {                  
+          //printf("\n!!! meta-inequal:\n");
+          //wr_print_term(g,x);
+          //printf("\n");
+          //wr_print_term(g,y);
+          //printf("\n");
+
+          return 0;
+        }  
+      }       
 #endif      
       uselen=xlen;      
     } else {

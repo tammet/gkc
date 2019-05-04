@@ -53,7 +53,7 @@
 //#define DEBUG
 #undef DEBUG
 
-#define PRINT_TERMMETA
+//#define PRINT_TERMMETA
 
 /* ======== Data ========================= */
 

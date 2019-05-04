@@ -44,9 +44,8 @@ extern "C" {
 
 #define PRINT_LIMITS
 //#define DEBUG
-#undef DEBUG
+//#undef DEBUG
 
-#define USE_TERM_META
 
 /* ======= Private protos ================ */
 
@@ -207,7 +206,7 @@ printf("\n");
       ilimit=RECORD_HEADER_GINTS+1; // this should change with probabs!!!!
       for(i=0;i<RECORD_HEADER_GINTS+CLAUSE_EXTRAHEADERLEN;i++) {
         //printf("\n i1: %d RECORD_HEADER_GINTS: %d, CLAUSE_EXTRAHEADERLEN: %d xptr[i]: %d \n",i,RECORD_HEADER_GINTS,CLAUSE_EXTRAHEADERLEN,xptr[i]);
-        yptr[i]=xptr[i];     
+        yptr[i]=xptr[i];             
       }  
     } else {
       yptr=wg_create_raw_record(db,xlen); 
@@ -216,7 +215,7 @@ printf("\n");
       ilimit=RECORD_HEADER_GINTS+1; // this should change with probabs!!!!
       for(i=0;i<RECORD_HEADER_GINTS+CLAUSE_EXTRAHEADERLEN;i++) {
         //printf("\n i1: %d RECORD_HEADER_GINTS: %d, CLAUSE_EXTRAHEADERLEN: %d xptr[i]: %d \n",i,RECORD_HEADER_GINTS,CLAUSE_EXTRAHEADERLEN,xptr[i]);
-        yptr[i]=xptr[i];     
+        yptr[i]=xptr[i];          
       }  
       /*
       // copy clause header
@@ -405,9 +404,163 @@ gint wr_build_calc_term(glb* g, gint x) {
     db=g->db;
     xptr=decode_record(db,x);
 #ifdef USE_TERM_META    
+    //printf("\n!!!! check if ground term:\n");
+    //wr_print_term(g,rpto(g,xptr));
+    //printf("\n");
+    //printf("\nissmallint %d\n",issmallint(xptr[RECORD_HEADER_GINTS+TERM_META_POS]));
+    //printf("\n groundflag %d\n",decode_smallint(xptr[RECORD_HEADER_GINTS+TERM_META_POS] & TERMMETA_GROUND_MASK));
+    // return ground terms without change or copy
+    //if (issmallint(xptr[RECORD_HEADER_GINTS+TERM_META_POS]) && 
+    //    (decode_smallint(xptr[RECORD_HEADER_GINTS+TERM_META_POS]) & TERMMETA_GROUND_MASK) ) {
+      //printf("\n!!!! ground term copied:\n");
+      //wr_print_term(g,rpto(g,xptr));
+      //printf("\n");
+      //return x;
+    //}
+#endif       
+    xlen=get_record_len(xptr);
+    // allocate space
+    if ((g->build_buffer)!=NULL) {       
+      yptr=wr_alloc_from_cvec(g,g->build_buffer,(RECORD_HEADER_GINTS+xlen));     
+      //yptr=malloc(64);
+    } else {
+      yptr=wg_create_raw_record(db,xlen);     
+    }    
+    if (yptr==NULL) return WG_ILLEGAL;
+    // copy rec header and term header
+    ilimit=RECORD_HEADER_GINTS+(g->unify_firstuseterm);
+    for(i=0;i<ilimit;i++) yptr[i]=xptr[i];    
+#ifdef USE_TERM_META    
+    // set termmeta to 0 if smallint (and not ground: but this we already know)    
+    if (issmallint(yptr[RECORD_HEADER_GINTS+TERM_META_POS]) && (g->build_subst)) {
+      yptr[RECORD_HEADER_GINTS+TERM_META_POS]=0;
+    }
+#endif    
+    // loop over term elems, i already correct
+    if (g->unify_maxuseterms) {
+      if (((g->unify_maxuseterms)+(g->unify_firstuseterm))<xlen) 
+        uselen=((g->unify_maxuseterms)+(g->unify_firstuseterm)+RECORD_HEADER_GINTS);
+      else
+        uselen=xlen+RECORD_HEADER_GINTS; 
+    } else {    
+      uselen=xlen+RECORD_HEADER_GINTS;
+    }  
+    substflag=(g->build_subst || g->build_rename);
+    for(;i<uselen;i++) {
+      //printf("wr_build_calc_term loop i %d xptr[i] %d\n",i,xptr[i]);
+      if (!substflag && !isdatarec(xptr[i])) yptr[i]=xptr[i];       
+      else {
+        tmp=wr_build_calc_term_copyground(g,xptr[i]);
+        if (tmp==WG_ILLEGAL) return WG_ILLEGAL;
+#ifdef USE_TERM_META_EXPERIMENTAL
+        smeta=decode_smallint(*(wg_decode_record(db,tmp)+(RECORD_HEADER_GINTS+TERM_META_POS)));
+        tmeta=tmeta+(smeta & TERMMETA_SIZE_MASK);
+        if (tmeta>TERMMETA_SIZE_MASK) tmeta=TERMMETA_SIZE_MASK;
+        if (!(smeta & TERMMETA_GROUND_MASK)) hasvars=1;
+#endif        
+        //printf("wr_build_calc_term loop tmp %d \n",(gint)tmp);
+        yptr[i]=tmp;
+      }  
+    }
+    // copy term footer (in addition to rec/term header), i already correct
+    if (g->unify_maxuseterms) {
+      ilimit=RECORD_HEADER_GINTS+xlen;
+      for(;i<ilimit;i++) {
+        yptr[i]=xptr[i];     
+      }  
+    }
+#ifdef USE_TERM_META_EXPERIMENTAL
+    if (!hasvars) tmeta=tmeta | TERMMETA_GROUND_MASK;
+    tmeta=encode_smallint(tmeta);
+    *(yptr+(RECORD_HEADER_GINTS+TERM_META_POS))=tmeta;
+#endif              
+    if (g->use_comp_funs) {
+      comp=wr_computable_termptr(g,yptr);
+      if (comp) {
+        res=wr_compute_from_termptr(g,yptr,comp); 
+        if (res==WG_ILLEGAL) return WG_ILLEGAL;
+      } else {
+        res=encode_record(db,yptr);
+      }
+    } else {
+      res=encode_record(db,yptr);
+    }       
+    return res;
+  }   
+}  
+
+gint wr_build_calc_term_copyground(glb* g, gint x) {
+  void* db;
+  gptr xptr,yptr;
+  gint xlen,uselen;
+  gint tmp; // used by VARVAL_F
+  gint vnr;
+  gint newvar;
+  int i;
+  gint res;
+  int ilimit;
+  int substflag;
+  int comp;
+#ifdef USE_TERM_META_EXPERIMENTAL  
+  int hasvars=0;
+  gint smeta,tmeta=0;
+#endif  
+
+  /*  
+  printf("wr_build_calc_term called with x %d type %d\n",x,wg_get_encoded_type(g->db,x));
+  wr_print_vardata(g);
+  wr_print_term(g,x);
+  printf("\n");
+  if (isvar(x)) printf("\nisvar\n");
+  else printf("\nnot isvar\n");  
+  printf("g->build_subst %d\n",g->build_subst);
+  printf("g->build_rename %d\n",g->build_rename);
+  */
+  //printf("VARVAL_F(x,(g->varbanks)): %d\n",VARVAL_F(x,(g->varbanks)));
+  //wr_print_term(g,VARVAL_F(x,(g->varbanks)));
+  //wg_print_record(g->db,VARVAL_F(x,(g->varbanks)));
+  //printf("\n");
+
+  if (isvar(x) && (g->build_subst || g->build_rename))  x=VARVAL_F(x,(g->varbanks));
+  if (!isdatarec(x)) {
+    // now we have a simple value  
+    if (!isvar(x) || !(g->build_rename)) return x;
+    vnr=decode_var(x);      
+    if (vnr<FIRST_UNREAL_VAR_NR) {
+      //normal variable, has to be renamed 
+      newvar=(g->build_rename_vc)+FIRST_UNREAL_VAR_NR;
+      if ((g->build_rename_vc)>=NROF_VARSINBANK) {
+        ++(g->stat_internlimit_discarded_cl); 
+        (g->alloc_err)=3;      
+#ifdef PRINT_LIMITS         
+        printf("limiterr in wr_build_calc_term for renamed var nrs\n");                    
+#endif        
+        return WG_ILLEGAL;          
+      }  
+      ++(g->build_rename_vc);
+      SETVAR(x,encode_var(newvar),(g->varbanks),(g->varstack),(g->tmp_unify_vc));
+      return encode_var(((g->build_rename_banknr)*NROF_VARSINBANK)+(newvar-FIRST_UNREAL_VAR_NR));
+    } else {
+      return encode_var(((g->build_rename_banknr)*NROF_VARSINBANK)+(vnr-FIRST_UNREAL_VAR_NR));
+    }    
+  }   
+  // now we have a datarec
+  if (0) {
+  } else {  
+    db=g->db;
+    xptr=decode_record(db,x);
+#ifdef USE_TERM_META    
+    //printf("\n!!!! check if ground term:\n");
+    //wr_print_term(g,rpto(g,xptr));
+    //printf("\n");
+    //printf("\nissmallint %d\n",issmallint(xptr[RECORD_HEADER_GINTS+TERM_META_POS]));
+    //printf("\n groundflag %d\n",decode_smallint(xptr[RECORD_HEADER_GINTS+TERM_META_POS] & TERMMETA_GROUND_MASK));
     // return ground terms without change or copy
     if (issmallint(xptr[RECORD_HEADER_GINTS+TERM_META_POS]) && 
-        (xptr[RECORD_HEADER_GINTS+TERM_META_POS] & TERMMETA_GROUND_MASK)) {
+        (decode_smallint(xptr[RECORD_HEADER_GINTS+TERM_META_POS]) & TERMMETA_GROUND_MASK) ) {
+      //printf("\n!!!! ground term copied:\n");
+      //wr_print_term(g,rpto(g,xptr));
+      //printf("\n");
       return x;
     }
 #endif       
@@ -443,7 +596,7 @@ gint wr_build_calc_term(glb* g, gint x) {
       //printf("wr_build_calc_term loop i %d xptr[i] %d\n",i,xptr[i]);
       if (!substflag && !isdatarec(xptr[i])) yptr[i]=xptr[i];       
       else {
-        tmp=wr_build_calc_term(g,xptr[i]);
+        tmp=wr_build_calc_term_copyground(g,xptr[i]);
         if (tmp==WG_ILLEGAL) return WG_ILLEGAL;
 #ifdef USE_TERM_META_EXPERIMENTAL
         smeta=decode_smallint(*(wg_decode_record(db,tmp)+(RECORD_HEADER_GINTS+TERM_META_POS)));
@@ -611,7 +764,7 @@ gint wr_build_calc_term_replace(glb* g, gint x, int replpos, gint replterm, int*
       else if ((*path)<=replpos) {
         //printf("\n(*path)<=replpos case"); 
         if (incpath) tmp=wr_build_calc_term_replace(g,xptr[i],replpos,replterm,path);
-        else tmp=wr_build_calc_term(g,xptr[i]);
+        else tmp=wr_build_calc_term_copyground(g,xptr[i]);
         //printf("\nreturns\n");
         //wr_print_term(g,tmp); 
         if (tmp==WG_ILLEGAL) return WG_ILLEGAL;

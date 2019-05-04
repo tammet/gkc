@@ -56,10 +56,6 @@
 #define CLMETABLOCK_SIZE_SHIFT 8
 #define CLMETABLOCK_PREFLEN_SHIFT 0
 
-#define TERMMETA_POS_DIFF 1
-#define TERMMETA_GROUND_MASK    0x100000
-#define TERMMETA_SIZE_MASK        0xFFFF
-
 // metacalc is used while calculating metainfo of a clause and a term
 
 typedef struct {  
@@ -113,8 +109,8 @@ gint wr_signed_lithash_to_bitmask(glb* g, int hash, int negflag);
 gint wr_lithash_to_bitmask(glb* g, int hash);
 gint wr_calc_term_meta(glb* g, gint x, int depth, int pos, term_metacalc* metaptr);
 
-gint wr_decorate_clause(glb* g, gptr xptr);
-void wr_decorate_term(glb* g, gint x, int depth, int pos, term_metacalc* metaptr);
+//gint wr_decorate_clause(glb* g, gptr xptr);
+//void wr_decorate_term(glb* g, gint x, int depth, int pos, term_metacalc* metaptr);
 
 void wr_print_cl_meta(glb* g, gint clmeta1);
 void wr_print_gint_hashmask(glb* g, gint mask);

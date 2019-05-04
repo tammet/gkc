@@ -423,14 +423,15 @@ int wr_calc_clause_hardnesses(glb* g, gptr cl,
     atom=wg_get_rule_clause_atom(db,cl,i);  
     if (wg_atom_meta_is_neg(db,meta)) polarity=0;
     else polarity=1;
-    /*
-    printf("\n  atom ");
-    wr_print_term(g,atom);
-    printf("\n  hardness ");
-    */
+    
+    
     if (wr_answer_lit(g,atom)) hardness=MIN_HARDNESS;
     else hardness=wr_calc_atom_hardness(g,polarity,atom);
 
+    //printf("\n  atom ");
+    //wr_print_term(g,atom);
+    //printf("\n  hardness %d\n",hardness);
+    
     //hardness=0;
 
     (g->tmp_hardnessinf_vec)=wr_vec_store(g,g->tmp_hardnessinf_vec,i+1,hardness);

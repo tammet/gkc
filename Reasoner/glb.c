@@ -159,8 +159,8 @@ int wr_glb_init_simple(glb* g) {
   (g->negpref_strat)=0;
   (g->pospref_strat)=0;
   (g->res_shortarglen_limit)=0; // max non-ans len of the shortest res argument (generalization of unit)
-  (g->back_subsume)=0;
-  (g->propagate)=0;
+  (g->back_subsume)=0; // 1 does not work any more
+  (g->propagate)=0;    // 1 does not work any more
   (g->use_equality_strat)=1; // general strategy
   (g->use_equality)=1; // current principle
   (g->posunitpara_strat)=0;

@@ -822,13 +822,13 @@ void wr_show_stats(glb* g, int show_local_complex) {
   printf("stat_clsubs_top_meta_attempted:    %15ld\n",g->stat_clsubs_top_meta_attempted);
   printf("stat_clsubs_top_meta_failed:       %15ld\n",g->stat_clsubs_top_meta_failed);
 
-  printf("stat_clsubs_top_meta_nonpref_attempted:    %15ld\n",g->stat_clsubs_top_meta_nonpref_attempted);
-  printf("stat_clsubs_top_meta_nonpref_succeeded:    %15ld\n",g->stat_clsubs_top_meta_nonpref_succeeded);
-  printf("stat_clsubs_top_meta_pref_attempted:       %15ld\n",g->stat_clsubs_top_meta_pref_attempted);
-  printf("stat_clsubs_top_meta_pref_succeeded:       %15ld\n",g->stat_clsubs_top_meta_pref_succeeded);
+  printf("stat_clsubs_top_meta_nonpref_attempted:     %15ld\n",g->stat_clsubs_top_meta_nonpref_attempted);
+  printf("stat_clsubs_top_meta_nonpref_succeeded:     %15ld\n",g->stat_clsubs_top_meta_nonpref_succeeded);
+  printf("stat_clsubs_top_meta_pref_attempted:        %15ld\n",g->stat_clsubs_top_meta_pref_attempted);  
   printf("stat_clsubs_top_meta_pref1_succeeded:       %15ld\n",g->stat_clsubs_top_meta_pref1_succeeded);
   printf("stat_clsubs_top_meta_pref2_succeeded:       %15ld\n",g->stat_clsubs_top_meta_pref2_succeeded);
   printf("stat_clsubs_top_meta_pref3_succeeded:       %15ld\n",g->stat_clsubs_top_meta_pref3_succeeded);
+  printf("stat_clsubs_top_meta_pref_succeeded:        %15ld\n",g->stat_clsubs_top_meta_pref_succeeded);
 
   printf("stat_clsubs_meta_attempted:      %15d\n",g->stat_clsubs_meta_attempted);
   printf("stat_clsubs_meta_failed:         %15d\n",g->stat_clsubs_meta_failed);

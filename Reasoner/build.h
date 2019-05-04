@@ -38,6 +38,7 @@
 
 gptr wr_build_calc_cl(glb* g, gptr x);
 gint wr_build_calc_term(glb* g, gint x);
+gint wr_build_calc_term_copyground(glb* g, gint x);
 gint wr_build_calc_term_replace(glb* g, gint x, int replpos, gint replterm, int* path);
 
 int wr_answer_lit(glb* g, gint atom);
