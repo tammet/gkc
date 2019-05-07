@@ -111,7 +111,7 @@
 #define USE_REASONER 1
 
 /* Version number of package */
-#define VERSION "0.2-delta"
+#define VERSION "0.2-epsilon"
 
 /* Package major version */
 #define VERSION_MAJOR 0
