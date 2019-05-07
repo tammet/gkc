@@ -210,7 +210,7 @@ void wr_set_stratlimits_cl(glb* g, gptr cl, int ruleflag, int len, int* posok, i
   printf("\n");
   */
   if (!ruleflag) {    
-    if (wr_answer_lit(g,rpto(g,atom))) anscount++;
+    if (wr_answer_lit(g,rpto(g,cl))) anscount++;
     poscount++;
   } else {
     for(i=0; i<len; i++) {          

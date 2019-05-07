@@ -50,7 +50,8 @@
 #define NROF_SIMPLIFIED_TERMBUF_ELS 100000
 
 #ifdef _WIN32
-#define NROF_QUEUE_TERMBUF_ELS    50000000                              
+#define NROF_QUEUE_TERMBUF_ELS    50000000
+#define NROF_HYPER_TERMBUF_ELS    10000000                              
 #define NROF_ACTIVE_TERMBUF_ELS   50000000 
 #else
 #define NROF_QUEUE_TERMBUF_ELS   100000000
