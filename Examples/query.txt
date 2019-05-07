@@ -1,0 +1,11 @@
+{
+"print_level": 15, 
+"max_size": 0,
+"max_depth": 0,
+"max_length":0,
+"max_weight": 0,
+"max_seconds": 0,
+"weight_select_ratio": 4,
+"strategy":["query_focus"],
+"query_preference": 2
+}  

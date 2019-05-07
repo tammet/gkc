@@ -96,7 +96,7 @@ void wr_process_resolve_result
   int ruleflag;
   //int partialresflag;
   //int clstackflag;
-  gint given_termbuf_storednext=0;
+  //gint given_termbuf_storednext=0;
   gint initial_queue_termbuf_next=0;
   int weight;
   double avg;

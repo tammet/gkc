@@ -713,7 +713,7 @@ char* wr_print_one_history
 #ifdef RECORD_HISTORY_ORDER
   o1=wr_get_history_record_field(g,otp(db,history),HISTORY_DERIVED_ORDER_POS);
   o2=wr_get_history_record_field(g,otp(db,history),HISTORY_GIVEN_ORDER_POS);
-  snprintf(orderbuf,79," %8ld %6ld",o1,o2);
+  snprintf(orderbuf,79," %8ld %6ld",wg_decode_int(db,o1),wg_decode_int(db,o2));
   /*
       ((o1) ? wg_decode_int(db,o1) : -1),
       ((o2) ? wg_decode_int(db,o2) : -1)     
