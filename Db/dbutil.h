@@ -84,7 +84,7 @@ if (size >= 256) { free(buffer); buffer = malloc(size); snprintf(buffer, size, e
 error_callback(errnumber, buffer); \
 free(buffer); \
 } 
-#else 
+#else
 //#define LOG_ERROR(errnumber, errformat, errmessage, ...) fprintf(stderr, errformat, errmessage, ##__VA_ARGS__)
 #define LOG_ERROR(errnumber, errformat, errmessage, ...) printf(errformat, errmessage, ##__VA_ARGS__)
 #endif

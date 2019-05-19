@@ -62,7 +62,7 @@ extern "C" {
 /* ====== Private headers and defs ======== */
 
 //#define DEBUG
-#undef DEBUG
+//#undef DEBUG
 
 //#define DEBUGHASH
 #undef DEBUGHASH
@@ -205,8 +205,15 @@ int wr_genloop(glb* g) {
       //printf("\n given is blocked\n");
       continue;      
     }
-    wr_process_given_cl_setupsubst(g,g->given_termbuf,1,1); // !!!!! new try    
-    given_cl_cand=wr_activate_passive_cl(g,picked_given_cl_cand,given_cl_metablock);  
+    wr_process_given_cl_setupsubst(g,g->given_termbuf,1,1); // !!!!! new try  
+
+    wr_sort_cl(g, picked_given_cl_cand);
+    given_cl_cand=wr_simplify_cl(g, picked_given_cl_cand, given_cl_metablock);
+    
+    //wr_calc_clause_meta(g,picked_given_cl_cand,given_cl_metablock);
+    
+
+    //given_cl_cand=wr_activate_passive_cl(g,picked_given_cl_cand,given_cl_metablock);  
 
     //printf("\nmetablock1 %d %d %d %d \n",*given_cl_metablock,*(given_cl_metablock+1),*(given_cl_metablock+2),*(given_cl_metablock+3));
 
@@ -223,6 +230,9 @@ int wr_genloop(glb* g) {
       // otherwise the candidate was subsumed or otherwise useless
       continue; 
     }   
+
+    wr_calc_clause_meta(g,given_cl_cand,given_cl_metablock);
+
     // -- check part 1 starts ---
     
     if ((gint)given_cl_cand==ACONST_FALSE) {
@@ -384,7 +394,7 @@ gptr wr_pick_given_cl(glb* g, gptr given_cl_metablock) {
 
 */
 
-gptr wr_activate_passive_cl(glb* g, gptr picked_given_cl_cand, gptr cl_metablock) {
+gptr dummy_wr_activate_passive_cl(glb* g, gptr picked_given_cl_cand, gptr cl_metablock) {
   
   gptr res;
   /*
@@ -597,6 +607,7 @@ int wr_add_cl_to_active_unithash(glb* g, gptr cl) {
 }
 
 void wr_process_given_cl_setupsubst(glb* g, gptr buf, gint banknr, int reuseflag) {
+  g->build_rewrite=0;   // default is no rewriting during building
   g->build_subst=0;     // subst var values into vars
   g->build_calc=0;      // do fun and pred calculations
   g->build_dcopy=0;     // copy nonimmediate data (vs return ptr)

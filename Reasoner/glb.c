@@ -166,6 +166,9 @@ int wr_glb_init_simple(glb* g) {
   (g->posunitpara_strat)=0;
   (g->use_comp_funs_strat)=1;
   (g->use_comp_funs)=1;
+  (g->use_rewrite_terms_strat)=1; // general strategy
+  (g->have_rewrite_terms)=0; // do we actually have rewrite terms
+  
   (g->store_history)=1;
   //(g->cl_maxdepth)=1000000;
   //(g->cl_limitkept)=1;
@@ -209,6 +212,7 @@ int wr_glb_init_simple(glb* g) {
   
   /* build control: changed in code */
   
+  (g->build_rewrite)=0;  // to rewrite terms while building or not
   (g->build_subst)=1;    // subst var values into vars
   (g->build_calc)=1;     // do fun and pred calculations
   (g->build_dcopy)=0;    // copy nonimmediate data (vs return ptr)
@@ -249,6 +253,7 @@ int wr_glb_init_simple(glb* g) {
   (g->stat_propagated_subsumed)=0;
   (g->stat_forward_subsumed)=0;
   (g->stat_derived_cut)=0;
+  (g->stat_derived_rewritten)=0;
 
   (g->stat_clsubs_attempted)=0;
   (g->stat_clsubs_top_meta_attempted)=0;
@@ -356,6 +361,7 @@ int wr_glb_init_shared_complex(glb* g) {
   (g->hash_units)=(gint)NULL; 
   (g->hash_para_terms)=(gint)NULL; 
   (g->hash_eq_terms)=(gint)NULL; 
+  (g->hash_rewrite_terms)=(gint)NULL;
 #ifndef MALLOC_HASHNODES  
   (g->hash_nodes)=(gint)NULL;
 #endif
@@ -399,6 +405,8 @@ int wr_glb_init_shared_complex(glb* g) {
   //wr_vec_zero(rotp(g,g->hash_para_terms)); 
   (g->hash_eq_terms)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS)); 
   //wr_vec_zero(rotp(g,g->hash_eq_terms)); 
+  (g->hash_rewrite_terms)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS)); 
+  //wr_vec_zero(rotp(g,hash_rewrite_terms)); 
 
   //(g->hash_nodes)=rpto(g,wr_vec_new(g,NROF_CLTERM_HASHNODESVEC_ELS));
   
@@ -566,6 +574,7 @@ int wr_glb_free_shared_complex(glb* g) {
   wr_clterm_hashlist_free(g,rotp(g,g->hash_units));
   wr_clterm_hashlist_free(g,rotp(g,g->hash_para_terms));
   wr_clterm_hashlist_free(g,rotp(g,g->hash_eq_terms));
+  wr_clterm_hashlist_free(g,rotp(g,g->hash_rewrite_terms));
   
   return 0;
 }  

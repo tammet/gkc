@@ -48,7 +48,7 @@ extern "C" {
 //#define PARADEBUG // storing para terms
 
 //#define XDEBUG
-#undef XDEBUG
+//#undef XDEBUG
 //#define DEBUGHASH
 
 //#define SIMPLE_ACTIVE_SEARCH_HASH
@@ -311,7 +311,7 @@ int wr_cl_store_res_terms(glb* g, gptr cl) {
   gint atom;  
   int negflag; // 1 if negative
   //int termflag; // 1 if complex atom  
-  gint hash;
+  gint hash=0;
   int addflag=0;
   int negadded=0;
   int posadded=0;
@@ -423,7 +423,14 @@ int wr_cl_store_res_terms(glb* g, gptr cl) {
   return 0;
 }
 
+/*
+   store all these for the clause cl:
 
+   * subterms into a hash structure for para-from later
+   * equality args into a hash structure for para-into later
+   * equality as demodulator if orientable
+
+*/
 
 int wr_cl_store_para_terms(glb* g, gptr cl) {    
   void* db=g->db;
@@ -530,7 +537,9 @@ int wr_cl_store_para_terms(glb* g, gptr cl) {
       // 1: a bigger than b (prohibits b)
       // 2: b bigger than a (prohibits a)
       // 3: none bigger, both ok for para
+
       //printf("\n in wr_cl_store_para_terms eqtermorder:%d ",eqtermorder);
+
       if ((eqtermorder==1 || eqtermorder==3) && atype!=WG_VARTYPE) {
           //(atype==WG_RECORDTYPE || atype==WG_URITYPE || atype==WG_ANONCONSTTYPE)) {
         // ok to para from left
@@ -540,6 +549,16 @@ int wr_cl_store_para_terms(glb* g, gptr cl) {
           //(btype==WG_RECORDTYPE || btype==WG_URITYPE || btype==WG_ANONCONSTTYPE)) {
         // ok to para from right
         wr_cl_store_eq_arg(g,cl,b,btype,i,0);
+      }     
+      // store equality as demodulator if everything ok
+      if (len==1 && eqtermorder==1 && (g->use_rewrite_terms_strat) && atype!=WG_VARTYPE) {
+        // a will rewrite to b
+        wr_cl_store_term_rewriter(g,cl,a,atype,i,1);
+        (g->have_rewrite_terms)=1;
+      } else if (len==1 && eqtermorder==2 && (g->use_rewrite_terms_strat) && btype!=WG_VARTYPE) {
+        // b will rewrite to a
+        wr_cl_store_term_rewriter(g,cl,b,btype,i,0);
+        (g->have_rewrite_terms)=1;
       }
     }
   }  
@@ -555,7 +574,7 @@ int wr_cl_store_eq_arg(glb* g, gptr cl, gint term, int termtype, int litnr, int 
   gptr tptr;
 
 #ifdef XDEBUG 
-  printf("\nwr_cl_store_eq_arg starts %d\n");
+  printf("\nwr_cl_store_eq_arg starts\n");
   printf("term \n");
   wr_print_term(g,term);
   printf("clause \n");
@@ -581,6 +600,53 @@ int wr_cl_store_eq_arg(glb* g, gptr cl, gint term, int termtype, int litnr, int 
   }  
 #ifdef DEBUGHASH      
   printf("\nhash_eq_terms after adding:");      
+  wr_clterm_hashlist_print_para(g,hashvec);
+#endif 
+  return 1; 
+
+}
+
+
+int wr_cl_store_term_rewriter(glb* g, gptr cl, gint term, int termtype, int litnr, int leftflag) {    
+  gint fun, hash;
+  int tmp, path;
+  vec hashvec;
+
+  gptr tptr;
+
+#ifdef XDEBUG 
+  printf("\n*** wr_cl_store_term_rewriter starts \n");
+  printf("rewriter ");
+  wr_print_term(g,term);
+  printf(" --> ");
+  //wr_print_term(g,toterm);
+  printf("\n clause \n");
+  wr_print_clause(g,cl);
+  printf("\nwtermtype %d litnr %d leftflag %d\n",termtype,litnr,leftflag);
+#endif  
+  if (termtype==WG_RECORDTYPE) {
+    tptr=rotp(g,term);
+    fun=tptr[RECORD_HEADER_GINTS+(g->unify_funpos)];
+  } else {
+    fun=term;
+  }  
+  hash=wr_term_basehash(g,fun); 
+  hashvec=rotp(g,g->hash_rewrite_terms);  
+  path=wr_encode_para_termpath(g,litnr,leftflag);
+  tmp=wr_clterm_add_hashlist_withpath(g,hashvec,hash,term,cl,path);
+#ifdef XDEBUG 
+  printf("\nadding to rewrite_hash ended with %d\n",tmp);
+#endif       
+  if (tmp) {
+    wr_sys_exiterr2int(g,"adding term to hashlist in  wr_cl_store_term_rewriter, code ",tmp);
+    return 1;        
+  }  
+  printf("\nwr_cl_store_term_rewriter adds term \n");
+  wr_print_term(g,term);
+  printf("\nresulting with\n");
+  wr_clterm_hashlist_print_para(g,hashvec);
+#ifdef DEBUGHASH      
+  printf("\nhash_rewrite_terms after adding:");      
   wr_clterm_hashlist_print_para(g,hashvec);
 #endif 
   return 1; 
@@ -652,7 +718,7 @@ int wr_cl_store_para_subterms(glb* g, gptr cl, gint term, int depth, int litnr, 
   // put term into the hash table
   hash=wr_term_basehash(g,fun);
 #ifdef XDEBUG 
-  printf("\nbefore adding to g->hash_para_terms fun hash is: %d litnr % origtermpath %d\n",
+  printf("\nbefore adding to g->hash_para_terms fun hash is: %d litnr %d origtermpath %d\n",
     (int)hash,litnr,origtermpath);
 #endif      
   hashvec=rotp(g,g->hash_para_terms);  

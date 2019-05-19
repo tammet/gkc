@@ -43,7 +43,7 @@ extern "C" {
 /* ====== Private headers and defs ======== */
 
 //#define DEBUG
-#undef DEBUG
+//#undef DEBUG
 #define QUIET
 //#undef QUIET
 
@@ -63,7 +63,7 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
   gint initial_queue_termbuf_next;
   int i;
   int len, rlen;
-  int tmp, cuts, calccuts;
+  int tmp, cuts, calccuts, rewritten_atoms=0;
   cvec foundbucket;
   gptr rptr;
   int rpos;
@@ -71,6 +71,7 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
   gptr xcl;
   gint xatom,yatom;
   gint xmeta;  
+  gint prev_rewrites=0;
   
 #ifdef DEBUG
   printf("\nwr_simplify_cl called with ");
@@ -78,8 +79,12 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
   printf("\n"); 
 #endif
 
+  (g->tmp_rewrites)=0;
   // do not process non-rule clauses for now
   if (! wg_rec_is_rule_clause(db,cl)) {
+
+    // not a ruleclause 
+
     len=1;
     // here we could only find a contradiction or calc tautology
     // first try to compute
@@ -87,11 +92,12 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
 
     //meta=RECORD_META_FACT_CLAUSE;
     //blt=wr_build_calc_term(g,rptr[LIT_ATOM_POS]);
-
-    if ((g->use_comp_funs) && 
-        wr_computable_termptr(g,cl) ) {
+    if ((g->use_rewrite_terms_strat) && (g->have_rewrite_terms)) (g->build_rewrite)=1;
+    if ((g->build_rewrite) ||
+        ((g->use_comp_funs) && wr_computable_termptr(g,cl)) ) {
       initial_queue_termbuf_next=CVEC_NEXT(g->build_buffer);    // ??
       yatom=wr_build_calc_term(g,rpto(g,cl));
+      (g->build_rewrite)=0;
       //CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored ??
       if (yatom==WG_ILLEGAL) {
         ++(g->stat_internlimit_discarded_cl);
@@ -112,7 +118,10 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
     return cl; 
   } else {
     len=wg_count_clause_atoms(db,cl);
-  }  
+  } 
+
+  // ruleclause
+
   // reserve sufficient space in termbuf for simple sequential store of atoms:
   // no top-level meta kept
   rlen=len*LIT_WIDTH;  
@@ -125,38 +134,64 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
     return NULL; // could not alloc memory, could not store clause
   }  
   rpos=0;
-  // init vector for storing cutters
+  // init vector for storing cutters and rewriters
   (g->cut_clvec)[1]=(gint)NULL; 
   cuts=0; // by units
   calccuts=0; // by calc
   // set up subs parameters
   wr_process_resolve_result_setupquecopy(g);
   initial_queue_termbuf_next=CVEC_NEXT(g->build_buffer); // to be restored if not actually used
-  if (g->use_comp_funs_strat) g->use_comp_funs=1;
+  if (g->use_comp_funs_strat) g->use_comp_funs=1;  
+  
   // loop over literals, storing the results of cuts as we go
   xcl=cl;  
   for(i=0; i<len; i++) {    
     xmeta=wg_get_rule_clause_atom_meta(db,xcl,i);
     xatom=wg_get_rule_clause_atom(db,xcl,i);        
     foundbucket=NULL;
-    // first try to compute
-    if ((g->use_comp_funs) && 
-        wr_computable_termptr(g,rotp(g,xatom)) ) {
+
+    //printf("\nxatom before rewrite/compute\n");
+    //wr_print_term(g,xatom);
+    //printf("\n");
+    
+    // first try to rewrite and compute
+    if ((g->use_rewrite_terms_strat) && (g->have_rewrite_terms)) (g->build_rewrite)=1;
+    if ((g->build_rewrite) ||
+        ((g->use_comp_funs) && wr_computable_termptr(g,rotp(g,xatom))) ) {
+      prev_rewrites=(g->tmp_rewrites); // to check later if rewrites were done
       yatom=wr_build_calc_term(g,xatom);
-      CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
+
+      //printf("\nyatom after rewrite/compute %ld\n",yatom);
+      //if (yatom) wr_print_term(g,yatom);
+      //printf("\n");
+     
+      (g->build_rewrite)=0;
+      //if (prev_rewrites==(g->tmp_rewrites)) {
+      //  CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
+      //}       
       if (yatom==WG_ILLEGAL) {
         ++(g->stat_internlimit_discarded_cl);
-        wr_alloc_err(g,"could not alloc first buffer in wr_simplify_cl ");
+        wr_alloc_err(g,"could not alloc first buffer in wr_simplify_cl ");        
         return NULL;
-      } else if (yatom==ACONST_TRUE) {
-        // do not use, tautologically true          
-        return NULL; 
+      } else if (yatom==ACONST_TRUE) {       
+        if (wg_atom_meta_is_neg(db,xmeta)) {
+          calccuts++;  
+          continue;
+        } else {
+          CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
+          return NULL;        
+        }  
       } else if (yatom==ACONST_FALSE) {
-        // should cut
-        calccuts++;         
-        //printf("\n calccuts %d, continuing\n",calccuts);
-        continue;         
+        if (!wg_atom_meta_is_neg(db,xmeta)) {
+          calccuts++;  
+          continue;
+        } else {
+          CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
+          return NULL;            
+        }  
       }        
+    } else {
+      yatom=xatom;
     }
     // second, try to cut and subsume with units
     // nb! should not subsume unit cl-s, otherwise cancel out
@@ -166,16 +201,19 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
     printf("\nhash_pos_groundunits\n");
     wr_print_termhash(g,rotp(g,g->hash_pos_groundunits));
     */
-    if (len<2) tmp=wr_atom_cut_and_subsume(g,xatom,xmeta,&foundbucket,0); // block subsume
-    else tmp=wr_atom_cut_and_subsume(g,xatom,xmeta,&foundbucket,1); // allow subsume
+    if (len<2 && (prev_rewrites==(g->tmp_rewrites))) 
+      tmp=wr_atom_cut_and_subsume(g,yatom,xmeta,&foundbucket,0); // block subsume
+    else 
+      tmp=wr_atom_cut_and_subsume(g,yatom,xmeta,&foundbucket,1); // allow subsume
 #ifdef DEBUG
-    printf("\nxatom searched for cut:\n");
-    wr_print_term(g,xatom);
+    printf("\nyatom searched for cut:\n");
+    wr_print_term(g,yatom);
     printf("\ntmp returned by wr_atom_cut_and_subsume: %d\n",tmp); 
 #endif
 
     if (tmp<0) {
       // subsumed
+      CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
       return NULL;
     } else if (tmp==1) {
       // cut
@@ -186,10 +224,19 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
         (g->cut_clvec)[cuts+1]=(gint)NULL;
       }  
       (g->stat_lit_hash_cut_ok)++;
+    } else if (prev_rewrites!=(g->tmp_rewrites)) {
+      // rewrites done
+      //printf("\n rewrites done (g->cut_clvec)[0] is %d, cuts is %d \n",(g->cut_clvec)[0],cuts);
+      rewritten_atoms++;
+      rptr[(rpos*LIT_WIDTH)+LIT_META_POS]=xmeta;
+      rptr[(rpos*LIT_WIDTH)+LIT_ATOM_POS]=yatom;      
+      //printf("\nyatom stored:\n");      
+      //wr_print_term(g,rptr[(rpos*LIT_WIDTH)+LIT_ATOM_POS]);      
+      ++rpos;         
     } else {
       // atom preserved intact store lit
       rptr[(rpos*LIT_WIDTH)+LIT_META_POS]=xmeta;
-      rptr[(rpos*LIT_WIDTH)+LIT_ATOM_POS]=xatom;
+      rptr[(rpos*LIT_WIDTH)+LIT_ATOM_POS]=yatom;
       /*
       printf("\nxatom:\n");
       wr_print_term(g,xatom);
@@ -198,14 +245,24 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
       ++rpos;   
     }
   } 
-  // if no cuts, return the unchanged original clause
-  if (!cuts && !calccuts) {
-    //printf("\nno cuts found\n");
+  
+  //printf("\n(g->tmp_rewrites) %d\n",(g->tmp_rewrites));  
+  //if (!rewritten_atoms) {
+  //    CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
+  //}   
+
+  // if no cuts and rewrites, return the unchanged original clause
+  if (!cuts && !calccuts && !rewritten_atoms) {
+    printf("\nno cuts or rewrites found\n");
+    CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
     return cl;
   }
-  // from now on we found some cuts and will build and store a new clause
+
+  // from now on we found some cuts or rewrites and will build and store a new clause
+
   (g->stat_simplified)++;
-  (g->stat_derived_cut)++;
+  if (cuts || calccuts) (g->stat_derived_cut)++;
+  if (g->tmp_rewrites) (g->stat_derived_rewritten)++;
   (g->build_buffer)=g->queue_termbuf;
   if (rpos==0) {
     //printf("\n proof founx \n");

@@ -1311,6 +1311,7 @@ setups for building
 -------------- */
 
 void wr_process_resolve_result_setupsubst(glb* g) {
+  g->build_rewrite=0;   // default is no rewriting during building
   g->build_subst=1;     // subst var values into vars
   g->build_calc=0;      // do fun and pred calculations
   g->build_dcopy=0;     // copy nonimmediate data (vs return ptr)
@@ -1336,6 +1337,7 @@ void wr_process_resolve_result_cleanupsubst(glb* g) {
 }  
 
 void wr_process_resolve_result_setupgivencopy(glb* g) {
+  g->build_rewrite=0;   // default is no rewriting during building
   g->build_subst=0;     // subst var values into vars
   g->build_calc=0;      // do fun and pred calculations
   g->build_dcopy=0;     // copy nonimmediate data (vs return ptr)
@@ -1361,6 +1363,7 @@ void wr_process_resolve_result_setupquecopy(glb* g) {
 }
 
 void wr_process_resolve_result_setuphypercopy(glb* g) {
+  g->build_rewrite=0;   // default is no rewriting during building
   g->build_subst=0;     // subst var values into vars
   g->build_calc=0;      // do fun and pred calculations
   g->build_dcopy=0;     // copy nonimmediate data (vs return ptr)
@@ -1372,6 +1375,7 @@ void wr_process_resolve_result_setuphypercopy(glb* g) {
 }
 
 void wr_process_resolve_result_setupclpickstackcopy(glb* g) {
+  g->build_rewrite=0;   // default is no rewriting during building
   g->build_subst=0;     // subst var values into vars
   g->build_calc=0;      // do fun and pred calculations
   g->build_dcopy=0;     // copy nonimmediate data (vs return ptr)
@@ -1383,6 +1387,7 @@ void wr_process_resolve_result_setupclpickstackcopy(glb* g) {
 }  
 
 void wr_process_simp_setupquecopy(glb* g) {
+  g->build_rewrite=0;   // default is no rewriting during building  
   g->build_subst=0;     // subst var values into vars
   g->build_calc=0;      // do fun and pred calculations
   g->build_dcopy=0;     // copy nonimmediate data (vs return ptr)

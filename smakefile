@@ -37,7 +37,7 @@ sources = Main/gkc.c \
   cjson/cjson.c \
   Reasoner/build.c  Reasoner/clstore.c  Reasoner/clterm.c  Reasoner/derive.c  Reasoner/glb.c  Reasoner/mem.c  \
   Reasoner/printerrutils.c  Reasoner/rgenloop.c  Reasoner/rmain.c  Reasoner/subsume.c  Reasoner/unify.c \
-  Reasoner/resolve.c Reasoner/simp.c Reasoner/strat.c Reasoner/history.c Reasoner/prob.c Reasoner/hash.c \
+  Reasoner/resolve.c Reasoner/simp.c Reasoner/strat.c Reasoner/rewrite.c Reasoner/history.c Reasoner/prob.c Reasoner/hash.c \
   Reasoner/clmeta.c Reasoner/guide.c  Reasoner/propagate.c Reasoner/init.c\
   Reasoner/analyze.c Reasoner/chains.c\
   Printer/dbotterprint.c Test/dbtest.c

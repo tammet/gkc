@@ -804,6 +804,7 @@ void wr_show_stats(glb* g, int show_local_complex) {
   printf("stat_tautologies_discarded: %d\n",g->stat_tautologies_discarded);
   printf("stat_forward_subsumed: %d\n",g->stat_forward_subsumed);   
   printf("stat_derived_cut: %d\n",g->stat_derived_cut);  
+  printf("stat_derived_rewritten: %d\n",g->stat_derived_rewritten); 
   printf("stat_weight_discarded_building: %d\n",g->stat_weight_discarded_building);
   printf("stat_weight_discarded_cl: %d\n",g->stat_weight_discarded_cl);
   printf("stat_internlimit_discarded_cl: %d\n",g->stat_internlimit_discarded_cl);

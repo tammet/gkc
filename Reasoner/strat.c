@@ -599,7 +599,7 @@ int wr_calc_atom_hardness_aux(glb* g, gint x, int depth, int pos,
 
 int wr_order_eqterms(glb* g, gint a, gint b, gptr vb) {  
   int res=-1;
-  gint aweight, bweight;
+  //gint aweight, bweight;
   //gptr avars, bvars;
   int xw, yw, lexorder;
   gint tmp; // for VARVAL_F
@@ -645,12 +645,15 @@ int wr_order_eqterms(glb* g, gint a, gint b, gptr vb) {
       // b is ok, a is prohibited
       res=2;
     } else {
-      // b is a constant
-      aweight=wr_order_eqterms_const_weight(g,a);
-      bweight=wr_order_eqterms_const_weight(g,b);
-      if (aweight>bweight) res=1;
-      else if (bweight>aweight) res=2;
-      else res=3;     
+      // b is a constant: use offsets to compare between each other
+      //aweight=a; 
+      //bweight=b;      
+      //if (aweight>bweight) res=1;
+      //else if (bweight>aweight) res=2;
+      //else res=3; 
+      if (wr_order_eqterms_const_lex_smaller(g,a,b)) res=2;
+      else if (wr_order_eqterms_const_lex_smaller(g,b,a)) res=1;
+      else res=3;         
     } 
   } else if (!isdatarec(b)) {
     // b is a constant
@@ -917,7 +920,7 @@ static int wr_order_eqterms_lex_order(glb* g, gint x, gint y, gptr vb) {
   int xlen,ylen,uselen,ilimit,i;
 
 #ifdef EQORDER_DEBUG
-  printf("wr_order_eqterms_lex_order called with x %d and y %d: ",x,y);
+  printf("wr_order_eqterms_lex_order called with x %ld and y %ld: ",x,y);
   wr_print_term(g,x);
   printf("\n");
   wr_print_term(g,y);

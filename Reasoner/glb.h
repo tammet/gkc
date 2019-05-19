@@ -136,6 +136,7 @@ typedef struct {
   veco hash_units;      /**< hash structure for: initialized, but not really used */
   veco hash_para_terms; /**< hash structure for paramodulating from: terms here will be unified with newly given eq clauses */
   veco hash_eq_terms;   /**< hash structure for paramodulation into: equality args here will be unified with given clause subterms */
+  veco hash_rewrite_terms; /**< hash structure for left sides of rewrite rules (oriented equalities) */
 #ifndef MALLOC_HASHNODES  
   cvec hash_nodes;      /**< area for allocating hash nodes from **/
 #endif
@@ -240,6 +241,8 @@ typedef struct {
   int use_equality; // current principle
   int use_comp_funs_strat; // general strategy
   int use_comp_funs; // current principle
+  int use_rewrite_terms_strat; // general strategy
+  int have_rewrite_terms; // observation  
   
   int store_history;
   
@@ -275,9 +278,11 @@ typedef struct {
   gint* tmp_unify_vc;       // var count in unification
   gint  tmp_unify_occcheck; // occcheck necessity in unification (changes)
   gint  tmp_unify_do_occcheck;
+  gint  tmp_rewrites; // count of rewrites during one clause simplification
   
   /* build control: changed in code */
   
+  int  build_rewrite; // current switch: to rewrite or not during building
   gint build_subst;    // subst var values into vars
   gint build_calc;     // do fun and pred calculations
   gint build_dcopy;    // copy nonimmediate data (vs return ptr)
@@ -288,8 +293,8 @@ typedef struct {
   gint build_rename_maxseenvnr; // tmp var for var renaming
   gint build_rename_vc;    // tmp var for var renaming
   gptr build_rename_bank;  // points to bank of created vars
-  gint build_rename_banknr; // nr of bank of created vars
-  
+  gint build_rename_banknr; // nr of bank of created vars  
+
   /* statistics */
   
   int stat_wr_mallocs;
@@ -326,6 +331,7 @@ typedef struct {
   int stat_propagated_subsumed;
   int stat_forward_subsumed;
   int stat_derived_cut;
+  int stat_derived_rewritten;
   int stat_clsubs_attempted;
   gint stat_clsubs_top_meta_attempted;
   gint stat_clsubs_top_meta_failed;

@@ -12,6 +12,7 @@ libReasoner_la_SOURCES = types.h rincludes.h \
   resolve.c resolve.h\
   simp.c simp.h\
   strat.c strat.h\
+  rewrite.c rewrite.h\
   guide.c guide.h\
   derive.c derive.h\
   subsume.c subsume.h\

@@ -375,10 +375,24 @@ gint wr_build_calc_term(glb* g, gint x) {
   //wg_print_record(g->db,VARVAL_F(x,(g->varbanks)));
   //printf("\n");
 
+#ifdef DEBUG
+  printf("\nwr_build_calc_term called, g->build_buffer ptr is %lx \n", (unsigned long int)g->build_buffer); 
+  wr_print_term(g,x);
+  printf("\n");
+#endif
   if (isvar(x) && (g->build_subst || g->build_rename))  x=VARVAL_F(x,(g->varbanks));
   if (!isdatarec(x)) {
     // now we have a simple value  
-    if (!isvar(x) || !(g->build_rename)) return x;
+    if (!isvar(x)) {
+      if (g->build_rewrite) {      
+        return wr_rewrite_constant(g,x); 
+      } else {
+        return x;
+      }       
+    } else if (!(g->build_rename)) {
+      return x;
+    } 
+    // rename var
     vnr=decode_var(x);      
     if (vnr<FIRST_UNREAL_VAR_NR) {
       //normal variable, has to be renamed 
@@ -450,7 +464,10 @@ gint wr_build_calc_term(glb* g, gint x) {
       //printf("wr_build_calc_term loop i %d xptr[i] %d\n",i,xptr[i]);
       if (!substflag && !isdatarec(xptr[i])) yptr[i]=xptr[i];       
       else {
-        tmp=wr_build_calc_term_copyground(g,xptr[i]);
+
+        //tmp=wr_build_calc_term_copyground(g,xptr[i]);
+        tmp=wr_build_calc_term(g,xptr[i]);
+
         if (tmp==WG_ILLEGAL) return WG_ILLEGAL;
 #ifdef USE_TERM_META_EXPERIMENTAL
         smeta=decode_smallint(*(wg_decode_record(db,tmp)+(RECORD_HEADER_GINTS+TERM_META_POS)));
@@ -473,18 +490,29 @@ gint wr_build_calc_term(glb* g, gint x) {
     if (!hasvars) tmeta=tmeta | TERMMETA_GROUND_MASK;
     tmeta=encode_smallint(tmeta);
     *(yptr+(RECORD_HEADER_GINTS+TERM_META_POS))=tmeta;
-#endif              
+#endif       
+
+    //printf("\nyptr\n");
+    //wr_print_term(g,rpto(g,yptr));     
+    //printf("\n");  
+
     if (g->use_comp_funs) {
       comp=wr_computable_termptr(g,yptr);
-      if (comp) {
+      //printf("\ncomp %d\n",comp);
+      //wr_print_term(g,rpto(g,yptr));
+      if (comp) {        
         res=wr_compute_from_termptr(g,yptr,comp); 
-        if (res==WG_ILLEGAL) return WG_ILLEGAL;
-      } else {
-        res=encode_record(db,yptr);
-      }
-    } else {
-      res=encode_record(db,yptr);
-    }       
+        if (res==WG_ILLEGAL) return WG_ILLEGAL;  
+        else if (res==ACONST_TRUE) return ACONST_TRUE;
+        else if (res==ACONST_FALSE) return ACONST_FALSE;        
+        else yptr=rotp(g,res);                
+      }       
+      //wr_print_term(g,rpto(g,yptr));      
+    }
+    res=encode_record(db,yptr);
+    if (g->build_rewrite) {      
+      res=wr_rewrite_term(g,res); 
+    }
     return res;
   }   
 }  
@@ -521,6 +549,11 @@ gint wr_build_calc_term_copyground(glb* g, gint x) {
   //wg_print_record(g->db,VARVAL_F(x,(g->varbanks)));
   //printf("\n");
 
+#ifdef DEBUG
+  printf("\nwr_build_calc_term_copyground called, g->build_buffer ptr is %lx \n", (unsigned long int)g->build_buffer); 
+  wr_print_term(g,x);
+  printf("\n");
+#endif
   if (isvar(x) && (g->build_subst || g->build_rename))  x=VARVAL_F(x,(g->varbanks));
   if (!isdatarec(x)) {
     // now we have a simple value  
@@ -669,6 +702,11 @@ gint wr_build_calc_term_replace(glb* g, gint x, int replpos, gint replterm, int*
   wr_print_term(g,replterm);
   printf("\n");
   */
+#ifdef DEBUG
+  printf("\nwr_build_calc_term_replace called, g->build_buffer ptr is %lx \n", (unsigned long int)g->build_buffer); 
+  wr_print_term(g,x);
+  printf("\n");
+#endif 
   if (*path==replpos) {         
     //printf("\n*path==replpos case\n"); 
     res=wr_build_calc_term(g,replterm);    
@@ -764,7 +802,10 @@ gint wr_build_calc_term_replace(glb* g, gint x, int replpos, gint replterm, int*
       else if ((*path)<=replpos) {
         //printf("\n(*path)<=replpos case"); 
         if (incpath) tmp=wr_build_calc_term_replace(g,xptr[i],replpos,replterm,path);
-        else tmp=wr_build_calc_term_copyground(g,xptr[i]);
+
+        else tmp=wr_build_calc_term(g,xptr[i]);
+        //else tmp=wr_build_calc_term_copyground(g,xptr[i]);
+
         //printf("\nreturns\n");
         //wr_print_term(g,tmp); 
         if (tmp==WG_ILLEGAL) return WG_ILLEGAL;
