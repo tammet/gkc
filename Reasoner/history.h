@@ -54,7 +54,7 @@ where
 
 */
 
-//#define RECORD_HISTORY_ORDER
+#define RECORD_HISTORY_ORDER
 
 #ifdef RECORD_HISTORY_ORDER
 
@@ -128,7 +128,7 @@ gint wr_build_propagate_history(glb* g, gptr cl1, gptr cl2, int pos1, int pos2);
 gint wr_build_factorial_history(glb* g, gptr cl, int pos1, int pos2, gptr cut_clvec);
 gint wr_build_para_history(glb* g, gptr cl1, gptr cl2, int pos1, int pos2, gptr cut_clvec,
                            gint path, int leftflag, int fromflag);
-gint wr_build_simplify_history(glb* g, gptr cl, gptr cut_clvec);          
+gint wr_build_simplify_history(glb* g, gptr cl, gptr cut_clvec, gptr rewrite_clvec);          
 
 gint wr_calc_history_priority2(glb* g, gptr cl1, gptr cl2);
 

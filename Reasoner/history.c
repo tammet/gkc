@@ -391,18 +391,19 @@ gint wr_build_para_history(glb* g, gptr cl1, gptr cl2, int pos1, int pos2, gptr 
   }  
 }
 
-gint wr_build_simplify_history(glb* g, gptr cl1, gptr cut_clvec) {
+gint wr_build_simplify_history(glb* g, gptr cl1, gptr cut_clvec, gptr rewrite_clvec) {
   void* db=g->db;
   gptr rec;
   gint tag;
-  int i,cutn=0;
+  int i,j,cutn=0,rewriten=0;
   int datalen=HISTORY_PREFIX_LEN+2;
   if (g->store_history) {
     if (cut_clvec) {
       for(cutn=1; cutn<(int)(cut_clvec[0]) && (gptr)(cut_clvec[cutn])!=NULL; cutn++) {}
       cutn=cutn-1;      
     }
-    rec=wr_create_raw_history_record(g,datalen+cutn,g->build_buffer);
+    if (rewrite_clvec) rewriten=rewrite_clvec[1]-2;
+    rec=wr_create_raw_history_record(g,datalen+cutn+rewriten,g->build_buffer);
     if (rec==NULL) return wg_encode_null(db,NULL);
     //tag=wr_encode_history_factorial(g,pos1,pos2);
     tag=wr_encode_history_simplify(g);   
@@ -411,6 +412,9 @@ gint wr_build_simplify_history(glb* g, gptr cl1, gptr cut_clvec) {
     wr_set_history_record_field(g,rec,HISTORY_PRIORITY_POS,wr_calc_history_priority2(g,cl1,NULL));
     for(i=0; i<cutn; i++) {
       wr_set_history_record_field(g,rec,datalen+i,wg_encode_record(db,(gptr)(cut_clvec[i+1])));
+    }
+    for(j=0;j<rewriten;j++) {
+      wr_set_history_record_field(g,rec,datalen+i+j,wg_encode_record(db,(gptr)(rewrite_clvec[j+2])));
     }
     wr_set_history_record_derived_order(g,rec);
      return wg_encode_record(db,rec); 

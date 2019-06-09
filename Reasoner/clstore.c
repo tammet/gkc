@@ -521,6 +521,8 @@ int wr_cl_store_para_terms(glb* g, gptr cl) {
     if (addflag) {
       wr_cl_store_para_subterms(g,cl,atom,0,i,&termpath);
     }
+    // cannot store anything if len>1 and g->posunitpara_strat is on
+    if ((g->posunitpara_strat) && len!=1) continue;
     // store equality args into a hash structure for para-into later
     if (addflag && !negflag && wr_equality_atom(g,atom)) {
       tptr=rotp(g,atom);
@@ -539,17 +541,18 @@ int wr_cl_store_para_terms(glb* g, gptr cl) {
       // 3: none bigger, both ok for para
 
       //printf("\n in wr_cl_store_para_terms eqtermorder:%d ",eqtermorder);
-
-      if ((eqtermorder==1 || eqtermorder==3) && atype!=WG_VARTYPE) {
-          //(atype==WG_RECORDTYPE || atype==WG_URITYPE || atype==WG_ANONCONSTTYPE)) {
-        // ok to para from left
-        wr_cl_store_eq_arg(g,cl,a,atype,i,1);
-      }
-      if ((eqtermorder==2 || eqtermorder==3) && btype!=WG_VARTYPE) {
-          //(btype==WG_RECORDTYPE || btype==WG_URITYPE || btype==WG_ANONCONSTTYPE)) {
-        // ok to para from right
-        wr_cl_store_eq_arg(g,cl,b,btype,i,0);
-      }     
+      if (!(g->posunitpara_strat) || len==1) { 
+        if ((eqtermorder==1 || eqtermorder==3) && atype!=WG_VARTYPE) {
+            //(atype==WG_RECORDTYPE || atype==WG_URITYPE || atype==WG_ANONCONSTTYPE)) {
+          // ok to para from left
+          wr_cl_store_eq_arg(g,cl,a,atype,i,1);
+        }
+        if ((eqtermorder==2 || eqtermorder==3) && btype!=WG_VARTYPE) {
+            //(btype==WG_RECORDTYPE || btype==WG_URITYPE || btype==WG_ANONCONSTTYPE)) {
+          // ok to para from right
+          wr_cl_store_eq_arg(g,cl,b,btype,i,0);
+        }   
+      }    
       // store equality as demodulator if everything ok
       if (len==1 && eqtermorder==1 && (g->use_rewrite_terms_strat) && atype!=WG_VARTYPE) {
         // a will rewrite to b
@@ -641,10 +644,15 @@ int wr_cl_store_term_rewriter(glb* g, gptr cl, gint term, int termtype, int litn
     wr_sys_exiterr2int(g,"adding term to hashlist in  wr_cl_store_term_rewriter, code ",tmp);
     return 1;        
   }  
-  printf("\nwr_cl_store_term_rewriter adds term \n");
-  wr_print_term(g,term);
-  printf("\nresulting with\n");
-  wr_clterm_hashlist_print_para(g,hashvec);
+  if (g->print_derived_cl) {
+    wr_printf("\n+ rewriter kept lf %d: ",leftflag);
+    wr_print_clause(g,cl);
+  }  
+  //printf("\nwr_cl_store_term_rewriter adds term \n");
+  //  wr_print_term(g,term);
+  //printf("\nresulting with\n");
+  //wr_clterm_hashlist_print_para(g,hashvec);
+
 #ifdef DEBUGHASH      
   printf("\nhash_rewrite_terms after adding:");      
   wr_clterm_hashlist_print_para(g,hashvec);
@@ -1038,7 +1046,8 @@ int wr_push_cl_hyper_queue(glb* g, cvec queue, gptr cl, int weight) {
 */
 
 
-void wr_push_cl_clpick_queues(glb* g, gint queues_offset, gptr cl, int weight) {
+
+void oldremove_wr_push_cl_clpick_queues(glb* g, gint queues_offset, gptr cl, int weight) {
   void *db=g->db;
   int qstart; //,i;
   gint simplequeue_offset, priorqueue_offset;
@@ -1065,6 +1074,108 @@ void wr_push_cl_clpick_queues(glb* g, gint queues_offset, gptr cl, int weight) {
     decprior=wg_decode_int(db,priority);
 
 
+    // modify decpriors according to strat
+
+#ifdef QADDDEBUG
+     printf("\ndecprior originally %d\n",decprior);
+#endif
+
+    if ((g->cl_pick_queue_strategy)==2) {
+      // make non-included axioms assumptions and positive conjecture part assumptions
+      if (decprior==WR_HISTORY_GOAL_ROLENR && wr_is_positive_unit_cl(g,cl)) 
+        decprior=WR_HISTORY_ASSUMPTION_ROLENR;        
+      else if (decprior==WR_HISTORY_AXIOM_ROLENR) // && (g->parse_is_included_file))
+        decprior=WR_HISTORY_ASSUMPTION_ROLENR;       
+    } else if ((g->cl_pick_queue_strategy)==3) {
+      // only fully negative clauses of goal made goal and no assumptions (ie made axioms)
+      if (decprior==WR_HISTORY_GOAL_ROLENR && !wr_is_negative_cl(g,cl))
+        decprior=WR_HISTORY_AXIOM_ROLENR;  
+      else if (decprior==WR_HISTORY_ASSUMPTION_ROLENR)  
+        decprior=WR_HISTORY_AXIOM_ROLENR; // !! had no effect before
+    } 
+
+#ifdef QADDDEBUG
+     printf("\ndecprior changed to %d\n",decprior);
+#endif
+
+    // select queue
+  
+    if (decprior==WR_HISTORY_GOAL_ROLENR) qstart=GOAL_QUEUE_POS;
+    else if (decprior==WR_HISTORY_ASSUMPTION_ROLENR) qstart=ASSUMPTIONS_QUEUE_POS;
+    else if (decprior==WR_HISTORY_FROMGOAL_ROLENR) qstart=GOAL_QUEUE_POS;
+    else if (decprior==WR_HISTORY_FROMGOALASSUMPTION_ROLENR) qstart=GOAL_ASSUMPTIONS_QUEUE_POS;
+    else if (decprior==WR_HISTORY_FROMASSUMPTION_ROLENR) qstart=ASSUMPTIONS_QUEUE_POS;
+    else if (decprior==WR_HISTORY_AXIOM_ROLENR) qstart=AXIOMS_QUEUE_POS;
+    else if (decprior==WR_HISTORY_EXTAXIOM_ROLENR) qstart=AXIOMS_QUEUE_POS;
+    else if (decprior==WR_HISTORY_FROMAXIOM_ROLENR) qstart=AXIOMS_QUEUE_POS;
+    else qstart=AXIOMS_QUEUE_POS;   
+
+#ifdef QADDDEBUG
+     printf("\nqstart %d\n",qstart);
+#endif
+
+    // push to simple queue  
+    simplequeue_offset=queues[qstart+CLPICK_QUEUE_POS];
+    simplequeue=rotp(g,simplequeue_offset);
+    queues[qstart+CLPICK_QUEUE_POS]=rpto(g,wr_cvec_push(g,simplequeue,(gint)cl));
+    // push to priority queue
+    priorqueue_offset=queues[qstart+CLPICK_PRIORQUEUE_POS];
+    priorqueue=rotp(g,priorqueue_offset);
+    if (weight>=0) {
+      wr_push_priorqueue(g,priorqueue,cl,weight);
+    }     
+  } else {
+    // not a query strat: push to a single queue
+    qstart=AXIOMS_QUEUE_POS;
+    // push to simple queue  
+    simplequeue_offset=queues[qstart+CLPICK_QUEUE_POS];
+    simplequeue=rotp(g,simplequeue_offset);
+    queues[qstart+CLPICK_QUEUE_POS]=rpto(g,wr_cvec_push(g,simplequeue,(gint)cl));
+    // push to priority queue
+    priorqueue_offset=queues[qstart+CLPICK_PRIORQUEUE_POS];
+    priorqueue=rotp(g,priorqueue_offset);
+    if (weight>=0) {
+      wr_push_priorqueue(g,priorqueue,cl,weight);
+    } 
+  }
+  //wr_print_clpick_queues(g,queues);
+}
+
+
+void wr_push_cl_clpick_queues(glb* g, gint queues_offset, gptr cl, int weight) {
+  void *db=g->db;
+  int qstart; //,i;
+  gint simplequeue_offset, priorqueue_offset;
+  gptr queues, simplequeue, priorqueue;
+  gint history;
+  gptr historyptr=NULL;
+  gint decprior, priority=0;   
+
+
+#ifdef QADDDEBUG
+  printf("\nwr_push_cl_clpick_queues called with queryfocus_strat %d (g->cl_pick_queue_strategy) %d weight %d and cl: ",
+         (g->queryfocus_strat),(g->cl_pick_queue_strategy),weight);
+  wr_print_clause(g,cl);
+#endif
+
+  // start pushing
+
+  queues=rotp(g,queues_offset);
+  if (g->cl_pick_queue_strategy) { // any strategy value not zero
+    // query strat: push to a selected queue depending on priority
+    history=wr_get_history(g,cl); 
+    historyptr=otp(db,history);
+    priority=wr_get_history_record_field(db,historyptr,HISTORY_PRIORITY_POS);
+    decprior=wg_decode_int(db,priority);
+    /*
+    if (decprior<11) {
+      printf("\ndecprior %d\n",decprior);
+      printf("\nwr_push_cl_clpick_queues called with queryfocus_strat %d (g->cl_pick_queue_strategy) %d weight %d and cl: ",
+         (g->queryfocus_strat),(g->cl_pick_queue_strategy),weight);
+      wr_print_clause(g,cl);
+    }
+    */
+   
     // modify decpriors according to strat
 
 #ifdef QADDDEBUG
@@ -1179,6 +1290,216 @@ int wr_is_negative_cl(glb* g, gptr cl) {
   queue[2] - next pos to pick for given (initially for empty queue 3)
 
 */
+
+
+
+gptr oldremove_wr_pick_from_clpick_queues(glb* g, gptr queues, gptr given_cl_metablock) { 
+
+  int queuenr;
+  int first_queuenr; 
+  gptr cl;
+  gint limit;
+  int blockstart; 
+  int loopflag=0;
+
+#ifdef QPICKDEBUG
+  printf("\n!!!! wr_pick_from_clpick_queues starts with queuenr %d \n",(g->next_pick_given_queue_block_nr));
+#endif 
+
+  // first try to take from the designated next_pick_given_queue_block_nr
+  queuenr=(g->next_pick_given_queue_block_nr);
+  if (queuenr>=NROF_CLPICK_QUEUES) {
+    queuenr=0;
+    (g->next_pick_given_queue_block_nr)=0;
+  }  
+  first_queuenr=queuenr;
+  limit=queues[0]; // nr of elems in the queue blocks vector
+  while(1) {    
+#ifdef QPICKDEBUG
+    printf("\n  queue loop iteration starts loopflag %d queuenr %d first_queuenr %d\n",loopflag,queuenr,first_queuenr);
+#endif             
+    if (loopflag && queuenr==first_queuenr) {
+      // full loop done, failed to find any clauses to pick
+#ifdef QPICKDEBUG
+      printf("\n  full queue loop done, no clauses found \n");
+#endif          
+      return NULL;
+    }
+
+    cl=wr_pick_from_clpick_queues_aux(g,queues,queuenr,given_cl_metablock);
+
+    blockstart=1+(queuenr*CLPICK_QUEUE_BLOCKGINTS);    
+    if (cl!=NULL) {
+      if (queues[blockstart+CLPICK_THIS_QUEUE_RATIO_COUNTER] >= 
+          queues[blockstart+CLPICK_THIS_QUEUE_RATIO]) {
+        // over ratio!
+        //printf("\nthis whole queue block is over ratio setting to 0\n");
+        queues[blockstart+CLPICK_THIS_QUEUE_RATIO_COUNTER]=0;
+        (g->next_pick_given_queue_block_nr)++;
+      } else {
+        // not over ratio, continue with the same block next time
+        (queues[blockstart+CLPICK_THIS_QUEUE_RATIO_COUNTER])++;
+      }
+      //(g->next_pick_given_queue_block_nr)++;
+      return cl;
+    }  
+#ifdef QPICKDEBUG
+    printf("\n  no cl found for queuenr %d \n",queuenr);
+#endif     
+    
+    // here we did not get a clause, need to try next until full cycle
+    queuenr++;
+    if (queuenr>=NROF_CLPICK_QUEUES || blockstart>=limit) {
+      // pushed over the edge, loop back
+#ifdef QPICKDEBUG
+      printf("\n  queuenr to loop back \n");
+#endif           
+      loopflag=1;
+      queuenr=0;
+    }
+    // set the designated next_pick_given_queue_block_nr to a new block
+    (g->next_pick_given_queue_block_nr)=queuenr;
+  }
+}    
+
+
+gptr oldremove_wr_pick_from_clpick_queues_aux(glb* g, gptr queues, int queuenr, gptr given_cl_metablock) { 
+  
+  int i; //,j;
+  //gint limit;
+  gint simplequeue_offset;
+  gptr simplequeue;
+  int simplequeue_given_pos;
+  //int max_used_prior;
+  gint* queue;
+
+  gptr cl;
+  int next;
+
+#ifdef QPICKDEBUG
+  printf("\n\n --- pick cl with queuenr %d limit %d NROF_CLPICK_QUEUES %d ---\n",
+         queuenr,(int)(queues[0]),NROF_CLPICK_QUEUES); 
+  //printf("\n queues are: \n");       
+  //wr_print_clpick_queues(g,rotp(g,g->clpick_queues));       
+  //printf("\n starting to pick: \n");  
+#endif  
+
+  
+  i=1+(queuenr*CLPICK_QUEUE_BLOCKGINTS); // i is block start in queues vector
+
+#ifdef QPICKDEBUG    
+    
+  printf("\n   --  queue nr %d at pos %d --\n",queuenr,i);
+    
+  printf("\n   CLPICK_QUEUE_GIVEN_POS: %d",(int)(queues[i+CLPICK_QUEUE_GIVEN_POS]));
+  printf("\n   CLPICK_PRIORQUEUE_RATIO: %d",(int)(queues[i+CLPICK_PRIORQUEUE_RATIO]));
+  printf("\n   CLPICK_PRIORQUEUE_RATIO_COUNTER: %d",(int)(queues[i+CLPICK_PRIORQUEUE_RATIO_COUNTER]));
+  printf("\n   CLPICK_THIS_QUEUE_RATIO: %d",(int)(queues[i+CLPICK_THIS_QUEUE_RATIO]));
+  printf("\n   CLPICK_THIS_QUEUE_RATIO_COUNTER: %d",(int)(queues[i+CLPICK_THIS_QUEUE_RATIO_COUNTER]));
+  
+#endif
+
+  // check if this queue is over ratio
+  /*
+  if (queues[i+CLPICK_THIS_QUEUE_RATIO_COUNTER] >= queues[i+CLPICK_THIS_QUEUE_RATIO]) {
+    // over ratio!
+    printf("\nthis whole queue block is over ratio setting to 0\n");
+    queues[i+CLPICK_THIS_QUEUE_RATIO_COUNTER]=0;
+    return NULL;
+  }
+  */
+  // from here not over ratio
+
+  if (queues[i+CLPICK_PRIORQUEUE_RATIO_COUNTER] < queues[i+CLPICK_PRIORQUEUE_RATIO]) {
+
+    // selecting from priority queue
+
+    if (queues[i+CLPICK_PRIORQUEUE_POS]!=0) {
+      queue=rotp(g,queues[i+CLPICK_PRIORQUEUE_POS]);
+      cl=wr_pick_priorqueue(g,queue); // it gives only previously unpicked clauses
+
+#ifdef QPICKDEBUG   
+      if (cl!=NULL) {
+        printf("\n\n  picking from priority queue the clause: ");
+        wr_print_clause(g,cl);
+        printf("\n");
+        //wr_print_priorqueue(g,queue); 
+      }  
+#endif
+      if (cl!=NULL) {
+        (queues[i+CLPICK_PRIORQUEUE_RATIO_COUNTER])++;
+        (queues[i+CLPICK_THIS_QUEUE_RATIO_COUNTER])++;
+#ifdef QPICKEDDEBUG
+        printf("\npicked cl from queue nr %d priority queue",queuenr);
+#endif        
+#ifdef QPICKDEBUG                   
+        printf("\n  priority queue with max priority %d, max used priority %d: \n",
+                (int)(queue[PRIORQUEUE_ARR_LEN_POS]-2),
+                (int)(queue[PRIORQUEUE_MAX_USED_PRIOR_POS]));  
+#endif
+          
+        wr_cl_mark_given(g,cl);
+        wr_calc_clause_meta(g,cl,given_cl_metablock);
+        return cl;   
+      }     
+    }    
+  } else {
+    queues[i+CLPICK_PRIORQUEUE_RATIO_COUNTER]=0;
+#ifdef QPICKDEBUG
+    printf("\n  not from priority queue; setting ratio_counter to 0\n");
+#endif    
+  }  
+
+  // selecting from simple queue
+
+  if (queues[i+CLPICK_QUEUE_POS]!=0) {
+    simplequeue_offset=queues[i+CLPICK_QUEUE_POS]; // actual flat queue offs with len at 0 and nextfree at 1
+    simplequeue=rotp(g,simplequeue_offset); 
+
+    // loop to avoid already picked clauses
+
+    while(1) {
+      simplequeue_given_pos=queues[i+CLPICK_QUEUE_GIVEN_POS]; // take the next cl from this pos at queue
+      next=CVEC_NEXT(simplequeue);
+#ifdef QPICKDEBUG       
+      /*
+      printf("\n  simplequeue max len %d count %d, elems:\n",(int)(simplequeue[0]),(int)(simplequeue[1]));
+      for(j=2;j<simplequeue[0] && j<simplequeue[1];j++) {
+        printf("\n %d: ",j);
+        wr_print_clause(g,simplequeue[j]);        
+      }          
+      printf("\n  next %d simplequeue_given_pos %d\n",next,simplequeue_given_pos);
+      */
+#endif
+      if (next>2 && next>simplequeue_given_pos) {
+        // there is a clause to take (next is initially 2 when no clauses have been added)
+        cl=(gptr)(simplequeue[simplequeue_given_pos]);           
+        ++(queues[i+CLPICK_QUEUE_GIVEN_POS]); // next time take the next clause
+        (queues[i+CLPICK_THIS_QUEUE_RATIO_COUNTER])++;
+        if (cl!=NULL && !wr_cl_ismarked_given(g,cl)) {
+#ifdef QPICKEDDEBUG
+          printf("\npicked cl from queue nr %d simple queue",queuenr);
+#endif           
+  #ifdef QPICKDEBUG       
+          printf("\n\n  picking from simple queue the clause: ");
+          wr_print_clause(g,cl); 
+          printf("\n");
+          /*
+          printf("\n  new next %d queues[i+CLPICK_QUEUE_GIVEN_POS] \n",next,queues[i+CLPICK_QUEUE_GIVEN_POS]);
+          */
+  #endif            
+          wr_cl_mark_given(g,cl);
+          wr_calc_clause_meta(g,cl,given_cl_metablock);
+          return cl;
+        }  
+      } else {
+        break; // no pickable clauses
+      }      
+    }  
+  } 
+  return NULL;  
+}
+
 
 gptr wr_pick_from_hyper_queue(glb* g, gptr queue, gptr given_cl_metablock)  {
   gint pos;
@@ -1530,7 +1851,7 @@ void wr_print_clpick_queues(glb* g, gint* queues) {
   gint simplequeue_offset;
   gptr simplequeue;
 
-  printf("\n*** g->clpick_queues content ****\n");
+  printf("\n===== g->clpick_queues content =====\n");
   if (!queues) {
     printf("\nqueues is NULL\n");
     return;    
@@ -1546,26 +1867,33 @@ void wr_print_clpick_queues(glb* g, gint* queues) {
 
   limit=queues[0];
   printf("\ng->clpick_given vec len (el 0): %d",(int)limit);
-  printf("\nNROF_CLPICK_QUEUES: %d",NROF_CLPICK_QUEUES);
+  printf("\nNROF_CLPICK_QUEUES: %d\n",NROF_CLPICK_QUEUES);
   // do big block-size steps over array
   for(i=1; i<limit && i<(NROF_CLPICK_QUEUES*CLPICK_QUEUE_BLOCKGINTS); i=i+CLPICK_QUEUE_BLOCKGINTS) {
-    printf("\n-- queue nr %d ---\n",i);
-    printf("\nCLPICK_QUEUE_GIVEN_POS: %d",(int)(queues[i+CLPICK_QUEUE_GIVEN_POS]));
+    printf("\n-- queue nr %d ",i);
+    if (i==GOAL_ASSUMPTIONS_QUEUE_POS) printf("GOAL_ASSUMPTIONS");
+    else if (i==GOAL_QUEUE_POS) printf("GOAL");
+    else if (i==ASSUMPTIONS_QUEUE_POS) printf("ASSUMPTIONS");
+    else if (i==AXIOMS_QUEUE_POS) printf("AXIOMS");
+    printf(" --\n");
     printf("\nCLPICK_PRIORQUEUE_RATIO: %d",(int)(queues[i+CLPICK_PRIORQUEUE_RATIO]));
     printf("\nCLPICK_PRIORQUEUE_RATIO_COUNTER: %d",(int)(queues[i+CLPICK_PRIORQUEUE_RATIO_COUNTER]));
     printf("\nCLPICK_THIS_QUEUE_RATIO: %d",(int)(queues[i+CLPICK_THIS_QUEUE_RATIO]));
     printf("\nCLPICK_THIS_QUEUE_RATIO_COUNTER: %d",(int)(queues[i+CLPICK_THIS_QUEUE_RATIO_COUNTER]));
-
     if (queues[i+CLPICK_QUEUE_POS]!=0) {
 
       simplequeue_offset=queues[i+CLPICK_QUEUE_POS];
       simplequeue=rotp(g,simplequeue_offset);
-      //printf("\nlen of queue: %d",(int)(rotp(g,queues[i+CLPICK_QUEUE_POS])[0])); 
-      printf("\nsimplequeue max len %d count %d, elems:\n",(int)(simplequeue[0]),(int)(simplequeue[1]));
-      for(j=2;j<simplequeue[0] && j<simplequeue[1];j++) {
-        printf("\n %d: ",j);
-        wr_print_clause(g,(gptr)(simplequeue[j]));        
-      } 
+      //printf("\nlen of queue: %d",(int)(rotp(g,queues[i+CLPICK_QUEUE_POS])[0]));
+      if ((int)(simplequeue[1])<=2) {
+        printf("\n\nsimplequeue empty");
+      } else {  
+        printf("\n\nsimplequeue max len %d count %d, elems:\n",(int)(simplequeue[0]),(int)(simplequeue[1]));
+        for(j=2;j<simplequeue[0] && j<simplequeue[1];j++) {
+          printf("\n %d: ",j);
+          wr_print_clause(g,(gptr)(simplequeue[j]));        
+        } 
+      }  
     } else {
       printf("\nsimplequeue is 0");  
     }
@@ -1575,7 +1903,7 @@ void wr_print_clpick_queues(glb* g, gint* queues) {
       printf("\npriorqueue is 0");    
     }  
   }    
-   printf("\n* g->clpick_queues content ends *\n");
+   printf("\n===== g->clpick_queues content ends =====\n");
 }
 
 
@@ -1927,8 +2255,11 @@ void wr_print_priorqueue(glb* g, gint* queue) {
   int prior,i;
   
   max_used_prior=queue[PRIORQUEUE_MAX_USED_PRIOR_POS];
-  printf("\n");
-  printf("priority queue with max priority %d, max used priority %d: \n",
+  if (!max_used_prior) {
+    printf("\npriority queue empty\n");
+    return;
+  }
+  printf("\n\npriority queue with max priority %d, max used priority %d: \n\n",
     (int)(queue[PRIORQUEUE_ARR_LEN_POS]-2),
     max_used_prior
   );  

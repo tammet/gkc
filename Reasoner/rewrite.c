@@ -43,7 +43,7 @@ extern "C" {
 
 /* ====== Private headers and defs ======== */
 
-#define DEBUG
+//#define DEBUG
 //#undef DEBUG
 
 
@@ -60,6 +60,7 @@ gint wr_rewrite_term(glb* g, gint x) {
   gptr hashvec,nodeptr,ycl,tptr;
   int tmp_subst,tmp_rename;
   //gint tmp;
+  int tmp;
 
   //UNUSED(tmp);
 #ifdef DEBUG
@@ -137,14 +138,14 @@ gint wr_rewrite_term(glb* g, gint x) {
         node=wr_clterm_hashlist_next(g,hashvec,node);
       } else {
         // term rewriter found  
-        (g->tmp_rewrites)++;                                  
+        (g->tmp_rewrites)++;          
         // get right side of the rewrite rule
         path=wg_decode_int(db,nodeptr[CLTERM_HASHNODE_PATH_POS]); 
         if (wg_rec_is_rule_clause(db,ycl)) {
           yatom=wg_get_rule_clause_atom(db,ycl,0); // eq literal
         } else {
           yatom=encode_record(db,ycl);
-        }
+        }        
         if (path==1) {
           // right arg is replacement
           b=(gint)(((gint *)(otp(db,yatom)))[RECORD_HEADER_GINTS+(g->unify_funarg2pos)]);
@@ -152,6 +153,12 @@ gint wr_rewrite_term(glb* g, gint x) {
           // left arg is replacement
           b=(gint)(((gint *)(otp(db,yatom)))[RECORD_HEADER_GINTS+(g->unify_funarg1pos)]);
         }
+        // store rewriter 
+        tmp=(int)((g->rewrite_clvec)[1]);
+        if (tmp<NROF_REWRITE_CLVEC_ELS-4) {
+          (g->rewrite_clvec)[tmp]=(gint)ycl;
+          ((g->rewrite_clvec)[1])++;          
+        }  
         // build the result
         // b is now the raw right side of rewrite rule before rebuilding
 #ifdef DEBUG 
@@ -209,7 +216,7 @@ gint wr_rewrite_term(glb* g, gint x) {
 gint wr_rewrite_constant(glb* g, gint x) {
   void* db=g->db;
   gint hash,node,yterm,path,yatom,b;
-  int dbused,hlen;
+  int dbused,hlen,tmp;
   gptr hashvec,nodeptr,ycl;
   
 #ifdef DEBUG
@@ -295,6 +302,12 @@ gint wr_rewrite_constant(glb* g, gint x) {
         wr_print_term(g,b);
         printf("\n");
 #endif         
+        // store rewriter 
+        tmp=(int)((g->rewrite_clvec)[1]);
+        if (tmp<NROF_REWRITE_CLVEC_ELS-4) {
+          (g->rewrite_clvec)[tmp]=(gint)ycl;
+          ((g->rewrite_clvec)[1])++;          
+        }  
         // rewrite again until rewrite chain terminates
         return wr_rewrite_constant(g,b); 
       } // end of match cases: unsuccesful/successful       

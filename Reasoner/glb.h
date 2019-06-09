@@ -43,11 +43,11 @@
 #include "types.h"
 
 
-#define NROF_DYNALLOCINITIAL_ELS    100000
+#define NROF_DYNALLOCINITIAL_ELS    10000000
 
-#define NROF_GIVEN_TERMBUF_ELS      100000
-#define NROF_DERIVED_TERMBUF_ELS    100000
-#define NROF_SIMPLIFIED_TERMBUF_ELS 100000
+#define NROF_GIVEN_TERMBUF_ELS      10000000
+#define NROF_DERIVED_TERMBUF_ELS    10000000
+#define NROF_SIMPLIFIED_TERMBUF_ELS 10000000
 
 #ifdef _WIN32
 #define NROF_QUEUE_TERMBUF_ELS    50000000
@@ -55,11 +55,12 @@
 #define NROF_ACTIVE_TERMBUF_ELS   50000000 
 #else
 #define NROF_QUEUE_TERMBUF_ELS   100000000
-#define NROF_HYPER_TERMBUF_ELS    10000000
+#define NROF_HYPER_TERMBUF_ELS   100000000
 #define NROF_ACTIVE_TERMBUF_ELS  100000000
 #endif
 
 #define NROF_CUT_CLVEC_ELS   100
+#define NROF_REWRITE_CLVEC_ELS  10000
 #define NROF_HYPER_QUEUE_ELS 100000
 
 #define NROF_VARBANKS   5 
@@ -77,6 +78,7 @@
 #define ATOMHASH_INITIAL_BUCKETSIZE 4
 
 #define MAX_CLAUSE_LEN 1000
+#define INITIAL_SORTVEC_LEN 1000
 
 #define MAX_CLPRIOR 10000 // priorities differentiated in a priority queue for picking clauses
 /*
@@ -161,6 +163,8 @@ typedef struct {
   
   vec tmp_litinf_vec;  // used by subsumption  
   vec tmp_hardnessinf_vec; // used by hardness calc
+  vec tmp_resolvability_vec; // used for resolvability of literals
+  vec tmp_sort_vec; // used for sorting the initial clause list
 
   cvec given_termbuf;
   cvec simplified_termbuf;
@@ -170,6 +174,7 @@ typedef struct {
   cvec active_termbuf;
 
   cvec cut_clvec; // used for storing cutters of a derived clause
+  cvec rewrite_clvec; // used for storing rewriters of a clause
   cvec hyper_queue; // storing partially derived clauses during hyperres for picking as given
 
   /* parser configuration */
@@ -228,11 +233,14 @@ typedef struct {
   int cl_keep_depthlimit;
   int cl_keep_lengthlimit;
   
+  int reverse_clauselist_strat; // initially reverse clause list, do not sort (only for non-query)
   int queryfocus_strat;
   int queryfocusneg_strat;
   int hyperres_strat;  
-  int negpref_strat;
-  int pospref_strat;  
+  int weightorder_strat;          // clause ordering for resolvability of literals
+  int negpref_strat;          // clause ordering for resolvability of literals
+  int pospref_strat;          // clause ordering for resolvability of literals
+  int knuthbendixpref_strat;  // clause ordering for resolvability of literals
   int res_shortarglen_limit; // max non-ans len of the shortest res argument (generalization of unit)
   int posunitpara_strat;
   int back_subsume;
@@ -264,6 +272,7 @@ typedef struct {
   int print_initial_given_cl;
   int print_final_given_cl;
   int print_active_cl;
+  int print_litterm_selection;
   int print_partial_derived_cl;
   int print_derived_cl;
   int print_derived_subsumed_cl;
@@ -272,6 +281,7 @@ typedef struct {
   int print_clause_detaillevel;
   int print_runs;
   int print_stats;
+  int print_datastructs;
   
   /* tmp variables */
   
@@ -405,7 +415,42 @@ typedef struct {
   int in_axiom_count;
   int in_assumption_count;
   int in_goal_count;
+  int in_neg_goal_count;
+  int in_pos_goal_count;
+  int in_posunit_goal_count;
 
+  int sin_clause_count;
+  int sin_rule_clause_count;
+  int sin_fact_clause_count;
+  int sin_answer_clause_count;
+  int sin_ground_clause_count;
+  int sin_unit_clause_count;
+  int sin_horn_clause_count;
+  int sin_pos_clause_count;
+  int sin_neg_clause_count;
+  int sin_poseq_clause_count;
+  int sin_negeq_clause_count;
+  int sin_unitposeq_clause_count;
+  int sin_chain_clause_count;
+  int sin_min_length;
+  int sin_max_length;
+  int sin_min_depth;
+  int sin_max_depth;
+  int sin_min_size;
+  int sin_max_size;
+  int sin_min_vars;
+  int sin_max_vars;
+  float sin_average_length;
+  float sin_average_depth;
+  int sin_predicate_count;
+  int sin_funsymb_count;
+  int sin_extaxiom_count;
+  int sin_axiom_count;
+  int sin_assumption_count;
+  int sin_goal_count;
+  int sin_neg_goal_count;
+  int sin_pos_goal_count;
+  int sin_posunit_goal_count;
 
   /* run averages and measures */
   

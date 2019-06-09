@@ -297,7 +297,7 @@ void wr_process_propagated_result
   weight=wr_calc_clause_weight(g,res,&size,&depth,&length);
   avg=(g->avg_kept_weight);       
   //printf(" weight %d average %f count %d \n",weight,(g->avg_kept_weight),(g->stat_kept_cl));
-  if (!wr_derived_weight_check(g,avg,weight,size,depth,length)) {
+  if (!wr_derived_weight_check(g,avg,weight,size,depth,length,0,0)) {
     (g->stat_weight_discarded_cl)++;
     CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
     if (g->print_derived_cl) printf("\nw discarded overweight");

@@ -101,16 +101,8 @@ void wr_process_resolve_result
   int weight;
   double avg;
   gint cl_metablock[CLMETABLOCK_ELS];
-  int size,depth,length;
-
-  /*
-  printf("\n+++ wr_process_resolve_result called\n");
-  wr_print_clause(g,xcl); printf(" : ");wr_print_term(g,xatom);
-  printf("\n");
-  wr_print_clause(g,ycl);  printf(" : ");wr_print_term(g,yatom);
-  printf("\n");
-  wr_print_vardata(g); 
-  */
+  int size,depth,length; 
+  
 #ifdef DEBUG
   printf("\n+++ wr_process_resolve_result called\n");
   wr_print_clause(g,xcl); printf(" : ");wr_print_term(g,xatom);
@@ -120,7 +112,7 @@ void wr_process_resolve_result
   wr_print_vardata(g);  
 #endif  
   ++(g->stat_derived_cl);
-  ++(g->stat_binres_derived_cl);
+  ++(g->stat_binres_derived_cl);  
   // get basic info about clauses
   xisrule=wg_rec_is_rule_clause(db,xcl);
   yisrule=wg_rec_is_rule_clause(db,ycl);
@@ -265,7 +257,7 @@ void wr_process_resolve_result
     weight=wr_calc_clause_weight(g,res,&size,&depth,&length);
     avg=(g->avg_kept_weight);       
     //printf(" weight %d average %f count %d \n",weight,(g->avg_kept_weight),(g->stat_kept_cl));
-    if (!wr_derived_weight_check(g,avg,weight,size,depth,length)) {
+    if (!wr_derived_weight_check(g,avg,weight,size,depth,length,0,0)) {
       (g->stat_weight_discarded_cl)++;
       CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
       if (g->print_derived_cl) printf("\nw discarded overweight");
@@ -285,7 +277,7 @@ void wr_process_resolve_result
     weight=wr_calc_clause_weight(g,res,&size,&depth,&length);
     avg=(g->avg_kept_weight);       
     //printf(" weight %d average %f count %d \n",weight,(g->avg_kept_weight),(g->stat_kept_cl));
-    if (!wr_derived_weight_check(g,avg,weight,size,depth,length)) {
+    if (!wr_derived_weight_check(g,avg,weight,size,depth,length,xatomnr,yatomnr)) {
       (g->stat_weight_discarded_cl)++;
       CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
       if (g->print_derived_cl) printf("\nw discarded overweight");
@@ -489,7 +481,7 @@ void wr_process_factor_result
     }  
     weight=wr_calc_clause_weight(g,res,&size,&depth,&length);
     avg=(g->avg_kept_weight);  
-    if (!wr_derived_weight_check(g,avg,weight,size,depth,length)) {
+    if (!wr_derived_weight_check(g,avg,weight,size,depth,length,0,0)) {
       (g->stat_weight_discarded_cl)++;
       CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
       if (g->print_derived_cl) printf("\nw discarded overweight");
@@ -793,7 +785,7 @@ void wr_process_paramodulate_result
     weight=wr_calc_clause_weight(g,res,&size,&depth,&length);  
     avg=(g->avg_kept_weight);  
     //printf(" weight %d average %f count %d \n",weight,(g->avg_kept_weight),(g->stat_kept_cl));
-    if (!wr_derived_weight_check(g,avg,weight,size,depth,length)) {
+    if (!wr_derived_weight_check(g,avg,weight,size,depth,length,xatomnr,yatomnr)) {
       (g->stat_weight_discarded_cl)++;
       CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
       if (g->print_derived_cl) printf("\nw discarded overweight");
@@ -870,7 +862,7 @@ int wr_process_resolve_result_aux
 #endif
     if (newatom==WG_ILLEGAL) {
       ++(g->stat_internlimit_discarded_cl);
-      wr_alloc_err(g,"could not build subst newatom in wr_process_resolve_result ");
+      //wr_alloc_err(g,"could not build subst newatom in wr_process_resolve_result ");
       return 0; // could not alloc memory, could not store clause
     }  
     if (newatom==ACONST_TRUE) {
@@ -1066,7 +1058,7 @@ helpers
  ------------------------ */
 
 
-int wr_derived_weight_check(glb* g, double avg, int weight,  int size, int depth, int length) {
+int wr_derived_weight_check(glb* g, double avg, int weight,  int size, int depth, int length, int xatomnr, int yatomnr) {
   //int res=1;
   // first immediate weight limits
   //printf(" avg %f ",avg);
@@ -1111,6 +1103,13 @@ int wr_derived_weight_check(glb* g, double avg, int weight,  int size, int depth
       //wr_printf(" less than 0.5 "); 
       return 1; 
     }
+    /*
+    if (length>xatomnr && length>yatomnr & xatomnr & yatomnr) {
+      (g->stat_weight_discarded_cl)++;
+      if (g->print_derived_cl) printf("\n -lengthlimit %d by parents %d %d ",length,xatomnr,yatomnr);       
+      return;
+    }  
+    */
     if ((g->passed_ratio)>0.90) { 
       //wr_printf(" over 90 %f ",(g->passed_ratio)); 
       return 0; 

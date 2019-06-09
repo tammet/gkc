@@ -59,7 +59,7 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
   
   //void* db=g->db;
   gptr res;
-  gint resmeta,history;
+  gint history; //resmeta,
   gint initial_queue_termbuf_next;
   int i;
   int len, rlen;
@@ -88,6 +88,7 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
     len=1;
     // here we could only find a contradiction or calc tautology
     // first try to compute
+    (g->cut_clvec)[1]=(gint)NULL;    
     (g->build_buffer)=g->queue_termbuf;
 
     //meta=RECORD_META_FACT_CLAUSE;
@@ -95,27 +96,51 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
     if ((g->use_rewrite_terms_strat) && (g->have_rewrite_terms)) (g->build_rewrite)=1;
     if ((g->build_rewrite) ||
         ((g->use_comp_funs) && wr_computable_termptr(g,cl)) ) {
-      initial_queue_termbuf_next=CVEC_NEXT(g->build_buffer);    // ??
-      yatom=wr_build_calc_term(g,rpto(g,cl));
+      // can rewrite    
+      (g->rewrite_clvec)[1]=2; // first free elem 
+      initial_queue_termbuf_next=CVEC_NEXT(g->build_buffer);
+      prev_rewrites=(g->tmp_rewrites); // to check later if rewrites were done
+      yatom=wr_build_calc_term(g,rpto(g,cl));      
       (g->build_rewrite)=0;
+      if (g->print_litterm_selection) {                
+        wr_printf("\nrewritten to: ");
+        wr_print_term(g,yatom);       
+      }   
       //CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored ??
       if (yatom==WG_ILLEGAL) {
         ++(g->stat_internlimit_discarded_cl);
         wr_alloc_err(g,"could not alloc first buffer in wr_simplify_cl ");
+        CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
         return NULL;
       } else if (yatom==ACONST_TRUE) {
         // do not use, tautologically true          
+        CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
         return NULL; 
       } else if (yatom==ACONST_FALSE) {
         // should cut
         //printf("\n proof founy \n");
         g->proof_found=1;    
-        history=wr_build_simplify_history(g,cl,NULL);
+        history=wr_build_simplify_history(g,cl,NULL,g->rewrite_clvec);
         g->proof_history=history; 
         return NULL;     
-      }        
-    }
-    return cl; 
+      } 
+      if (prev_rewrites==(g->tmp_rewrites)) {
+        // no rewrites done
+        CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
+        return cl;
+      } else {
+        // rewrites done
+        res=rotp(g,yatom);        
+        history=wr_build_simplify_history(g,cl,g->cut_clvec,g->rewrite_clvec);
+        wr_set_history(g,res,history); 
+        //resmeta=wr_calc_clause_meta(g,res,cl_metablock);
+        //wr_add_cl_to_unithash(g,res,resmeta);
+        return res;       
+      } 
+    } else {
+      // no rewrites possible
+      return cl; 
+    }    
   } else {
     len=wg_count_clause_atoms(db,cl);
   } 
@@ -135,7 +160,8 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
   }  
   rpos=0;
   // init vector for storing cutters and rewriters
-  (g->cut_clvec)[1]=(gint)NULL; 
+  (g->cut_clvec)[1]=(gint)NULL;  
+  (g->rewrite_clvec)[1]=2; // first free elem
   cuts=0; // by units
   calccuts=0; // by calc
   // set up subs parameters
@@ -253,7 +279,7 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
 
   // if no cuts and rewrites, return the unchanged original clause
   if (!cuts && !calccuts && !rewritten_atoms) {
-    printf("\nno cuts or rewrites found\n");
+    //printf("\nno cuts or rewrites found\n");
     CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
     return cl;
   }
@@ -267,7 +293,7 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
   if (rpos==0) {
     //printf("\n proof founx \n");
     g->proof_found=1;    
-    history=wr_build_simplify_history(g,cl,g->cut_clvec);
+    history=wr_build_simplify_history(g,cl,g->cut_clvec,g->rewrite_clvec);
     g->proof_history=history; 
     return NULL;
   }
@@ -277,7 +303,7 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
   //wr_process_resolve_result_setupsubst(g)
   wr_process_simp_setupquecopy(g);  
   // build history and a new clause
-  history=wr_build_simplify_history(g,cl,g->cut_clvec);
+  history=wr_build_simplify_history(g,cl,g->cut_clvec,g->rewrite_clvec);
   // set up building params
   initial_queue_termbuf_next=CVEC_NEXT(g->build_buffer); // to be restored if not actually used
   res=wr_derived_build_cl_from_initial_cl(g,rptr,rpos,ruleflag,history);
@@ -295,8 +321,12 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
     g->proof_history=history;    
     return NULL;
   }  
-  resmeta=wr_calc_clause_meta(g,res,cl_metablock);
-  wr_add_cl_to_unithash(g,res,resmeta);
+  if (g->print_litterm_selection) {                
+    wr_printf("\nsimplified to: ");
+    wr_print_clause(g,res);       
+  }  
+  //resmeta=wr_calc_clause_meta(g,res,cl_metablock);
+  //wr_add_cl_to_unithash(g,res,resmeta);
   return res;
 } 
 

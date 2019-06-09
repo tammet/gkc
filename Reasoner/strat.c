@@ -236,7 +236,7 @@ void wr_set_stratlimits_cl(glb* g, gptr cl, int ruleflag, int len, int* posok, i
 int wr_order_resolvable_atom(glb* g, int negflag,  
       int negok, int posok, int negadded, int posadded,
       int hardness, int max_neg_hardness, int max_pos_hardness) {
-        
+     
   if (g->negpref_strat) {
     if (negflag && negok && !negadded && hardness==max_neg_hardness) return 1;
     else if (!negflag && posok) return 1;
@@ -248,6 +248,7 @@ int wr_order_resolvable_atom(glb* g, int negflag,
     else return 0;
   }
   return 1;
+
 }
 
 int wr_initial_select_active_cl(glb* g, gptr cl) {
@@ -398,6 +399,229 @@ int recalc_cl_priority(g,gptr cl, int decprior) {
 
 
 /*
+ 
+  resolvability ordering
+
+*/
+
+int wr_calc_clause_resolvability(glb* g, gptr cl) {
+  void* db=g->db;
+  int atomnr,i, polarity, hardness; 
+  int max_hardness=MIN_HARDNESS;   
+  int max_neg_hardness=MIN_HARDNESS;
+  int max_pos_hardness=MIN_HARDNESS;
+  gint meta, atom; 
+  int poscount=0,negcount=0,anscount=0;
+  int allowedflag;
+
+  UNUSED(db);
+  if (!wg_rec_is_rule_clause(db,cl)) {
+    (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,1,1);
+    return 1;
+  }  
+  atomnr=wg_count_clause_atoms(db,cl);
+  if (atomnr==1) {
+    (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,1,1);
+    return 1;
+  }
+
+  // from here clause lengh at least 2
+
+  // count neg and pos and hardnesses for polarityorder and queryfocus
+
+  if ((g->negpref_strat) || (g->pospref_strat) || (g->queryfocus_strat)) {  
+    // count pos and neg
+    for(i=0; i<atomnr; i++) {          
+      meta=wg_get_rule_clause_atom_meta(db,cl,i);
+      atom=wg_get_rule_clause_atom(db,cl,i);
+      if (wr_answer_lit(g,atom)) anscount++;       
+      else if (wg_atom_meta_is_neg(db,meta)) negcount++; 
+      else poscount++;           
+    }  
+    // calc hardnesses 
+    for(i=0; i<atomnr; i++) {          
+      meta=wg_get_rule_clause_atom_meta(db,cl,i);
+      atom=wg_get_rule_clause_atom(db,cl,i);
+      if (wr_answer_lit(g,atom)) continue;
+      // count pos/neg
+      if (wg_atom_meta_is_neg(db,meta)) {
+        // negative lit
+        polarity=0;        
+        if ((g->negpref_strat) || (g->queryfocus_strat)) {
+          // for negative literals only needed for negpref
+          hardness=wr_calc_atom_hardness(g,polarity,atom);
+          (g->tmp_hardnessinf_vec)=wr_vec_store(g,g->tmp_hardnessinf_vec,i+1,hardness);            
+          if (hardness>max_neg_hardness) max_neg_hardness=hardness;
+          if (hardness>max_hardness) max_hardness=hardness;
+        } else {
+          // mark that hardness not calced
+          (g->tmp_hardnessinf_vec)=wr_vec_store(g,g->tmp_hardnessinf_vec,i+1,-1000);
+        }
+      } else {    
+        // positive lit 
+        polarity=1; 
+        if ((g->pospref_strat) || (g->queryfocus_strat)) {
+          // for positive literals only needed for pospref
+          hardness=wr_calc_atom_hardness(g,polarity,atom);
+          (g->tmp_hardnessinf_vec)=wr_vec_store(g,g->tmp_hardnessinf_vec,i+1,hardness);             
+          if (hardness>max_pos_hardness) max_pos_hardness=hardness;
+          if (hardness>max_hardness) max_hardness=hardness;
+        } else {
+          // mark that hardness not calced
+          (g->tmp_hardnessinf_vec)=wr_vec_store(g,g->tmp_hardnessinf_vec,i+1,-1000);
+        }  
+      }          
+    }    
+  }
+
+  // next loop over clause marks allowed and prohibited literals
+
+  allowedflag=0;
+  for(i=0;i<atomnr;i++) {
+    meta=wg_get_rule_clause_atom_meta(db,cl,i);  
+    atom=wg_get_rule_clause_atom(db,cl,i);  
+    if (wg_atom_meta_is_neg(db,meta)) polarity=0;
+    else polarity=1;            
+    if (wr_answer_lit(g,atom)) {
+      (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
+      continue;
+    }
+    if (g->knuthbendixpref_strat) {
+      // order clause by knuth bendix: no hardness
+    } else {
+      // order clause by pos/neg, using additionally hardness      
+      if (g->negpref_strat) {
+        if (polarity) {
+          // positive lit
+          if (negcount>0) {
+            // neg is preferred to current atom, prohibit
+            (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
+          } else {
+            // no neg, ok to resolve
+            if (g->queryfocus_strat) {
+              // resolve only hardest pos
+              if (allowedflag || (((g->tmp_hardnessinf_vec)[i+1])<max_pos_hardness)) {
+                // prohibit
+                (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
+              } else                  
+                (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,1);
+                allowedflag=1;                
+              }
+            } else {  
+              // here always resolve pos
+              (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,1);
+              allowedflag=1;
+            }  
+          }  
+        } else {
+          // negative: use hardness to determine whether to prohibit
+          if (((g->tmp_hardnessinf_vec)[i+1])<max_neg_hardness) {
+            // prohibit
+            (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
+          } else {
+            // allow if not already allowed (since may have equal hardnesses)
+            if (!allowedflag) {
+              (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,1);
+              allowedflag=1;
+            } else {
+              (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
+            }
+          }
+        }               
+      } else if (g->pospref_strat) {
+        if (!polarity) {
+          // negative lit
+          if (poscount>0) {
+            // pos is preferred to current atom, prohibit
+            (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
+          } else {
+            // no pos, ok to resolve
+            if (g->queryfocus_strat) {
+              // resolve only hardest neg
+              if (allowedflag || (((g->tmp_hardnessinf_vec)[i+1])<max_neg_hardness)) {
+                // prohibit
+                (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
+              } else                  
+                (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,1);
+                allowedflag=1;                
+              }
+            } else {  
+              // always resolve neg
+              (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,1);
+              allowedflag=1;
+            }
+          }  
+        } else {
+          // positive: use hardness to determine whether to prohibit
+          if (((g->tmp_hardnessinf_vec)[i+1])<max_pos_hardness) {
+            // prohibit
+            (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
+          } else {
+            // allow if not already allowed (since may have equal hardnesses)
+            if (!allowedflag) {
+              (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,1);
+              allowedflag=1; 
+            } else {
+              (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
+            }
+          }
+        }       
+      } else if (g->queryfocus_strat) {
+        // pure queryfocus: use just hardness
+        if (((g->tmp_hardnessinf_vec)[i+1])<max_hardness) {
+          (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);      
+        } else {
+          if (!allowedflag) {
+            (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,1);
+            allowedflag=1;   
+          }    
+        }      
+      } else {
+        // no known ordering: allow all literals except ans
+        (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,1);
+
+      }
+    }   
+  }
+  return 1;
+} 
+
+
+void wr_print_clause_resolvability(glb* g, gptr cl) {
+  int len,i;
+
+  printf("\n resolvability for ");
+  wr_print_clause(g,cl);
+  printf("\n");  
+  if (!wg_rec_is_rule_clause(db,cl)) {
+    printf("1, since fact clause\n");
+  } else {
+    len=wg_count_clause_atoms(db,cl);
+    for(i=0;i<len;i++) {
+      printf("%ld ",(g->tmp_resolvability_vec)[i+1]);
+    }
+    printf("\n");
+  }
+}
+
+void wr_print_clause_hardnesses(glb* g, gptr cl) {
+  int len,i;
+
+  printf("\n hardness for ");
+  wr_print_clause(g,cl);
+  printf("\n");  
+  if (!wg_rec_is_rule_clause(db,cl)) {
+    printf("fact clause\n");
+  } else {
+    len=wg_count_clause_atoms(db,cl);
+    for(i=0;i<len;i++) {
+      printf("%ld ",(g->tmp_hardnessinf_vec)[i+1]);
+    }
+    printf("\n");
+  }
+}
+
+/*
 
  hardness 
 
@@ -487,7 +711,7 @@ int wr_calc_atom_hardness(glb* g, int polarity, gint atom) {
     if (!hdata.atomposocc) {
       hardness=100*hardness; 
     } else hardness-=round(log10((double)hdata.atomposocc));
-    if (!hdata.internnegocc) {
+    if (!hdata.internposocc) {
       //hardness+=5;
     } else hardness-=round(log10((double)hdata.internposocc)/(double)4);
   }
@@ -497,6 +721,7 @@ int wr_calc_atom_hardness(glb* g, int polarity, gint atom) {
   printf("\n       atomposocc %ld,atomnegocc %ld,internposocc %ld,internnegocc %ld;\n",
     hdata.atomposocc,hdata.atomnegocc,hdata.internposocc,hdata.internnegocc); 
   */
+  
   return hardness;
 }
 
@@ -978,6 +1203,51 @@ static int wr_order_eqterms_lex_order(glb* g, gint x, gint y, gptr vb) {
 static int wr_order_eqterms_const_lex_smaller(glb* g, gint x, gint y) {
   if (x<y) return 1;
   else return 0; 
+}
+
+
+void wr_print_strat_flags(glb* g) {
+
+  printf("\nstrategy flags:\n");
+  printf("----------------------------------\n");
+
+  printf("pick_given_queue_ratio %d\n", (g->pick_given_queue_ratio));         // this is used for all queues to diff btw priority and simple
+  printf("pick_given_queue_ratio_counter %d\n", (g->pick_given_queue_ratio_counter)); // this is not used for queues
+  printf("next_pick_given_queue_block_nr %d\n", (g->next_pick_given_queue_block_nr));
+
+  printf("cl_depth_penalty %d\n", (g->cl_depth_penalty));
+  printf("cl_length_penalty %d\n", (g->cl_length_penalty));
+
+  /* pre-given limits */
+  printf("max_run_seconds %d\n", (g->max_run_seconds)); // one run max seconds
+  printf("max_seconds %d\n", (g->max_seconds));     // total max seconds
+  printf("cl_maxkeep_weightlimit %d\n", (g->cl_maxkeep_weightlimit));
+  printf("cl_maxkeep_sizelimit %d\n", (g->cl_maxkeep_sizelimit));
+  printf("cl_maxkeep_depthlimit %d\n", (g->cl_maxkeep_depthlimit));
+  printf("cl_maxkeep_lengthlimit %d\n", (g->cl_maxkeep_lengthlimit));  
+
+  printf("cl_pick_queue_strategy %d\n", (g->cl_pick_queue_strategy)); // default a single 2nd level queue for all
+  
+  printf("reverse_clauselist_strat %d\n", (g->reverse_clauselist_strat));
+  printf("queryfocus_strat %d\n", (g->queryfocus_strat));
+  printf("queryfocusneg_strat %d\n", (g->queryfocusneg_strat));  
+
+  printf("hyperres_strat %d\n", (g->hyperres_strat));
+  printf("weightorder_strat %d\n", (g->weightorder_strat));  
+  printf("negpref_strat %d\n", (g->negpref_strat));
+  printf("pospref_strat %d\n", (g->pospref_strat));
+  printf("knuthbendixpref_strat %d\n", (g->knuthbendixpref_strat));
+  printf("res_shortarglen_limit %d\n", (g->res_shortarglen_limit)); // max non-ans len of the shortest res argument (generalization of unit)
+  printf("back_subsume %d\n", (g->back_subsume)); // 1 does not work any more
+  printf("propagate %d\n", (g->propagate));    // 1 does not work any more
+  printf("use_equality_strat %d\n", (g->use_equality_strat)); // general strategy
+  printf("use_equality %d\n", (g->use_equality)); // current principle
+  printf("posunitpara_strat %d\n", (g->posunitpara_strat)); // only paramodulate from unit equalities
+  printf("use_comp_funs_strat %d\n", (g->use_comp_funs_strat));
+  printf("use_comp_funs %d\n", (g->use_comp_funs));
+  printf("use_rewrite_terms_strat %d\n", (g->use_rewrite_terms_strat)); // general strategy
+  printf("have_rewrite_terms %d\n", (g->have_rewrite_terms)); // do we actually have rewrite terms
+  
 }
 
 

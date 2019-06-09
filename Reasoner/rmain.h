@@ -39,7 +39,12 @@ int wg_import_otter_file(void *db, char* filename, int iskb);
 int wg_import_prolog_file(void *db, char* filename);
 glb* wg_init_reasoner(void *db, int argc, char **argv);
 int wr_init_active_passive_lists_from_one(glb* g, void* db, void* kb_db);
+
 void wr_show_stats(glb* g, int show_local_complex);
 void wr_set_detailed_printout(glb* g);
+void wr_set_detailed_plus_printout(glb* g);
+
+void print_datastructs(glb* g);
+void wr_print_active_clauses(glb* g);
 
 #endif

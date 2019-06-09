@@ -59,6 +59,10 @@ int wr_order_resolvable_atom(glb* g, int negflag,
       int hardness, int max_neg_hardness, int max_pos_hardness);
 int wr_initial_select_active_cl(glb* g, gptr cl);
 
+int wr_calc_clause_resolvability(glb* g, gptr cl);
+void wr_print_clause_resolvability(glb* g, gptr cl);
+void wr_print_clause_hardnesses(glb* g, gptr cl);
+
 int wr_calc_clause_hardnesses(glb* g, gptr cl, 
       int* max_pos_hardness, int* max_neg_hardness);
 int wr_calc_atom_hardness(glb* g, int polarity, gint atom);
@@ -71,6 +75,8 @@ void wr_clear_countedvarlist(glb* g, cvec varlist);
 void wr_record_varocc(glb* g, gint x, cvec varlist);
 void wr_show_countedvarlist(glb* g, cvec varlist);
 int wr_countedvarlist_is_subset(glb* g, cvec xlist, cvec ylist);
+
+void wr_print_strat_flags(glb* g);
 
 //static int wr_order_eqterms_lex_smaller(glb* g, gint x, gint y, gptr vb);
 

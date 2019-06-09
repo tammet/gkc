@@ -50,6 +50,11 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb);
 int wr_analyze_term(glb* g, gint x, 
       int depth, int* size, int* maxdepth, int polarity, int haveextdb);
 
+char* make_auto_guide(glb* g, glb* kb_g);
+void make_sum_input_stats(glb* g, glb* kb_g);
+void wr_copy_sin_stats(glb* fromg, glb* tog);
+
 void wr_show_in_stats(glb* g);
+void wr_show_in_summed_stats(glb* g);
 
 #endif

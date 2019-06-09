@@ -135,8 +135,7 @@ int wr_glb_init_simple(glb* g) {
   (g->unify_footerlen)=0; 
   
   /* strategy selection */    
-
-  (g->hyperres_strat)=0;
+  
   (g->pick_given_queue_ratio)=4;         // this is used for all queues to diff btw priority and simple
   (g->pick_given_queue_ratio_counter)=0; // this is not used for queues
   (g->next_pick_given_queue_block_nr)=0;
@@ -154,16 +153,21 @@ int wr_glb_init_simple(glb* g) {
 
   (g->cl_pick_queue_strategy)=0; // default a single 2nd level queue for all
   
+  (g->reverse_clauselist_strat)=0;
   (g->queryfocus_strat)=0;
   (g->queryfocusneg_strat)=0;  
+
+  (g->hyperres_strat)=0;
+  (g->weightorder_strat)=0;  
   (g->negpref_strat)=0;
   (g->pospref_strat)=0;
+  (g->knuthbendixpref_strat)=0;
   (g->res_shortarglen_limit)=0; // max non-ans len of the shortest res argument (generalization of unit)
   (g->back_subsume)=0; // 1 does not work any more
   (g->propagate)=0;    // 1 does not work any more
   (g->use_equality_strat)=1; // general strategy
   (g->use_equality)=1; // current principle
-  (g->posunitpara_strat)=0;
+  (g->posunitpara_strat)=0; // only paramodulate from unit equalities
   (g->use_comp_funs_strat)=1;
   (g->use_comp_funs)=1;
   (g->use_rewrite_terms_strat)=1; // general strategy
@@ -192,6 +196,7 @@ int wr_glb_init_simple(glb* g) {
   (g->print_initial_given_cl)=1;
   (g->print_final_given_cl)=1;
   (g->print_active_cl)=1;
+  (g->print_litterm_selection)=1;
   (g->print_partial_derived_cl)=1;
   (g->print_derived_cl)=1;
   (g->print_derived_subsumed_cl)=1;
@@ -200,6 +205,7 @@ int wr_glb_init_simple(glb* g) {
   (g->print_clause_detaillevel)=1;
   (g->print_runs)=1;
   (g->print_stats)=1;  
+  (g->print_datastructs)=1;
   
   /* tmp variables */
 
@@ -327,6 +333,42 @@ int wr_glb_init_simple(glb* g) {
   (g->in_axiom_count)=0;
   (g->in_assumption_count)=0;
   (g->in_goal_count)=0;
+  (g->in_neg_goal_count)=0;
+  (g->in_pos_goal_count)=0;
+  (g->in_posunit_goal_count)=0;
+
+  (g->sin_clause_count)=0;
+  (g->sin_rule_clause_count)=0;
+  (g->sin_fact_clause_count)=0;
+  (g->sin_answer_clause_count)=0;
+  (g->sin_ground_clause_count)=0;
+  (g->sin_unit_clause_count)=0;
+  (g->sin_horn_clause_count)=0;
+  (g->sin_pos_clause_count)=0;
+  (g->sin_neg_clause_count)=0;
+  (g->sin_poseq_clause_count)=0;
+  (g->sin_negeq_clause_count)=0;
+  (g->sin_unitposeq_clause_count)=0;
+  (g->sin_chain_clause_count)=0;
+  (g->sin_min_length)=100000;
+  (g->sin_max_length)=0;
+  (g->sin_min_depth)=100000;
+  (g->sin_max_depth)=0;
+  (g->sin_min_size)=100000;
+  (g->sin_max_size)=0;
+  (g->sin_min_vars)=100000;
+  (g->sin_max_vars)=0;
+  (g->sin_average_length)=0;
+  (g->sin_average_depth)=0;
+  (g->sin_predicate_count)=0;
+  (g->sin_funsymb_count)=0;
+  (g->sin_extaxiom_count)=0;
+  (g->sin_axiom_count)=0;
+  (g->sin_assumption_count)=0;
+  (g->sin_goal_count)=0;
+  (g->sin_neg_goal_count)=0;
+  (g->sin_pos_goal_count)=0;
+  (g->sin_posunit_goal_count)=0;
 
   (g->avg_kept_weight)=0;
   (g->passed_ratio)=0;
@@ -436,9 +478,12 @@ int wr_glb_init_local_complex(glb* g) {
   (g->hyper_termbuf)=NULL;
   (g->active_termbuf)=NULL;
   (g->cut_clvec)=NULL;
+  (g->rewrite_clvec)=NULL;
   (g->hyper_queue)=NULL;
   (g->tmp_litinf_vec)=NULL; 
   (g->tmp_hardnessinf_vec)=NULL;
+  (g->tmp_resolvability_vec)=NULL;
+  (g->tmp_sort_vec)=NULL;
   
   // then create space
   
@@ -483,14 +528,17 @@ int wr_glb_init_local_complex(glb* g) {
 #endif
 
   (g->cut_clvec)=wr_vec_new(g,NROF_CUT_CLVEC_ELS);
+  (g->rewrite_clvec)=wr_cvec_new(g,NROF_REWRITE_CLVEC_ELS);
+  (g->rewrite_clvec)[1]=2; // first free elem
 
   (g->hyper_queue)=wr_cvec_new(g,NROF_HYPER_QUEUE_ELS);
   (g->hyper_queue)[1]=3; // next free pos in the queue (initially for empty queue 3)
   (g->hyper_queue)[2]=3; // next pos to pick for given (initially for empty queue 3)
     
   (g->tmp_litinf_vec)=wr_vec_new(g,MAX_CLAUSE_LEN); // used by subsumption
-  (g->tmp_hardnessinf_vec)=wr_vec_new(g,MAX_CLAUSE_LEN); // used by subsumption
-  
+  (g->tmp_hardnessinf_vec)=wr_vec_new(g,MAX_CLAUSE_LEN); // used for resolvability
+  (g->tmp_resolvability_vec)=wr_vec_new(g,MAX_CLAUSE_LEN); // used for resolvability
+  (g->tmp_sort_vec)=wr_vec_new(g,INITIAL_SORTVEC_LEN); // used for sorting the initial clause list
 
   //(g->derived_termbuf_freeindex)=2;
   
@@ -588,6 +636,7 @@ int wr_glb_free_local_complex(glb* g) {
   wr_vec_free(g,g->hyper_termbuf);
   wr_vec_free(g,g->active_termbuf);  
   wr_vec_free(g,g->cut_clvec); 
+  wr_vec_free(g,g->rewrite_clvec);
   wr_vec_free(g,g->varstack); 
   wr_vec_free(g,g->xcountedvarlist);
   wr_vec_free(g,g->ycountedvarlist);
@@ -597,7 +646,9 @@ int wr_glb_free_local_complex(glb* g) {
   wr_vec_free(g,g->derived_termbuf);        
   wr_vec_free(g,g->tmp_litinf_vec);  
   wr_vec_free(g,(g->tmp_hardnessinf_vec));
-  
+  wr_vec_free(g,(g->tmp_resolvability_vec));
+  wr_vec_free(g,(g->tmp_sort_vec));
+
   wr_str_free(g,(g->parse_skolem_prefix));
   (g->parse_skolem_prefix)=NULL;
   wr_str_free(g,(g->parse_newpred_prefix));

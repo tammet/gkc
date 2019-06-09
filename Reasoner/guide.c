@@ -64,7 +64,7 @@ extern "C" {
 */
 
 #define DEFAULT_GUIDE "{\"print\":1, " \
-  "\"print_level\": 10, " \
+  "\"print_level\": 15, " \
   "\"strategy\":\"negative_pref\" } " \
 
   
@@ -90,6 +90,7 @@ cJSON* wr_parse_guide_file(int argc, char **argv, char** guidebuf) {
 
   if (argc<3) {
     // default case: no guide file
+
     len=strlen(DEFAULT_GUIDE);
     buf = (char*)malloc(len + 10);
     *guidebuf=buf;
@@ -97,7 +98,7 @@ cJSON* wr_parse_guide_file(int argc, char **argv, char** guidebuf) {
       wr_errprint("failed to allocate memory for the built guide str");
       return NULL;
     }
-    strncpy(buf,DEFAULT_GUIDE,len); 
+    strncpy(buf,DEFAULT_GUIDE,len);     
     guide=wr_parse_guide_str(buf);
     printf("Using default strategy.");
     return guide;
@@ -213,6 +214,9 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr) {
     } else if (!strcmp(key,"weight_select_ratio")) {
       //printf("weight_select_ratio %d\n", json_valueint(elem));
       (g->pick_given_queue_ratio)=json_valueint(elem);          
+    } else if (!strcmp(key,"reverse_clauselist")) {
+      //printf("weight_select_ratio %d\n", json_valueint(elem));
+      (g->reverse_clauselist_strat)=json_valueint(elem);  
     } else if (!strcmp(key,"query_preference")) {
       //printf("query_preference %d\n", json_valueint(elem));
       (g->cl_pick_queue_strategy)=json_valueint(elem);

@@ -72,6 +72,74 @@ ignoring ans literals
 
 */
 
+
+int  oldremove_wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length) {
+  void* db;
+  int ruleflag;       
+  gint xatomnr; 
+  gint xatom;  
+  int i;
+  int w;
+  int atomdepth;
+  int vc_tmp;
+  
+  //printf("wr_calc_clause_weight called for:\n"); 
+  //wr_print_clause(g,xptr);
+  //printf("\n");
+
+  db=g->db; 
+  *size=0;
+  *depth=0;
+  *length=0;
+  ruleflag=wg_rec_is_rule_clause(db,xptr);  
+  /*
+  vc_tmp=2;
+  *((g->varstack)+1)=vc_tmp; // zero varstack pointer  
+  g->tmp_unify_vc=((gptr)(g->varstack))+1;
+  */
+#ifdef WEIGHT_VARS  
+  vc_tmp=*(g->tmp_unify_vc);
+#endif
+  if (!ruleflag) {
+    *length=1;
+    xatom=encode_datarec_offset(pto(db,xptr));
+    if (wr_answer_lit(g,xatom)) w=1; // !! special answer-lit weight
+    else w=wr_calc_term_weight(g,xatom,0,size,depth);    
+    //return w;        
+  } else {        
+    w=0;
+    // loop over clause elems
+    xatomnr=wg_count_clause_atoms(db,xptr);
+    for(i=0;i<xatomnr;i++) {
+      //xmeta=wg_get_rule_clause_atom_meta(db,xptr,i);
+      xatom=wg_get_rule_clause_atom(db,xptr,i);
+      if (wr_answer_lit(g,xatom)) w=w+1;
+      else {
+        atomdepth=0;
+        w=w+wr_calc_term_weight(g,xatom,0,size,&atomdepth);   
+        (*length)++;
+        if (atomdepth > (*depth)) *depth=atomdepth;
+      }  
+    }   
+  }
+#ifdef WEIGHT_VARS 
+  if (vc_tmp!=*(g->tmp_unify_vc)) {
+    wr_clear_varstack_topslice(g,g->varstack,vc_tmp);
+  }  
+#endif  
+  /*
+  if (vc_tmp!=*((g->varstack)+1)) {
+    //printf("\n clearing varstack\n");
+    //wr_clear_varstack(g,g->varstack);
+    wr_clear_varstack_topslice(g,g->varstack,vc_tmp);
+  } 
+  */
+  w=w+(((*length)-1)*(g->cl_length_penalty))+(((*depth)-1)*(g->cl_depth_penalty));
+  //printf("\nwr_calc_clause_weight returns weight %d and size %d depth %d length %d\n",
+  //    w,*size,*depth,*length); 
+  return w;
+} 
+
 int  wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length) {
   void* db;
   int ruleflag;       
@@ -265,6 +333,157 @@ gint wr_litmeta_to_gint(glb* g,term_metacalc* metaptr) {
 
 
 
+
+gint oldremove_wr_calc_clause_meta(glb* g, gptr xptr, gptr cl_metablock) {
+  term_metacalc litmeta = {0,0,0,0,0,0,0,0,0,0,0};
+  cl_metacalc clmeta = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+  void* db;
+  int ruleflag, negflag;       
+  gint xatomnr; 
+  gint xmeta, xatom; 
+  gint litmetagint=0;
+  //gint clmetagint=0; 
+  int i,tmp;
+  
+  //printf("\nwr_calc_clause_meta called on \n"); 
+  //wr_print_clause(g,xptr);
+  
+  db=g->db;
+  ruleflag=wg_rec_is_rule_clause(db,xptr);  
+  if (!ruleflag) {
+    //printf("\nnot a ruleclause\n");
+    negflag=0;
+    wr_calc_term_meta(g,encode_datarec_offset(pto(db,xptr)),0,0,&litmeta);
+    clmeta.length=1;
+    clmeta.neglength=0;
+    clmeta.groundlength=!litmeta.hasvars;
+    clmeta.hasvars=litmeta.hasvars;
+    clmeta.depth=litmeta.depth;
+    clmeta.size=litmeta.size;
+    clmeta.weight=litmeta.weight;
+    clmeta.preflen=litmeta.preflen;
+    clmeta.topvars=litmeta.topvars;
+    clmeta.prefhash=litmeta.prefhash;
+    if (litmeta.pref1hash) 
+      clmeta.pref1bits=wr_signed_lithash_to_bitmask(g,litmeta.pref1hash,negflag);    
+    if (litmeta.pref2hash) 
+      clmeta.pref2bits=wr_lithash_to_bitmask(g,litmeta.pref2hash);    
+    if (litmeta.pref3hash) 
+      clmeta.pref3bits=wr_lithash_to_bitmask(g,litmeta.pref3hash);
+    //clmeta.=litmeta.;
+    litmetagint=wr_litmeta_to_gint(g,&litmeta);
+    //clmetagint=clmetagint|RECORD_META_FACT_CLAUSE; // ??
+    //xptr[RECORD_META_POS]=clmetagint;
+    //wr_print_term_metacalc(g,&litmeta);      
+  } else {        
+    //printf("\nis a ruleclause\n");
+    // loop over clause elems
+    xatomnr=wg_count_clause_atoms(db,xptr);
+    clmeta.length=xatomnr;    
+    for(i=0;i<xatomnr;i++) {
+      xmeta=wg_get_rule_clause_atom_meta(db,xptr,i);  
+      xatom=wg_get_rule_clause_atom(db,xptr,i);            
+      wr_calc_term_meta(g,xatom,0,i,&litmeta);  
+      litmetagint=wr_litmeta_to_gint(g,&litmeta); // !!!! must fix term/cl_metacalc
+      if (wg_atom_meta_is_neg(db,xmeta)) {
+        negflag=1;
+        litmetagint=litmetagint|ATOM_META_NEG_RAWMASK;
+      } else negflag=0;
+
+      /*
+      if (wg_atom_meta_is_neg(db,litmetagint)!=wg_atom_meta_is_neg(db,xmeta)) {
+        printf("\n *?*?*? wrong %d %d %d %d\n",
+          litmetagint,xmeta,wg_atom_meta_is_neg(db,litmetagint),wg_atom_meta_is_neg(db,xmeta));
+        wr_print_term(g,xatom);
+        wr_print_clause(g,xptr);
+        wr_print_term_metacalc(g,&litmeta);
+      } 
+      */ 
+      //if (wg_atom_meta_is_neg(db,xmeta)) litmetagint=ATOM_META_NEG;
+      //else litmetagint=0;
+      wg_set_rule_clause_atom_meta(db,xptr,i,litmetagint); // !!!
+      /*
+      wr_print_term_metacalc(g,&litmeta);
+      printf("\nmeta gint %d\n",wr_litmeta_to_gint(g,&litmeta));
+      */
+      if (xatomnr<2) {
+        //clmetagint=wr_litmeta_to_gint(g,&litmeta);
+      } else {
+        // xatomnr>1
+      }  
+      if (negflag) clmeta.neglength++;
+      if (litmeta.hasvars) clmeta.hasvars=1;
+      else clmeta.groundlength++;
+      if (litmeta.depth>clmeta.depth) clmeta.depth=litmeta.depth;     
+      if (litmeta.preflen>clmeta.preflen) clmeta.preflen=litmeta.preflen;
+      clmeta.size+=litmeta.size;
+      clmeta.weight+=litmeta.weight;
+      if (litmeta.pref1hash) 
+        clmeta.pref1bits=clmeta.pref1bits | 
+          wr_signed_lithash_to_bitmask(g,litmeta.pref1hash,negflag);      
+      if (litmeta.pref2hash) 
+        clmeta.pref2bits=clmeta.pref2bits | 
+          wr_lithash_to_bitmask(g,litmeta.pref2hash);      
+      if (litmeta.pref3hash) 
+        clmeta.pref3bits=clmeta.pref3bits | 
+          wr_lithash_to_bitmask(g,litmeta.pref3hash);      
+
+      if (i+1<xatomnr) {
+        litmeta.hasvars=0; 
+        litmeta.depth=0;
+        litmeta.size=0;
+        litmeta.weight=0;
+        litmeta.preflen=0;
+        litmeta.topvars=0;
+        litmeta.prefhash=0;
+        litmeta.groundhash=0;
+      }       
+    }  
+    //if (!clmetagint) clmetagint=wr_litmeta_to_gint(g,&clmeta);  
+  }
+  // pack clmeta struct to cl_metablock
+  if (cl_metablock!=NULL) {
+    tmp=(!clmeta.hasvars)<<CLMETABLOCK_ISGROUND_SHIFT |
+        limit_byte(clmeta.length)<<CLMETABLOCK_LENGTH_SHIFT  | 
+        limit_byte(clmeta.neglength) <<CLMETABLOCK_NEGLENGTH_SHIFT | 
+        limit_byte(clmeta.groundlength) <<CLMETABLOCK_GROUNDLENGTH_SHIFT;
+    cl_metablock[CLMETABLOCK_LENGTHS_POS]=tmp;
+    tmp=limit_byte(clmeta.depth) << CLMETABLOCK_DEPTH_SHIFT |
+        limit_byte(clmeta.size) << CLMETABLOCK_SIZE_SHIFT | 
+        limit_byte(clmeta.preflen) << CLMETABLOCK_PREFLEN_SHIFT;
+    cl_metablock[CLMETABLOCK_SIZES_POS]=tmp;
+    cl_metablock[CLMETABLOCK_PREF1BITS_POS]=clmeta.pref1bits;
+    cl_metablock[CLMETABLOCK_PREF2BITS_POS]=clmeta.pref2bits;
+    cl_metablock[CLMETABLOCK_PREF3BITS_POS]=clmeta.pref3bits;
+  }
+
+  //finished
+  /*
+  printf("wr_calc_clause_meta returns for the clause:\n"); 
+  wr_print_cl_metacalc(g,&clmeta);
+  
+   printf("\n in details:");            
+          printf("\nmeta addr %d\n",(int)cl_metablock); 
+          printf("\nmetablock2 %d %d %d %d \n",*(cl_metablock),*(cl_metablock+1),*(cl_metablock+2),*(cl_metablock+3));
+          printf("\n lengths   ");
+          wr_print_gint_hashmask(g,cl_metablock[CLMETABLOCK_LENGTHS_POS]);
+          printf("\n real length %d\n",
+            (*(cl_metablock) & (255<<CLMETABLOCK_LENGTH_SHIFT))>>CLMETABLOCK_LENGTH_SHIFT);
+          printf("\n sizes     ");
+          wr_print_gint_hashmask(g,cl_metablock[CLMETABLOCK_SIZES_POS]);
+          printf("\n pref1bits ");
+          wr_print_gint_hashmask(g,cl_metablock[CLMETABLOCK_PREF1BITS_POS]);
+          printf("\n pref2bits ");
+          wr_print_gint_hashmask(g,cl_metablock[CLMETABLOCK_PREF2BITS_POS]);
+          printf("\n pref3bits ");
+          wr_print_gint_hashmask(g,cl_metablock[CLMETABLOCK_PREF3BITS_POS]);
+          printf("\n");
+  */        
+  //clmetagint=wr_litmeta_to_gint(g,&clmeta);
+
+  return litmetagint;
+} 
+
 gint wr_calc_clause_meta(glb* g, gptr xptr, gptr cl_metablock) {
   void* db=g->db;
   term_metacalc litmeta = {0,0,0,0,0,0,0,0,0,0,0};
@@ -276,10 +495,13 @@ gint wr_calc_clause_meta(glb* g, gptr xptr, gptr cl_metablock) {
   gint litmetagint=0;
   //gint clmetagint=0; 
   int i,tmp;
-  
-  //printf("\nwr_calc_clause_meta called on \n"); 
-  //wr_print_clause(g,xptr);
- 
+
+  /*  
+  printf("\nwr_calc_clause_meta called on \n"); 
+  wr_print_clause(g,xptr);
+  printf("\n");
+  */
+
   UNUSED(db);
   ruleflag=wg_rec_is_rule_clause(db,xptr);  
   if (!ruleflag) {
@@ -327,7 +549,6 @@ gint wr_calc_clause_meta(glb* g, gptr xptr, gptr cl_metablock) {
         negflag=1;
         litmetagint=litmetagint|ATOM_META_NEG_RAWMASK;
       } else negflag=0;
-
       /*
       if (wg_atom_meta_is_neg(db,litmetagint)!=wg_atom_meta_is_neg(db,xmeta)) {
         printf("\n *?*?*? wrong %d %d %d %d\n",
@@ -336,7 +557,12 @@ gint wr_calc_clause_meta(glb* g, gptr xptr, gptr cl_metablock) {
         wr_print_clause(g,xptr);
         wr_print_term_metacalc(g,&litmeta);
       } 
-      */ 
+      wr_print_term(g,xatom);
+      wr_print_clause(g,xptr);
+      wr_print_term_metacalc(g,&litmeta);
+      wr_print_cl_meta(g,litmetagint);
+      */
+
       //if (wg_atom_meta_is_neg(db,xmeta)) litmetagint=ATOM_META_NEG;
       //else litmetagint=0;
       wg_set_rule_clause_atom_meta(db,xptr,i,litmetagint); // !!!
@@ -457,10 +683,16 @@ gint wr_lithash_to_bitmask(glb* g, int hash) {
 gint wr_calc_term_meta(glb* g, gint x, int depth, int pos, term_metacalc* metaptr) {
   void* db;
   gptr xptr;
-  int i, start, end, hasvars;
-  gint hash;
-  gint smeta,tmeta;
-    
+  int start,end;
+  gint hash, hashtemp;  
+  gint tmeta=0;
+#ifdef USE_TERM_META 
+  gint smeta;
+  int hasvars;
+  int i;
+#endif    
+
+  UNUSED(end);  
   //printf("wr_calc_term_meta called with x %d type %d\n",x,wg_get_encoded_type(g->db,x));
   if (!isdatarec(x)) {
     // now we have a simple value  
@@ -476,11 +708,14 @@ gint wr_calc_term_meta(glb* g, gint x, int depth, int pos, term_metacalc* metapt
     }
     if (!(metaptr->hasvars)) {  
       hash=wr_term_basehash(g,x);
-      (metaptr->prefhash)+=hash;  // !! needs bitshifting improvement !!
+      hashtemp=(metaptr->prefhash)+hash; // !! needs bitshifting improvement !!       
+      //hashtemp=hashtemp%256;
+      if (hashtemp<0) hashtemp=0-hashtemp;
+      (metaptr->prefhash)=hashtemp;    
       (metaptr->preflen)++;
       if (metaptr->preflen==1) (metaptr->pref1hash)=(metaptr->prefhash); 
       else if (metaptr->preflen==2) (metaptr->pref2hash)=(metaptr->prefhash);
-      else if (metaptr->preflen==3) (metaptr->pref3hash)=(metaptr->prefhash);
+      else if (metaptr->preflen==3) (metaptr->pref3hash)=(metaptr->prefhash);     
     } 
     return tmeta;  
   }   
@@ -492,18 +727,15 @@ gint wr_calc_term_meta(glb* g, gint x, int depth, int pos, term_metacalc* metapt
   if ((metaptr->depth)<(depth+1)) (metaptr->depth)=depth+1;
 #ifdef USE_TERM_META  
   tmeta=0;
-  hasvars=0;
-#endif  
+  hasvars=0;  
   for(i=start;i<end;i++) {
-    smeta=wr_calc_term_meta(g,xptr[i],depth+1,i-start,metaptr);  
-#ifdef USE_TERM_META        
+    smeta=wr_calc_term_meta(g,xptr[i],depth+1,i-start,metaptr);   
     tmeta=tmeta+(smeta & TERMMETA_SIZE_MASK);
     if (tmeta>TERMMETA_SIZE_MASK) tmeta=TERMMETA_SIZE_MASK;
-    if (!(smeta & TERMMETA_GROUND_MASK)) hasvars=1;
-#endif    
+    if (!(smeta & TERMMETA_GROUND_MASK)) hasvars=1;   
   }   
-#ifdef USE_TERM_META    
   if (!hasvars) tmeta=tmeta | TERMMETA_GROUND_MASK;
+#endif  
 #ifdef STORE_TERMMETA
   xptr[start-TERMMETA_POS_DIFF]=encode_smallint(tmeta);
   /*
@@ -522,7 +754,6 @@ gint wr_calc_term_meta(glb* g, gint x, int depth, int pos, term_metacalc* metapt
   } 
   */ 
 #endif  
-#endif
   return tmeta;
 }
 
@@ -719,7 +950,7 @@ void wr_decorate_term(glb* g, gint x, int depth, int pos, term_metacalc* metaptr
 
 /* -----------------------------
 
-  Clause sorting
+  Clause sorting by meta 
 
 -------------------------------- */
 
@@ -833,69 +1064,41 @@ int wr_sort_meta_bigger(gint jmeta,  gint imeta) {
 
 
 /* 
-  quicksort for rule clauses
-  
-void wr_qsort_cl(glb* g, gptr cl, int low, int high) { 
-  int pi; // partioning index
+  quicksort for a list of meta+rule vector
+
+  NB! low and high are from 0,... with increment 1:
+  mapping to actual vec address is done later, (i*2)+1
+*/
+
+void wr_qsort_metaclvec(glb* g, gptr vec, gint low, gint high) { 
+  gint i, j;
+  gint tmpm, tmpc, pivot;
+
   if (low<high) { 
-    pi = wr_partition_cl(g,cl,low,high); 
-    // separately sort elements 
-    wr_qsort_cl(g,cl,low,pi-1); 
-    wr_qsort_cl(g,cl,pi+1,high); 
+    // partition
+    i = low, j = high;
+    //pivot = vec[(i*2)+1];
+    pivot=vec[(((i+j)/2)*2)+1];
+    //printf("\n i %d j %d pivot %d\n",i,j,pivot);
+    for(;;) {
+      while(vec[(i*2)+1] < pivot) i++;
+      while(pivot < vec[(j*2)+1]) j--;
+      if(i >= j) break;
+      // swap two elems with metas
+      tmpm = vec[(i*2)+1]; 
+      tmpc = vec[(i*2)+2]; 
+      vec[(i*2)+1] = vec[(j*2)+1]; 
+      vec[(i*2)+2] = vec[(j*2)+2];
+      vec[(j*2)+1] = tmpm;
+      vec[(j*2)+2] = tmpc;
+      i++; j--;
+    }
+    // separately sort parts
+    wr_qsort_metaclvec(g,vec,low,i-1); 
+    wr_qsort_metaclvec(g,vec,j+1,high); 
   }
 }
 
-
-
-  partioning helper for wr_qsort_cl
- 
-  take last element as pivot, place
-  the pivot element at its correct position in sorted 
-  array, place all smaller than pivot 
-  to left of pivot and all greater elements to right 
-  of pivot 
-
-
-int wr_partition_cl(glb* g, gptr cl, int low, int high) { 
-  void* db=g->db;  
-  
-  //int arr[high];    // pivot 
-  //int pivot_atom=
-  //int i=(low - 1);  // index of smaller element 
-
-  int pivot_i, i, j;
-  gint pivot_meta, pivot_atom, meta, atom;
-  
-  i=low-1;
-  pivot_i=(low + high) / 2;
-  pivot_meta=wg_get_rule_clause_atom_meta(db,cl,pivot_i);
-  pivot_atom=wg_get_rule_clause_atom(db,xcl,pivot_i);
-
-
-  for (j=low; j<=high-1; j++) { 
-    // If current element is smaller than or 
-    // equal to pivot 
-    meta=wg_get_rule_clause_atom_meta(db,cl,j);
-    if (meta <= pivot_meta) { 
-      i++;  // increment index of smaller element 
-      wr_swap_cl(&arr[i], &arr[j]); 
-    } 
-  } 
-  wr_swap_cl(&arr[i + 1], &arr[high]); 
-  return (i + 1); 
-} 
-
-
-  swapping helper for wr_qsort_cl / wr_partition_cl
- 
-
- 
-void wr_swap_cl(int* a, int* b) { 
-  int t = *a; 
-  *a = *b; 
-  *b = t; 
-} 
-*/
 
 
 #ifdef __cplusplus

@@ -118,4 +118,6 @@ void wr_print_gint_hashmask(glb* g, gint mask);
 void wr_sort_cl(glb* g, gptr cl);
 int wr_sort_meta_bigger(gint jmeta,  gint imeta);  
 
+void wr_qsort_metaclvec(glb* g, gptr vec, gint low, gint high);
+
 #endif

@@ -865,22 +865,40 @@ void wr_clterm_hashlist_print(glb* g, vec hashvec) {
   gint node;
   gint tmp,path;
   int i;
-  gint tmpel;
    
   vlen=VEC_LEN(hashvec); 
-  printf("\nhashvec len %d ptr %lx and els:\n",(int)vlen,(unsigned long int)hashvec); 
+  //printf("\nhashvec len %d ptr %lx and els:\n",(int)vlen,(unsigned long int)hashvec); 
+  printf("\nhashvec len %d els:\n",(int)vlen);
   for(i=VEC_START;i<vlen+1;i++) {
     if (hashvec[i]!=0) {
       //printf("\ni %d hashvec[i] %d \n",i,hashvec[i]);      
       node=(rotp(g,hashvec[i]))[CLTERM_HASHNODE_NEXT_POS];
-      printf("\nhashslot i %d node %ld len %d:\n",
-         i, node, (int)((rotp(g,hashvec[i]))[CLTERM_HASHNODE_LEN_POS]));
-      while(node!=0) {
-        printf("term ");
-        tmpel=(rotp(g,node))[CLTERM_HASHNODE_TERM_POS];
-        //printf("\nterm (rotp(g,node))[CLTERM_HASHNODE_TERM_POS] %ld\n",tmpel);
+      //printf("\nhashslot i %d node %ld len %d:\n",
+      //   i, node, (int)((rotp(g,hashvec[i]))[CLTERM_HASHNODE_LEN_POS]));
+      printf("\nhashslot %d len %d:\n",
+         i, (int)((rotp(g,hashvec[i]))[CLTERM_HASHNODE_LEN_POS]));   
+      while(node!=0) {        
+        tmp=(rotp(g,node))[CLTERM_HASHNODE_PATH_POS];
+        if (!tmp) {
+          path=0;
+        } else {
+          path=wg_decode_int(g->db,tmp);
+        } 
+        wr_print_term(g,(rotp(g,node))[CLTERM_HASHNODE_TERM_POS]);
+        printf(" at path %d ",(int)path);       
+        printf("in cl ");
+        wr_print_clause(g,rotp(g,(rotp(g,node))[CLTERM_HASHNODE_CL_POS])); 
+        printf("\n");       
+        //printf(" as rec ");      
+        //wg_print_record(g->db,rotp(g,tmp));
+        //wg_print_record(g->db,rotp(g,(rotp(g,node))[CLTERM_HASHNODE_CL_POS]));
+        node=(rotp(g,node))[CLTERM_HASHNODE_NEXT_POS];
+        /*
+        //printf("term ");
+        tmp=(rotp(g,node))[CLTERM_HASHNODE_TERM_POS];
+        //printf("\nterm (rotp(g,node))[CLTERM_HASHNODE_TERM_POS] %ld\n",tmp);
   
-        wg_print_record(g->db,rotp(g,tmpel));
+        wg_print_record(g->db,rotp(g,tmp));
         printf(" as term ");
         wr_print_term(g,(rotp(g,node))[CLTERM_HASHNODE_TERM_POS]);
 
@@ -896,6 +914,7 @@ void wr_clterm_hashlist_print(glb* g, vec hashvec) {
         printf("\n");        
         node=(rotp(g,node))[CLTERM_HASHNODE_NEXT_POS];
         //printf(" node %d \n",node);
+        */
       }        
     }  
   } 
@@ -1315,30 +1334,26 @@ void wr_print_offset_termhash(glb* g, gint* hasharr) {
   int i,j;
   cvec bucket;
  
-  printf("\nhashvec len %ld ptr %lx and els:\n",hasharr[0],(unsigned long int)hasharr);  
+  //printf("\nhashvec len %ld ptr %lx and els:\n",hasharr[0],(unsigned long int)hasharr);  
+  printf("\nhashvec len %ld els:\n",hasharr[0]);  
   for(i=1;i<hasharr[0];i++) {    
     if (hasharr[i]) {
-      //printf("\nhashslot i %d ",i);
-      //printf(" hasharr[i] %ld\n",hasharr[i]);
       bucket=rotp(g,(hasharr[i]));
-      //printf("\nbucket %lx\n",(unsigned long int)bucket);
-      //printf("\nbucket[0] %ld bucket[1] %ld\n",bucket[0],bucket[1]);
-      printf("\nhashslot i %d node %ld size %ld next free %ld\n",
-              i,hasharr[i],bucket[0],bucket[1]);
+      //printf("\nhashslot i %d node %ld size %ld next free %ld\n",
+      //        i,hasharr[i],bucket[0],bucket[1]);
+      printf("\nhashslot i %d size %ld next free %ld\n",i,bucket[0],bucket[1]);        
       if (1) {
         for(j=2;j<bucket[0] && j<bucket[1]; j=j+2) {
-          //printf("\n j %d  (j-2)/2 %d\n",(j-2)/2);
-          //CP0
           printf("term ");
           wr_print_term(g,bucket[j]);
           //printf(" path %d in cl ",0);
           //CP1
           //printf("\nj %d bucket[j+1] %ld \n",j,bucket[j+1]);
-          //CP2
-          printf(" in rec ");
+          //CP2          
+          printf(" in clause ");
+          wr_print_clause(g,rotp(g,bucket[j+1]));          
+          printf(" as rec ");
           wg_print_record(g->db,rotp(g,bucket[j+1]));
-          printf(" as clause ");
-          wr_print_clause(g,rotp(g,bucket[j+1]));
           printf("\n");
         }
       }  

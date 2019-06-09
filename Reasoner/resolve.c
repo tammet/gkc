@@ -100,7 +100,9 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active) {
   int hardness;
   int max_hardness=MIN_HARDNESS;
   int max_pos_hardness=MIN_HARDNESS, max_neg_hardness=MIN_HARDNESS;
+  float run_seconds;
   gint prefhashes[ATOM_PREFHASH_MAXLEN+1];
+  clock_t curclock;
   
  
 #ifdef DEBUG
@@ -126,6 +128,9 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active) {
           ruleflag,len,posok,negok);
 #endif  
   // loop over literals
+  wr_calc_clause_resolvability(g,cl);
+  wr_print_clause_resolvability(g,cl);  
+  wr_print_clause_hardnesses(g,cl); 
   resolvedliterals=0;
   for(i=0; i<len; i++) { 
     if (len<2) hardness=MIN_HARDNESS;
@@ -179,7 +184,10 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active) {
     if (!xatom) continue;
     if (addflag) {     
       resolvedliterals++; 
-       
+      if ((g->print_litterm_selection) && len>1) {
+        wr_printf("\nselected nr %d for res: ",i);
+        wr_print_term(g,xatom);
+      }
       //printf("\natom resolved upon:\n");              
       //wr_print_record(g,wg_decode_record(db,xatom));
       //wr_print_term(g,xatom);
@@ -382,6 +390,12 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active) {
     #endif         
             wr_clear_varstack(g,g->varstack);              
             //wr_print_vardata(g);
+            // extra time check
+            if ((g->stat_derived_cl%256)==0) {
+              curclock=clock();
+              run_seconds = (float)(curclock - (g->run_start_clock)) / CLOCKS_PER_SEC;            
+              if ((g->max_run_seconds) && (run_seconds>(g->max_run_seconds))) return;
+            }
             // get next node;
             node=wr_clterm_hashlist_next(g,hashvec,node);               
           } /* over one single hash vector */
@@ -395,7 +409,15 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active) {
   return;
 }
 
+/*
+   factor performs factorization nonrecursively:
+   factorize upon all literal pairs regardless of ordering
+   
+   EXCEPT for query strat, where only the first lit
+   is factorized upon (NB! this should be improved)
 
+   it but does not factorize the results further
+*/
 
 
 void wr_factor(glb* g, gptr cl, gptr cl_as_active) { 
@@ -518,6 +540,8 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active) {
   gptr tptr, nodeptr, ptr;
   gint fun, path;
   int eqtermorder,eqtermorder_after;
+  clock_t curclock;
+  float run_seconds;
    
 #ifdef DEBUG
   printf("\n!!! wr_paramodulate_from_all_active called for clause ");
@@ -530,6 +554,8 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active) {
   ruleflag=wg_rec_is_rule_clause(db,cl);
   if (ruleflag) len = wg_count_clause_atoms(db, cl);
   else len=1;  
+  // check if strategy allows to para from this clause
+  if ((g->posunitpara_strat) && len!=1) return;
   // for negpref check out if negative literals present
   wr_set_stratlimits_cl(g,cl,ruleflag,len,&posok,&negok,&nonanslen);
 
@@ -585,6 +611,11 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active) {
     // xatom: active atom    
     if (useflag) {            
       // check ordering: which terms are ok for para  
+   
+      if ((g->print_litterm_selection) && len>1) {
+        wr_printf("\nselected nr %d for para-from: ",i);
+        wr_print_term(g,xatom);
+      }
 
       a=tptr[RECORD_HEADER_GINTS+(g->unify_funarg1pos)];
       b=tptr[RECORD_HEADER_GINTS+(g->unify_funarg2pos)];
@@ -622,6 +653,13 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active) {
           btype=ctype;
         }      
         //printf("\n termpos used: %d\n",termpos);          
+
+        if (g->print_litterm_selection) {
+          if (!eqtermorder) { wr_printf("\nparamodulation blocked"); }
+          else if (eqtermorder==1) { wr_printf("\npara from left"); }
+          else if (eqtermorder==2) { wr_printf("\npara from right"); }
+          else { wr_printf("\npara from left and right");  }       
+        }
 #ifdef DEBUG 
         printf("\n !!!! termpos %d, a and b terms: \n",termpos);               
         wr_print_term(g,a);        
@@ -717,7 +755,7 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active) {
                 continue;
               }
               if (g->print_active_cl) {
-                printf("\n* active: ");
+                printf("\n* active f: ");
                 wr_print_clause(g,ycl); 
                 //printf("\n");
               }  
@@ -748,6 +786,12 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active) {
               //wr_clear_varstack(g,g->varstack);           
               //wr_print_vardata(g); 
               //printf("START UNIFICATION\n");
+
+              if (g->print_litterm_selection) {                
+                wr_printf("\nactive paramodulation term ");
+                wr_print_term(g,yterm);
+                wr_printf("\n");                       
+              }
               ures=wr_unify_term(g,a,yterm,1); // uniquestrflag=1
       #ifdef DEBUG        
               printf("unification check res: %d\n",ures);
@@ -805,6 +849,10 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active) {
                   wr_clear_varstack(g,g->varstack);          
                   return;          
                 }  
+              } else {
+                if (g->print_litterm_selection) {                
+                  wr_printf("\npara result blocked by ordering");                                     
+                }
               }
       #ifdef DEBUG
               printf("wr_paramodulate_from_all_active before wr_clear_varstack queue is\n");
@@ -813,6 +861,12 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active) {
       #endif         
               wr_clear_varstack(g,g->varstack);              
               //wr_print_vardata(g);
+              // extra time check
+              if ((g->stat_derived_cl%256)==0) {
+                curclock=clock();
+                run_seconds = (float)(curclock - (g->run_start_clock)) / CLOCKS_PER_SEC;            
+                if ((g->max_run_seconds) && (run_seconds>(g->max_run_seconds))) return;
+              }
               // get next node;
               node=wr_clterm_hashlist_next(g,hashvec,node);       
             } // end loop over nodes in the hash bucket
@@ -915,7 +969,11 @@ void wr_paramodulate_into_all_active(glb* g, gptr cl, gptr cl_as_active) {
     // xcl: active clause
     // xatom: active atom
     if (!xatom) continue;
-    if (addflag) {          
+    if (addflag) {      
+      if ((g->print_litterm_selection) && len>1) {
+        wr_printf("\nselected nr %d for para-into: ",i);
+        wr_print_term(g,xatom);
+      }
       termpath=0;
       subterm=xatom;              
       tmp=wr_paramodulate_into_subterms_all_active(g,cl,cl_as_active,xatom,subterm,0,i,&termpath,nonanslen);
@@ -949,6 +1007,8 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
   gint node;
   int ures;
   int dbused;
+  clock_t curclock;
+  float run_seconds;
 
 
   int replpath;
@@ -998,6 +1058,13 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
       // do not recurse into atomic funsymb
       if (!(i==istart && !isdatarec(yi))) {
         (*termpath)++;
+        if (isvar(yi)) continue;
+        if (g->print_litterm_selection) {                
+          wr_printf("\nselected term at depth %d path %d for para-into: ",depth,(*termpath));
+          wr_print_term(g,yi);
+          wr_printf(" term ");
+          wr_print_term(g,term);
+        }    
         wr_paramodulate_into_subterms_all_active(g,cl,cl_as_active,atom,yi,depth+1,litnr,termpath,nonanslen);
       }
 #endif
@@ -1102,7 +1169,7 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
         continue;
       }
       if (g->print_active_cl) {
-        printf("\n* active1: ");
+        printf("\n* active i: ");
         wr_print_clause(g,ycl); 
         //printf("\n");
       }  
@@ -1114,6 +1181,12 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
           continue;     
         }  
       } 
+      if (g->print_litterm_selection) {                
+          wr_printf("\nactive para-into eq term:");
+          wr_print_term(g,yterm); 
+          wr_printf(" in cl ");
+          wr_print_clause(g,ycl);
+      }
       ures=wr_unify_term(g,xterm,yterm,1); // uniquestrflag=1
   #ifdef DEBUG        
               printf("unification check res: %d\n",ures);
@@ -1187,6 +1260,11 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
 
       wr_clear_varstack(g,g->varstack);              
       //wr_print_vardata(g);
+      if ((g->stat_derived_cl%256)==0) {
+        curclock=clock();
+        run_seconds = (float)(curclock - (g->run_start_clock)) / CLOCKS_PER_SEC;       
+        if ((g->max_run_seconds) && (run_seconds>(g->max_run_seconds))) return 1;
+      }
       // get next node;
       node=wr_clterm_hashlist_next(g,hashvec,node);       
     }
@@ -1211,6 +1289,15 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
   return 1;     
 }
 
+/*
+   performs eq reflexive factor-like derivations nonrecursively:
+   reflex upon all literal pairs regardless of ordering
+   
+   EXCEPT for query strat, where only the first lit
+   is reflexed upon (NB! this should be improved)
+
+   it but does not reflex the results further
+*/
 
 
 void wr_resolve_equality_reflexive(glb* g, gptr cl, gptr cl_as_active) { 

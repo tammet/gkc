@@ -54,7 +54,7 @@ int wr_process_resolve_result_aux
 void wr_process_resolve_result_remove_cuts(glb* g, gptr rptr, int* rpos, int cuts);
 gptr wr_derived_build_cl_from_initial_cl(glb* g, gptr rptr, int rpos, int ruleflag, gint history);
 
-int wr_derived_weight_check(glb* g, double avg, int weight,  int size, int depth, int length);
+int wr_derived_weight_check(glb* g, double avg, int weight,  int size, int depth, int length, int xatomnr, int yatomnr);
 
 gint wr_add_cl_to_unithash(glb* g, gptr cl, gint clmeta);
 int wr_process_resolve_result_isrulecl(glb* g, gptr rptr, int rpos);

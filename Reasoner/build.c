@@ -378,7 +378,7 @@ gint wr_build_calc_term(glb* g, gint x) {
 #ifdef DEBUG
   printf("\nwr_build_calc_term called, g->build_buffer ptr is %lx \n", (unsigned long int)g->build_buffer); 
   wr_print_term(g,x);
-  printf("\n");
+  printf("\n(g->build_rewrite) %d\n",(g->build_rewrite));
 #endif
   if (isvar(x) && (g->build_subst || g->build_rename))  x=VARVAL_F(x,(g->varbanks));
   if (!isdatarec(x)) {
@@ -461,13 +461,12 @@ gint wr_build_calc_term(glb* g, gint x) {
     }  
     substflag=(g->build_subst || g->build_rename);
     for(;i<uselen;i++) {
-      //printf("wr_build_calc_term loop i %d xptr[i] %d\n",i,xptr[i]);
-      if (!substflag && !isdatarec(xptr[i])) yptr[i]=xptr[i];       
+      if (!substflag && !isdatarec(xptr[i]) && !(g->build_rewrite)) yptr[i]=xptr[i];       
       else {
 
         //tmp=wr_build_calc_term_copyground(g,xptr[i]);
         tmp=wr_build_calc_term(g,xptr[i]);
-
+        
         if (tmp==WG_ILLEGAL) return WG_ILLEGAL;
 #ifdef USE_TERM_META_EXPERIMENTAL
         smeta=decode_smallint(*(wg_decode_record(db,tmp)+(RECORD_HEADER_GINTS+TERM_META_POS)));
