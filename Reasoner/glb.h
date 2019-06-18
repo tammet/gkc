@@ -79,6 +79,8 @@
 
 #define MAX_CLAUSE_LEN 1000
 #define INITIAL_SORTVEC_LEN 1000
+#define INITIAL_CLTMPVEC_LEN 1000
+#define INITIAL_VARTMPVEC_LEN 1000
 
 #define MAX_CLPRIOR 10000 // priorities differentiated in a priority queue for picking clauses
 /*
@@ -177,6 +179,9 @@ typedef struct {
   cvec rewrite_clvec; // used for storing rewriters of a clause
   cvec hyper_queue; // storing partially derived clauses during hyperres for picking as given
 
+  cvec tmp_clinfo; // used for storing additional clause info while ordering for knuth-bendix
+  cvec tmp_varinfo; // used for storing additional var info while ordering for knuth-bendix
+
   /* parser configuration */
   
   int parse_caps_as_var;
@@ -241,6 +246,7 @@ typedef struct {
   int negpref_strat;          // clause ordering for resolvability of literals
   int pospref_strat;          // clause ordering for resolvability of literals
   int knuthbendixpref_strat;  // clause ordering for resolvability of literals
+  int hardnesspref_strat;     // clause ordering for resolvability of literals
   int res_shortarglen_limit; // max non-ans len of the shortest res argument (generalization of unit)
   int posunitpara_strat;
   int back_subsume;

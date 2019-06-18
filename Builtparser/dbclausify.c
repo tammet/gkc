@@ -58,7 +58,7 @@ extern "C" {
 /* ====== Private headers and defs ======== */
 
 
-#undef DEBUG
+//#undef DEBUG
 //#define DEBUG
 
 //static void* show_clausify_error(glb* g, char* format, ...);
@@ -116,6 +116,13 @@ void* wr_clausify_formula(glb* g, void* mpool, void* frm) {
   wg_mpool_print(db,res); 
   printf("\n\n");
 #endif
+  res=wr_clausify_miniscope(g,mpool,res);
+#ifdef DEBUG  
+  printf("\nwr_clausify_miniscope ending with res\n");  
+  wg_mpool_print(db,res); 
+  printf("\n\n");
+#endif 
+  //exit(0);
   res=wr_clausify_skolemize(g,mpool,res,NULL,&varnr);
 #ifdef DEBUG  
   printf("\nwr_clausify_skolemize ending with res and varnr %d sknr %d\n",varnr,g->parse_skolem_nr);  
@@ -141,7 +148,8 @@ void* wr_clausify_formula(glb* g, void* mpool, void* frm) {
   wg_mpool_print(db,res); 
   printf("\n\n");
 #endif    
-  return res;
+  //exit(0);
+  return res;  
 }
 
 
@@ -326,6 +334,263 @@ void* wr_clausify_copy(glb* g, void* mpool, void* term) {
 #endif  
   return res;  
 }  
+
+
+
+/* 
+   Miniscope: 
+     build a new res with quantifiers pushed as far inside as possible
+     (all [X,..,Y] frm) and (exists [X,...,Y] frm)   
+   Assumes negation has been previously pushed inside, but distribution
+   and skolemization not done. 
+
+  fof(main,axiom,(
+    ! [x] : ? [z] : (p(x,z) | q(x,z))  )).
+  gives 
+    ! [x] : ((? [z] : p(x,z)) | (? [z] : q(x,z))) 
+   p(x,sk1(x)) | q(x,sk2(x)) 
+
+  fof(main,axiom,(
+    ! [x,y] : ? [z] : (p(z) | q(x,y))  )).
+  gives
+    ((? [z] : p(z)) | q(x,y)) 
+    ((? [z] : p(z)) | (! [x,y] : q(x,y))) 
+    p(sk) | q(x,y)
+
+*/
+
+void* wr_clausify_miniscope(glb* g, void* mpool, void* frm) {
+  void* db=g->db;
+  void *res, *op, *op3_1;
+  void *arg2, *arg3, *arg3_1, *arg3_2;
+  void *vars3_1, *vars3_2;
+  void *res1, *res2; 
+  int len;  
+  void *newvars;
+
+#ifdef DEBUG
+  printf("wr_clausify_miniscope starting on\n");  
+  wg_mpool_print(db,frm); 
+  printf("\n");
+#endif  
+
+  if (wg_isatom(db,frm)) {
+    // simple atom
+    return frm;
+  }  
+  op=wg_first(db,frm);
+  len=wg_list_len(db,frm);
+  if (wg_ispair(db,op) && len<2) {
+    // pointless parenthesis around formula: lift up
+    return wr_clausify_miniscope(g,mpool,op);
+  }
+  if (wg_ispair(db,op)) {
+    // should not happen
+    return show_clausify_warning(db,"nonatomic head detected in a miniscope phase");
+  }
+  if (!wg_islogconnective(db,op) || wg_islogneg(db,op)) {
+    // simple nonlogical term or a negated atom
+    return frm;
+  }
+  if (wg_islogall(db,op) || wg_islogexists(db,op)) {
+    arg2=wg_first(db,wg_rest(db,frm));
+    arg3=wg_first(db,wg_rest(db,wg_rest(db,frm)));
+    //newvars=wr_clausify_append_vars(g,mpool,vars,arg2,1,varnr);
+#ifdef DEBUG
+    printf("newvars for forall became \n");  
+    wg_mpool_print(db,newvars); 
+    printf("\n");
+#endif     
+    arg3=wr_clausify_miniscope(g,mpool,arg3);
+    if (!wg_ispair(db,arg3)) {
+      return arg3;
+    } else {
+      op3_1=wg_first(db,arg3);
+      if (wg_islogand(db,op3_1) || wg_islogor(db,op3_1)) {
+        // distribute over or and and
+        arg3_1=wg_first(db,wg_rest(db,arg3));
+        arg3_2=wg_first(db,wg_rest(db,wg_rest(db,arg3)));
+        vars3_1=wr_miniscope_freeoccs(g,mpool,arg2,arg3_1);
+        vars3_2=wr_miniscope_freeoccs(g,mpool,arg2,arg3_2);
+        if (vars3_1==NULL && vars3_2==NULL) {
+          res=arg3;
+        } else if (vars3_1==NULL) {
+          res1=wg_mklist3(db,mpool,op,vars3_2,arg3_2);
+          res=wg_mklist3(db,mpool,op3_1,arg3_1,res1);
+        } else if (vars3_2==NULL) {
+          res1=wg_mklist3(db,mpool,op,vars3_1,arg3_1);
+          res=wg_mklist3(db,mpool,op3_1,res1,arg3_2);
+        } else if ((wg_islogand(db,op3_1) && wg_islogall(db,op)) ||
+                   (wg_islogor(db,op3_1) && wg_islogexists(db,op)) ) {          
+          // can always distribute
+          res1=wg_mklist3(db,mpool,op,vars3_1,arg3_1);
+          res2=wg_mklist3(db,mpool,op,vars3_2,arg3_2);    
+          res=wg_mklist3(db,mpool,op3_1,res1,res2);
+        } else {          
+          // cannot distribute
+          // remove not-occurring vars from quantifier
+          newvars=wr_add_freeoccs(g,mpool,vars3_1,vars3_2);         
+          if (newvars==NULL) res=arg3;
+          else res=wg_mklist3(db,mpool,op,newvars,arg3);
+        } 
+      } else {
+        // connective after quantifier was not or or and
+        // remove not-occurring vars from quantifier
+        newvars=wr_miniscope_freeoccs(g,mpool,arg2,arg3);
+        if (newvars==NULL) res=arg3;
+        else res=wg_mklist3(db,mpool,op,newvars,arg3);
+      }
+      return res;
+    }
+  } else {
+    // connective but not all or exists
+    if (len!=3) return frm;
+    arg2=wg_first(db,wg_rest(db,frm));
+    arg3=wg_first(db,wg_rest(db,wg_rest(db,frm)));
+    res1=wr_clausify_miniscope(g,mpool,arg2);
+    res2=wr_clausify_miniscope(g,mpool,arg3);   
+    res=wg_mklist3(db,mpool,op,res1,res2);
+    return res;
+  }  
+}  
+
+void *wr_miniscope_freeoccs(glb* g, void* mpool, void* vars, void* frm) {
+  void *db=g->db;
+  void *res, *arg2, *arg3;
+  void *op, *newvars, *termoccs, *freeoccs;
+  void *term, *termpart;
+  int len;
+
+  if (vars==NULL) return NULL;
+  if (wg_isatom(db,frm)) {
+    // simple atom
+    if (wr_freeoccs_invars(g,mpool,vars,frm)) {
+      res=wg_mkpair(db,mpool,frm,NULL);
+      return res;
+    } else {
+      return NULL;
+    }    
+  }  
+  op=wg_first(db,frm);
+  len=wg_list_len(db,frm);
+  if (wg_ispair(db,op) && len<2) {
+    // pointless parenthesis around formula: lift up
+    return wr_miniscope_freeoccs(g,mpool,vars,op);
+  }
+  if (wg_ispair(db,op)) {
+    // should not happen
+    return show_clausify_warning(db,"nonatomic head detected in a miniscope phase");
+  }
+  if (wg_islogall(db,op) || wg_islogexists(db,op)) {
+    // quantifier
+    arg2=wg_first(db,wg_rest(db,frm));
+    arg3=wg_first(db,wg_rest(db,wg_rest(db,frm)));
+    newvars=wr_miniscope_varssubset(g,mpool,vars,arg2);
+    termoccs=wr_miniscope_freeoccs(g,mpool,newvars,arg3);
+    return termoccs;  
+  } else {
+    // logical or a nonlogical term: loop over
+    freeoccs=NULL;
+    if (wg_islogconnective(db,op)) {
+      termpart=wg_rest(db,frm);
+    } else {
+      termpart=frm;
+    }  
+    for(; termpart!=NULL; termpart=wg_rest(db,termpart)) {
+      term=wg_first(db,termpart);
+      termoccs=wr_miniscope_freeoccs(g,mpool,vars,term);
+      if (termoccs) freeoccs=wr_add_freeoccs(g,mpool,freeoccs,termoccs);      
+    }
+    return freeoccs;
+  } 
+}
+
+int wr_freeoccs_invars(glb* g, void* mpool, void* vars, void* frm) {  
+  void* db;
+  void *boundvar, *boundpart;
+  char* str;
+
+  if (vars==NULL) return 0;
+  db=g->db;
+  str=wg_atomstr1(db,frm);
+  for(boundpart=vars; boundpart!=NULL; boundpart=wg_rest(db,boundpart)) {
+    boundvar=wg_first(db,boundpart); 
+    if (!strcmp(str,wg_atomstr1(db,boundvar))) {
+      // same vars      
+      return 1;
+    }  
+  }
+  return 0;
+}
+
+void* wr_miniscope_varssubset(glb* g, void* mpool, void* vars, void* boundvars) {
+  void* db=g->db;
+  void *res=NULL, *part, *boundpart, *var, *boundvar;
+  int found=0;
+
+  if (vars==NULL) return NULL;
+  if (boundvars==NULL) return vars;
+  for(part=vars; part!=NULL; part=wg_rest(db,part)) { 
+    var=wg_first(db,part); 
+    for(boundpart=boundvars; boundpart!=NULL; boundpart=wg_rest(db,boundpart)) {
+      boundvar=wg_first(db,boundpart); 
+      if (!strcmp(wg_atomstr1(db,var),wg_atomstr1(db,boundvar))) {
+        // same vars
+        if (wg_rest(db,vars)==NULL) return NULL; // no other vars
+        found=1;
+        break;
+      }  
+    }
+    if (found) break;  
+  }
+  if (!found) return vars;  
+  // overlap found, construct the subset
+  for(part=vars; part!=NULL; part=wg_rest(db,part)) { 
+    var=wg_first(db,part); 
+    found=0;
+    for(boundpart=boundvars; boundpart!=NULL; boundpart=wg_rest(db,boundpart)) {
+      boundvar=wg_first(db,boundpart); 
+      if (!strcmp(wg_atomstr1(db,var),wg_atomstr1(db,boundvar))) {
+        // same vars
+        found=1;
+        break;
+      }  
+    }
+    if (!found) {
+      // add to the ok subset
+      res=wg_mkpair(db,mpool,var,res);
+    }
+  }
+  return res;
+}
+
+void* wr_add_freeoccs(glb* g, void* mpool, void* vars, void* termoccs) {
+  void* db=g->db;
+  void *res, *part, *boundpart, *var, *boundvar;
+  int found=0;
+
+  if (termoccs==NULL) return vars;
+  if (vars==NULL) return termoccs; 
+  res=vars;
+  for(part=termoccs; part!=NULL; part=wg_rest(db,part)) { 
+    var=wg_first(db,part); 
+    // check if already present in vars
+    found=0;
+    for(boundpart=vars; boundpart!=NULL; boundpart=wg_rest(db,boundpart)) {
+      boundvar=wg_first(db,boundpart); 
+      if (!strcmp(wg_atomstr1(db,var),wg_atomstr1(db,boundvar))) {
+        // same vars
+        found=1;
+        break;
+      }  
+    }
+    if (!found) {
+      // add to the ok subset
+      res=wg_mkpair(db,mpool,var,res);
+    }
+  }
+  return res;
+}
 
 /* 
    Skolemize: 
@@ -750,6 +1015,8 @@ void* wr_clausify_makedef(glb* g, void* mpool, void* frm, void **defs) {
   if (!res2) return show_clausify_warning(db,"could not subdist 2 in wr_clausify_makedef");
 
   deflst=wg_mklist3(db,mpool,logand,res1,res2);
+  //deflst=res1;
+
   if (!deflst) return show_clausify_warning(db,"could not create elem wr_clausify_makedef");
   if (*defs==NULL) {
     *defs=deflst;

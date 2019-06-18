@@ -73,18 +73,15 @@ extern "C" {
 
 
 
-void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active) { 
+void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active, cvec resolvability) { 
   void* db=g->db;
   int i;
   int len;      
   int ruleflag; // 0 if not rule
-  int posok=1;  // default allow
-  int negok=1;  // default allow
   gint meta;
   int negflag; // 1 if negative
-  int nonanslen; // length not counting ans literals
+  int nonanslen=0; // length not counting ans literals
   gint hash;
-  int addflag=0; // ok to resolve literal or not
   vec hashvec;
   int hlen;
   gint node;
@@ -94,12 +91,7 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active) {
   gptr ycl;
   int ures;
   int dbused;
-  int negadded=0;
-  int posadded=0;
   int preflen, plen, resolvedliterals;
-  int hardness;
-  int max_hardness=MIN_HARDNESS;
-  int max_pos_hardness=MIN_HARDNESS, max_neg_hardness=MIN_HARDNESS;
   float run_seconds;
   gint prefhashes[ATOM_PREFHASH_MAXLEN+1];
   clock_t curclock;
@@ -116,31 +108,17 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active) {
   ruleflag=wg_rec_is_rule_clause(db,cl);
   if (ruleflag) len = wg_count_clause_atoms(db, cl);
   else len=1;  
-  // for negpref check out if negative literals present
-  wr_set_stratlimits_cl(g,cl,ruleflag,len,&posok,&negok,&nonanslen);
-  // find hardness of literals: which to choose for resolution
-  if (len<2) max_hardness=MIN_HARDNESS;
-  else max_hardness=wr_calc_clause_hardnesses(g,cl,&max_pos_hardness,&max_neg_hardness);
-
+  nonanslen=wr_count_cl_nonans_atoms(g,cl);
   xcl=cl; 
 #ifdef DEBUG
   printf("ruleflag %d len %d  posok %d negok %d\n",
           ruleflag,len,posok,negok);
 #endif  
   // loop over literals
-  wr_calc_clause_resolvability(g,cl);
-  wr_print_clause_resolvability(g,cl);  
-  wr_print_clause_hardnesses(g,cl); 
   resolvedliterals=0;
-  for(i=0; i<len; i++) { 
-    if (len<2) hardness=MIN_HARDNESS;
-    else hardness=(g->tmp_hardnessinf_vec)[i+1];    
-    if (g->queryfocus_strat) {
-      if (resolvedliterals) break;
-      else if (hardness<max_hardness) continue;     
-    }  
+  for(i=0; i<len; i++) {      
+    if ((g->queryfocus_strat) && resolvedliterals) break;    
     negflag=0;
-    addflag=0;
     if (!ruleflag) {
       xatom=encode_record(db,xcl);
       //printf("!ruleflag atom with i %d: \n",i);
@@ -149,51 +127,33 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active) {
 #endif      
       hash=wr_atom_funhash(g,xatom);
       preflen=wr_atom_calc_prefhashes(g,xatom,prefhashes);
-      //printf("hash %d: \n",hash);
-      addflag=1;
     } else {       
+      if (!resolvability[i+1]) continue;
       meta=wg_get_rule_clause_atom_meta(db,xcl,i);
       if (wg_atom_meta_is_neg(db,meta)) negflag=1;
-      // if ok to resolve upon, set addflag=1
-      xatom=wg_get_rule_clause_atom(db,xcl,i);               
-      if (!wr_answer_lit(g,xatom) && 
-           wr_order_resolvable_atom(g,negflag,negok,posok,negadded,posadded,
-                                    //0,0,0)) {
-                                    hardness,max_neg_hardness,max_pos_hardness)){
-        if (negflag) negadded++; 
-        else posadded++;                     
+      xatom=wg_get_rule_clause_atom(db,xcl,i);       
 #ifdef DEBUG            
-        printf("atom nr %d from record \n",i);
-        wr_print_record(g,xcl);
-        printf("\natom\n");              
-        wr_print_record(g,wg_decode_record(db,xatom));
-        printf("negflag %d\n",negflag);             
+      printf("atom nr %d from record \n",i);
+      wr_print_record(g,xcl);
+      printf("\natom\n");              
+      wr_print_record(g,wg_decode_record(db,xatom));
+      printf("negflag %d\n",negflag);             
 #endif                 
-
 #ifdef SIMPLE_ACTIVE_SEARCH_HASH
-        hash=wr_atom_funhash(g,xatom);
+      hash=wr_atom_funhash(g,xatom);
 #else        
-        preflen=wr_atom_calc_prefhashes(g,xatom,prefhashes);
-#endif        
-        //printf("hash %d\n",hash);
-        addflag=1;
-      }     
+      preflen=wr_atom_calc_prefhashes(g,xatom,prefhashes);
+#endif
     }
     // xcl: active clause
     // xatom: active atom
     if (!xatom) continue;
-    if (addflag) {     
+    if (1) {     
       resolvedliterals++; 
       if ((g->print_litterm_selection) && len>1) {
         wr_printf("\nselected nr %d for res: ",i);
         wr_print_term(g,xatom);
       }
-      //printf("\natom resolved upon:\n");              
-      //wr_print_record(g,wg_decode_record(db,xatom));
-      //wr_print_term(g,xatom);
-      //printf("\n");
-      
-
       // now loop over hash vectors for all active unification candidates
       // ycl: cand clause
       // yatom: cand atom
@@ -269,17 +229,6 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active) {
 #ifdef DEBUG
           printf("\n looking for hash %ld for plen %d preflen %d\n",hash,plen,preflen);
 #endif
-          /*
-          if (preflen==ATOM_PREFHASH_MAXLEN-1) {
-            // plen==2
-            hash=prefhashes[plen]+plen;
-          } else if (preflen==ATOM_PREFHASH_MAXLEN-2) {
-            // plen==1
-            hash=prefhashes[plen]+plen;
-          } else {
-            // plen==0
-          }  
-          */
 
           //wr_clterm_hashlist_print(g,hashvec);       
           hlen=wr_clterm_hashlist_len(g,hashvec,hash);
@@ -343,25 +292,13 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active) {
             wr_print_term(g,yatom);
             printf(" in ycl ");
             wr_print_clause(g,ycl);
-            //wg_print_record(db,ycl);
-            //printf("calling equality check\n");
             wr_print_vardata(g);
     #endif          
-            //printf("!!!!!!!!!!!!!!!!!!!!! before unification\n");
-            //wr_print_vardata(g); 
-            //printf("CLEAR\n");
-            //wr_clear_varstack(g,g->varstack);           
-            //wr_print_vardata(g); 
-            //printf("START UNIFICATION\n");
             
             ures=wr_unify_term(g,xatom,yatom,1); // uniquestrflag=1
     #ifdef DEBUG        
             printf("unification check res: %d\n",ures);
     #endif        
-            //wr_print_vardata(g);
-            //wr_print_vardata(g);
-            //wr_clear_varstack(g,g->varstack);
-            //wr_print_vardata(g);
             if (ures) {
               // build and process the new clause
     #ifdef DEBUG         
@@ -474,8 +411,6 @@ void wr_factor(glb* g, gptr cl, gptr cl_as_active) {
 #ifdef DEBUG        
         printf("unification check res: %d\n",ures);
 #endif        
-        //wr_clear_varstack(g,g->varstack);
-        //wr_print_vardata(g);
         if (ures) {
           // build and process the new clause
 #ifdef DEBUG         
@@ -508,26 +443,19 @@ void wr_factor(glb* g, gptr cl, gptr cl_as_active) {
 */
 
 
-void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active) { 
+void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active, cvec resolvability) { 
   void* db=g->db;
   int i;
   int len;      
-  int ruleflag; // 0 if not rule
-  int posok=1;  // default allow
-  int negok=1;  // default allow
-  //gint parent;
+  int ruleflag; // 0 if not rule 
   gint meta;
-  int negflag; // 1 if negative
-  int nonanslen; // length without ans preds
-  //int termflag; // 1 if complex atom  
+  int nonanslen; // length without ans preds 
   gint hash;
   int dbused;
-  int useflag=0;  
   vec hashvec;
   int hlen;
   gint node;
   gint xatom=0;
-  //gint yatom=0;
   gint yterm;
   gptr xcl;
   gptr ycl;
@@ -554,62 +482,50 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active) {
   ruleflag=wg_rec_is_rule_clause(db,cl);
   if (ruleflag) len = wg_count_clause_atoms(db, cl);
   else len=1;  
+  nonanslen=wr_count_cl_nonans_atoms(g,cl);
   // check if strategy allows to para from this clause
   if ((g->posunitpara_strat) && len!=1) return;
-  // for negpref check out if negative literals present
-  wr_set_stratlimits_cl(g,cl,ruleflag,len,&posok,&negok,&nonanslen);
-
   xcl=cl; 
 #ifdef DEBUG
   printf("ruleflag %d len %d posok %d negok %d\n",
           ruleflag,len,posok,negok);
 #endif  
   // loop over literals
-  for(i=0; i<len; i++) {  
-    if ((g->queryfocus_strat) && i>0) break; // only the first lit of given allowed for query strat
-    negflag=0;
-    useflag=0;
+  for(i=0; i<len; i++) {
+    if (!(resolvability[i+1])) continue; // limit para to resolvable only (!!???)
     if (!ruleflag) {
       xatom=encode_record(db,xcl);
-      //printf("!ruleflag atom with i %d: \n",i);
 #ifdef DEBUG 
       printf("\n xatom looked at:\n");       
       wr_print_record(g,wg_decode_record(db,xatom));
 #endif
-      if (wr_equality_atom(g,xatom)) {       
-        useflag=1;
-      }
+      if (!wr_equality_atom(g,xatom)) continue;
     } else {       
       meta=wg_get_rule_clause_atom_meta(db,xcl,i);
-      if (wg_atom_meta_is_neg(db,meta)) negflag=1;
-      if ((!negflag && posok) || (negflag && negok)) {    
-        xatom=wg_get_rule_clause_atom(db,xcl,i);             
+      if (wg_atom_meta_is_neg(db,meta)) continue;     
+      xatom=wg_get_rule_clause_atom(db,xcl,i);             
 #ifdef DEBUG            
-        printf("\natom nr %d from record \n",i);
-        wr_print_record(g,xcl);
-        printf("\natom\n");              
-        wr_print_record(g,wg_decode_record(db,xatom));
-        printf("\nnegflag %d\n",negflag);             
+      printf("\natom nr %d from record \n",i);
+      wr_print_record(g,xcl);
+      printf("\natom\n");              
+      wr_print_record(g,wg_decode_record(db,xatom));               
 #endif            
-        if (wg_get_encoded_type(db,xatom)==WG_RECORDTYPE &&
-            !negflag && 
-            wr_equality_atom(g,xatom)) {                  
-          useflag=1;
-        }      
-      }      
-    }
+      if (wg_get_encoded_type(db,xatom)!=WG_RECORDTYPE ||
+          !wr_equality_atom(g,xatom)) {                  
+        continue;
+      }                 
+    }    
     if (!xatom) continue;
-#ifdef DEBUG            
-    printf("\nuseflag %d negflag %d \n",useflag,negflag);   
+#ifdef DEBUG             
     printf("\nxatom\n"); 
     if (xatom) wr_print_record(g,wg_decode_record(db,xatom));        
 #endif 
     tptr=rotp(g,xatom);
     atomlen=get_record_len(tptr);
-    if (atomlen<(g->unify_firstuseterm)+3) useflag=0; 
+    if (atomlen<(g->unify_firstuseterm)+3) continue;
     // xcl: active clause
     // xatom: active atom    
-    if (useflag) {            
+    if (1) {            
       // check ordering: which terms are ok for para  
    
       if ((g->print_litterm_selection) && len>1) {
@@ -776,16 +692,9 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active) {
               wr_print_term(g,yterm);
               printf(" in ycl ");
               wr_print_clause(g,ycl);
-              //wg_print_record(db,ycl);
-              //printf("calling equality check\n");
               wr_print_vardata(g);
       #endif          
-              //printf("!!!!!!!!!!!!!!!!!!!!! before unification\n");
-              //wr_print_vardata(g); 
-              //printf("CLEAR\n");
-              //wr_clear_varstack(g,g->varstack);           
-              //wr_print_vardata(g); 
-              //printf("START UNIFICATION\n");
+   
 
               if (g->print_litterm_selection) {                
                 wr_printf("\nactive paramodulation term ");
@@ -796,12 +705,6 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active) {
       #ifdef DEBUG        
               printf("unification check res: %d\n",ures);
       #endif        
-              //wr_print_vardata(g);
-              //wr_print_vardata(g);
-              //wr_clear_varstack(g,g->varstack);
-              //wr_print_vardata(g);
-              
-              //eqtermorder_after=0; // =eqtermorder; // !!! was not initialized
               if (ures) {
                 if (eqtermorder==3) {
                   // equality terms were initially unordered
@@ -890,25 +793,17 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active) {
 */
 
 
-void wr_paramodulate_into_all_active(glb* g, gptr cl, gptr cl_as_active) { 
+void wr_paramodulate_into_all_active(glb* g, gptr cl, gptr cl_as_active, cvec resolvability) { 
   void* db=g->db;
   int i;
   int len;      
   int ruleflag; // 0 if not rule
-  int posok=1;  // default allow
-  int negok=1;  // default allow
-  gint meta;
-  int negflag; // 1 if negative
   int nonanslen; // length not counting ans literals
-  int addflag=0;
   gint xatom=0;
   gptr xcl;
   int termpath;
   gint subterm;
   int tmp;
-  
-  int negadded=0;
-  int posadded=0;
 
 #ifdef DEBUG
   printf("\n!!! wr_paramodulate_into_all_active called for clause ");
@@ -919,10 +814,8 @@ void wr_paramodulate_into_all_active(glb* g, gptr cl, gptr cl_as_active) {
        
   ruleflag=wg_rec_is_rule_clause(db,cl);
   if (ruleflag) len = wg_count_clause_atoms(db, cl);
-  else len=1;  
-  // for negpref check out if negative literals present
-  wr_set_stratlimits_cl(g,cl,ruleflag,len,&posok,&negok,&nonanslen);  
-
+  else len=1;
+  nonanslen=wr_count_cl_nonans_atoms(g,cl);
   xcl=cl; 
 #ifdef DEBUG
   printf("ruleflag %d len %d posok %d negok %d\n",
@@ -930,46 +823,25 @@ void wr_paramodulate_into_all_active(glb* g, gptr cl, gptr cl_as_active) {
 #endif  
   // loop over literals
   for(i=0; i<len; i++) {  
-    if ((g->queryfocus_strat) && i>0) break; // only the first lit of given allowed for query strat
-    negflag=0;
-    //termflag=0;
-    addflag=0;
-    //printf("\nruleflag %d, addflag %d, len %d, i: %d\n",ruleflag,addflag,len,i);
+     if (!(resolvability[i+1])) continue; // limit para to resolvable only (!!???)   
     if (!ruleflag) {
       xatom=encode_record(db,xcl);
-      //printf("!ruleflag atom with i %d: \n",i);
 #ifdef DEBUG      
       wr_print_record(g,wg_decode_record(db,xatom));
-#endif      
-      //hash=wr_atom_funhash(g,xatom);
-      //printf("hash %d: \n",hash);
-      addflag=1;
+#endif
     } else {       
-      meta=wg_get_rule_clause_atom_meta(db,xcl,i);
-      if (wg_atom_meta_is_neg(db,meta)) negflag=1;
-      // if ok to resolve upon, set addflag=1
-      xatom=wg_get_rule_clause_atom(db,xcl,i); 
-      if (!wr_answer_lit(g,xatom) && 
-           wr_order_resolvable_atom(g,negflag,negok,posok,negadded,posadded,
-                                    0,0,0)) {
-        if (negflag) negadded++; 
-        else posadded++;           
-#ifdef DEBUG            
-        printf("atom nr %d from record \n",i);
-        wr_print_record(g,xcl);
-        printf("\natom\n");              
-        wr_print_record(g,wg_decode_record(db,xatom));
-        printf("negflag %d\n",negflag);             
-#endif                             
-        //hash=wr_atom_funhash(g,xatom);
-        //printf("hash %d\n",hash);
-        addflag=1;
-      }      
+      xatom=wg_get_rule_clause_atom(db,xcl,i);       
+#ifdef DEBUG        
+      printf("atom nr %d from record \n",i);
+      wr_print_record(g,xcl);
+      printf("\natom\n");              
+      wr_print_record(g,wg_decode_record(db,xatom));             
+#endif                                 
     }
     // xcl: active clause
     // xatom: active atom
     if (!xatom) continue;
-    if (addflag) {      
+    if (1) {      
       if ((g->print_litterm_selection) && len>1) {
         wr_printf("\nselected nr %d for para-into: ",i);
         wr_print_term(g,xatom);
@@ -979,7 +851,7 @@ void wr_paramodulate_into_all_active(glb* g, gptr cl, gptr cl_as_active) {
       tmp=wr_paramodulate_into_subterms_all_active(g,cl,cl_as_active,xatom,subterm,0,i,&termpath,nonanslen);
       if (tmp<0) {
         // hard error
-        //wr_sys_exiterr(g,"apparently wrong hash given to wr_clterm_hashlist_start");
+        wr_sys_exiterr(g,"apparently wrong hash given to wr_clterm_hashlist_start");
         return;         
       }
     }
@@ -1128,28 +1000,6 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
       }               
     }
 
-
-    /*
-    hashvec=rotp(g,g->hash_eq_terms);  
-    //path=wr_encode_para_termpath(g,litnr,origtermpath);
-    hlen=wr_clterm_hashlist_len(g,hashvec,hash);
-    if (hlen==0) {       
-      return 1;
-    } 
-    */    
-    //printf("\nhash table:");      
-    //wr_clterm_hashlist_print(g,hashvec);
-    /*
-      node=wr_clterm_hashlist_start(g,hashvec,hash);
-        if (!node)  {
-          wr_sys_exiterr(g,"apparently wrong hash given to wr_clterm_hashlist_start");
-          return;
-        }      
-        while(node!=0) {    
-          yatom=(otp(db,node))[CLTERM_HASHNODE_TERM_POS];
-          ycl=otp(db,(otp(db,node))[CLTERM_HASHNODE_CL_POS]);
-
-    */
     node=wr_clterm_hashlist_start(g,hashvec,hash);
     if (!node)  {
       wr_sys_exiterr(g,"apparently wrong hash given to wr_clterm_hashlist_start");
@@ -1160,11 +1010,6 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
       yterm=(otp(db,node))[CLTERM_HASHNODE_TERM_POS];     //nodeptr[CLTERM_HASHNODE_TERM_POS];
       ycl=otp(db,(otp(db,node))[CLTERM_HASHNODE_CL_POS]); //(otp(db,nodeptr)[CLTERM_HASHNODE_CL_POS]);
       if ((g->back_subsume) && wr_blocked_clause(g,ycl)) {
-        /*
-        printf("\nCP3 blocked clause: \n");          
-        wr_print_clause(g,ycl);
-        printf("\n");
-        */
         node=wr_clterm_hashlist_next(g,hashvec,node);
         continue;
       }
@@ -1270,22 +1115,9 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
     }
   } // end loop over local and global termhash  
 
-  //tmp=wr_clterm_add_hashlist_withpath(g,hashvec,hash,term,cl,path);
 #ifdef XDEBUG 
   //printf("\nadding to hash ended with %d\n",tmp);
 #endif       
-  /*
-  if (tmp) {
-    wr_sys_exiterr2int(g,"adding term to hashlist in cl_store_para_terms, code ",tmp);
-    return 1;        
-  } 
-  */ 
-#ifdef DEBUGHASH      
-  /*
-  printf("\nhash table after adding:");      
-  wr_clterm_hashlist_print(g,hashvec);
-  */
-#endif 
   return 1;     
 }
 
@@ -1324,8 +1156,6 @@ void wr_resolve_equality_reflexive(glb* g, gptr cl, gptr cl_as_active) {
   // loop over literals
   for(i=0; i<len; i++) {
     if ((g->queryfocus_strat) && i>0) break; // only the first lit of given allowed for query strat      
-    //termflag=0;
-    //addflag=0;   
     // can only resolve on negative equalities 
     xmeta=wg_get_rule_clause_atom_meta(db,xcl,i);
     if (! wg_atom_meta_is_neg(db,xmeta)) continue;
@@ -1345,8 +1175,6 @@ void wr_resolve_equality_reflexive(glb* g, gptr cl, gptr cl_as_active) {
 #ifdef DEBUG        
       printf("unification check res: %d\n",ures);
 #endif        
-      //wr_clear_varstack(g,g->varstack);
-      //wr_print_vardata(g);
       if (ures) {
         // build and process the new clause
 #ifdef DEBUG         

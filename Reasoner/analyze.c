@@ -57,19 +57,10 @@ extern "C" {
 
 
 int wr_analyze_clause_list(glb* g, void* db, void* child_db) {
-  //void* db=g->db;
   gint cell;
   gcell *cellptr;
   gptr rec;
   int n=0, tmp, haveextdb=0;
-
-  //rintf("\nanalyze called !!!!!\n");
-
-  // loop over clauses
-  //cell=(dbmemsegh(db)->clauselist);
-
-  //(g->varstack)=wr_cvec_new(g,NROF_VARBANKS*NROF_VARSINBANK); 
-  //(g->varstack)[1]=2; // first free elem
 
   if (db!=child_db) haveextdb=1;
   else haveextdb=0;
@@ -79,10 +70,6 @@ int wr_analyze_clause_list(glb* g, void* db, void* child_db) {
   while(cell) {     
     cellptr=(gcell *) offsettoptr(child_db, cell);
     rec=offsettoptr(child_db,cellptr->car);
-    
-    //printf("\n\n*** rec nr %d\n",n);
-    //wg_print_record(db,rec);
-    
     tmp=wr_analyze_clause(g,rec,haveextdb);
     if (!tmp) {
       // something wrong with the clause
@@ -92,9 +79,6 @@ int wr_analyze_clause_list(glb* g, void* db, void* child_db) {
     n++;
     cell=cellptr->cdr;
   }  
-
-  //wr_show_in_stats(g);
-
   return 1;  
 }
 
@@ -103,51 +87,49 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
   gint history;
   gptr historyptr;
   int i, hlen;
-  //int htype,tag,dechead;
-  //gint head, cl1;
   gint meta,atom=0;
   gint vc_tmp;
   int tmp;
   int ruleflag=0, len=0, anslit=0, neglit=0, poslit=0;
   int poseq=0, negeq=0, uniteq=0;
   int size=0,maxdepth=0,varcount=0;
-  gint priority, decprior=0; // name
-  //char* namestr;
+  gint priority, decprior=0; 
+#ifdef DEBUG  
+  gint name;
+  char* namestr;
+#endif
 
-  /*  
+#ifdef DEBUG
   printf("\n wr_analyze_clause \n");
   wr_print_clause(g,cl); 
   printf("\n");
   wg_print_record(g->db,cl); 
   printf("\n");
-  */
+#endif
 
   history=wr_get_history(g,cl);
   if (history) {
     
     historyptr=otp(db,history);
     hlen=wg_get_record_len(db,historyptr);
-    
-    //CP1
-    //printf("\nhlen %d\n",hlen);
+      
     if (hlen==HISTORY_PREFIX_LEN) {
       // input clause
-      /*
+#ifdef DEBUG
       name = wr_get_history_record_field(db,historyptr,HISTORY_NAME_POS);
       if (name && wg_get_encoded_type(db,name)==WG_STRTYPE) {
-        //namestr=wg_decode_str(db,name);
-        //printf("name: %s",namestr);
+        namestr=wg_decode_str(db,name);
+        printf("name: %s",namestr);
       } else if (name && wg_get_encoded_type(db,name)==WG_INTTYPE) {
-        //printf("name as int: %d",(int)(wg_decode_int(db,name)));
+        printf("name as int: %d",(int)(wg_decode_int(db,name)));
       }
-      */
       //wr_print_history_extra(g,history);
+#endif      
       
       priority = wr_get_history_record_field(db,historyptr,HISTORY_PRIORITY_POS);
       decprior=wr_decode_priority(g,priority);
-      //CP2
-      //printf("\n decprior %d\n",decprior);
-      /*
+      
+#ifdef DEBUG      
       if (decprior==WR_HISTORY_GOAL_ROLENR) printf(",goal] ");
       else if (decprior==WR_HISTORY_ASSUMPTION_ROLENR) printf(",assumption] ");
       else if (decprior==WR_HISTORY_FROMGOALASSUMPTION_ROLENR) printf(",fromga] "); 
@@ -157,25 +139,14 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
       else if (decprior==WR_HISTORY_FROMAXIOM_ROLENR) printf(",fromaxiom] ");
       else if (decprior==WR_HISTORY_EXTAXIOM_ROLENR) printf(",extaxiom] ");
       else if (decprior) printf(", dp %d] ",(int)decprior);
-      */
+#endif      
     }
-    
-    /*
-    if (hlen!=HISTORY_PREFIX_LEN) {
-      // something in history
-      head=wr_get_history_record_field(db,historyptr,HISTORY_DERIVATION_TAG_POS);
-      htype=wg_get_encoded_type(db,head);
-      if (htype!=WG_INTTYPE) return 0;
-      dechead=wg_decode_int(db,head);
-      tag=wr_get_history_tag(g,dechead);
-    } 
-    */         
+       
   }
   g->tmp_unify_vc=((gptr)(g->varstack))+1;
   vc_tmp=*(g->tmp_unify_vc);
 
   if (wg_rec_is_fact_clause(db,cl)) {
-    //printf("\nfact");
     ruleflag=0;
     len=1;
     neglit=0;
@@ -190,8 +161,7 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
       uniteq++;
     } 
     tmp=wr_analyze_term(g,pto(db,cl),0,&size,&maxdepth,1,haveextdb);
-  } else if (wg_rec_is_rule_clause(db,cl)) {
-    //printf("\nrule");
+  } else if (wg_rec_is_rule_clause(db,cl)) {   
     ruleflag=1;
     len=wg_count_clause_atoms(db, cl);
     for(i=0; i<len; i++) {
@@ -199,8 +169,7 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
       atom=wg_get_rule_clause_atom(db,cl,i);
       if (wg_atom_meta_is_neg(db,meta)) neglit++;
       else poslit++;
-      if (wr_answer_lit(g,atom)) {
-        //printf("\n!!! answer lit");
+      if (wr_answer_lit(g,atom)) {        
         anslit++;
       }
       if (wr_equality_atom(g,atom)) {
@@ -223,17 +192,12 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
 
   varcount=*(g->tmp_unify_vc)-vc_tmp;
 
-  if (vc_tmp!=*(g->tmp_unify_vc)) {
-    //printf("\n clearing varstack topslice\n");
+  if (vc_tmp!=*(g->tmp_unify_vc)) {    
     wr_clear_varstack_topslice(g,g->varstack,vc_tmp);
   }  
-
-  //printf("\nruleflag %d len %d neglit %d poslit %d size %d maxdepth %d varcount %d",
-  //   ruleflag,len,neglit,poslit,size,maxdepth,varcount);
-  
+ 
   if (len==2 && poslit==1 && neglit==1 && !anslit && 
       varcount==1 && size==4 && maxdepth==1) {
-
     // this is likely a chain clause
     check_process_chain_clause(g,cl);
   }
@@ -297,12 +261,12 @@ int wr_analyze_term(glb* g, gint x,
   int w, dtype;
   gint ucount, ucountpos, ucountneg;
 
-  /*  
+#ifdef DEBUG
   printf("wr_analyze_term called with x %d type %d depth %d size %d maxdepth %d\n",
          x,wg_get_encoded_type(g->db,x),depth,*size,*maxdepth);
   wr_print_term(g,x);
   printf("\n");
-  */
+#endif
   if (!isdatarec(x)) {
     // now we have a simple value  
     (*size)++;
@@ -310,15 +274,14 @@ int wr_analyze_term(glb* g, gint x,
       db=g->db;
       dtype=wg_get_encoded_type(db,x);
       
-      if (dtype==WG_URITYPE && !haveextdb) {        
-        //printf("\nuri: ");
-        //printf(" %s \n", wg_decode_unistr(db,x,WG_URITYPE));
+      if (dtype==WG_URITYPE && !haveextdb) {
+#ifdef DEBUG                
+        printf("\nuri: ");
+        printf(" %s \n", wg_decode_unistr(db,x,WG_URITYPE));
+#endif        
         ucount=wg_decode_uri_count(db,x);
         ucountpos=ucount >> URI_COUNT_POSCOUNT_SHIFT;        
-        ucountneg=ucount & URI_COUNT_NEGCOUNT_MASK;        
-
-        //printf("\npolarity %d nucount %ld ucountpos %ld ucountneg %ld\n",polarity,ucount,ucountpos,ucountneg);
-
+        ucountneg=ucount & URI_COUNT_NEGCOUNT_MASK;     
         if (polarity) {
           ucountpos++;
           if (ucountpos>(1<<URI_COUNT_POSCOUNT_SHIFT)) ucountpos=(1<<URI_COUNT_POSCOUNT_SHIFT);
@@ -336,15 +299,10 @@ int wr_analyze_term(glb* g, gint x,
     // here x is a var    
     if (VARVAL_DIRECT(x,(g->varbanks))==UNASSIGNED) {
       // a new var 
-      //printf("\n a new var %ld where *(g->tmp_unify_vc) %ld\n",x,*(g->tmp_unify_vc));
       SETVAR(x,encode_smallint(1),g->varbanks,g->varstack,g->tmp_unify_vc);
-      //printf("\n after setvar *(g->tmp_unify_vc) %ld\n",*(g->tmp_unify_vc));
-      //printf("\n new var\n");
       return 1;
     } else {
       // a var seen before
-      //printf("\n old var\n");
-      //printf("\n an old var %ld\n",x);
       return 2;
     }       
   }   
@@ -420,45 +378,26 @@ query preference handling:
 
 */
 
-char* make_auto_guide(glb* g, glb* kb_g) {
-  //char* filename=NULL;  
-  char *buf=NULL,*pref; // *suff,*blockt,*block;
-  //FILE* fp=NULL;  
-  //cJSON *guide=NULL;
+char* make_auto_guide(glb* g, glb* kb_g) { 
+  char *buf=NULL,*pref; 
   int i,j,pos,iterations=3,secs;
   int eq,depth,length,size,smallratio,bigratio;
-  //int poseq;
-  //int isepr=0, isueq=0; // main cateagory
-  int qp2ok=1, qp3ok=1; // query preference strats default ok
-
-  printf("\nmaking auto guide\n");
-
-  //printf("\nlocal stats:\n");
-  //wr_show_in_stats(g);
+  int qp1ok=1, qp2ok=1, qp3ok=1; // query preference strats default ok
+  int tmp;
 
   if (kb_g) {
     printf("\nglobal stats:\n");
     wr_show_in_stats(kb_g);
-  }  
- 
-  
+  }   
   make_sum_input_stats(g,kb_g);
-
-  //printf("\nsummed stats:\n");
   wr_show_in_summed_stats(g);
-  
-
   if ((g->sin_poseq_clause_count)+(g->sin_negeq_clause_count)) {
     // equality present
-    eq=1;
-    //if (g->sin_poseq_clause_count) poseq=1;
-    //else poseq=0;    
+    eq=1;  
   } else {
     // no equality
-    eq=0;
-    //poseq=0;    
+    eq=0;  
   }
-
   if (!(g->sin_axiom_count) &&
       ((g->sin_goal_count)==1 ||
        !(g->sin_posunit_goal_count))) {
@@ -471,9 +410,16 @@ char* make_auto_guide(glb* g, glb* kb_g) {
     // query pref 3 is useless
     qp3ok=0;
   } 
-  //if ((g->sin_max_length)==1) isueq=1;
-  //if ((g->sin_max_depth)==1) isepr=1;
-
+  tmp=(g->sin_goal_count)+(g->sin_assumption_count);
+  if ( (g->sin_goal_count)*2 > (g->in_clause_count)) {
+    // huge goal, default query pref is useless
+    qp1ok=0;
+  }
+  if ( tmp*2 > (g->in_clause_count)) {
+    // huge goal+assumptions, default query pref + assumption-rich is useless
+    qp1ok=0; 
+    qp2ok=0;
+  }
 
   buf=(char*)wr_malloc(g,10000);
 
@@ -484,7 +430,7 @@ char* make_auto_guide(glb* g, glb* kb_g) {
     "\"max_depth\": 0,\n"
     "\"max_length\": 0,\n"
     "\"max_seconds\": 0,\n";
-    //"\"weight_select_ratio\": 30,\n";
+ 
   pos=sprintf(buf,"%s",pref);
   if (!eq) {
     pos+=sprintf(buf+pos,"\"equality\":0,\n");
@@ -498,14 +444,15 @@ char* make_auto_guide(glb* g, glb* kb_g) {
   smallratio=2;
   bigratio=20;
   for(i=0;i<iterations;i++) {
-    
-    // start of a block
+
     // start of a block
     if ((g->sin_clause_count)>500000) {
       // very large    
       secs=secs*10;
-      pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1},\n",secs);
+      if (qp1ok) {
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1},\n",secs);
+      }
       if (qp2ok) {
         pos+=sprintf(buf+pos,
         "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2},\n",secs);
@@ -515,8 +462,10 @@ char* make_auto_guide(glb* g, glb* kb_g) {
         "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 3},\n",secs);          
       }
       // unit mod
-      pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 1},\n",secs);
+      if (qp1ok) {
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 1},\n",secs);
+      }  
       if (qp2ok) {
         pos+=sprintf(buf+pos,
         "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 2},\n",secs);
@@ -537,14 +486,87 @@ char* make_auto_guide(glb* g, glb* kb_g) {
         "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"positive_pref\"], \"query_preference\": 3},\n",secs);
       }
       // size limit mod
-      pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1, \"max_depth\": %d},\n",secs,depth);
+      if (qp1ok) {
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1, \"max_depth\": %d},\n",secs,depth);
+      }  
       if (qp2ok) {
         pos+=sprintf(buf+pos,
         "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2, \"max_depth\": %d},\n",secs,depth);
       }  
       pos+=sprintf(buf+pos,
       "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1, \"max_size\": %d},\n",secs,size);
+      if (qp2ok) {
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2, \"max_size\": %d},\n",secs,size);
+      }  
+      if (qp3ok) {
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 3, \"max_depth\": %d},\n",secs,depth);
+      }
+      // triple mod
+      if (qp1ok) {
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"triple\"], \"query_preference\": 1},\n",secs);
+      }  
+      if (qp2ok) {
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"triple\"], \"query_preference\": 2},\n",secs);
+      }  
+      if (qp3ok) {
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"triple\"], \"query_preference\": 3},\n",secs);
+      }
+
+    } else if ((g->sin_clause_count)>50000) {
+      // very large
+      if (qp1ok) {
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1},\n",secs);
+      }  
+      if (qp2ok) {
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2},\n",secs);
+      }
+      if (qp3ok) {         
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 3},\n",secs);          
+      }
+      // unit mod
+      pos+=sprintf(buf+pos,
+      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 1},\n",secs);
+      if (qp2ok) {
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 2},\n",secs);
+      }  
+      if (qp3ok) {
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 3},\n",secs);
+      }
+      // positive pref mod
+      if (qp1ok) {
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"positive_pref\"], \"query_preference\": 1},\n",secs);      
+      }  
+      if (qp2ok) {
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"positive_pref\"], \"query_preference\": 2},\n",secs);
+      }  
+      if (qp3ok) {
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"positive_pref\"], \"query_preference\": 3},\n",secs);
+      }
+      // size limit mod
+      pos+=sprintf(buf+pos,
+      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1, \"max_depth\": %d},\n",secs,depth);
+      if (qp2ok) {
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2, \"max_depth\": %d},\n",secs,depth);
+      }  
+      if (qp1ok) {
+        pos+=sprintf(buf+pos,
+       "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1, \"max_size\": %d},\n",secs,size);
+      } 
       if (qp2ok) {
         pos+=sprintf(buf+pos,
         "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2, \"max_size\": %d},\n",secs,size);
@@ -565,10 +587,12 @@ char* make_auto_guide(glb* g, glb* kb_g) {
         "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"triple\"], \"query_preference\": 3},\n",secs);
       }
 
-    } else if ((g->sin_clause_count)>50000) {
-      // very large
-      pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1},\n",secs);
+    } else if ((g->sin_clause_count)>1000) {
+      // large
+      if (qp1ok) {
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1},\n",secs);
+      }  
       if (qp2ok) {
         pos+=sprintf(buf+pos,
         "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2},\n",secs);
@@ -578,8 +602,10 @@ char* make_auto_guide(glb* g, glb* kb_g) {
         "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 3},\n",secs);          
       }
       // unit mod
-      pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 1},\n",secs);
+      if (qp1ok) {
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 1},\n",secs);
+      }  
       if (qp2ok) {
         pos+=sprintf(buf+pos,
         "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 2},\n",secs);
@@ -600,8 +626,10 @@ char* make_auto_guide(glb* g, glb* kb_g) {
         "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"positive_pref\"], \"query_preference\": 3},\n",secs);
       }
       // size limit mod
-      pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1, \"max_depth\": %d},\n",secs,depth);
+      if (qp1ok) {
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1, \"max_depth\": %d},\n",secs,depth);
+      }  
       if (qp2ok) {
         pos+=sprintf(buf+pos,
         "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2, \"max_depth\": %d},\n",secs,depth);
@@ -617,8 +645,10 @@ char* make_auto_guide(glb* g, glb* kb_g) {
         "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 3, \"max_depth\": %d},\n",secs,depth);
       }
       // triple mod
-      pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"triple\"], \"query_preference\": 1},\n",secs);
+      if (qp1ok) {
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"triple\"], \"query_preference\": 1},\n",secs);
+      }  
       if (qp2ok) {
         pos+=sprintf(buf+pos,
         "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"triple\"], \"query_preference\": 2},\n",secs);
@@ -626,7 +656,47 @@ char* make_auto_guide(glb* g, glb* kb_g) {
       if (qp3ok) {
         pos+=sprintf(buf+pos,
         "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"triple\"], \"query_preference\": 3},\n",secs);
-      }
+      }  
+
+      // non-query strats
+
+      if ((g->sin_horn_clause_count)==(g->sin_clause_count)) {
+        // horn
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1},\n",secs);
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0},\n",secs);
+        if (g->sin_max_length>1) {
+          pos+=sprintf(buf+pos,
+          "{\"max_seconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 0},\n",secs);   
+          //pos+=sprintf(buf+pos,
+          //"{\"max_seconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 1},\n",secs);                   
+          pos+=sprintf(buf+pos,
+          "{\"max_seconds\": %d, \"strategy\":[\"hyper\"], \"query_preference\": 0},\n",secs);
+          pos+=sprintf(buf+pos,
+          "{\"max_seconds\": %d, \"strategy\":[\"hyper\"], \"query_preference\": 1},\n",secs);
+        }
+      } else {
+        // non-horn
+        if (g->sin_max_length>1) {
+          pos+=sprintf(buf+pos,
+          "{\"max_seconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 1},\n",secs);
+          pos+=sprintf(buf+pos,
+          "{\"max_seconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 0},\n",secs);
+          pos+=sprintf(buf+pos,
+          "{\"max_seconds\": %d, \"strategy\":[\"hardness_pref\"], \"query_preference\": 1},\n",secs);
+        }  
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0},\n",secs);        
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d, \"strategy\":[\"positive_pref\"], \"query_preference\": 0},\n",secs);        
+        if (g->sin_max_length>1) {
+          pos+=sprintf(buf+pos,
+          "{\"max_seconds\": %d, \"strategy\":[\"hyper\"], \"query_preference\": 0},\n",secs);
+          pos+=sprintf(buf+pos,
+          "{\"max_seconds\": %d, \"strategy\":[\"hyper\"], \"query_preference\": 1},\n",secs);
+        }
+      } 
 
     } else if ((g->sin_clause_count)>100) {
       // medium size
@@ -653,6 +723,8 @@ char* make_auto_guide(glb* g, glb* kb_g) {
           "{\"max_seconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 1},\n",secs);
           pos+=sprintf(buf+pos,
           "{\"max_seconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 0},\n",secs);
+          pos+=sprintf(buf+pos,
+          "{\"max_seconds\": %d, \"strategy\":[\"hardness_pref\"], \"query_preference\": 0},\n",secs);
         }  
         pos+=sprintf(buf+pos,
         "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0},\n",secs);        
@@ -1005,7 +1077,6 @@ void wr_copy_sin_stats(glb* fromg, glb* tog) {
 // ==================== show stats ====================
 
 void wr_show_in_stats(glb* g) {
-  //printf("\nwr_show_in_stats called\n");
   if (!(g->print_stats)) return;
     
   printf("\ninput clause set statistics:\n");
@@ -1043,11 +1114,9 @@ void wr_show_in_stats(glb* g) {
   printf("in_neg_goal_count:     %13d\n",g->in_neg_goal_count);
   printf("in_pos_goal_count:     %13d\n",g->in_pos_goal_count);
   printf("in_posunit_goal_count: %13d\n",g->in_posunit_goal_count);
-  //printf(": %13d\n",g->);
 }
 
 void wr_show_in_summed_stats(glb* g) {
-  //printf("\nwr_show_in_stats called\n");
   if (!(g->print_stats)) return;
     
   printf("\ninput clause set summed statistics:\n");
@@ -1085,7 +1154,6 @@ void wr_show_in_summed_stats(glb* g) {
   printf("in_neg_goal_count:     %13d\n",g->sin_neg_goal_count);
   printf("in_pos_goal_count:     %13d\n",g->sin_pos_goal_count);
   printf("in_posunit_goal_count: %13d\n",g->sin_posunit_goal_count);
-  //printf(": %13d\n",g->);
 }
 
 #ifdef __cplusplus

@@ -57,11 +57,6 @@ extern "C" {
 #define json_valuestring(obj) ((obj)->valuestring)
 #define json_valueint(obj) ((obj)->valueint)
 
-/*
-#define DEFAULT_GUIDE2(...) #__VA_ARGS__
-  {"aa":2,
-   "bb" 3};
-*/
 
 #define DEFAULT_GUIDE "{\"print\":1, " \
   "\"print_level\": 15, " \
@@ -72,10 +67,6 @@ extern "C" {
 /* ======= Private protos ================ */
 
 
-char* create_monitor(void);
-char *create_monitor_with_helpers(void);
-int supports_full_hd(const char * const monitor);
-
 /* ====== Functions ============== */
 
 
@@ -85,8 +76,6 @@ cJSON* wr_parse_guide_file(int argc, char **argv, char** guidebuf) {
   FILE* fp=NULL;  
   cJSON *guide=NULL;
   int len;
-
-  //printf("\nto wr_parse_guide_file %s\n",argv[3]);
 
   if (argc<3) {
     // default case: no guide file
@@ -298,9 +287,13 @@ int wr_parse_guide_strategy_set(glb* g, char* stratname) {
   } else if (!strcmp(stratname,"double")) {
     (g->res_shortarglen_limit)=2;      
   } else if (!strcmp(stratname,"triple")) {
-    (g->res_shortarglen_limit)=3;      
+    (g->res_shortarglen_limit)=3;   
+  } else if (!strcmp(stratname,"hardness_pref")) {
+    (g->hardnesspref_strat)=1;       
   } else if (!strcmp(stratname,"query_focus")) {
     (g->queryfocus_strat)=1;   
+  } else if (!strcmp(stratname,"knuthbendix_pref")) {
+    (g->knuthbendixpref_strat)=1;     
   } else {
     wr_warn2(g,"unknown strategy: ", stratname);
   }
@@ -309,199 +302,6 @@ int wr_parse_guide_strategy_set(glb* g, char* stratname) {
 }
 
 
-
-
-/* -------
-  
-  testing
-
-------------*/
-
-/*
-void cjson_test(glb* g) {
-  // json test start 
-  char* jstr=create_monitor_with_helpers();
-  printf("\njstr %s\n",jstr);
-  int jres=supports_full_hd(jstr);
-  printf("\njres %d\n",jres);  
-  // json test end
-}
-*/
-
-//create a monitor with a list of supported resolutions
-//NOTE: Returns a heap allocated string, you are required to free it after use.
-char* create_monitor(void)
-{
-    const unsigned int resolution_numbers[3][2] = {
-        {1280, 720},
-        {1920, 1080},
-        {3840, 2160}
-    };
-    char *string = NULL;
-    cJSON *name = NULL;
-    cJSON *resolutions = NULL;
-    cJSON *resolution = NULL;
-    cJSON *width = NULL;
-    cJSON *height = NULL;
-    size_t index = 0;
-
-    cJSON *monitor = cJSON_CreateObject();
-    if (monitor == NULL)
-    {
-        goto end;
-    }
-
-    name = cJSON_CreateString("Awesome 4K");
-    if (name == NULL)
-    {
-        goto end;
-    }
-    /* after creation was successful, immediately add it to the monitor,
-     * thereby transfering ownership of the pointer to it */
-    cJSON_AddItemToObject(monitor, "name", name);
-
-    resolutions = cJSON_CreateArray();
-    if (resolutions == NULL)
-    {
-        goto end;
-    }
-    cJSON_AddItemToObject(monitor, "resolutions", resolutions);
-
-    for (index = 0; index < (sizeof(resolution_numbers) / (2 * sizeof(int))); ++index)
-    {
-        resolution = cJSON_CreateObject();
-        if (resolution == NULL)
-        {
-            goto end;
-        }
-        cJSON_AddItemToArray(resolutions, resolution);
-
-        width = cJSON_CreateNumber(resolution_numbers[index][0]);
-        if (width == NULL)
-        {
-            goto end;
-        }
-        cJSON_AddItemToObject(resolution, "width", width);
-
-        height = cJSON_CreateNumber(resolution_numbers[index][1]);
-        if (height == NULL)
-        {
-            goto end;
-        }
-        cJSON_AddItemToObject(resolution, "height", height);
-    }
-
-    string = cJSON_Print(monitor);
-    if (string == NULL)
-    {
-        fprintf(stderr, "Failed to print monitor.\n");
-    }
-
-end:
-    cJSON_Delete(monitor);
-    return string;
-}
-
-//NOTE: Returns a heap allocated string, you are required to free it after use.
-char *create_monitor_with_helpers(void)
-{
-    const unsigned int resolution_numbers[3][2] = {
-        {1280, 720},
-        {1920, 1080},
-        {3840, 2160}
-    };
-    char *string = NULL;
-    cJSON *resolutions = NULL;
-    size_t index = 0;
-
-    cJSON *monitor = cJSON_CreateObject();
-
-    if (cJSON_AddStringToObject(monitor, "name", "Awesome 4K") == NULL)
-    {
-        goto end;
-    }
-
-    resolutions = cJSON_AddArrayToObject(monitor, "resolutions");
-    if (resolutions == NULL)
-    {
-        goto end;
-    }
-
-    for (index = 0; index < (sizeof(resolution_numbers) / (2 * sizeof(int))); ++index)
-    {
-        cJSON *resolution = cJSON_CreateObject();
-
-        if (cJSON_AddNumberToObject(resolution, "width", resolution_numbers[index][0]) == NULL)
-        {
-            goto end;
-        }
-
-        if(cJSON_AddNumberToObject(resolution, "height", resolution_numbers[index][1]) == NULL)
-        {
-            goto end;
-        }
-
-        cJSON_AddItemToArray(resolutions, resolution);
-    }
-
-    string = cJSON_Print(monitor);
-    if (string == NULL) {
-        fprintf(stderr, "Failed to print monitor.\n");
-    }
-
-end:
-    cJSON_Delete(monitor);
-    return string;
-}
-
-/* return 1 if the monitor supports full hd, 0 otherwise */
-int supports_full_hd(const char * const monitor)
-{
-    const cJSON *resolution = NULL;
-    const cJSON *resolutions = NULL;
-    const cJSON *name = NULL;
-    int status = 0;
-    cJSON *monitor_json = cJSON_Parse(monitor);
-    if (monitor_json == NULL)
-    {
-        const char *error_ptr = cJSON_GetErrorPtr();
-        if (error_ptr != NULL)
-        {
-            fprintf(stderr, "Error before: %s\n", error_ptr);
-        }
-        status = 0;
-        goto end;
-    }
-
-    name = cJSON_GetObjectItemCaseSensitive(monitor_json, "name");
-    if (cJSON_IsString(name) && (name->valuestring != NULL))
-    {
-        printf("Checking monitor \"%s\"\n", name->valuestring);
-    }
-
-    resolutions = cJSON_GetObjectItemCaseSensitive(monitor_json, "resolutions");
-    cJSON_ArrayForEach(resolution, resolutions)
-    {
-        cJSON *width = cJSON_GetObjectItemCaseSensitive(resolution, "width");
-        cJSON *height = cJSON_GetObjectItemCaseSensitive(resolution, "height");
-
-        if (!cJSON_IsNumber(width) || !cJSON_IsNumber(height))
-        {
-            status = 0;
-            goto end;
-        }
-
-        if ((width->valuedouble == 1920) && (height->valuedouble == 1080))
-        {
-            status = 1;
-            goto end;
-        }
-    }
-
-end:
-    cJSON_Delete(monitor_json);
-    return status;
-}
 
 
 

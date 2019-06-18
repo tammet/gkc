@@ -94,7 +94,7 @@ int wr_genloop(glb* g) {
   gint given_cl_metablock[CLMETABLOCK_ELS];
   clock_t curclock;
   float run_seconds,total_seconds,fullness; // passed_ratio
-
+  
 #ifndef USE_RES_TERMS  
   gint ipassive;
   gint iactive;
@@ -135,12 +135,18 @@ int wr_genloop(glb* g) {
     
     if (((g->passed_ratio)>0.85) &&  (g->res_shortarglen_limit)!=1) {
       if (g->print_given_interval_trace) {
-        wr_printf("\n !!!! g->passed_ratio %f\n",g->passed_ratio);
+        wr_printf("\npassed time ratio %.2f\n",g->passed_ratio);
       }
       (g->res_shortarglen_limit)=1;
+    } else if (((g->passed_ratio)>0.7) && 
+               (!(g->res_shortarglen_limit) || (g->res_shortarglen_limit)>2) ) {
+      if (g->print_given_interval_trace) {
+        wr_printf("\npassed time ratio %.2f\n",g->passed_ratio);      
+      }
+      (g->res_shortarglen_limit)=2;
     } else if (((g->passed_ratio)>0.5) &&  (g->pick_given_queue_ratio)!=100) {
       if (g->print_given_interval_trace) {
-        wr_printf("\n !!!! g->passed_ratio %f\n",g->passed_ratio);      
+        wr_printf("\npassed time ratio %.2f\n",g->passed_ratio);      
       }
       (g->pick_given_queue_ratio)=100;
     }
@@ -177,14 +183,6 @@ int wr_genloop(glb* g) {
         wr_print_clause(g,picked_given_cl_cand);          
       }  
     }       
-
-    /*
-    if ((g->stat_given_candidates)>5000) {
-      wr_printf("halting, returning 0\n");
-      return 0;
-    }  
-    */
-
     if (picked_given_cl_cand==NULL) {
       return 1;
     }
@@ -205,18 +203,10 @@ int wr_genloop(glb* g) {
       //printf("\n given is blocked\n");
       continue;      
     }
-    wr_process_given_cl_setupsubst(g,g->given_termbuf,1,1); // !!!!! new try  
-
+    wr_process_given_cl_setupsubst(g,g->given_termbuf,1,1); // !!!!! new try      
     wr_sort_cl(g, picked_given_cl_cand);
     given_cl_cand=wr_simplify_cl(g, picked_given_cl_cand, given_cl_metablock);
-    
-    //wr_calc_clause_meta(g,picked_given_cl_cand,given_cl_metablock);
-    
-
-    //given_cl_cand=wr_activate_passive_cl(g,picked_given_cl_cand,given_cl_metablock);  
-
-    //printf("\nmetablock1 %d %d %d %d \n",*given_cl_metablock,*(given_cl_metablock+1),*(given_cl_metablock+2),*(given_cl_metablock+3));
-
+    //wr_print_cl_literals_meta(g, picked_given_cl_cand);
     wr_process_given_cl_cleanupsubst(g);
     if (given_cl_cand==NULL) {
       //printf("\nwr_activate_passive_cl returned null\n");
@@ -230,9 +220,7 @@ int wr_genloop(glb* g) {
       // otherwise the candidate was subsumed or otherwise useless
       continue; 
     }   
-
     wr_calc_clause_meta(g,given_cl_cand,given_cl_metablock);
-
     // -- check part 1 starts ---
     
     if ((gint)given_cl_cand==ACONST_FALSE) {
@@ -290,8 +278,16 @@ int wr_genloop(glb* g) {
     //printf("\nmetablock2 %d %d %d %d \n",*given_cl_metablock,*(given_cl_metablock+1),*(given_cl_metablock+2),*(given_cl_metablock+3));
     // optionally do backsubsumption
     if (g->back_subsume) wr_given_cl_backsubsume(g,given_cl,given_cl_metablock);
+    // calculate resolvability: (g->tmp_resolvability_vec)
+    wr_calc_clause_resolvability(g,given_cl,0);
+    if (g->print_initial_given_cl) {
+      wr_print_clause_resolvability(g,given_cl);
+    }  
+    //wr_print_clause_hardnesses(g,given_cl); 
+
     // add to active list
-    given_cl_as_active=wr_add_given_cl_active_list(g,given_cl,given_cl_metablock,1,g->active_termbuf);
+    given_cl_as_active=wr_add_given_cl_active_list(g,given_cl,given_cl_metablock,1,
+      g->active_termbuf,(g->tmp_resolvability_vec));
 
     //printf("\nmetablock3 %d %d %d %d \n",*given_cl_metablock,*(given_cl_metablock+1),*(given_cl_metablock+2),*(given_cl_metablock+3));
 
@@ -311,17 +307,18 @@ int wr_genloop(glb* g) {
     }      
     if (g->proof_found) return 0;
     if (g->alloc_err) return -1;  
+    
     // do all resolutions with the given clause
     // normal case: active loop is done inside the wr_resolve_binary_all_active    
-    wr_resolve_binary_all_active(g,given_cl,given_cl_as_active); 
+    wr_resolve_binary_all_active(g,given_cl,given_cl_as_active,(g->tmp_resolvability_vec)); 
     if (g->proof_found) return 0;
     if (g->alloc_err) return -1;    
     
     if (g->use_equality) {
-      wr_paramodulate_from_all_active(g,given_cl,given_cl_as_active);    
+      wr_paramodulate_from_all_active(g,given_cl,given_cl_as_active,(g->tmp_resolvability_vec));    
       if (g->proof_found) return 0;
       if (g->alloc_err) return -1;          
-      wr_paramodulate_into_all_active(g,given_cl,given_cl_as_active);    
+      wr_paramodulate_into_all_active(g,given_cl,given_cl_as_active,(g->tmp_resolvability_vec));    
       if (g->proof_found) return 0;
       if (g->alloc_err) return -1;       
     }
@@ -348,11 +345,6 @@ gptr wr_pick_given_cl(glb* g, gptr given_cl_metablock) {
   //wr_print_priorqueue(g,rotp(g,g->clpickpriorqueue));
 #endif
   // then try priority queue
-  //printf("trying priority queue:\n");
-  //wr_print_priorqueue(g,rotp(g,g->clpickpriorqueue));
-
-  // (g->pick_given_queue_ratio)=100000000;
-  //(g->pick_given_queue_ratio_counter)=0;
   if ((g->pick_given_queue_ratio_counter)<(g->pick_given_queue_ratio)) {
     cl=wr_pick_priorqueue(g, rotp(g,(g->clpickpriorqueue)));
     if (cl!=NULL) {     
@@ -371,8 +363,6 @@ gptr wr_pick_given_cl(glb* g, gptr given_cl_metablock) {
   if (next>(g->clqueue_given)) {
     cl=(gptr)((rotp(g,g->clqueue))[g->clqueue_given]);           
     ++(g->clqueue_given); 
-    //printf("\n +++++ queue +++++++++ \n");
-    //wr_print_clause(g,cl);
     wr_calc_clause_meta(g,cl,given_cl_metablock);
     return cl;
   }
@@ -381,38 +371,6 @@ gptr wr_pick_given_cl(glb* g, gptr given_cl_metablock) {
 }
 
 
-/*
-
-  Takes a passive clause and tries to simplify it for later use as a given clause.
-
-  If no simplifications done, return as is.
-  If some simplifications done, create a new passive result clause and return this.
-
-  Full subsumption with active will be done only after this function finishes, i.e. with result.
-
-  picked_given_cl_cand is an unaltered passive clause.
-
-*/
-
-gptr dummy_wr_activate_passive_cl(glb* g, gptr picked_given_cl_cand, gptr cl_metablock) {
-  
-  gptr res;
-  /*
-  printf("\nwr_activate_passive_cl called with ");
-  wr_print_clause(g,picked_given_cl_cand); 
-  printf("\n"); 
-  */
-  wr_sort_cl(g, picked_given_cl_cand);
-  res=wr_simplify_cl(g, picked_given_cl_cand, cl_metablock);
-  wr_calc_clause_meta(g,picked_given_cl_cand,cl_metablock);
-  //res=picked_given_cl_cand;
-  /*
-  printf("\nwr_activate_passive_cl returns with ");
-  wr_print_clause(g,res); 
-  printf("\n");
-  */
-  return res;
-} 
 
 /*
 
@@ -485,7 +443,7 @@ gptr wr_process_given_cl(glb* g, gptr given_cl_cand, gptr buf) {
 */
 
 gptr wr_add_given_cl_active_list(glb* g, gptr given_cl, gptr given_cl_metablock, 
-    int subsflag, gptr build_buffer) {  
+    int subsflag, gptr build_buffer, cvec resolvability) {  
   gptr active_cl;
   int hashadded;
 
@@ -514,12 +472,11 @@ gptr wr_add_given_cl_active_list(glb* g, gptr given_cl, gptr given_cl_metablock,
   printf("\n");
 #endif    
   // add to a list of all active clauses
+ 
+  if ((g->clactive)!=(gint)NULL) {
 #ifdef DEBUG  
-  if ((g->clactive)!=(gint)NULL) {
-    printf("\npushing to clactive pos %d\n",(int)((rotp(g,g->clactive))[1]));
-  }  
-#endif  
-  if ((g->clactive)!=(gint)NULL) {
+    printf("\npushing to clactive pos %d\n",(int)((rotp(g,g->clactive))[1]));    
+#endif     
     (g->clactive)=rpto(g,wr_cvec_push(g,rotp(g,(g->clactive)),(gint)active_cl));
   }  
   // add ground units to unithash  
@@ -543,15 +500,10 @@ gptr wr_add_given_cl_active_list(glb* g, gptr given_cl, gptr given_cl_metablock,
   //wr_show_clactivesubsume(g);
 
   //  store neg and pos preds to hash_neg/pos_atoms and store para terms
-  
-  wr_cl_store_res_terms(g,active_cl);
-  
+  wr_cl_store_res_terms(g,active_cl,resolvability);  
   if ((g->use_equality) && (g->use_equality_strat)) {   
-    wr_cl_store_para_terms(g,active_cl);
-  } else {
-    //printf("\n!!!!!!!!!!!!! no equality\n");
-  }  
-
+    wr_cl_store_para_terms(g,active_cl,resolvability);
+  } 
   (g->stat_given_used)++;  // stats   
   return active_cl;
 } 

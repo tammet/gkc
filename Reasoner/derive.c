@@ -85,7 +85,6 @@ the final kept clause is built in:   g->queue_termbuf
 
 void wr_process_resolve_result
       (glb* g, gint xatom, gptr xcl, gint yatom, gptr ycl, gptr xcl_as_active) {
-  //void* db=g->db;
   int xisrule,yisrule,xatomnr,yatomnr;
   int rlen;
   int tmp;
@@ -94,9 +93,6 @@ void wr_process_resolve_result
   gptr res;  
   gint resmeta,history, hash;
   int ruleflag;
-  //int partialresflag;
-  //int clstackflag;
-  //gint given_termbuf_storednext=0;
   gint initial_queue_termbuf_next=0;
   int weight;
   double avg;
@@ -327,7 +323,6 @@ void wr_process_factor_result
   gptr res;
   gint resmeta,history;
   int ruleflag;
-  gint given_termbuf_storednext=0;
   gint initial_queue_termbuf_next=0;
   int weight;
   double avg;
@@ -343,7 +338,7 @@ void wr_process_factor_result
   printf("\n");
   wr_print_vardata(g);
 #endif  
-  //db=g->db;
+
   ++(g->stat_derived_cl);
   ++(g->stat_factor_derived_cl);
   // reserve sufficient space in derived_termbuf for simple sequential store of atoms:
@@ -424,25 +419,6 @@ void wr_process_factor_result
     // allocation failed
     return;
   }
-  
-  
-  // now the resulting clause is fully built
-  // try to subsume the derived clause
-  /*
-  if (g->print_derived_cl) {
-    printf("\n+ derived by merge1: ");
-    wr_print_clause(g,res);
-  }  
-  */
-  /*
-  tmp=wr_derived_fullcl_subsumed(g, res);
-  if (tmp) {
-    // clause was subsumed, free it up
-    //printf("\nwr_process_factor_result was subsumed\n");
-    CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
-    return;
-  }
-  */
 
   // check if result contains only ans predicates
   
@@ -455,45 +431,27 @@ void wr_process_factor_result
     g->proof_found=1;
     g->proof_history=history;     
     return;
-  } 
+  }   
 
-  if (0) { //((g->hyperres_strat) &&  !wr_hyperres_satellite_cl(g,res)) { 
-    // hyperresolution case: not a finished clause yet, must cut off some 
-    ++(g->stat_hyperres_partial_cl);
-    if (g->print_partial_derived_cl) {
-      printf("\n+ partial derived: ");
-      wr_print_clause(g,res);
-    }  
-    //wr_push_clpickstack_cl(g,res);
-    wr_clear_varstack(g,g->varstack);
-    //wr_clear_all_varbanks(g);
-    //wr_print_vardata(g);
-    wr_resolve_binary_all_active(g,res,xcl_as_active); ///!!!! problem with xcl_as_active
-    // restore buffer pos to situation before building the current clause
-    wr_vec_free(g,g->build_buffer);    // !!!!!!!!!! problem         
-    g->build_buffer=(gptr)given_termbuf_storednext;      
-    //CVEC_NEXT(g->given_termbuf)=given_termbuf_storednext;
-  } else {       
-    // ordinary case (not partial hyperres): resulting clause is finished
-    if (g->print_derived_cl) {
-      printf("\n+ derived by merge: ");
-      wr_print_clause(g,res);    
-    }  
-    weight=wr_calc_clause_weight(g,res,&size,&depth,&length);
-    avg=(g->avg_kept_weight);  
-    if (!wr_derived_weight_check(g,avg,weight,size,depth,length,0,0)) {
-      (g->stat_weight_discarded_cl)++;
-      CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
-      if (g->print_derived_cl) printf("\nw discarded overweight");
-      return;
-    }
-    ++(g->stat_kept_cl);
-    avg+=(weight-avg)/((g->stat_kept_cl)+1);
-    (g->avg_kept_weight)=avg;
-    resmeta=wr_calc_clause_meta(g,res,cl_metablock);
-    wr_add_cl_to_unithash(g,res,resmeta);
-    wr_push_cl_clpick_queues(g,(g->clpick_queues),res,weight);      
-  }    
+  // resulting clause is finished
+  if (g->print_derived_cl) {
+    printf("\n+ derived by merge: ");
+    wr_print_clause(g,res);    
+  }  
+  weight=wr_calc_clause_weight(g,res,&size,&depth,&length);
+  avg=(g->avg_kept_weight);  
+  if (!wr_derived_weight_check(g,avg,weight,size,depth,length,0,0)) {
+    (g->stat_weight_discarded_cl)++;
+    CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
+    if (g->print_derived_cl) printf("\nw discarded overweight");
+    return;
+  }
+  ++(g->stat_kept_cl);
+  avg+=(weight-avg)/((g->stat_kept_cl)+1);
+  (g->avg_kept_weight)=avg;
+  resmeta=wr_calc_clause_meta(g,res,cl_metablock);
+  wr_add_cl_to_unithash(g,res,resmeta);
+  wr_push_cl_clpick_queues(g,(g->clpick_queues),res,weight);       
 }  
 
 /*
@@ -518,7 +476,6 @@ void wr_process_factor_result
 void wr_process_paramodulate_result
       (glb* g, gint xatom, gptr xcl, gint yatom, gptr ycl, gptr xcl_as_active, 
       gint aterm, gint bterm, gint path, int leftflag, int fromflag) {
-  //void* db=g->db;
   int xisrule,yisrule,xatomnr,yatomnr;
   int rlen;
   int tmp;
@@ -527,28 +484,12 @@ void wr_process_paramodulate_result
   gptr res;  
   gint resmeta,history;
   int ruleflag;
-  //int partialresflag;
-  //int clstackflag;
-  gint given_termbuf_storednext=0;
   gint initial_queue_termbuf_next=0;
   int weight;
   double avg;
   gint cl_metablock[CLMETABLOCK_ELS];
   int size,depth,length;
-  
-  /*
-  printf("\n+++ wr_process_paramodulate_result called\n");
-  printf(" xcl: "); wr_print_clause(g,xcl); printf(" xatom: ");wr_print_term(g,xatom);
-  printf("\n");
-  printf(" ycl: "); wr_print_clause(g,ycl);  printf(" yatom: ");wr_print_term(g,yatom);
-  printf("\n");
-  printf("\naterm:"); wr_print_term(g,aterm);  
-  printf("\nbterm:"); wr_print_term(g,bterm);  
-  printf("\npath: %d\n",path); 
-  printf("\leftflag: %d\n",leftflag); 
-  wr_print_vardata(g); 
-  */
-  
+    
 #ifdef DEBUG
   printf("\n+++ wr_process_paramodulate_result called\n");
   wr_print_clause(g,xcl); printf(" : ");wr_print_term(g,xatom);
@@ -681,23 +622,10 @@ void wr_process_paramodulate_result
   // check whether should be stored as a ruleclause or not
   ruleflag=wr_process_resolve_result_isrulecl(g,rptr,rpos);  
   // create new record
-  if (0) { // ((g->hyperres_strat) &&  !wr_hyperres_satellite_tmpres(g,rptr,rpos)){
-    // must still cut something off: not fully finished hyperres
-    //partialresflag=1;   
-    //wr_process_resolve_result_setupclpickstackcopy(g); 
-    wr_process_resolve_result_setupgivencopy(g);    
-    // store buffer pos to be restored later
-    given_termbuf_storednext=(gint)(g->build_buffer);
-    //g->build_buffer=malloc(1024);
-    //given_termbuf_storednext=CVEC_NEXT(g->given_termbuf); 
-    // allocate a new vector
-    g->build_buffer=wr_cvec_new(g,BUILD_BUFFER_SIZE);  // !!!!!!!!!! problem
-  } else {
-    // fully formed, storable result
-    //partialresflag=0;      
-    wr_process_resolve_result_setupquecopy(g); // use g->queue_termbuf as g->build_buffer  
-    initial_queue_termbuf_next=CVEC_NEXT(g->build_buffer); // to be restored if not actually used
-  }  
+  // fully formed, storable result
+  //partialresflag=0;      
+  wr_process_resolve_result_setupquecopy(g); // use g->queue_termbuf as g->build_buffer  
+  initial_queue_termbuf_next=CVEC_NEXT(g->build_buffer); // to be restored if not actually used
   if (fromflag) {
     //printf("\n fromflag %d cutpos1 %d cutpos2 %d leftflag %d\n",fromflag,cutpos1,cutpos2,leftflag);
     /*
@@ -754,50 +682,30 @@ void wr_process_paramodulate_result
   }
 
   // start storing to queues and hashes
-  if (0) { // ((g->hyperres_strat) &&  !wr_hyperres_satellite_cl(g,res)) { 
-    // hyperresolution case: not a finished clause yet, must cut off some 
-    printf("wr_process_paramodulate_result hyperres-strat and not satellite\n");
-    ++(g->stat_hyperres_partial_cl);
-    if (g->print_partial_derived_cl) {
-      printf("\n+ partial derived: ");
-      wr_print_clause(g,res);
-    }  
-    //wr_push_clpickstack_cl(g,res);
-    wr_clear_varstack(g,g->varstack);
-    //wr_clear_all_varbanks(g);
-    //wr_print_vardata(g);
-    wr_resolve_binary_all_active(g,res,xcl_as_active); // !!! problem with xcl_as_active      
-    // restore buffer pos to situation before building the current clause
-    wr_vec_free(g,g->build_buffer);    // !!!!!!!!!! problem         
-    g->build_buffer=(gptr)given_termbuf_storednext;      
-    //CVEC_NEXT(g->given_termbuf)=given_termbuf_storednext;
-  } else {       
-    // ordinary case (not partial hyperres): resulting clause is finished
-    if (g->print_derived_cl) {
-      printf("\n+ derived by = ");
-      if (fromflag) printf("from: ");
-      else printf("into: ");
-      wr_print_clause(g,res);
-      //printf("\n derived as raw record: \n");
-      //wg_print_record(g->db,res);
-      //printf("\n");
-    }    
-    weight=wr_calc_clause_weight(g,res,&size,&depth,&length);  
-    avg=(g->avg_kept_weight);  
-    //printf(" weight %d average %f count %d \n",weight,(g->avg_kept_weight),(g->stat_kept_cl));
-    if (!wr_derived_weight_check(g,avg,weight,size,depth,length,xatomnr,yatomnr)) {
-      (g->stat_weight_discarded_cl)++;
-      CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
-      if (g->print_derived_cl) printf("\nw discarded overweight");
-      return;
-    }
-    ++(g->stat_kept_cl);
-    avg+=(weight-avg)/((g->stat_kept_cl)+1);
-    (g->avg_kept_weight)=avg;
-    resmeta=wr_calc_clause_meta(g,res,cl_metablock);
-    wr_add_cl_to_unithash(g,res,resmeta);
-    wr_push_cl_clpick_queues(g,(g->clpick_queues),res,weight);     
+    
+  //  resulting clause is finished
+  if (g->print_derived_cl) {
+    printf("\n+ derived by = ");
+    if (fromflag) printf("from: ");
+    else printf("into: ");
+    wr_print_clause(g,res);
   }    
+  weight=wr_calc_clause_weight(g,res,&size,&depth,&length);  
+  avg=(g->avg_kept_weight);  
+  //printf(" weight %d average %f count %d \n",weight,(g->avg_kept_weight),(g->stat_kept_cl));
+  if (!wr_derived_weight_check(g,avg,weight,size,depth,length,xatomnr,yatomnr)) {
+    (g->stat_weight_discarded_cl)++;
+    CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
+    if (g->print_derived_cl) printf("\nw discarded overweight");
+    return;
+  }
+  ++(g->stat_kept_cl);
+  avg+=(weight-avg)/((g->stat_kept_cl)+1);
+  (g->avg_kept_weight)=avg;
+  resmeta=wr_calc_clause_meta(g,res,cl_metablock);
+  wr_add_cl_to_unithash(g,res,resmeta);
+  wr_push_cl_clpick_queues(g,(g->clpick_queues),res,weight);     
+
 }  
 
 /* -----------
@@ -853,8 +761,7 @@ int wr_process_resolve_result_aux
     if (!meta) {
       // check that no meta is actual 0: we will mark cutoff literals with meta being actual 0
       printf("\n!! unexpected error: atom meta in wr_process_resolve_result_aux is 0\n ");
-      return 0;
-      //wg_set_rule_clause_atom_meta(db,rec,litnr,meta)
+      return 0;     
     }  
 #ifdef DEBUG
     printf("\nwr_process_resolve_result_aux loop i %d built meta %d and term\n",i,(int)meta);    
@@ -916,10 +823,6 @@ int wr_process_resolve_result_aux
     }       
   }     
   
-#ifdef DEBUG  
-  //printf("\nwr_process_resolve_result_aux generated clause\n");
-  //wr_print_clause(g,rptr);  
-#endif  
   return 1; // 1 means clause is still ok. 0 return means: drop clause 
 }  
 
@@ -937,10 +840,7 @@ void wr_process_resolve_result_remove_cuts(glb* g, gptr rptr, int* rpos, int cut
   for(i=0; i < *rpos; i++) { 
     tmp=i*LIT_WIDTH;
     xatom=rptr[tmp+LIT_ATOM_POS];
-    xatommeta=rptr[tmp+LIT_META_POS];
-    
-    //printf("\n i %d storepos %d  xatom %d xatommeta %d atom:\n",i,storepos,xatom,xatommeta);
-    //wr_print_term(g,xatom);    
+    xatommeta=rptr[tmp+LIT_META_POS];    
 
     if (xatommeta==0) {
       // marked as cut, do nothing  
@@ -970,9 +870,7 @@ gptr wr_derived_build_cl_from_initial_cl(glb* g, gptr rptr, int rpos, int rulefl
 
   db=g->db;
   if (ruleflag) {   
-    // resulting clause was a rule
-    
-    //printf("\nwr_derived_build_cl_from_initial_cl rule case \n");
+    // resulting clause was a rule    
 
     meta=RECORD_META_RULE_CLAUSE;
     datalen=rpos*LIT_WIDTH;
@@ -988,8 +886,6 @@ gptr wr_derived_build_cl_from_initial_cl(glb* g, gptr rptr, int rpos, int rulefl
     for(i=0;i<rpos;i++) { 
       tmp=i*LIT_WIDTH; 
       res[tmp+RECORD_HEADER_GINTS+CLAUSE_EXTRAHEADERLEN+LIT_META_POS]=rptr[tmp+LIT_META_POS];
-      //blt=wr_build_calc_term(g,rptr[tmp+LIT_ATOM_POS]);
-      //else blt=rptr[tmp+LIT_ATOM_POS];
       blt=wr_build_calc_term(g,rptr[tmp+LIT_ATOM_POS]);
       if (blt==WG_ILLEGAL) {
         ++(g->stat_internlimit_discarded_cl);       
@@ -1236,14 +1132,9 @@ int wr_cl_derived_is_answer(glb* g,gptr cl) {
     len=wg_count_clause_atoms(g->db,cl);   
     for(i=0;i<len;i++) {
       atom=wg_get_rule_clause_atom(g->db,cl,i);
-      //meta=wg_get_rule_clause_atom_meta(g->db,cl,i);
-      //printf("\natom i %d:\n",i);
-      //wr_print_term(g,atom);
-      //printf("\n");
       if (wr_answer_lit(g,atom)) ansnr++;      
     }
-  }
-  //printf("\nwr_cl_derived_is_answer exiting with ansnr %d len %d \n",ansnr,len);
+  } 
   if (ansnr==len) return ansnr;
   else return -1;    
 }
@@ -1406,140 +1297,6 @@ void wr_process_simp_setupquecopy(glb* g) {
 }
 
 
-/* ---------
-
-temporary stuff
-
------------- */
-
-
-/* 
-
-  Process newly derived cutoff result
-
-*/
-
-/*
-void wr_process_cutoff_result(glb* g, gptr xcl, int len, int x, gint xatom, int y, gint yatom) {
-  void* db;
-  int rlen;
-  int tmp;
-  gptr rptr;
-  int rpos;
-  gptr res;
-  gint meta,resmeta;
-  int ruleflag;
-  gint given_termbuf_storednext;
-  gint initial_queue_termbuf_next;
-  int weight;
-  double avg;
-  
-#ifdef DEBUG
-  printf("+++ wr_process_factor_result called\n");
-  wr_print_clause(g,xcl); printf(" %d, %d : ",x,y);
-  wr_print_term(g,xatom);
-  printf("\n");
-  wr_print_term(g,yatom);
-  printf("\n");
-  wr_print_vardata(g);
-#endif  
-  db=g->db;
-  ++(g->stat_derived_cl);
-  ++(g->stat_factor_derived_cl);
-  // reserve sufficient space in derived_termbuf for simple sequential store of atoms:
-  // no top-level meta kept
-  rlen=(len-1)*LIT_WIDTH;
-  if (rlen==0) { g->proof_found=1; return; }  
-  (g->derived_termbuf)[1]=2; // init termbuf
-  rptr=wr_alloc_from_cvec(g,g->derived_termbuf,rlen); 
-  if (rptr==NULL) {
-    ++(g->stat_internlimit_discarded_cl);
-    wr_alloc_err(g,"could not alloc first buffer in wr_process_resolve_result ");
-    return; // could not alloc memory, could not store clause
-  }  
-  // set up var rename params
-  wr_process_resolve_result_setupsubst(g);  
-  // store all ready-built atoms sequentially, excluding duplicates
-  // and looking for tautology: only for rule clauses needed    
-  rpos=0;
-  tmp=wr_process_resolve_result_aux(g,xcl,xatom,len,rptr,&rpos);
-  if (!tmp) {
-    wr_process_resolve_result_cleanupsubst(g);       
-    return; 
-  }    
-  wr_process_resolve_result_cleanupsubst(g);
-  if (rpos==0) { g->proof_found=1; return; } 
-  // now we have stored all subst-into and renamed metas/atoms into rptr: build clause  
-  //printf("filled meta/atom new vec, rpos %d\n",rpos);          
-  // check whether should be stored as a ruleclause or not
-  ruleflag=wr_process_resolve_result_isrulecl(g,rptr,rpos);  
-  // create new record  
-  wr_process_resolve_result_setupquecopy(g); // use g->queue_termbuf as g->build_buffer
-  initial_queue_termbuf_next=CVEC_NEXT(g->build_buffer); // to be restored if not actually used 
-
-  res=wr_derived_build_cl_from_initial_cl(g,rptr,rpos,ruleflag);
-  if (res==NULL) {
-    // allocation failed
-    return;
-  }
-  
-  // now the resulting clause is fully built
-  // try to subsume the derived clause
-
-  //printf("\n+ derived: ");
-  //wr_print_clause(g,res);
-
-  tmp=wr_derived_fullcl_subsumed(g, res);
-  if (tmp<0) {
-    // clause was subsumed, free it up
-    //printf("\nwr_process_factor_result was subsumed\n");
-    CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
-    return;
-  }
-
-  if ((g->hyperres_strat) &&  !wr_hyperres_satellite_cl(g,res)) { 
-    // hyperresolution case: not a finished clause yet, must cut off some 
-    ++(g->stat_hyperres_partial_cl);
-    if (g->print_partial_derived_cl) {
-      printf("\n+ partial derived: ");
-      wr_print_clause(g,res);
-    }  
-    //wr_push_clpickstack_cl(g,res);
-    wr_clear_varstack(g,g->varstack);
-    //wr_clear_all_varbanks(g);
-    //wr_print_vardata(g);
-    wr_resolve_binary_all_active(g,res);       
-    // restore buffer pos to situation before building the current clause
-    wr_vec_free(g,g->build_buffer);    // !!!!!!!!!! problem         
-    g->build_buffer=given_termbuf_storednext;      
-    //CVEC_NEXT(g->given_termbuf)=given_termbuf_storednext;
-  } else {       
-    // ordinary case (not partial hyperres): resulting clause is finished
-    if (g->print_derived_cl) {
-      printf("\n+ factor derived: ");
-      wr_print_clause(g,res);    
-    }  
-    weight=wr_calc_clause_weight(g,res,&size,&depth,&length);
-    if ((g->cl_maxweight) && weight>(g->cl_maxweight)) {
-      CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
-      return;
-    }  
-    avg=(g->avg_kept_weight);
-    avg+=(weight-avg)/((g->stat_kept_cl)+1);   
-    if (!wr_derived_weight_check(g,weight,avg)) {
-      (g->stat_weight_discarded_cl)++;
-      CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
-      if (g->print_derived_cl) printf("\nw discarded overweight");
-      return;
-    }
-    ++(g->stat_kept_cl);
-    (g->avg_kept_weight)=avg;
-    resmeta=wr_calc_clause_meta(g,res);
-    wr_add_cl_to_unithash(g,res,resmeta);
-    wr_push_cl_clpick_queues(g,(g->clpick_queues),res,weight); 
-  }    
-}  
-*/
 
 
 #ifdef __cplusplus

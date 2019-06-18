@@ -52,14 +52,10 @@ int wr_cl_is_assumption(glb* g, gptr cl);
 int wr_is_unit_cl(glb* g, gptr cl, int ruleflag, int len);
 int wr_isunit_cl(glb* g, gptr cl);
 int wr_count_cl_nonans_atoms(glb* g, gptr cl);
-
-void wr_set_stratlimits_cl(glb* g, gptr cl, int ruleflag, int len, int* posok, int* negok, int* nonanslen);
-int wr_order_resolvable_atom(glb* g, int negflag,
-      int negok, int posok, int negadded, int posadded,
-      int hardness, int max_neg_hardness, int max_pos_hardness);
+   
 int wr_initial_select_active_cl(glb* g, gptr cl);
 
-int wr_calc_clause_resolvability(glb* g, gptr cl);
+int wr_calc_clause_resolvability(glb* g, gptr cl, int allowall);
 void wr_print_clause_resolvability(glb* g, gptr cl);
 void wr_print_clause_hardnesses(glb* g, gptr cl);
 
@@ -76,8 +72,14 @@ void wr_record_varocc(glb* g, gint x, cvec varlist);
 void wr_show_countedvarlist(glb* g, cvec varlist);
 int wr_countedvarlist_is_subset(glb* g, cvec xlist, cvec ylist);
 
+int wr_calc_clause_knuthbendix_resolvability(glb* g, gptr cl, gptr vb);
+int wr_calc_clause_size_countedvarlist(glb* g, gptr cl, gptr vb);
+int wr_order_atom_weight_vars(glb* g, gint x, gptr vars, gptr vb);
+void wr_tmp_clinfo_free(glb* g, cvec v);
+int wr_order_atoms_lex_order(glb* g, gint x, gint y, gptr vb);
+int wr_order_atoms_const_lex_smaller(glb* g, gint x, gint y);
+
 void wr_print_strat_flags(glb* g);
 
-//static int wr_order_eqterms_lex_smaller(glb* g, gint x, gint y, gptr vb);
 
 #endif

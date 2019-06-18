@@ -109,9 +109,6 @@ gint wr_signed_lithash_to_bitmask(glb* g, int hash, int negflag);
 gint wr_lithash_to_bitmask(glb* g, int hash);
 gint wr_calc_term_meta(glb* g, gint x, int depth, int pos, term_metacalc* metaptr);
 
-//gint wr_decorate_clause(glb* g, gptr xptr);
-//void wr_decorate_term(glb* g, gint x, int depth, int pos, term_metacalc* metaptr);
-
 void wr_print_cl_meta(glb* g, gint clmeta1);
 void wr_print_gint_hashmask(glb* g, gint mask);
 
@@ -119,5 +116,8 @@ void wr_sort_cl(glb* g, gptr cl);
 int wr_sort_meta_bigger(gint jmeta,  gint imeta);  
 
 void wr_qsort_metaclvec(glb* g, gptr vec, gint low, gint high);
+
+
+void wr_print_cl_literals_meta(glb* g, gptr cl);
 
 #endif

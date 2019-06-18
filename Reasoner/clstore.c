@@ -157,8 +157,7 @@ void wr_show_clactivesubsume(glb* g) {
     wr_print_clause(g,rotp(g,(rotp(g,g->clactivesubsume))[i+CLMETABLOCK_CL_POS]));
     printf("\n record    ");
     wg_print_record(g->db,rotp(g,(rotp(g,g->clactivesubsume))[i+CLMETABLOCK_CL_POS]));
-    //printf("\n cl offset stored in (g->clactivesubsume): %ld", 
-    //          ((rotp(g,g->clactivesubsume))[i+CLMETABLOCK_CL_POS]));
+
     printf("\n"); 
   } 
 }
@@ -299,22 +298,16 @@ hash adding:
 */
 
 
-int wr_cl_store_res_terms(glb* g, gptr cl) {    
+int wr_cl_store_res_terms(glb* g, gptr cl, cvec resolvability) {    
   void* db=g->db;
   int i,j;
   int len;      
   int ruleflag; // 0 if not rule
-  int posok=1;  // default allow
-  int negok=1;  // default allow 
-  int nonanslen; // length not counting ans literals;
   gint meta;
   gint atom;  
   int negflag; // 1 if negative
   //int termflag; // 1 if complex atom  
   gint hash=0;
-  int addflag=0;
-  int negadded=0;
-  int posadded=0;
   vec hashvec;
   int tmp;
   int preflen;
@@ -330,50 +323,24 @@ int wr_cl_store_res_terms(glb* g, gptr cl) {
   ruleflag=wg_rec_is_rule_clause(db,cl);
   if (ruleflag) len = wg_count_clause_atoms(db, cl);
   else len=1;
-  // for negpref check out if negative literals present
-  wr_set_stratlimits_cl(g,cl,ruleflag,len,&posok,&negok,&nonanslen);
-
+ 
 #ifdef DEBUG
   printf("ruleflag %d len %d posok %d negok %d\n",
           ruleflag,len,posok,negok);
 #endif  
   // loop over literals
-#if 0
-/* XXX: FIXME */
-#ifdef USE_CHILD_DB
-  if (ruleflag) parent = wg_get_rec_base_offset(db,cl);
-#endif
-#endif
   for(i=0; i<len; i++) {  
+    if (!resolvability[i+1] && !(g->queryfocus_strat)) continue;
     negflag=0;
-    //termflag=0;
-    addflag=0;
     if (!ruleflag) {
       atom=encode_record(db,cl);      
-      addflag=1;
     } else {       
       meta=wg_get_rule_clause_atom_meta(db,cl,i);
-      if (wg_atom_meta_is_neg(db,meta)) negflag=1;
-      if (!((g->negpref_strat) || (g->pospref_strat)) ||
-          (negflag && (g->hyperres_strat)) ||
-          (negok && negflag && !negadded) || 
-          (posok && !negflag)) {            
-        if (negflag) negadded++; 
-        else posadded++;          
-        atom=wg_get_rule_clause_atom(db,cl,i);
-        if (wg_get_encoded_type(db,atom)==WG_RECORDTYPE) {
-          //termflag=1;
-#if 0
-/* XXX: FIXME */
-#ifdef USE_CHILD_DB
-          if(parent) atom=wg_encode_parent_data(parent,atom);
-#endif             
-#endif
-        }               
-        addflag=1;
-      }      
+      if (wg_atom_meta_is_neg(db,meta)) negflag=1;              
+      atom=wg_get_rule_clause_atom(db,cl,i);
+      if (wg_get_encoded_type(db,atom)!=WG_RECORDTYPE) continue;   
     }
-    if (addflag) {
+    if (1) {
 #ifdef XDEBUG 
       printf("adding to hash g->hash_pos_atoms or g->hash_neg_atoms in wr_cl_store_res_terms\n");
 #endif       
@@ -407,9 +374,7 @@ int wr_cl_store_res_terms(glb* g, gptr cl) {
           return 1;        
         }  
       }  
-#ifdef DEBUGHASH      
-      //printf("\nhash table after adding:");      
-      //wr_clterm_hashlist_print(g,hashvec);     
+#ifdef DEBUGHASH    
       printf("\nhash_pos_atoms after adding:");      
       wr_clterm_hashlist_print(g,rotp(g,g->hash_pos_atoms));
       printf("\nhash_neg_atoms after adding:");      
@@ -432,21 +397,14 @@ int wr_cl_store_res_terms(glb* g, gptr cl) {
 
 */
 
-int wr_cl_store_para_terms(glb* g, gptr cl) {    
+int wr_cl_store_para_terms(glb* g, gptr cl, cvec resolvability) {    
   void* db=g->db;
   int i;
   int len;      
   int ruleflag; // 0 if not rule
-  int poscount=0; // used only for pos/neg pref
-  int negcount=0; // used only for pos/neg pref
-  int posok=1;  // default allow
-  int negok=1;  // default allow
   gint meta;
   gint atom;  
   int negflag; // 1 if negative
-  int negadded=0;
-  int posadded=0;
-  int addflag=0;
   int termpath=0;
   gptr tptr;
   gint a,b,atype,btype;
@@ -461,70 +419,30 @@ int wr_cl_store_para_terms(glb* g, gptr cl) {
   ruleflag=wg_rec_is_rule_clause(db,cl);
   if (ruleflag) len = wg_count_clause_atoms(db, cl);
   else len=1;
-  // for negpref check out if negative literals present
-  if (1) {
-    // prohibit pos or neg    
-    if ((g->negpref_strat) || (g->pospref_strat)) {
-      if (!ruleflag) {
-        poscount=1;
-        negcount=0;
-      } else {         
-        poscount=0;
-        negcount=0;        
-        for(i=0; i<len; i++) {          
-          meta=wg_get_rule_clause_atom_meta(db,cl,i);
-          if (wg_atom_meta_is_neg(db,meta)) negcount++;
-          else poscount++; 
-        }  
-        // set neg/pospref!    
-        if (g->negpref_strat) {
-          if (poscount>0 && negcount>0) posok=0;
-        }      
-        if (g->pospref_strat) {
-          if (poscount>0 && negcount>0) negok=0;
-        }
-      }
-    }
-  }
 #ifdef DEBUG
   printf("ruleflag %d len %d poscount %d negcount %d posok %d negok %d\n",
           ruleflag,len,poscount,negcount,posok,negok);
 #endif  
   // loop over literals
   for(i=0; i<len; i++) {  
+    if (!resolvability[i+1] && !(g->queryfocus_strat)) continue;
     negflag=0;
     atom=0;
-    //termflag=0;
-    addflag=0;
     termpath=0;
     if (!ruleflag) {
       atom=encode_record(db,cl);      
-      addflag=1;
     } else {      
       meta=wg_get_rule_clause_atom_meta(db,cl,i);
-      if (wg_atom_meta_is_neg(db,meta)) negflag=1;
-      if (!((g->negpref_strat) || (g->pospref_strat)) ||
-          (negflag && (g->hyperres_strat)) ||
-          (negok && negflag && !negadded) || 
-          (posok && !negflag)) {            
-        if (negflag) negadded++; 
-        else posadded++;          
-        atom=wg_get_rule_clause_atom(db,cl,i);
-        if (wg_get_encoded_type(db,atom)==WG_RECORDTYPE) {
-          //termflag=1;
-        }               
-        addflag=1;
-      }      
+      if (wg_atom_meta_is_neg(db,meta)) negflag=1;               
+      atom=wg_get_rule_clause_atom(db,cl,i);    
     }
     if (!atom) continue;
     // store subterms into a hash structure for para-from later
-    if (addflag) {
-      wr_cl_store_para_subterms(g,cl,atom,0,i,&termpath);
-    }
+    wr_cl_store_para_subterms(g,cl,atom,0,i,&termpath);    
     // cannot store anything if len>1 and g->posunitpara_strat is on
     if ((g->posunitpara_strat) && len!=1) continue;
     // store equality args into a hash structure for para-into later
-    if (addflag && !negflag && wr_equality_atom(g,atom)) {
+    if (!negflag && wr_equality_atom(g,atom)) {
       tptr=rotp(g,atom);
       tlen=get_record_len(tptr);
       if (tlen<(g->unify_firstuseterm)+3) continue;              
@@ -648,11 +566,6 @@ int wr_cl_store_term_rewriter(glb* g, gptr cl, gint term, int termtype, int litn
     wr_printf("\n+ rewriter kept lf %d: ",leftflag);
     wr_print_clause(g,cl);
   }  
-  //printf("\nwr_cl_store_term_rewriter adds term \n");
-  //  wr_print_term(g,term);
-  //printf("\nresulting with\n");
-  //wr_clterm_hashlist_print_para(g,hashvec);
-
 #ifdef DEBUGHASH      
   printf("\nhash_rewrite_terms after adding:");      
   wr_clterm_hashlist_print_para(g,hashvec);
@@ -701,9 +614,6 @@ int wr_cl_store_para_subterms(glb* g, gptr cl, gint term, int depth, int litnr, 
     for(i=istart; i<ilimit; i++) {   
       yi=*(ptr+i);
 
-      //printf("\ndepth %d i %d istart %d ilimit %d \n",depth,i,istart,ilimit);
-      //wr_print_term(g,yi);  
-      //printf("\n");
 #ifdef PARA_INTO_FUNSYMB
       (*termpath)++;
       wr_cl_store_para_subterms(g,cl,yi,depth+1,litnr,termpath);
@@ -762,136 +672,6 @@ int wr_decode_para_termpath_leftflag(glb* g, int n) {
   return (n & PARA_TERMPATH_LEFTMASK);
 }
 
-
-/*
-int wr_cl_store_res_terms_new (glb* g, gptr cl) {    
-  void* db=g->db;
-  int i;
-  int len;      
-  int ruleflag; // 0 if not rule
-  int poscount=0; // used only for pos/neg pref
-  int negcount=0; // used only for pos/neg pref
-  int posok=1;  // default allow
-  int negok=1;  // default allow
-  gint meta;
-  gint atom;  
-  int negflag; // 1 if negative
-  //int termflag; // 1 if complex atom  
-  //gint hash;
-  int addflag=0;
-  int negadded=0;
-  int posadded=0;
-  vec hashvec;
-  //void* hashdata;
-  int tmp;
-  //int hashposbits;
-  
-#ifdef DEBUG
-  printf("cl_store_res_terms called on cl: "); 
-  wr_print_clause(g,cl);
-#endif  
-
-  // get clause data for input clause
-       
-  ruleflag=wg_rec_is_rule_clause(db,cl);
-  if (ruleflag) len = wg_count_clause_atoms(db, cl);
-  else len=1;
-  
-  // for negpref check out if negative literals present
-    
-  if (1) {
-    // prohibit pos or neg    
-    if ((g->negpref_strat) || (g->pospref_strat)) {
-      if (!ruleflag) {
-        poscount=1;
-        negcount=0;
-      } else {         
-        poscount=0;
-        negcount=0;        
-        for(i=0; i<len; i++) {          
-          meta=wg_get_rule_clause_atom_meta(db,cl,i);
-          if (wg_atom_meta_is_neg(db,meta)) negcount++;
-          else poscount++; 
-        }  
-        // set neg/pospref!    
-        if (g->negpref_strat) {
-          if (poscount>0 && negcount>0) posok=0;
-        }      
-        if (g->pospref_strat) {
-          if (poscount>0 && negcount>0) negok=0;
-        }
-      }
-    }
-  }
-
-#ifdef DEBUG
-  printf("ruleflag %d len %d poscount %d negcount %d posok %d negok %d\n",
-          ruleflag,len,poscount,negcount,posok,negok);
-#endif  
-  // loop over literals
-#if 0
-#ifdef USE_CHILD_DB
-  if (ruleflag) parent = wg_get_rec_base_offset(db,cl);
-#endif
-#endif
-  for(i=0; i<len; i++) {  
-    negflag=0;
-    //termflag=0;
-    addflag=0;
-    if (!ruleflag) {
-      atom=encode_record(db,cl);      
-      addflag=1;
-    } else {       
-      meta=wg_get_rule_clause_atom_meta(db,cl,i);
-      if (wg_atom_meta_is_neg(db,meta)) negflag=1;
-      if (!((g->negpref_strat) || (g->pospref_strat)) ||
-          (negflag && (g->hyperres_strat)) ||
-          (negok && negflag && !negadded) || 
-          (posok && !negflag)) {            
-        if (negflag) negadded++; 
-        else posadded++;          
-        atom=wg_get_rule_clause_atom(db,cl,i);
-        if (wg_get_encoded_type(db,atom)==WG_RECORDTYPE) {
-          //termflag=1;
-#if 0
-#ifdef USE_CHILD_DB
-          if(parent) atom=wg_encode_parent_data(parent,atom);
-#endif             
-#endif
-        }               
-        addflag=1;
-      }      
-    }
-    if (addflag) {      
-#ifdef XDEBUG 
-      printf("before adding to hash negflag: %d\n",negflag);
-#endif           
-      if (negflag) hashvec=rotp(g,g->hash_neg_atoms);
-      else hashvec=rotp(g,g->hash_pos_atoms);
-#ifdef XDEBUG 
-      printf("adding to hash g->hash_neg_atoms or g->hash_pos_atoms\n");
-#endif       
-      tmp=wr_term_hashstore(g,hashvec,atom,cl);    
-      if (tmp) {
-        wr_sys_exiterr2int(g,"adding term to hashlist in cl_store_res_terms, code ",tmp);
-        return 1;        
-      }  
-#ifdef DEBUGHASH      
-      printf("\nhash table after adding:");      
-      wr_clterm_hashlist_print(g,hashvec);     
-      printf("\npos hash table after adding:");      
-      wr_clterm_hashdata_print(g,rotp(g,g->hash_pos_atoms));
-      printf("\nneg hash table after adding:");      
-      wr_clterm_hashdata_print(g,rotp(g,g->hash_neg_atoms));  
-#endif      
-    }  
-  }     
-#ifdef DEBUG
-  printf("cl_store_res_terms finished\n"); 
-#endif      
-  return 0;
-}
-*/
 
 /* =============================================
 
@@ -1167,14 +947,6 @@ void wr_push_cl_clpick_queues(glb* g, gint queues_offset, gptr cl, int weight) {
     historyptr=otp(db,history);
     priority=wr_get_history_record_field(db,historyptr,HISTORY_PRIORITY_POS);
     decprior=wg_decode_int(db,priority);
-    /*
-    if (decprior<11) {
-      printf("\ndecprior %d\n",decprior);
-      printf("\nwr_push_cl_clpick_queues called with queryfocus_strat %d (g->cl_pick_queue_strategy) %d weight %d and cl: ",
-         (g->queryfocus_strat),(g->cl_pick_queue_strategy),weight);
-      wr_print_clause(g,cl);
-    }
-    */
    
     // modify decpriors according to strat
 
@@ -1533,12 +1305,7 @@ gptr wr_pick_from_clpick_queues(glb* g, gptr queues, gptr given_cl_metablock) {
   int loopflag=0;
 
 #ifdef QPICKDEBUG
-  //int qn=0;
   printf("\n!!!! wr_pick_from_clpick_queues starts with queuenr %d \n",(g->next_pick_given_queue_block_nr));
-  //while(1) {
-  //  blockstart=1+(queuenr*CLPICK_QUEUE_BLOCKGINTS);    
-  //  qn++;
-  //}  
 #endif 
 
   //wr_print_clpick_queues(g,rotp(g,g->clpick_queues));
@@ -1855,13 +1622,7 @@ void wr_print_clpick_queues(glb* g, gint* queues) {
   if (!queues) {
     printf("\nqueues is NULL\n");
     return;    
-  }  
-  
-  //limit=queues[0];
-  //for(i=0; i<limit; i++) {
-  //  printf("\ni %d queues[i] %d ",i,queues[i]);
-  //} 
-  //return; 
+  }   
   
   printf("\ng->clpick_given: %d",(int)(g->clpick_given));
 
@@ -1920,12 +1681,6 @@ void wr_print_clpick_queue_sizes(glb* g, gint* queues) {
     return;    
   }  
   
-  //limit=queues[0];
-  //for(i=0; i<limit; i++) {
-  //  printf("\ni %d queues[i] %d ",i,queues[i]);
-  //} 
-  //return; 
-  
   printf("\ng->clpick_given: %d",(int)(g->clpick_given));
 
   limit=queues[0];
@@ -1964,99 +1719,6 @@ void wr_print_clpick_queue_sizes(glb* g, gint* queues) {
    printf("\n* g->clpick_queues content ends *\n");
 }
 
-/*
-void OLD___wr_print_clpick_queue_sizes(glb* g, gint* queues) {
-  int i; //,j;
-  gint limit;
-  gint simplequeue_offset;
-  gptr simplequeue;
-  int prior,max_used_prior,elstart;
-  gint* queue;
-
-  printf("\n*** g->clpick_queues sizes ****\n");
-  if (!queues) {
-    printf("\nqueues is NULL\n");
-    return;    
-  }  
-  
-  //limit=queues[0];
-  //for(i=0; i<limit; i++) {
-  //  printf("\ni %d queues[i] %d ",i,queues[i]);
-  //} 
-  //return; 
-  
-  printf("\ng->clpick_given: %d",(int)(g->clpick_given));
-
-  limit=queues[0];
-  printf("\ng->clpick_given vec len (el 0): %d",(int)limit);
-  printf("\nNROF_CLPICK_QUEUES: %d",NROF_CLPICK_QUEUES);
-  // do big block-size steps over array
-  for(i=1; i<limit && i<(NROF_CLPICK_QUEUES*CLPICK_QUEUE_BLOCKGINTS); i=i+CLPICK_QUEUE_BLOCKGINTS) {
-    printf("\n-- queue nr %d ---\n",i);
-    printf("\nCLPICK_QUEUE_GIVEN_POS: %d",(int)(queues[i+CLPICK_QUEUE_GIVEN_POS]));
-    printf("\nCLPICK_PRIORQUEUE_RATIO: %d",(int)(queues[i+CLPICK_PRIORQUEUE_RATIO]));
-    printf("\nCLPICK_PRIORQUEUE_RATIO_COUNTER: %d",(int)(queues[i+CLPICK_PRIORQUEUE_RATIO_COUNTER]));
-    printf("\nCLPICK_THIS_QUEUE_RATIO: %d",(int)(queues[i+CLPICK_THIS_QUEUE_RATIO]));
-    printf("\nCLPICK_THIS_QUEUE_RATIO_COUNTER: %d",(int)(queues[i+CLPICK_THIS_QUEUE_RATIO_COUNTER]));
-
-    if (queues[i+CLPICK_QUEUE_POS]!=0) {
-
-      simplequeue_offset=queues[i+CLPICK_QUEUE_POS];
-      simplequeue=rotp(g,simplequeue_offset);
-      //printf("\nlen of queue: %d",(int)(rotp(g,queues[i+CLPICK_QUEUE_POS])[0])); 
-      printf("\nsimplequeue max len %d count %d, elems:\n",(int)(simplequeue[0]),(int)(simplequeue[1]));
-      
-      //for(j=2;j<simplequeue[0] && j<simplequeue[1];j++) {
-      //  printf("\n %d: ",j);
-      //  wr_print_clause(g,(gptr)(simplequeue[j]));        
-      //} 
-      
-    } else {
-      printf("\nsimplequeue is 0");  
-    }
-    if (queues[i+CLPICK_PRIORQUEUE_POS]!=0) {
-      queue=rotp(g,queues[i+CLPICK_PRIORQUEUE_POS]);
-      max_used_prior=queue[PRIORQUEUE_MAX_USED_PRIOR_POS];
-      printf("\n");
-      printf("priority queue with max priority %d, max used priority %d: \n",
-        (int)(queue[PRIORQUEUE_ARR_LEN_POS]-2),
-        max_used_prior
-      );  
-
-      for(prior=0;prior<=max_used_prior;prior++) {  
-        queue=rotp(g,queues[i+CLPICK_PRIORQUEUE_POS]);
-        elstart=(prior+1)*PRIORQUEUE_NODE_GINT_NR; // each prior has a block of N gints    
-        if (queue[elstart+PRIORQUEUE_ARR_OFFSET_POS]) {
-          printf("clauses with priority %d bucket size %d next free %d next pick %d\n",
-            prior,
-            (int)(queue[elstart+PRIORQUEUE_ARR_LEN_POS]),
-            (int)(queue[elstart+PRIORQUEUE_NEXT_FREE_INDEX_POS]),
-            (int)(queue[elstart+PRIORQUEUE_NEXT_PICK_INDEX_POS])
-          );
-          
-          //bucket=rotp(g,queue[elstart+PRIORQUEUE_ARR_OFFSET_POS]);      
-          //for(i=0;i<queue[elstart+PRIORQUEUE_NEXT_FREE_INDEX_POS];i++) {
-          //  cl=rotp(g,bucket[i]);
-          //  if (i==queue[elstart+PRIORQUEUE_NEXT_PICK_INDEX_POS]) {
-          //    printf("%d [pick] ",i);
-          //  } else {
-          //    printf("%d: ",i);
-          //  }
-          //  wr_print_clause(g,cl);
-          //  printf("\n");
-          //}
-          
-        }
-      }
-
-      wr_print_priorqueue(g,rotp(g,queues[i+CLPICK_PRIORQUEUE_POS]));
-    } else {
-      printf("\npriorqueue is 0");    
-    }  
-  }    
-  printf("\n* g->clpick_queues content ends *\n");
-}
-*/
 
 /* =====================================================
 

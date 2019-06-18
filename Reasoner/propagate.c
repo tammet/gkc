@@ -55,7 +55,6 @@ extern "C" {
 
 
 void wr_propagate_unit(glb* g, gptr cl, gint clmeta, gint hash, gptr cl_as_active) {
-  //void* db=g->db;
   int len, negflag;
   gint atom,meta;  
   gptr bucketnode;
@@ -167,11 +166,7 @@ void wr_resolve_propagated_clause(glb* g, gint atom, gptr cl, gptr cutcl, int ne
   int len;      
   gint xmeta; 
   gint xatom;
-  //gptr xcl;
-  //int ures;  
-  //gint a,b;
-  //gptr tptr;
-  //int atomlen;
+
   
   UNUSED(db);
 #ifdef DEBUG
@@ -209,19 +204,10 @@ void wr_resolve_propagated_clause(glb* g, gint atom, gptr cl, gptr cutcl, int ne
 
 void wr_process_propagated_result
       (glb* g, gint xatom, gptr xcl, gint yatom, gptr ycl, gptr xcl_as_active, int cutpos2) {
-  //void* db=g->db;
-  //int xisrule,yisrule,xatomnr,yatomnr
   int yatomnr, datalen;
-  //int rlen;
   int tmp;
-  //gptr rptr;
-  //int rpos,cutpos1=0,cutpos2=0;
   gptr res;  
   gint resmeta,history, hash;
-  //int ruleflag;
-  //int partialresflag;
-  //int clstackflag;
-  //gint given_termbuf_storednext;
   gint initial_queue_termbuf_next;
   int weight;
   double avg;

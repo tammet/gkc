@@ -154,18 +154,6 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
     kb_db=db;
     kb_g=NULL;
   }
-  
-  //printf("\n** clactivesubsume data from external:\n"); 
-  //wr_show_clactivesubsume(kb_g);
-  /*
-  CP0
-  tmp=wr_analyze_clause_list(g,db,child_db);
-  CP1
-  if (!givenguide) {
-    make_auto_guide(g);
-    //guide=wr_parse_guide_str(buf);
-  }  
-  */
 
   analyze_g=wr_glb_new_simple(db);
   if (kb_g!=NULL) {
@@ -174,7 +162,6 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
   (analyze_g->child_db)=child_db;
   (analyze_g->db)=db; 
   (analyze_g->varbanks)=wr_vec_new(analyze_g,NROF_VARBANKS*NROF_VARSINBANK);
-  //(g->varbankrepl)=wr_vec_new(g,3*NROF_VARSINBANK);
   (analyze_g->varstack)=wr_cvec_new(analyze_g,NROF_VARBANKS*NROF_VARSINBANK); 
   (analyze_g->varstack)[1]=2; // first free elem  
   tmp=wr_analyze_clause_list(analyze_g,db,child_db);
@@ -186,7 +173,6 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
     //if (guidebuf!=NULL) wr_free(g,(void*)guidebuf);
     if (guidebuf!=NULL) { sys_free(guidebuf); guidebuf=NULL; }
   }
-  //exit(0);
 
   for(iter=0; 1; iter++) { 
 #ifdef DEBUG    
@@ -549,34 +535,11 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
       (g->tmp_sort_vec)=wr_vec_store(g,g->tmp_sort_vec,j+1,(gint)rec);
       cell2=cellptr2->cdr;         
       n++;
-    }
-    
-    /*
-    printf("\nbuilt, res:\n");
-    for(i=0;i<n;i++) {
-      j=(i*2)+1;
-      printf("\n i %d j %d: ",i,j);
-      printf(" %ld ",(g->tmp_sort_vec)[j]);
-      wr_print_clause(g,(g->tmp_sort_vec)[j+1]);
-    }
-    printf("\n");
-    */
-    // sort
-    
+    }       
+    // sort    
     if (!(g->reverse_clauselist_strat)) {
       wr_qsort_metaclvec(g,(g->tmp_sort_vec),0,n-1);
-    }  
-    /*
-    printf("\nsorted, res:\n");
-    for(i=0;i<n;i++) {
-      j=(i*2)+1;
-      printf("\n i %d j %d: ",i,j);
-      printf(" %ld ",(g->tmp_sort_vec)[j]);
-      wr_print_clause(g,(g->tmp_sort_vec)[j+1]);
-    }
-    printf("\n");    
-    */
-
+    }      
   } else {
     lastcell=(dbmemsegh(child_db)->clauselist);
   }  
@@ -598,42 +561,22 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
       if (!cell) break;
       cellptr=(gcell *) offsettoptr(child_db, cell);
       rec=offsettoptr(child_db,cellptr->car);
-    }    
-
-    //printf("\n next clause weight %ld from db: ",(g->tmp_sort_vec)[(i*2)+1]);
-    wr_print_clause(g,rec);
-    printf("\n");
-
+    } 
     if (g->alloc_err) {
       wr_errprint("\nbuffer overflow, terminating\n");
       wr_show_stats(g,1);      
       exit(0);
     }     
     
-    /*
-    printf("\n next clause from db: ");
-    wg_print_record(db,rec);
-    printf("\n");
-    wr_print_clause(g,rec);
-    printf("\n");
-    */
-
-#ifdef DEBUG
-    // #define wg_rec_is_rule_clause(db,rec) (*((gint*)(rec)+RECORD_META_POS) & RECORD_META_RULE_CLAUSE)
+    //wr_print_clause(g,rec);
+    //printf("\n");
+#ifdef DEBUG   
     printf("\n next rec from db: ");
     wg_print_record(db,rec);
-    printf("\n");
-    //printf("\nRECORD_META_POS %d RECORD_META_RULE_CLAUSE %d\n",RECORD_META_POS,RECORD_META_RULE_CLAUSE);
-    //printf("\n at *((gint*)(rec)+RECORD_META_POS) %d\n",(int)(*((gint*)(rec)+RECORD_META_POS)));
-    //printf("\n & RECORD_META_RULE_CLAUSE with  *((gint*)(rec)+RECORD_META_POS) %d\n",(int)(*((gint*)(rec)+RECORD_META_POS) & RECORD_META_RULE_CLAUSE));
+    printf("\n");    
 #endif
-
+     
     if (wg_rec_is_rule_clause(db,rec)) {
-
-      //printf("\n+++++++ rule clause selected active: ");
-      //wr_print_clause(g,rec);
-      //printf("\n");
-
       rules_found++;
       clmeta=wr_calc_clause_meta(g,rec,given_cl_metablock);
       wr_add_cl_to_unithash(g,rec,clmeta);
@@ -655,32 +598,24 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
       wr_print_termhash(g,rotp(g,g->hash_pos_groundunits));
 #endif       
 
-      if (g->queryfocus_strat && wr_initial_select_active_cl(g,(gptr)rec)) {
-
-        //printf("\nrule clause selected active: ");
-        //wr_print_clause(g,rec);
-        //printf("\n");
-
-
+      if (g->queryfocus_strat && wr_initial_select_active_cl(g,(gptr)rec)) {   
+        // calculate resolvability: (g->tmp_resolvability_vec)
+        wr_calc_clause_resolvability(g,rec,1);      
         given_cl=wr_process_given_cl(g,(gptr)rec, g->given_termbuf);
         if ( ((gint)given_cl==ACONST_FALSE) || ((gint)given_cl==ACONST_TRUE) ||
-             (given_cl==NULL) ) {
-          //rec = wg_get_next_raw_record(child_db,rec); 
+             (given_cl==NULL) ) {          
           cell=cellptr->cdr;   
           continue;
         };
-        wr_sort_cl(g,given_cl);
-        //given_cl_as_active=wr_add_given_cl_active_list(g,(gptr)rec);
+        wr_sort_cl(g,given_cl);      
         given_cl_as_active=wr_add_given_cl_active_list
-                             (g,given_cl,given_cl_metablock,0,g->active_termbuf);                           
+                             (g,given_cl,given_cl_metablock,0,g->active_termbuf,(g->tmp_resolvability_vec));                           
         if (given_cl_as_active==NULL) {
           //if (g->alloc_err) return -1;
           cell=cellptr->cdr;
           continue; 
         }    
-      } else {
-        //wr_push_clqueue_cl(g,rec);        
-
+      } else {       
         if (0) { //(!(g->cl_pick_queue_strategy)) {
           weight=wr_calc_clause_weight(g,rec,&size,&depth,&length);
         } else {  
@@ -690,10 +625,7 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
           else weight=-1; //wr_calc_clause_weight(g,rec,&size,&depth,&length);
           //else weight=wr_calc_clause_weight(g,rec,&size,&depth,&length);
         }
-        //printf("weight %d\n",weight);
-        //weight=-1;
         weight=-1;
-        //weight=1;
 #ifdef SHOW_ADDED
         printf("\nadding rulecl used weight %ld real weight %ld assumptionflag %d goalflag %d\n",
           weight,
@@ -706,15 +638,10 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
       } 
 
     } else if (wg_rec_is_fact_clause(db,rec)) {
-
-      //printf("\n+++++++ fact clause selected active: ");
-      //wr_print_clause(g,rec);
-      //printf("\n");
-
       facts_found++;
       clmeta=wr_calc_clause_meta(g,rec,given_cl_metablock);
       wr_add_cl_to_unithash(g,rec,clmeta);
-#ifdef DEBUG      
+#ifdef DEBUG
       printf("\n+++++++ nrec is a fact  ");
       wr_print_fact_clause_otter(g, (gint *) rec,(g->print_clause_detaillevel));
       printf("\n"); 
@@ -730,37 +657,20 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
       printf("\nhash_pos_groundunits\n");
       wr_print_termhash(g,rotp(g,g->hash_pos_groundunits));
 #endif      
-      
-      //printf("\nfact clause: ");
-      //wr_print_clause(g,rec);
-      //printf("\n");
-
       if (g->queryfocus_strat && wr_initial_select_active_cl(g,(gptr)rec)) {
-
-        //printf("\nfact clause selected active: ");
-        //wr_print_clause(g,rec);
-        //printf("\n");
-
+        wr_calc_clause_resolvability(g,rec,1);
         given_cl=wr_process_given_cl(g,(gptr)rec,g->given_termbuf);
         if ( ((gint)given_cl==ACONST_FALSE) || ((gint)given_cl==ACONST_TRUE) ||
              (given_cl==NULL) ) {
-          /*     
-          dp("\n fact clause was simplified while adding to sos, original:\n");
-          wr_print_clause(g,(gptr)rec);
-          */
-          //rec = wg_get_next_raw_record(child_db,rec);
           cell=cellptr->cdr;    
           continue;
         }
         given_cl_as_active=wr_add_given_cl_active_list
-                            (g,given_cl,given_cl_metablock,1,g->active_termbuf);                        
+                            (g,given_cl,given_cl_metablock,1,g->active_termbuf,(g->tmp_resolvability_vec));                        
         if (given_cl_as_active==NULL) {
           if (g->alloc_err) return -1;
-          //continue; 
         }    
       } else {
-        //wr_push_clqueue_cl(g,rec);
-        //wr_push_clqueue_cl(g,rec);
         if (0) { // (!(g->cl_pick_queue_strategy)) {
           weight=wr_calc_clause_weight(g,rec,&size,&depth,&length);
         } else {  
@@ -771,10 +681,7 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
           else weight=-1; //wr_calc_clause_weight(g,rec,&size,&depth,&length);
           //else weight=wr_calc_clause_weight(g,rec,&size,&depth,&length);
         }        
-        //printf("weight %d\n",weight);
-        //weight=-1;
         weight=-1;
-        //weight=1;
 #ifdef SHOW_ADDED
         printf("\nadding factcl used weight %ld real weight %ld assumptionflag %d goalflag %d\n",
           weight,
@@ -792,10 +699,7 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
       wg_print_record(db,rec);
       printf("\n");
 #endif  
-    }             
-    //for(i=0;i<10;i++) printf(" %d ",(int)((rotp(g,g->clqueue))[i])); printf("\n");
-    //printf("\n cell %ld cellptr->cdr %ld\n",(gint)cell,(gint)(cellptr->cdr));
-
+    }
     // take next element
     if (vecflag) {
       if (g->reverse_clauselist_strat) i--;
@@ -810,318 +714,6 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
   return rules_found+facts_found;
 }
 
-
-int testing_wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
-  void *rec=NULL;
-  //void* db=(g->db);
-  int i=0,j;
-  gint clmeta;
-  gptr given_cl_as_active, given_cl;
-  gint given_cl_metablock[CLMETABLOCK_ELS];
-  int rules_found=0;
-  int facts_found=0;
-  gint weight;
-  gint cell=0;
-  gcell *cellptr=NULL;
-  // for reversing order:
-  gcell *cellptr2; 
-  gint cell2,lastcell;
-  int n=0;
-  int size,depth,length;
-  int vecflag=0; // set to 1 if clauses sorted into vector
-
-  //printf("\n ** wr_init_active_passive_lists_from_one called ** \n");
-  (g->proof_found)=0;
-  wr_clear_all_varbanks(g); 
-  wr_process_given_cl_setupsubst(g,g->given_termbuf,1,1); 
-
-  // Reverse the order
-    
-  if (!(g->queryfocus_strat)) {
-    //printf("\nstarting to build a clause vector:\n");
-    vecflag=1;
-    cell2=(dbmemsegh(child_db)->clauselist);
-    lastcell=0;
-    n=0;
-    while(cell2) {
-      cellptr2=(gcell *) offsettoptr(child_db, cell2);
-      rec=offsettoptr(child_db,cellptr2->car); 
-      //printf("\nn: %d ",n);
-      //wr_print_clause(g,rec); 
-      j=(n*2)+1;  
-      weight=wr_calc_clause_weight(g,rec,&size,&depth,&length); 
-   
-      if (wr_cl_is_goal(g, rec)) weight=weight*1;
-      else if (wr_cl_is_assumption(g, rec)) weight=weight*10;
-      else weight=weight*100;
-      /*
-      if (g->cl_pick_queue_strategy) {
-        if (wr_cl_is_goal(g, rec)) weight=weight*1;
-        else if (wr_cl_is_assumption(g, rec)) weight=weight*10;
-        else weight=weight*100;
-      }
-      */
-      (g->tmp_sort_vec)=wr_vec_store(g,g->tmp_sort_vec,j,(gint)weight);
-      (g->tmp_sort_vec)=wr_vec_store(g,g->tmp_sort_vec,j+1,(gint)rec);
-      cell2=cellptr2->cdr;         
-      n++;
-    }
-    
-    /*
-    printf("\nbuilt, res:\n");
-    for(i=0;i<n;i++) {
-      j=(i*2)+1;
-      printf("\n i %d j %d: ",i,j);
-      printf(" %ld ",(g->tmp_sort_vec)[j]);
-      wr_print_clause(g,(g->tmp_sort_vec)[j+1]);
-    }
-    printf("\n");
-    */
-    // sort
-    
-    if (!(g->reverse_clauselist_strat)) {
-      wr_qsort_metaclvec(g,(g->tmp_sort_vec),0,n-1);
-    }  
-    /*
-    printf("\nsorted, res:\n");
-    for(i=0;i<n;i++) {
-      j=(i*2)+1;
-      printf("\n i %d j %d: ",i,j);
-      printf(" %ld ",(g->tmp_sort_vec)[j]);
-      wr_print_clause(g,(g->tmp_sort_vec)[j+1]);
-    }
-    printf("\n");    
-    */
-
-  } else {
-    lastcell=(dbmemsegh(child_db)->clauselist);
-  }  
-  
-  if (!vecflag) cell=lastcell;
-  else if (g->reverse_clauselist_strat) i=n-1;
-  else i=0;
-
-  while(1) { 
-    // take rec
-    if (vecflag) {
-      if (g->reverse_clauselist_strat) {
-        if (i<0) break;
-      } else {
-        if (i>=n) break;
-      }  
-      rec=(gptr)((g->tmp_sort_vec)[(i*2)+2]);
-    } else {      
-      if (!cell) break;
-      cellptr=(gcell *) offsettoptr(child_db, cell);
-      rec=offsettoptr(child_db,cellptr->car);
-    }    
-
-    //printf("\n next clause weight %ld from db: ",(g->tmp_sort_vec)[(i*2)+1]);
-    //wr_print_clause(g,rec);
-
-    if (g->alloc_err) {
-      wr_errprint("\nbuffer overflow, terminating\n");
-      wr_show_stats(g,1);      
-      exit(0);
-    }     
-    
-    /*
-    printf("\n next clause from db: ");
-    wg_print_record(db,rec);
-    printf("\n");
-    wr_print_clause(g,rec);
-    printf("\n");
-    */
-
-#ifdef DEBUG
-    // #define wg_rec_is_rule_clause(db,rec) (*((gint*)(rec)+RECORD_META_POS) & RECORD_META_RULE_CLAUSE)
-    printf("\n next rec from db: ");
-    wg_print_record(db,rec);
-    printf("\n");
-    //printf("\nRECORD_META_POS %d RECORD_META_RULE_CLAUSE %d\n",RECORD_META_POS,RECORD_META_RULE_CLAUSE);
-    //printf("\n at *((gint*)(rec)+RECORD_META_POS) %d\n",(int)(*((gint*)(rec)+RECORD_META_POS)));
-    //printf("\n & RECORD_META_RULE_CLAUSE with  *((gint*)(rec)+RECORD_META_POS) %d\n",(int)(*((gint*)(rec)+RECORD_META_POS) & RECORD_META_RULE_CLAUSE));
-#endif
-
-    if (wg_rec_is_rule_clause(db,rec)) {
-
-      //printf("\n+++++++ rule clause selected active: ");
-      //wr_print_clause(g,rec);
-      //printf("\n");
-
-      rules_found++;
-      clmeta=wr_calc_clause_meta(g,rec,given_cl_metablock);
-      wr_add_cl_to_unithash(g,rec,clmeta);
-
-#ifdef DEBUG      
-      printf("\n+++++++ nrec is a rule  "); 
-      wr_print_rule_clause_otter(g, (gint *) rec,(g->print_clause_detaillevel));
-      printf("\n"); 
-
-      printf("\nraw clause: ");
-      wg_print_record(db,rec);
-      printf("\n");
-      wr_print_clause(g,rec);
-      printf("\n");
-      
-      printf("\nhash_neg_groundunits\n");
-      wr_print_termhash(g,rotp(g,g->hash_neg_groundunits));
-      printf("\nhash_pos_groundunits\n");
-      wr_print_termhash(g,rotp(g,g->hash_pos_groundunits));
-#endif       
-
-      if (g->queryfocus_strat && wr_initial_select_active_cl(g,(gptr)rec)) {
-
-        //printf("\nrule clause selected active: ");
-        //wr_print_clause(g,rec);
-        //printf("\n");
-
-
-        given_cl=wr_process_given_cl(g,(gptr)rec, g->given_termbuf);
-        if ( ((gint)given_cl==ACONST_FALSE) || ((gint)given_cl==ACONST_TRUE) ||
-             (given_cl==NULL) ) {
-          //rec = wg_get_next_raw_record(child_db,rec); 
-          cell=cellptr->cdr;   
-          continue;
-        };
-        wr_sort_cl(g,given_cl);
-        //given_cl_as_active=wr_add_given_cl_active_list(g,(gptr)rec);
-        given_cl_as_active=wr_add_given_cl_active_list
-                             (g,given_cl,given_cl_metablock,0,g->active_termbuf);                           
-        if (given_cl_as_active==NULL) {
-          //if (g->alloc_err) return -1;
-          cell=cellptr->cdr;
-          continue; 
-        }    
-      } else {
-        //wr_push_clqueue_cl(g,rec);        
-
-        if (1) { //(!(g->cl_pick_queue_strategy)) {
-          weight=wr_calc_clause_weight(g,rec,&size,&depth,&length);        
-          if (wr_cl_is_goal(g, rec)) weight=weight/10;
-          else if (wr_cl_is_assumption(g, rec)) weight=weight/5;
-          if (weight<1) weight=1;
-          //else weight=-1;
-          //else weight=-1; //wr_calc_clause_weight(g,rec,&size,&depth,&length);
-          //else weight=wr_calc_clause_weight(g,rec,&size,&depth,&length);
-        }
-        //printf("weight %d\n",weight);
-        //weight=-1;
-        //weight=-1;
-        //weight=1;
-#ifdef SHOW_ADDED
-        printf("\nadding rulecl used weight %ld real weight %ld assumptionflag %d goalflag %d\n",
-          weight,
-          wr_calc_clause_weight(g,rec,&size,&depth,&length),
-          wr_cl_is_assumption(g,rec),
-          wr_cl_is_goal(g,rec));
-        wr_print_clause(g,rec);          
-#endif
-        wr_push_cl_clpick_queues(g,(g->clpick_queues),rec,weight); // -1 means we do not know weight
-      } 
-
-    } else if (wg_rec_is_fact_clause(db,rec)) {
-
-      //printf("\n+++++++ fact clause selected active: ");
-      //wr_print_clause(g,rec);
-      //printf("\n");
-
-      facts_found++;
-      clmeta=wr_calc_clause_meta(g,rec,given_cl_metablock);
-      wr_add_cl_to_unithash(g,rec,clmeta);
-#ifdef DEBUG      
-      printf("\n+++++++ nrec is a fact  ");
-      wr_print_fact_clause_otter(g, (gint *) rec,(g->print_clause_detaillevel));
-      printf("\n"); 
-
-      printf("\nraw clause: ");
-      wg_print_record(db,rec);
-      printf("\n");
-      wr_print_clause(g,rec);
-      printf("\n");
-     
-      printf("\nhash_neg_groundunits\n");
-      wr_print_termhash(g,rotp(g,g->hash_neg_groundunits));
-      printf("\nhash_pos_groundunits\n");
-      wr_print_termhash(g,rotp(g,g->hash_pos_groundunits));
-#endif      
-      
-      //printf("\nfact clause: ");
-      //wr_print_clause(g,rec);
-      //printf("\n");
-
-      if (g->queryfocus_strat && wr_initial_select_active_cl(g,(gptr)rec)) {
-
-        //printf("\nfact clause selected active: ");
-        //wr_print_clause(g,rec);
-        //printf("\n");
-
-        given_cl=wr_process_given_cl(g,(gptr)rec,g->given_termbuf);
-        if ( ((gint)given_cl==ACONST_FALSE) || ((gint)given_cl==ACONST_TRUE) ||
-             (given_cl==NULL) ) {
-          /*     
-          dp("\n fact clause was simplified while adding to sos, original:\n");
-          wr_print_clause(g,(gptr)rec);
-          */
-          //rec = wg_get_next_raw_record(child_db,rec);
-          cell=cellptr->cdr;    
-          continue;
-        }
-        given_cl_as_active=wr_add_given_cl_active_list
-                            (g,given_cl,given_cl_metablock,1,g->active_termbuf);                        
-        if (given_cl_as_active==NULL) {
-          if (g->alloc_err) return -1;
-          //continue; 
-        }    
-      } else {
-        //wr_push_clqueue_cl(g,rec);
-        //wr_push_clqueue_cl(g,rec);
-        if (1) { //(!(g->cl_pick_queue_strategy)) {
-          weight=wr_calc_clause_weight(g,rec,&size,&depth,&length);        
-          if (wr_cl_is_goal(g, rec)) weight=weight/10;
-          else if (wr_cl_is_assumption(g, rec)) weight=weight/5;
-          if (weight<1) weight=1;
-          //else weight=-1;
-          //else weight=-1; //wr_calc_clause_weight(g,rec,&size,&depth,&length);
-          //else weight=wr_calc_clause_weight(g,rec,&size,&depth,&length);
-        }
-
-       
-        //weight=1;
-#ifdef SHOW_ADDED
-        printf("\nadding factcl used weight %ld real weight %ld assumptionflag %d goalflag %d\n",
-          weight,
-          wr_calc_clause_weight(g,rec,&size,&depth,&length),
-          wr_cl_is_assumption(g,rec),
-          wr_cl_is_goal(g,rec));
-        wr_print_clause(g,rec);          
-#endif        
-        wr_push_cl_clpick_queues(g,(g->clpick_queues),rec,weight); // -1 means we do not know weight
-      }
-      
-    }  else {
-#ifdef DEBUG            
-      printf("\nrec is not a rule nor a fact: "); 
-      wg_print_record(db,rec);
-      printf("\n");
-#endif  
-    }             
-    //for(i=0;i<10;i++) printf(" %d ",(int)((rotp(g,g->clqueue))[i])); printf("\n");
-    //printf("\n cell %ld cellptr->cdr %ld\n",(gint)cell,(gint)(cellptr->cdr));
-
-    // take next element
-    if (vecflag) {
-      if (g->reverse_clauselist_strat) i--;
-      else i++;
-    } else {      
-      cell=cellptr->cdr;
-    }        
-  }
-#ifdef DEBUG            
-  printf("\nrules_found %d facts_found %d \n",rules_found,facts_found); 
-#endif   
-  return rules_found+facts_found;
-}
 
 
 /* ------------------------

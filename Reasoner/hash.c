@@ -121,17 +121,7 @@ int wr_term_hashstore(glb* g, void* hashdata, gint term, gptr cl) {
       thash=wr_term_basehash(g,el);
       hasharr[prefpos]=thash;      
     }     
-    /*
-    // compute complexhash and store to hashvecs
-    for(bits=hashposbits, pos=spos; bits>0 && pos<epos; bits=bits>>1, ++pos) {
-      if (bits & 1) {
-        el=*(tptr+pos);
-        thash=wr_term_basehash(g,el);
-        //hash=hash+thash;      
-        hash = thash + (hash << 6) + (hash << 16) - hash;
-      }      
-    }
-    */    
+   
     // loop over  hashbitset, compute complex hash and store            
     for(i=0;i<nonvarhashbitsetsize;i++) { 
       hash=0;      
@@ -446,18 +436,7 @@ gint wr_term_basehash(glb* g, gint enc) {
   printf("wr_termhash computed hash %d using NROF_CLTERM_HASHVEC_ELS-2 %d gives final res %d \n",
          hash,NROF_CLTERM_HASHVEC_ELS-2,0+(hash%(NROF_CLTERM_HASHVEC_ELS-2)));
 #endif 
-  /*  
-  res=(gint)(1+(hash%(NROF_CLTERM_HASHVEC_ELS-3)));
-  if (res==0) {
-    //wr_sys_exiterr2int(g,"adding term to hashlist in  wr_cl_store_eq_arg, code ",tmp);
-    //return 1;   
-    printf("\n in wr_term_basehash res %d hash %d NROF_CLTERM_HASHVEC_ELS-2 %d \n",
-     res,hash,NROF_CLTERM_HASHVEC_ELS-2);
-    wr_print_simpleterm_otter(g,enc,(g->print_clause_detaillevel)); 
-    printf("\n");
-  }
-  return res;
-  */
+ 
   return (gint)(1+(hash%(NROF_CLTERM_HASHVEC_ELS-3)));
 }
 
@@ -469,28 +448,7 @@ static int int_hash(int x) {
   if (a>=0) return a;
   else return 0-a;
   
-  /* 
-  if (x>=0 && x<NROF_CLTERM_HASHVEC_ELS-4) return x+3;
-  a=(unsigned int)x;
-  a -= (a<<6);
-  a ^= (a>>17);
-  a -= (a<<9);
-  a ^= (a<<4);
-  a -= (a<<3);
-  a ^= (a<<10);
-  a ^= (a>>15);
-  return (int)a;  
-  */
 }  
-
-/*
-#include <inttypes.h>
-uint32_t knuth_mul_hash(void* k) {
-  ptrdiff_t v = (ptrdiff_t)k * UINT32_C(2654435761);
-  v >>= ((sizeof(ptrdiff_t) - sizeof(uint32_t)) * 8); // Right-shift v by the size difference between a pointer and a 32-bit integer (0 for x86, 32 for x64)
-  return (uint32_t)(v & UINT32_MAX);
-}
-*/
 
 
 static int double_hash(double x) {
@@ -499,55 +457,6 @@ static int double_hash(double x) {
 } 
 
 // see also http://www.stdlib.net/~colmmacc/strlen.c.html for speedup ideas
-/*
-
-unsigned char checksum = 0;
-while (!feof(fp) && !ferror(fp)) {
-   checksum ^= fgetc(fp);
-}
-
-...
-
-unsigned char 
- Checksum(unsigned char *data, unsigned char length) {
-      
-     unsigned char result = 0;
-     unsigned int l = length - 1;
-     asm volatile ( "repeat %2\nsub.b %0,[%1++],%0"   
-           : "+r" (result), "+r" (data)
-           : "r" (l)
-           : "_RCOUNT");
-     return result;
- }
-
- ...
-
- https://create.stephan-brumme.com/crc32/#slicing-by-8-overview
-...
-
-uint16_t
-fletcher16(const uint8_t *data, size_t len)
-{
-        uint32_t c0, c1;
-        unsigned int i;
-
-        for (c0 = c1 = 0; len >= 5802; len -= 5802) {
-                for (i = 0; i < 5802; ++i) {
-                        c0 = c0 + *data++;
-                        c1 = c1 + c0;
-                }
-                c0 = c0 % 255;
-                c1 = c1 % 255;
-        }
-        for (i = 0; i < len; ++i) {
-                c0 = c0 + *data++;
-                c1 = c1 + c0;
-        }
-        c0 = c0 % 255;
-        c1 = c1 % 255;
-        return (c1 << 8 | c0);
-}
-*/
 
 
 static int str_hash(char* x) {
@@ -744,48 +653,7 @@ int wr_clterm_add_hashlist_offset_withpath(glb* g, vec hashvec, gint hash, gint 
   return 0;
 }  
 
-/*
-int wr_clterm_add_hashlist_new (glb* g, vec hashvec, gint hash, gint term, gptr cl) {
-  void* db=g->db;
-  gint vlen;
-  gint cell;
-  gptr node;
-  gptr prevnode;
-  gint nextnode;
-  
-  vlen=VEC_LEN(hashvec);
-  if (hash>=vlen || hash<1) return 1; // err case
-  cell=hashvec[hash];
-  if (cell==0) {
-    // no hash chain yet: add first len-containing node
-    prevnode=wr_clterm_alloc_hashnode(g);
-    if (prevnode==NULL) {
-      wr_sys_exiterr(g,"could not allocate node for hashlist in cl_store_res_terms");
-      return 1;
-    }  
-    hashvec[hash]=pto(db,prevnode);
-    prevnode[CLTERM_HASHNODE_LEN_POS]=1;            
-    nextnode=0;
-  } else {
-    // hash chain exists: first node contains counter to increase
-    // then take next ptr for node to handle
-    prevnode=otp(db,cell);
-    prevnode[CLTERM_HASHNODE_LEN_POS]++;
-    nextnode=prevnode[CLTERM_HASHNODE_NEXT_POS];
-  } 
-  // make new node and add to chain
-  node=wr_clterm_alloc_hashnode(g);  
-  if (node==NULL) {
-    wr_sys_exiterr(g,"could not allocate node for hashlist in cl_store_res_terms");
-    return 1;
-  } 
-  node[CLTERM_HASHNODE_TERM_POS]=term;    
-  node[CLTERM_HASHNODE_CL_POS]=pto(db,cl);
-  node[CLTERM_HASHNODE_NEXT_POS]=nextnode;  
-  prevnode[CLTERM_HASHNODE_NEXT_POS]=pto(db,node);
-  return 0;
-}  
-*/
+
 
 int wr_clterm_hashlist_len(glb* g, vec hashvec, gint hash) {
   gint vlen;
@@ -816,11 +684,7 @@ gint wr_clterm_hashlist_next(glb* g, vec hashvec, gint lastel) {
 }  
 
 gptr wr_clterm_alloc_hashnode(glb* g) {
-/*  
-  printf("\n wr_clterm_alloc_hashnode %d \n",sizeof(gint)*CLTERM_HASHNODE_GINT_NR);
-  printf("\n ++(g->stat_wr_mallocs) %d (g->stat_wr_malloc_bytes) %d\n",
-    (g->stat_wr_mallocs),(g->stat_wr_malloc_bytes));
-*/    
+ 
 #ifdef MALLOC_HASHNODES    
   return wr_malloc(g,sizeof(gint)*CLTERM_HASHNODE_GINT_NR);
 #else
@@ -927,7 +791,6 @@ void wr_clterm_hashlist_print_para(glb* g, vec hashvec) {
   gint node;
   gint tmp,path;
   int i;
-  //gint tmpel;
   
   vlen=VEC_LEN(hashvec); 
   printf("\nhashvec len %d ptr %lx and els:\n",(int)vlen,(unsigned long int)hashvec);  
@@ -955,8 +818,7 @@ void wr_clterm_hashlist_print_para(glb* g, vec hashvec) {
         //printf(" node %d \n",node);
       }        
     }  
-  } 
-  //printf("hashvec printed\n");  
+  }  
 }  
 
 
@@ -985,30 +847,6 @@ void wr_clterm_hashlist_print_para(glb* g, vec hashvec) {
 
 ====================================================== */
 
-/*   
-  
-make a termhash  
-
-  gsize is the length of the hash array
-
-*/
-
-/*
-gint* wr_make_termhash(glb* g, int maxhash) {
-  gint* hasharr;
-  int i,gsize;
-  
-  gsize=maxhash+1;
-  hasharr=wr_vec_new(g,gsize);
-  if (hasharr==NULL) {
-    (g->alloc_err)=1;    
-    wr_alloc_err2int(g,"Cannot allocate memory for a termhash with size %d",gsize);    
-    return NULL;
-  }
-  wr_vec_zero(hasharr);
-  return hasharr;  
-}
-*/
 
 /*
 
@@ -1017,48 +855,9 @@ store a term in a termhash
 */
 
 gint* wr_push_termhash(glb* g, gint* hasharr, int hash, gptr term, gptr cl) {
-  //int elstart; // start of a bucket el in the hasharr
-
+ 
   return wr_push_offset_termhash(g,hasharr,hash,term,cl);
-  /*
-  cvec bucket,nbucket;
-  int arrsize;
-
-  (g->stat_lit_hash_added)++;
-  // negative hashes not ok: make positive
-  if (hash<0) hash=0-hash;
-  // too big hashes are recalculated
-  if (hash+1 >= hasharr[0]) {
-    hash=hash % (hasharr[0]-1);
-  }
-  bucket=(cvec)(hasharr[hash+1]);  
-  if (!bucket) {
-    // el is empty: create a new cvec
-    arrsize=TERMHASH_INITIAL_BUCKETSIZE;
-    bucket=wr_cvec_new(g,arrsize);
-    if (bucket==NULL) {
-      (g->alloc_err)=1;    
-      wr_alloc_err2int(g,"Cannot allocate memory for a termhash bucket with length",arrsize);
-      return NULL;
-    }
-    hasharr[hash+1]=(gint)bucket;
-  }
-  // store to bucket: both term and cl
-  nbucket=wr_cvec_push(g,bucket,(gint)term);
-  if (nbucket==NULL) {
-    (g->alloc_err)=1;    
-    wr_alloc_err2int(g,"Cannot realloc a termhash bucket with old length",bucket[0]);
-    return NULL;
-  }
-  nbucket=wr_cvec_push(g,nbucket,(gint)cl);
-  if (nbucket==NULL) {
-    (g->alloc_err)=1;    
-    wr_alloc_err2int(g,"Cannot realloc a termhash bucket with old length",bucket[0]);
-    return NULL;
-  }
-  if (bucket!=nbucket) hasharr[hash+1]=(gint)nbucket;
-  return hasharr;
-  */
+ 
 }
 
 
@@ -1069,14 +868,9 @@ store a term in a termhash using only offsets
 */
 
 gint* wr_push_offset_termhash(glb* g, gint* hasharr, int hash, gptr term, gptr cl) {
-  //int elstart; // start of a bucket el in the hasharr
-  
-  //cvec bucket,nbucket;
   cvec nvec;
   gint bucket,nbucket;
   int arrsize;
-
-
 
   (g->stat_lit_hash_added)++;
   // negative hashes not ok: make positive
@@ -1120,50 +914,6 @@ gint* wr_push_offset_termhash(glb* g, gint* hasharr, int hash, gptr term, gptr c
 gint* wr_find_termhash(glb* g, gint* hasharr, gptr term, int hash) {
 
   return wr_find_offset_termhash(g,hasharr,term,hash);
-  /*
-  int j;
-  cvec bucket;
-  gint oterm; // offset of term
-
-  
-  //printf("\nfind from termhash with length %d and hash %d the term: \n",hasharr[0],hash);
-  //wr_print_clause(g,term);
-  //printf("\n");
-  
- 
-  // negative hashes not ok: make positive
-  if (hash<0) hash=0-hash;
-  // too big hashes are recalculated
-  if (hash+1 >= hasharr[0]) {
-    hash=hash % (hasharr[0]-1);
-  }
-
-  bucket=(cvec)(hasharr[hash+1]);  
-  if (!bucket) {
-    //printf("\n no bucket found for hash\n");
-    (g->stat_lit_hash_match_miss)++;
-    return NULL;
-  }  
-  oterm=rpto(g,term);
-  //printf("bucket for hash %d size %d next free %d\n",hash,bucket[0],bucket[1]);
-  for(j=2;j<bucket[0] && j<bucket[1]; j=j+2) {
-    
-    //printf("%d ",(j-2)/2);
-    //wr_print_term(g,rpto(g,bucket[j]));
-    //printf(" in cl ");
-    //wr_print_clause(g,bucket[j+1]);
-    //printf("\n");
-    
-    (g->tmp4)++;
-    if (wr_equal_term(g,oterm,rpto(g,bucket[j]),1)) {
-      //printf("equal term found in  wr_find_termhash !\n");
-      (g->stat_lit_hash_match_found)++;
-      return (gint*)(bucket[j+1]);
-    }
-  }
-  (g->stat_lit_hash_match_miss)++;
-  return NULL;
-  */
 }
 
 
@@ -1216,48 +966,6 @@ gint* wr_find_offset_termhash(glb* g, gint* hasharr, gptr term, int hash) {
   return NULL;
 }
 
-/*
-  version of wr_find_termhash with an optional clause arg skipcl
-  which should be skipped during search 
-
-*/
-/*
-gint* wr_find_termhash_skip(glb* g, gint* hasharr, gptr term, int hash, gptr skipcl) {
-  int j;
-  cvec bucket;
-  gint oterm; // offset of term
-
-
- 
-  // negative hashes not ok: make positive
-  if (hash<0) hash=0-hash;
-  // too big hashes are recalculated
-  if (hash+1 >= hasharr[0]) {
-    hash=hash % (hasharr[0]-1);
-  }
-
-  bucket=(cvec)(hasharr[hash+1]);  
-  if (!bucket) {
-    //printf("\n no bucket found for hash\n");
-    (g->stat_lit_hash_match_miss)++;
-    return NULL;
-  }  
-  oterm=rpto(g,term);
-  //printf("bucket for hash %d size %d next free %d\n",hash,bucket[0],bucket[1]);
-  for(j=2;j<bucket[0] && j<bucket[1]; j=j+2) {
-
-    if ((gint*)(bucket[j+1])==skipcl) continue;
-    if (wr_equal_term(g,oterm,rpto(g,bucket[j]),1)) {
-      //printf("equal term found in  wr_find_termhash !\n");
-      (g->stat_lit_hash_match_found)++;
-      return (gint*)(bucket[j+1]);
-    }
-  }
-  (g->stat_lit_hash_match_miss)++;
-  return NULL;
-}
-
-*/
 
 /*
 
@@ -1268,13 +976,6 @@ free a termhash
 void wr_free_termhash(glb* g, gint* hasharr) {
 
   wr_free_offset_termhash(g,hasharr);
-  /*
-  int i;
-  for(i=1;i<hasharr[0];i++) {
-    if (hasharr[i]) wr_free(g,(void *)(hasharr[i]));
-  }
-  wr_free(g,hasharr);
-  */
 }
 
 void wr_free_offset_termhash(glb* g, gint* hasharr) {
@@ -1294,39 +995,6 @@ print a termhash
 void wr_print_termhash(glb* g, gint* hasharr) {
 
   wr_print_offset_termhash(g,hasharr);
-  /*
-  int i,j;
-  cvec bucket;
-  
-  printf("\ntermhash with length %d: \n",(int)(hasharr[0]));  
-
-  for(i=1;i<hasharr[0];i++) {
-
-    
-
-    if (hasharr[i]) {
-
-      printf("\n i %d\n",i);
-      printf("\n hasharr[i] %ld\n",hasharr[i]);
-
-      bucket=(cvec)(hasharr[i]);
-
-      printf("\nbucket %ld\n",bucket);
-      printf("\nbucket[0] %ld bucket[1] %ld\n",bucket[0],bucket[1]);
-
-      printf("bucket for hash %d size %d next free %d\n",i-1,(int)(bucket[0]),(int)(bucket[1]));
-      if (1) {
-        for(j=2;j<bucket[0] && j<bucket[1]; j=j+2) {
-          printf("%d ",(j-2)/2);
-          wr_print_term(g,rpto(g,bucket[j]));
-          printf(" path %d in cl ",0);
-          wr_print_clause(g,(gptr)(bucket[j+1]));
-          printf("\n");
-        }
-      }  
-    }
-  }
-  */
 }
 
 

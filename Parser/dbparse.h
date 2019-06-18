@@ -37,9 +37,9 @@
 #include "../cjson/cjson.h"
 
 #define OTTER_DECIMAL_SEPARATOR '.'
-#define DEFAULT_SKOLEM_PREFIX "sk"
-#define DEFAULT_NEWPRED_PREFIX "$d"
-#define PROPVAR_PREDSYMB "$p"
+#define DEFAULT_SKOLEM_PREFIX "$sk"
+#define DEFAULT_NEWPRED_PREFIX "$df"
+#define PROPVAR_PREDSYMB "$pr"
 #define PARSER_MEMPOOL_SIZE 1000000
 
 #define PARSER_AXIOM_ROLENR 10

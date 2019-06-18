@@ -58,6 +58,7 @@ where
 
 #ifdef RECORD_HISTORY_ORDER
 
+#undef SHOW_HISTORY_ORDER
 #define HISTORY_PRIORITY_POS 0
 #define HISTORY_NAME_POS 1
 #define HISTORY_DERIVED_ORDER_POS 2
@@ -75,6 +76,7 @@ where
 
 #else
 
+#undef SHOW_HISTORY_ORDER
 #define HISTORY_PRIORITY_POS 0
 #define HISTORY_NAME_POS 1
 
@@ -117,12 +119,6 @@ where
 
 gint wr_build_input_history(glb* g, gptr cl1, char* name, gint priority);
 gint wr_build_resolve_history(glb* g, gptr cl1, gptr cl2, int pos1, int pos2, gptr cut_clvec);
-
-/*
-gint wr_encode_input_priority(glb* g, gint priority);
-gint wr_decode_input_priority(glb* g, gint encpriority);
-gint wr_encode_used_priority(glb* g, gint priority, gint oldpriority);
-*/
 
 gint wr_build_propagate_history(glb* g, gptr cl1, gptr cl2, int pos1, int pos2);
 gint wr_build_factorial_history(glb* g, gptr cl, int pos1, int pos2, gptr cut_clvec);

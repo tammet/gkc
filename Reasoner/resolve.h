@@ -35,11 +35,11 @@
 
 #define ATOM_PREFHASH_MAXLEN 3
 
-void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active);
-void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active);
+void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active, cvec resolvability);
+void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active, cvec resolvability);
 void wr_factor(glb* g, gptr cl, gptr cl_as_active);
 
-void wr_paramodulate_into_all_active(glb* g, gptr cl, gptr cl_as_active);
+void wr_paramodulate_into_all_active(glb* g, gptr cl, gptr cl_as_active, cvec resolvability);
 int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active, gint atom, gint term, 
       int depth, int litnr, int* termpath, int nonanslen);
 

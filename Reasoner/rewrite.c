@@ -93,7 +93,6 @@ gint wr_rewrite_term(glb* g, gint x) {
     } else {   
       // external kb termhash           
       if (!(r_kb_g(g))) continue;             
-      //printf("\nr_kb_g(g) used\n");
       hashvec=rotp(g,r_kb_g(g)->hash_rewrite_terms);       
       hlen=wr_clterm_hashlist_len(g,hashvec,hash);
       if (hlen==0) {

@@ -176,7 +176,6 @@ where we use 29 bits:
 #define wg_get_rule_clause_atom(db,rec,litnr) get_field((rec), (CLAUSE_EXTRAHEADERLEN+((litnr)*LIT_WIDTH)+LIT_ATOM_POS))
 #define wg_set_rule_clause_atom(db,rec,litnr,atom) set_field((rec), (CLAUSE_EXTRAHEADERLEN+((litnr)*LIT_WIDTH)+LIT_ATOM_POS), (atom))
 
-//#define wg_atom_meta_is_neg(db,meta) ((meta) & ATOM_META_NEG)
 #define wg_atom_meta_is_neg(db,meta) ((meta) & ATOM_META_NEG_RAWMASK)
 #define litmeta_negpolarities(meta1,meta2) (((meta1) & ATOM_META_NEG_RAWMASK)!=((meta2) & ATOM_META_NEG_RAWMASK))
 #define wg_atom_meta_is_ground(db,meta) ((meta) & ((ATOM_META_GROUND_MASK<<ATOM_META_GROUND_SHIFT)<<SMALLINTSHFT))

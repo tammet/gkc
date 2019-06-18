@@ -38,6 +38,13 @@
 void* wr_clausify_formula(glb* g, void* mpool, void* frm);
 void* wr_clausify_negpush(glb* g, void* mpool, void* frm, int sign);
 void* wr_clausify_copy(glb* g, void* mpool, void* term);
+
+void* wr_clausify_miniscope(glb* g, void* mpool, void* frm);
+void *wr_miniscope_freeoccs(glb* g, void* mpool, void* vars, void* frm);
+int wr_freeoccs_invars(glb* g, void* mpool, void* vars, void* frm);
+void* wr_miniscope_varssubset(glb* g, void* mpool, void* vars, void* boundvars);
+void* wr_add_freeoccs(glb* g, void* mpool, void* vars, void* termoccs);
+
 void* wr_clausify_skolemize(glb* g, void* mpool, void* frm, void* vars, int* varnr);
 void* wr_clausify_append_vars
         (glb* g, void* mpool, void* assoc, void* varlist, int allflag, int *varnr);

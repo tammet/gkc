@@ -74,18 +74,4 @@ int wr_hyperres_satellite_cl(glb* g,gptr cl);
 int wr_hyperres_satellite_tmpres(glb* g,gptr tmpres, int respos);
 
 
-
-// void resolve_binary_all_active(gptr cl1);
-
-/*
-void resolve_binary(gptr cl1, gptr cl2);
-gptr factor_step(gptr incl);
-int simplify_cl_destr(gptr cl, int given_flag);
-int can_cut_lit(gptr litpt1, int unify_flag, int given_flag);
-
-void proc_derived_cl(gptr incl);
-void proc_derived_cl_binhist(gptr incl, gint clid1, gint clid2, gint litpos1, gint litpos2);
-void proc_input_cl(gptr incl);
-*/
-
 #endif

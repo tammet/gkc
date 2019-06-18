@@ -66,8 +66,6 @@ gptr wr_create_raw_record(glb* g, gint length, gint meta, gptr buffer) {
     rec[0]=(length+RECORD_HEADER_GINTS)*sizeof(gint);
     rec[RECORD_BACKLINKS_POS]=0; 
     rec[RECORD_META_POS]=meta;    
-    //printf("wr_create_raw_record created: \n");
-    //wg_print_record(g->db,rec);
   }    
   return rec;
 }  
@@ -95,7 +93,6 @@ void* wr_create_rule_clause(glb* g, int litnr) {
   
   res=wg_create_raw_record(g->db,CLAUSE_EXTRAHEADERLEN+(LIT_WIDTH*litnr));
   if (!res) return NULL;
-  //printf("meta %d",*((gint*)res+RECORD_META_POS));
   *((gint*)res+RECORD_META_POS)=(RECORD_META_NOTDATA | RECORD_META_RULE_CLAUSE);
   return res;  
 } 
@@ -144,15 +141,13 @@ void* wr_convert_atom_fact_clause(glb* g, void* atom, int isneg) {
 } 
 
 int wr_set_rule_clause_atom(glb* g, void* clause, int litnr, gint atom) {
-  
-  //wg_set_new_field(db,clause,CLAUSE_EXTRAHEADERLEN+(LIT_WIDTH*litnr)+1,atom);  
+   
   *((gint*)clause+RECORD_HEADER_GINTS+CLAUSE_EXTRAHEADERLEN+(LIT_WIDTH*litnr)+1)=atom;
   return 0;
 } 
 
 int wr_set_rule_clause_atom_meta(glb* g, void* clause, int litnr, gint meta) {
   
-  //wg_set_new_field(db,clause,CLAUSE_EXTRAHEADERLEN+(LIT_WIDTH*litnr),meta);
   *((gint*)clause+RECORD_HEADER_GINTS+CLAUSE_EXTRAHEADERLEN+(LIT_WIDTH*litnr))=meta;
   return 0;
 } 

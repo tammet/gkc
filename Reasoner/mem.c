@@ -96,13 +96,7 @@ void wr_free(glb* g, void* p) {
 void* wr_inkb_malloc(glb* g, int bytes) {
   void* tmp;
   void* ntmp;
-  /*
-  tmp=wg_create_record(g->db,bytes);
-  printf("\n");
-  wg_print_record(g->db,tmp);
-  printf("\n");
-  return tmp;
-  */
+
 #ifdef DEBUG  
   printf("\nwr_inkb_malloc bytes %d\n",bytes); 
 #endif

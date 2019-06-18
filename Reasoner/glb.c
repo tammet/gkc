@@ -162,6 +162,7 @@ int wr_glb_init_simple(glb* g) {
   (g->negpref_strat)=0;
   (g->pospref_strat)=0;
   (g->knuthbendixpref_strat)=0;
+  (g->hardnesspref_strat)=0;
   (g->res_shortarglen_limit)=0; // max non-ans len of the shortest res argument (generalization of unit)
   (g->back_subsume)=0; // 1 does not work any more
   (g->propagate)=0;    // 1 does not work any more
@@ -540,6 +541,9 @@ int wr_glb_init_local_complex(glb* g) {
   (g->tmp_resolvability_vec)=wr_vec_new(g,MAX_CLAUSE_LEN); // used for resolvability
   (g->tmp_sort_vec)=wr_vec_new(g,INITIAL_SORTVEC_LEN); // used for sorting the initial clause list
 
+  (g->tmp_clinfo)=wr_cvec_new(g,INITIAL_CLTMPVEC_LEN);
+  (g->tmp_varinfo)=wr_cvec_new(g,INITIAL_VARTMPVEC_LEN);
+
   //(g->derived_termbuf_freeindex)=2;
   
   //(g->use_termbuf)=0;
@@ -648,6 +652,9 @@ int wr_glb_free_local_complex(glb* g) {
   wr_vec_free(g,(g->tmp_hardnessinf_vec));
   wr_vec_free(g,(g->tmp_resolvability_vec));
   wr_vec_free(g,(g->tmp_sort_vec));
+  wr_vec_free(g,g->tmp_clinfo);
+  wr_vec_free(g,g->tmp_varinfo);
+
 
   wr_str_free(g,(g->parse_skolem_prefix));
   (g->parse_skolem_prefix)=NULL;
@@ -745,19 +752,6 @@ void wr_check_cl_memarea(glb* g, gptr xptr) {
   }  
 }
 
-
-
-  
-  // cvec given_termbuf;
-  // cvec derived_termbuf;
-  // cvec queue_termbuf;
-  // cvec active_termbuf;
-
-  // cveco clbuilt;        /**< vector containing built clauses, newest last. 0: vec len, 1: index of next unused vec elem */
-  // cveco clactive;  
-  // cveco clpickstack;   /**< vector containing built clause stack to be selected as given before using queue (hyperres eg) */
-  // cveco clqueue;
-  
 
 #ifdef __cplusplus
 }

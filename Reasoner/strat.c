@@ -44,7 +44,7 @@ extern "C" {
 /* ====== Private headers and defs ======== */
 
 //#define DEBUG
-#undef DEBUG
+//#undef DEBUG
 //#define EQORDER_DEBUG
 #define QUIET
 //#undef QUIET
@@ -179,78 +179,6 @@ int wr_count_cl_nonans_atoms(glb* g, gptr cl) {
   return len-anscount;  
 }
 
-
-/*
-
-  always set nonanslen
-
-  default assume *posok and *negok are 1:
-  set to 0 only if prohibited
-
-*/
-
-void wr_set_stratlimits_cl(glb* g, gptr cl, int ruleflag, int len, int* posok, int* negok, int* nonanslen) {
-  void* db;
-  int poscount, negcount, anscount;
-  int i;
-  gint meta, atom;
-
-  if (!ruleflag) {
-    *nonanslen=1;
-    return;
-  } 
-  db=g->db;
-  UNUSED(db);
-  poscount=0; // count non-ans positive atoms
-  negcount=0; 
-  anscount=0; // count all ans (assume non-neg)
-  /*
-  printf("\n clause in wr_set_stratlimits_cl\n");
-  wr_print_clause(g,cl);
-  printf("\n");
-  */
-  if (!ruleflag) {    
-    if (wr_answer_lit(g,rpto(g,cl))) anscount++;
-    poscount++;
-  } else {
-    for(i=0; i<len; i++) {          
-      meta=wg_get_rule_clause_atom_meta(db,cl,i);
-      atom=wg_get_rule_clause_atom(db,cl,i);
-      if (wg_atom_meta_is_neg(db,meta)) negcount++;
-      else {      
-        if (wr_answer_lit(g,atom)) anscount++; 
-        else poscount++;
-      }          
-    }
-  }  
-  *nonanslen=len-anscount;
-  // prohibit pos or neg       
-  if (g->negpref_strat) {
-    if (poscount>0 && negcount>0) *posok=0;
-  }      
-  if (g->pospref_strat) {
-    if (poscount>0 && negcount>0) *negok=0;
-  }
-}
-
-int wr_order_resolvable_atom(glb* g, int negflag,  
-      int negok, int posok, int negadded, int posadded,
-      int hardness, int max_neg_hardness, int max_pos_hardness) {
-     
-  if (g->negpref_strat) {
-    if (negflag && negok && !negadded && hardness==max_neg_hardness) return 1;
-    else if (!negflag && posok) return 1;
-    else return 0;
-  }
-  if (g->pospref_strat) {
-    if (!negflag && posok && !posadded && hardness==max_pos_hardness) return 1;
-    else if (negflag && negok) return 1;
-    else return 0;
-  }
-  return 1;
-
-}
-
 int wr_initial_select_active_cl(glb* g, gptr cl) {
   void* db=g->db;
   int ruleflag, len, i;
@@ -267,23 +195,12 @@ int wr_initial_select_active_cl(glb* g, gptr cl) {
   printf("\n(g->queryfocusneg_strat): %d\n",(g->queryfocusneg_strat));
 #endif
 
-  /*
-  CP3
-  printf("\ncheck initial cl: ");
-  wr_print_clause(g,cl);
-  printf("\n");
-  printf("\n(g->queryfocusneg_strat): %d\n",(g->queryfocusneg_strat));
-  */
-
   history=wr_get_history(g,cl); 
   if (!history) return 1;
   htype=wg_get_encoded_type(db,history);  
   if (htype!=WG_RECORDTYPE) return 1;
   priority=wr_get_history_record_field(g,otp(db,history),HISTORY_PRIORITY_POS);
   decpriority=wg_decode_int(db,priority);
-  
-  //CP4
-  //printf("\ndecpriority before: %d \n",decpriority);
 
   if ((g->cl_pick_queue_strategy)==2) {
       // make non-included axioms assumptions and positive conjecture part assumptions
@@ -298,9 +215,6 @@ int wr_initial_select_active_cl(glb* g, gptr cl) {
     else if (decpriority==WR_HISTORY_ASSUMPTION_ROLENR)  
       decpriority=WR_HISTORY_AXIOM_ROLENR; // !! wrong had no effect
   } 
-
-  //CP5
-  //printf("\ndecpriority after: %d \n",decpriority);
 
   if (!(g->queryfocusneg_strat)) {
     if (decpriority==WR_HISTORY_EXTAXIOM_ROLENR) {
@@ -326,12 +240,9 @@ int wr_initial_select_active_cl(glb* g, gptr cl) {
       //printf("\n returning 0\n");
       return 0;         
     }  
-    //if (!decpriority || decpriority>5) return 1;
-    //else return 0;
   }
-  // here we have queryfocusneg_strat
-  //CP10
-  //if (decpriority>1) return 1;  
+  // here we have queryfocusneg_strat 
+ 
   ruleflag=wg_rec_is_rule_clause(db,cl);
   //printf("\n ruleflag: %d\n",ruleflag);
   if (!ruleflag) {
@@ -351,52 +262,11 @@ int wr_initial_select_active_cl(glb* g, gptr cl) {
       } 
     }
   }  
-  //if (len==1) res=1;  
   if (anscount>0 || negcount==len)  res=0;
   else res=1;
- 
-  /*
-  dp("\ncheck initial cl res is %d \n",res)
-  */
+
   return res;
 }
-
-/*
-int recalc_cl_priority(g,gptr cl, int decprior) {
-  if ((g->cl_pick_queue_strategy)==2) {
-      // make non-included axioms assumptions and positive conjecture part assumptions
-      if (decpriority==WR_HISTORY_GOAL_ROLENR && wr_is_positive_unit_cl(g,cl)) 
-        decpriority=WR_HISTORY_ASSUMPTION_ROLENR;        
-      else if (decpriority==WR_HISTORY_AXIOM_ROLENR && (g->parse_is_included_file))
-        decpriority=WR_HISTORY_ASSUMPTION_ROLENR;       
-  } else if ((g->cl_pick_queue_strategy)==3) {
-    // only fully negative clauses of goal made goal and no assumptions (ie made axioms)
-    if (decpriority==WR_HISTORY_GOAL_ROLENR && !wr_is_negative_cl(g,cl))
-      decpriority=WR_HISTORY_AXIOM_ROLENR;  
-    else if (decpriority==WR_HISTORY_ASSUMPTION_ROLENR)  
-      decpriority=WR_HISTORY_AXIOM_ROLENR; // !! wrong had no effect
-  }
-  return decpriority; 
-}
-
-// in clstore.c:
-
-
- if ((g->cl_pick_queue_strategy)==2) {
-      // make non-included axioms assumptions and positive conjecture part assumptions
-      if (decprior==WR_HISTORY_GOAL_ROLENR && wr_is_positive_unit_cl(g,cl)) 
-        decprior=WR_HISTORY_ASSUMPTION_ROLENR;        
-      else if (decprior==WR_HISTORY_AXIOM_ROLENR) // && (g->parse_is_included_file))
-        decprior=WR_HISTORY_ASSUMPTION_ROLENR;       
-    } else if ((g->cl_pick_queue_strategy)==3) {
-      // only fully negative clauses of goal made goal and no assumptions (ie made axioms)
-      if (decprior==WR_HISTORY_GOAL_ROLENR && !wr_is_negative_cl(g,cl))
-        decprior=WR_HISTORY_AXIOM_ROLENR;  
-      else if (decprior==WR_HISTORY_ASSUMPTION_ROLENR)  
-        decprior=WR_HISTORY_AXIOM_ROLENR; // !! had no effect before
-    } 
-*/
-
 
 /*
  
@@ -404,7 +274,7 @@ int recalc_cl_priority(g,gptr cl, int decprior) {
 
 */
 
-int wr_calc_clause_resolvability(glb* g, gptr cl) {
+int wr_calc_clause_resolvability(glb* g, gptr cl, int allowall) {
   void* db=g->db;
   int atomnr,i, polarity, hardness; 
   int max_hardness=MIN_HARDNESS;   
@@ -412,7 +282,7 @@ int wr_calc_clause_resolvability(glb* g, gptr cl) {
   int max_pos_hardness=MIN_HARDNESS;
   gint meta, atom; 
   int poscount=0,negcount=0,anscount=0;
-  int allowedflag;
+  int allowedflag, tmp;
 
   UNUSED(db);
   if (!wg_rec_is_rule_clause(db,cl)) {
@@ -425,11 +295,21 @@ int wr_calc_clause_resolvability(glb* g, gptr cl) {
     return 1;
   }
 
-  // from here clause lengh at least 2
+  // from here clause length at least 2
 
+  if (!allowall && (g->knuthbendixpref_strat)) {
+    // use a separate knuthbendix resolvability marker procedure
+    tmp=wr_calc_clause_knuthbendix_resolvability(g,cl,(g->varbanks));
+    if (!tmp) return 0; // error case
+    return 1;
+  }
+
+  // from here cannot be knuthbendix
   // count neg and pos and hardnesses for polarityorder and queryfocus
 
-  if ((g->negpref_strat) || (g->pospref_strat) || (g->queryfocus_strat)) {  
+  if (!allowall && 
+       ( (g->negpref_strat) || (g->pospref_strat) || 
+         (g->queryfocus_strat) || (g->hardnesspref_strat))) {  
     // count pos and neg
     for(i=0; i<atomnr; i++) {          
       meta=wg_get_rule_clause_atom_meta(db,cl,i);
@@ -447,7 +327,7 @@ int wr_calc_clause_resolvability(glb* g, gptr cl) {
       if (wg_atom_meta_is_neg(db,meta)) {
         // negative lit
         polarity=0;        
-        if ((g->negpref_strat) || (g->queryfocus_strat)) {
+        if ((g->negpref_strat) || (g->queryfocus_strat) || (g->hardnesspref_strat)) {
           // for negative literals only needed for negpref
           hardness=wr_calc_atom_hardness(g,polarity,atom);
           (g->tmp_hardnessinf_vec)=wr_vec_store(g,g->tmp_hardnessinf_vec,i+1,hardness);            
@@ -460,7 +340,7 @@ int wr_calc_clause_resolvability(glb* g, gptr cl) {
       } else {    
         // positive lit 
         polarity=1; 
-        if ((g->pospref_strat) || (g->queryfocus_strat)) {
+        if ((g->pospref_strat) || (g->queryfocus_strat) || (g->hardnesspref_strat)) {
           // for positive literals only needed for pospref
           hardness=wr_calc_atom_hardness(g,polarity,atom);
           (g->tmp_hardnessinf_vec)=wr_vec_store(g,g->tmp_hardnessinf_vec,i+1,hardness);             
@@ -474,6 +354,21 @@ int wr_calc_clause_resolvability(glb* g, gptr cl) {
     }    
   }
 
+  if (!allowall && (g->negpref_strat) && negcount==0) {
+    // pure positive for neg order:
+    // use a separate knuthbendix resolvability marker procedure
+    tmp=wr_calc_clause_knuthbendix_resolvability(g,cl,(g->varbanks));
+    if (!tmp) return 0; // error case
+    return 1;
+  }
+  if (!allowall && (g->pospref_strat) && poscount==0) {
+    // pure negative for pos order:
+    // use a separate knuthbendix resolvability marker procedure
+    tmp=wr_calc_clause_knuthbendix_resolvability(g,cl,(g->varbanks));
+    if (!tmp) return 0; // error case
+    return 1;
+  }
+
   // next loop over clause marks allowed and prohibited literals
 
   allowedflag=0;
@@ -484,6 +379,10 @@ int wr_calc_clause_resolvability(glb* g, gptr cl) {
     else polarity=1;            
     if (wr_answer_lit(g,atom)) {
       (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
+      continue;
+    } 
+    if (allowall) {
+      (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,1);
       continue;
     }
     if (g->knuthbendixpref_strat) {
@@ -503,7 +402,7 @@ int wr_calc_clause_resolvability(glb* g, gptr cl) {
               if (allowedflag || (((g->tmp_hardnessinf_vec)[i+1])<max_pos_hardness)) {
                 // prohibit
                 (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
-              } else                  
+              } else {               
                 (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,1);
                 allowedflag=1;                
               }
@@ -541,7 +440,7 @@ int wr_calc_clause_resolvability(glb* g, gptr cl) {
               if (allowedflag || (((g->tmp_hardnessinf_vec)[i+1])<max_neg_hardness)) {
                 // prohibit
                 (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
-              } else                  
+              } else {                 
                 (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,1);
                 allowedflag=1;                
               }
@@ -574,8 +473,22 @@ int wr_calc_clause_resolvability(glb* g, gptr cl) {
           if (!allowedflag) {
             (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,1);
             allowedflag=1;   
+          } else {
+            (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
           }    
-        }      
+        }   
+      } else if (g->hardnesspref_strat) {
+        // use just hardness
+        if (((g->tmp_hardnessinf_vec)[i+1])<max_hardness) {
+          (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);      
+        } else {
+          if (!allowedflag) {
+            (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,1);
+            allowedflag=1;   
+          } else {
+            (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
+          }    
+        }                 
       } else {
         // no known ordering: allow all literals except ans
         (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,1);
@@ -590,7 +503,7 @@ int wr_calc_clause_resolvability(glb* g, gptr cl) {
 void wr_print_clause_resolvability(glb* g, gptr cl) {
   int len,i;
 
-  printf("\n resolvability for ");
+  printf("\nresolvability for ");
   wr_print_clause(g,cl);
   printf("\n");  
   if (!wg_rec_is_rule_clause(db,cl)) {
@@ -607,7 +520,7 @@ void wr_print_clause_resolvability(glb* g, gptr cl) {
 void wr_print_clause_hardnesses(glb* g, gptr cl) {
   int len,i;
 
-  printf("\n hardness for ");
+  printf("\nhardness for ");
   wr_print_clause(g,cl);
   printf("\n");  
   if (!wg_rec_is_rule_clause(db,cl)) {
@@ -672,7 +585,7 @@ int wr_calc_clause_hardnesses(glb* g, gptr cl,
 int wr_calc_atom_hardness(glb* g, int polarity, gint atom) {
   //void* db=g->db;  
   int vc_tmp;
-  atom_hardnesscalc hdata; // = {0,0,0,0,0,0,0,0};
+  atom_hardnesscalc hdata;
   int hardness=0;
 
   /*
@@ -951,13 +864,6 @@ static int wr_order_eqterms_const_weight(glb* g, gint a) {
 }
 
 
-/*
-#define VARVAL(x,vb) (wr_varval(x,vb))
-#define VARVAL_F(x,vb) (tmp=vb[decode_var(x)],
- ((tmp==UNASSIGNED) ? x : (!isvar(tmp) ? tmp : wr_varval(tmp,vb)))) 
-#define VARVAL_DIRECT(x,vb) (vb[decode_var(x)])
-*/
-
 void wr_clear_countedvarlist(glb* g, cvec varlist) {
   UNUSED(g);
   varlist[1]=4;
@@ -1003,6 +909,10 @@ void wr_record_varocc(glb* g, gint x, cvec varlist) {
 void wr_show_countedvarlist(glb* g, cvec varlist) {
   int i;
   
+  if (varlist==NULL) {
+    printf("\nvarlist is NULL\n");
+    return;
+  }
   printf("varlist len %d min var ",(int)((varlist[1]-4)/2));
   if (varlist[2]>=0) wr_print_term(g,varlist[2]);
   else printf(" none");
@@ -1021,9 +931,9 @@ static int wr_order_eqterms_occurs_in(glb* g, gint x, gint y, gptr vb) {
   gint tmp; // used by VARVAL_F
     
 #ifdef DEBUG
-  printf("wr_order_eqterms_occurs_in called with x %d ",x);
+  printf("wr_order_eqterms_occurs_in called with x %ld ",x);
   wr_print_term(g,x);
-  printf(" and y %d ",y);
+  printf(" and y %ld ",y);
   wr_print_term(g,y);
   printf("\n");
 #endif 
@@ -1056,7 +966,7 @@ static int wr_order_eqterms_weight_vars(glb* g, gint x, gptr vars, gptr vb) {
   gint tmp; // used by VARVAL_F
 
 #ifdef DEBUG
-  printf("wr_order_eqterms_weight_vars called with x %d ",x);
+  printf("wr_order_eqterms_weight_vars called with x %ld ",x);
   wr_print_term(g,x);
   printf("\n");
 #endif     
@@ -1095,8 +1005,14 @@ int wr_countedvarlist_is_subset(glb* g, cvec xlist, cvec ylist) {
   int i, j, var, found;  
 
   UNUSED(g);
-  // if both empty, then xlist is a sublist:
-  if (xlist[1]==4 && ylist[1]==4) return 1;
+  // NULL cases are for atom knuth bendix: for para cases no NULLs here
+  if (xlist==NULL) return 1; // no xlist
+  if (ylist==NULL) { // no ylist
+    if (xlist[1]==4) return 1; // xlist also empty, xlist is sublist
+    else return 0; // xlist not empty, xlist cannot be sublist
+  }  
+  // if xlist empty, then xlist is a sublist:
+  if (xlist[1]==4) return 1;
   // else if only ylist is empty, then xlist cannot be a sublist
   if (ylist[1]==4) return 0;
   // here both xlist and ylist are nonempty
@@ -1206,6 +1122,325 @@ static int wr_order_eqterms_const_lex_smaller(glb* g, gint x, gint y) {
 }
 
 
+/*
+ 
+ ============== literal knuth bendix ordering ================
+
+*/
+
+/* 
+
+  sets (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,1,1) 
+
+  in atom-to-atom comparison res code:
+
+   0: none bigger, neither prohibits other
+   1: xatom bigger than yatom (prohibits yatom)
+   2: yatom bigger than xatom (prohibits xatom)
+   3: none bigger, both ok 
+
+*/
+
+int wr_calc_clause_knuthbendix_resolvability(glb* g, gptr cl, gptr vb) {
+  int atomnr,i,j,lexorder,res;
+  gint xatom,xw;
+  gint yatom,yw;
+  cvec xvarlist,yvarlist;  
+
+  atomnr=wr_calc_clause_size_countedvarlist(g,cl,vb);
+  if (atomnr<=0) return 0; // error case
+  if (atomnr==1) {
+    // single literal
+    (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,1,1);
+    return 1;
+  }
+  // initially set all literals as allowed
+  for(i=0; i<atomnr; i++) {
+    (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,1);
+  }  
+
+  // loop over all pairs of literals, setting prohibited to 0
+  for(i=0; i<atomnr; i++) {          
+    //xmeta=wg_get_rule_clause_atom_meta(db,cl,i);
+    xatom=wg_get_rule_clause_atom(db,cl,i);
+    xw=(g->tmp_clinfo)[(i*2)+2];
+    if (xw<0) { // marked as ans lit by countedvarlist calc
+      (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
+      continue; 
+    }  
+    xvarlist=(gptr)((g->tmp_clinfo)[(i*2)+2+1]);
+    for(j=i+1; j<atomnr; j++) {
+      //ymeta=wg_get_rule_clause_atom_meta(db,cl,j);
+      if (!(g->tmp_resolvability_vec)[j+1]) {
+        // j atom is already marked nonresolvable: no point in comparing
+        continue;
+      }
+      yatom=wg_get_rule_clause_atom(db,cl,j);
+      yw=(g->tmp_clinfo)[(j*2)+2]; 
+      if (yw<0) { // marked as ans lit by countedvarlist calc
+        (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,j+1,0);
+        continue; 
+      }  
+      yvarlist=(gptr)((g->tmp_clinfo)[(j*2)+2+1]);
+
+#ifdef EQORDER_DEBUG  
+      dp("\n wr_calc_clause_knuthbendix_resolvability i %d and j %d\n",i,j);
+      printf("xatom\n");
+      wr_print_term(g,xatom);
+      printf("\nyatom\n");
+      wr_print_term(g,yatom);
+      dp("\n calcs xw and yw: %ld %ld\n",xw,yw); 
+      if (wr_countedvarlist_is_subset(g,xvarlist,yvarlist)) {
+        printf(" xvarlist is a subset of yvarlist \n");
+      } else if (wr_countedvarlist_is_subset(g,yvarlist,xvarlist)) {
+        printf(" yvarlist is a subset of xvarlist \n");
+      } else {
+        printf(" xvarlist and yvarlist are not subsets of each other\n");
+      }
+#endif   
+
+      if (xw>yw && wr_countedvarlist_is_subset(g,yvarlist,xvarlist)) {
+        res=1;
+      } else if (yw>xw && wr_countedvarlist_is_subset(g,xvarlist,yvarlist)) {
+        res=2;
+      } else if (xw==yw) {
+        // here sizes are the same
+        lexorder=wr_order_atoms_lex_order(g,xatom,yatom,vb);
+  #ifdef EQORDER_DEBUG    
+         printf("\nlexorder result: %d\n",lexorder);
+  #endif       
+        // lexorder:
+        // 1 if x is smaller than y
+        // 2 if y is smaller than x
+        if (lexorder==2 && wr_countedvarlist_is_subset(g,yvarlist,xvarlist))
+          res=1; // a bigger than b (prohibits b)
+        else if (lexorder==1 && wr_countedvarlist_is_subset(g,xvarlist,yvarlist))   
+          res=2; // b bigger than a (prohibits a)
+        else 
+          res=3;
+      } else {
+        res=3;
+      }
+  #ifdef EQORDER_DEBUG  
+      dp("\n wr_order_eqterms returns on complex comparison: %d\n",res); 
+  #endif    
+      if (res==1) {
+        // yatom probited
+        (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,j+1,0);
+      } else if (res==2) {
+        // xatom prohibited
+         (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
+      }
+    } // loop on j
+  } // loop on i
+  return 1;
+}
+
+
+/*
+
+ build size and countedvarlist for each literal
+
+ result: a vec of two-gint tuples weight, ptr_to_countedvarlist
+
+*/
+
+
+
+int wr_calc_clause_size_countedvarlist(glb* g, gptr cl, gptr vb) {
+  void* db=g->db;
+  int atomnr,i,j,xw;  
+  gint meta, atom; 
+  cvec gvvec;
+  cvec vvec;
+
+
+  UNUSED(db);
+  UNUSED(meta);
+  if (!wg_rec_is_rule_clause(db,cl)) {
+    return 1; // mark no vec created
+  }  
+  atomnr=wg_count_clause_atoms(db,cl);
+  if (atomnr==1) {
+    return 1; // mark no vec created
+  }
+
+  // from here clause length at least 2
+  (g->tmp_clinfo)[1]=2; // initialize
+  for(i=0; i<atomnr; i++) {          
+    meta=wg_get_rule_clause_atom_meta(db,cl,i);
+    atom=wg_get_rule_clause_atom(db,cl,i);
+    if (wr_answer_lit(g,atom)) {
+      // mark dummy: should not be selected for resolution or comparison
+      wr_cvec_store(g,(g->tmp_clinfo),(i*2)+2,-1);
+      wr_cvec_store(g,(g->tmp_clinfo),(i*2)+2+1,(gint)NULL);
+      continue;
+    }
+    wr_clear_countedvarlist(g,(g->xcountedvarlist));
+    xw=wr_order_atom_weight_vars(g, atom, (g->xcountedvarlist), vb);
+    gvvec=(g->xcountedvarlist);
+#ifdef EQORDER_DEBUG    
+    printf("\natom nr %d\n",i);
+    wr_print_term(g,atom);
+    printf("\n size %d \n",xw);
+    wr_show_countedvarlist(g,gvvec);
+#endif
+    // copy size over
+    (g->tmp_clinfo)=wr_cvec_store(g,(g->tmp_clinfo),(i*2)+2,xw);
+    // copy var vec over
+    if (gvvec[2]>3) {
+      // vars present in atom: alloc a cvec and copy over
+      vvec=wr_cvec_new(g,gvvec[1]-2);
+      if (vvec==NULL) {
+        (g->alloc_err)=1;
+        wr_tmp_clinfo_free(g,(g->tmp_clinfo));
+        wr_alloc_err2int(g,"Cannot allocate memory for a cvec with length",gvvec[1]-2);    
+        return 0; // mark error
+      }
+      vvec[1]=gvvec[1];
+      for(j=2;j<(gvvec[1]);j++) {
+        vvec[j]=gvvec[j];
+      }
+      (g->tmp_clinfo)=wr_cvec_store(g,(g->tmp_clinfo),(i*2)+2+1,(gint)vvec);
+    } else {
+      (g->tmp_clinfo)=wr_cvec_store(g,(g->tmp_clinfo),(i*2)+2+1,(gint)NULL);
+    }                 
+#ifdef EQORDER_DEBUG 
+    printf("\n stored weight and countedvarlist %ld\n",(g->tmp_clinfo)[(i*2)+2]);
+    wr_show_countedvarlist(g,(gptr)((g->tmp_clinfo)[(i*2)+2+1]));
+    printf("\n after storing (g->tmp_clinfo)[1] is %ld\n",(g->tmp_clinfo)[1]);
+#endif
+  } 
+#ifdef EQORDER_DEBUG 
+  printf("\nfinal (g->tmp_clinfo)[0] is %ld and (g->tmp_clinfo)[1] is %ld\n",
+    (g->tmp_clinfo)[0],(g->tmp_clinfo)[1]);
+#endif  
+  return atomnr; // mark vec is created
+} 
+
+void wr_tmp_clinfo_free(glb* g, cvec v) {
+  int i;
+
+#ifdef EQORDER_DEBUG
+  printf("\n wr_tmp_clinfo_free called with v[1] %ld\n",v[1]);
+#endif  
+  for(i=2;i<v[1];i+=2) {
+#ifdef EQORDER_DEBUG    
+    printf("\n i %d v[i] %ld v[i+1] %ld \n",i,v[i],v[i+1]);
+    wr_show_countedvarlist(g,(gptr)(v[i+1]));
+#endif    
+    if (v[i+1]!=(gint)NULL) wr_free(g,(gptr)(v[i+1]));
+  }
+}
+
+int wr_order_atom_weight_vars(glb* g, gint x, gptr vars, gptr vb) {
+  void* db;
+  gptr xptr;
+  int i, start, end, w;  
+
+#ifdef DEBUG
+  printf("wr_order_atom_weight_vars called with x %ld ",x);
+  wr_print_term(g,x);
+  printf("\n");
+#endif     
+
+  if (!isdatarec(x)) {
+    // now we have a simple value     
+    if (isvar(x)) wr_record_varocc(g,x,vars);        
+    return 1;
+  }   
+  // now we have a datarec
+  db=g->db;
+  xptr=decode_record(db,x);
+  start=wr_term_unify_startpos(g);
+  end=wr_term_unify_endpos(g,xptr);
+  w=0;    
+  for(i=start;i<end;i++) {
+    w=w+wr_order_atom_weight_vars(g,xptr[i],vars,vb);      
+  }   
+  return w;
+} 
+
+
+/* 
+
+  returns:
+    0 if terms are lex-equal
+    1 if x is smaller than y
+    2 if y is smaller than x
+    3 if terms are not lex-comparable
+
+*/
+
+
+int wr_order_atoms_lex_order(glb* g, gint x, gint y, gptr vb) {
+  void* db;
+  gptr xptr,yptr;
+  gint encx,ency; 
+  int xlen,ylen,uselen,ilimit,i,tmp;
+
+#ifdef EQORDER_DEBUG
+  printf("wr_order_atoms_lex_order called with x %ld and y %ld: ",x,y);
+  wr_print_term(g,x);
+  printf("\n");
+  wr_print_term(g,y);
+  printf("\n");
+#endif     
+
+  if (x==y) return 0; // equal 
+  if (isvar(x) || isvar(y)) return 3; // not comparable
+  // here none can be a var   
+  if (!isdatarec(x)) {
+    // now x has a have a simple value     
+    if (!isdatarec(y)) {
+      if (wr_order_atoms_const_lex_smaller(g,x,y)) return 1;
+      else return 2;      
+    } else {
+      // consider function terms as lex bigger than constants
+      return 1; 
+    }
+  } else if (!isdatarec(y)) {
+    // x is a function term and y is a constant
+    return 2;
+  }
+  // x and y are both complex terms     
+  db=g->db;
+  xptr=decode_record(db,x);
+  yptr=decode_record(db,y);
+  xlen=get_record_len(xptr);
+  ylen=get_record_len(yptr);
+  // let smaller-arity funs be lex-smaller
+  if (xlen<ylen) return 1;
+  else if (ylen<xlen) return 2;
+  // here the arities are same
+  uselen=xlen;
+  if (g->unify_maxuseterms) {
+    if (((g->unify_maxuseterms)+(g->unify_firstuseterm))<uselen) 
+      uselen=(g->unify_firstuseterm)+(g->unify_maxuseterms);
+  }    
+  ilimit=RECORD_HEADER_GINTS+uselen;
+  for(i=RECORD_HEADER_GINTS+(g->unify_firstuseterm); i<ilimit; i++) {
+    encx=*(xptr+i);
+    ency=*(yptr+i);    
+    if (encx==ency) continue;
+    tmp=wr_order_atoms_lex_order(g,encx,ency,vb);
+    if (tmp==0) continue;
+    else return tmp;   
+  }      
+  return 0;        
+}        
+
+int wr_order_atoms_const_lex_smaller(glb* g, gint x, gint y) {
+  if (x<y) return 1;
+  else return 0; 
+}
+
+/*
+ 
+ ================= printing =========================
+
+*/
+
 void wr_print_strat_flags(glb* g) {
 
   printf("\nstrategy flags:\n");
@@ -1237,6 +1472,7 @@ void wr_print_strat_flags(glb* g) {
   printf("negpref_strat %d\n", (g->negpref_strat));
   printf("pospref_strat %d\n", (g->pospref_strat));
   printf("knuthbendixpref_strat %d\n", (g->knuthbendixpref_strat));
+  printf("hardnesspref_strat %d\n", (g->hardnesspref_strat));
   printf("res_shortarglen_limit %d\n", (g->res_shortarglen_limit)); // max non-ans len of the shortest res argument (generalization of unit)
   printf("back_subsume %d\n", (g->back_subsume)); // 1 does not work any more
   printf("propagate %d\n", (g->propagate));    // 1 does not work any more

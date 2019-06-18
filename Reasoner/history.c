@@ -102,23 +102,9 @@ gint wr_build_resolve_history(glb* g, gptr cl1, gptr cl2, int pos1, int pos2, gp
     }
     // cutn is now the nr of cut literals
 
-    //printf()    
-    //printf("\n in wr_build_resolve_history pos1 %d pos2 %d \n",pos1,pos2);
-    //wr_check_cl_memarea(g,cl1);
-    //wr_check_cl_memarea(g,cl2);
-    //printf("\n");
     rec=wr_create_raw_history_record(g,datalen+cutn,g->build_buffer);
     if (rec==NULL) return wg_encode_null(db,NULL);
-    /*
-    printf("\nraw rec: ");
-    wr_print_glb_memarea(g,rec);
-    printf("\n cl1 again:");
-    wr_check_cl_memarea(g,cl1);
-    printf("\n");
-    printf("\n cl2 again:");
-    wr_check_cl_memarea(g,cl2);
-    printf("\n");
-    */
+
     tag=wr_encode_history_resolve(g,pos1,pos2);
     wr_set_history_record_field(g,rec,HISTORY_DERIVATION_TAG_POS,tag);
     wr_set_history_record_field(g,rec,HISTORY_PARENT1_POS,wg_encode_record(db,cl1));
@@ -266,23 +252,9 @@ gint wr_build_propagate_history(glb* g, gptr cl1, gptr cl2, int pos1, int pos2) 
 
   if (g->store_history) {    
 
-    //printf()    
-    //printf("\n in wr_build_resolve_history pos1 %d pos2 %d \n",pos1,pos2);
-    //wr_check_cl_memarea(g,cl1);
-    //wr_check_cl_memarea(g,cl2);
-    //printf("\n");
     rec=wr_create_raw_history_record(g,datalen+cutn,g->build_buffer);
     if (rec==NULL) return wg_encode_null(db,NULL);
-    /*
-    printf("\nraw rec: ");
-    wr_print_glb_memarea(g,rec);
-    printf("\n cl1 again:");
-    wr_check_cl_memarea(g,cl1);
-    printf("\n");
-    printf("\n cl2 again:");
-    wr_check_cl_memarea(g,cl2);
-    printf("\n");
-    */
+
     tag=wr_encode_history_propagate(g,pos1,pos2);
     wr_set_history_record_field(g,rec,HISTORY_DERIVATION_TAG_POS,tag);
     wr_set_history_record_field(g,rec,HISTORY_PARENT1_POS,wg_encode_record(db,cl1));
@@ -290,7 +262,6 @@ gint wr_build_propagate_history(glb* g, gptr cl1, gptr cl2, int pos1, int pos2) 
     wr_set_history_record_field(g,rec,HISTORY_PRIORITY_POS,wr_calc_history_priority2(g,cl1,cl2));   
     wr_set_history_record_derived_order(g,rec);
     return wg_encode_record(db,rec); 
-    //return wg_encode_int(g->db,g->stat_built_cl); 
   } else {
     return wg_encode_int(g->db,1);
   }  
@@ -308,10 +279,7 @@ gint wr_build_factorial_history(glb* g, gptr cl1, int pos1, int pos2, gptr cut_c
       for(cutn=1; cutn<(int)(cut_clvec[0]) && (gptr)(cut_clvec[cutn])!=NULL; cutn++) {}  
       cutn=cutn-1;      
     }
-    /*
-    printf("\n in wr_build_factorial_history pos1 %d pos2 %d \n",pos1,pos2);
-    wr_print_clause(g,cl1);
-    */     
+
     rec=wr_create_raw_history_record(g,datalen+cutn,g->build_buffer);
     if (rec==NULL) return wg_encode_null(db,NULL);
     //tag=wr_encode_history_factorial(g,pos1,pos2);
@@ -324,14 +292,7 @@ gint wr_build_factorial_history(glb* g, gptr cl1, int pos1, int pos2, gptr cut_c
       wr_set_history_record_field(g,rec,datalen+i,wg_encode_record(db,(gptr)(cut_clvec[i+1])));
     }
     wr_set_history_record_derived_order(g,rec);
-    /*
-    printf("\nhistory with len %d:\n",wg_get_record_len(db,rec));    
-    wr_print_record(g,rec);  
-    printf("\nshown\n");  
-    */
-
-     return wg_encode_record(db,rec); 
-    //return wg_encode_int(g->db,g->stat_built_cl); 
+    return wg_encode_record(db,rec);     
   } else {
     return wg_encode_int(g->db,1);
   }  
@@ -351,29 +312,8 @@ gint wr_build_para_history(glb* g, gptr cl1, gptr cl2, int pos1, int pos2, gptr 
       cutn=cutn-1;      
     }    
     // cutn is now the nr of cut literals 
-    //printf("\n in wr_build_para_history pos1 %d pos2 %d path %d cutn %d\n",pos1,pos2,path,cutn);
-    //wr_check_cl_memarea(g,cl1);
-    //wr_check_cl_memarea(g,cl2);
-    //printf("\n");
     rec=wr_create_raw_history_record(g,datalen+cutn,g->build_buffer);
     if (rec==NULL) return wg_encode_null(db,NULL);
-    /*
-    printf("cl1:\n");
-    wr_print_clause(g,cl1);
-    printf("cl2:\n");
-    wr_print_clause(g,cl2);
-    printf("\n");
-    */
-    /*
-    printf("\nraw rec: ");
-    //wr_print_glb_memarea(g,rec);
-    //printf("\n cl1 again:");
-    //wr_check_cl_memarea(g,cl1);
-    printf("\n");
-    printf("\n cl2 again:");
-    //wr_check_cl_memarea(g,cl2);
-    printf("\n");
-    */
     tag=wr_encode_history_para(g,pos1,pos2,leftflag);
     wr_set_history_record_field(g,rec,HISTORY_DERIVATION_TAG_POS,tag);
     wr_set_history_record_field(g,rec,HISTORY_PATH_POS,wg_encode_int(db,path));
@@ -552,36 +492,12 @@ void wr_show_history(glb* g, gint history) {
   int clnr=1;
   char namebuf[20];
 
-  //wr_show_clactive(g);
-  //wr_show_clactivesubsume(g);
-
-  //wr_print_termhash(g, gint* hasharr);
-  /*
-  printf("\n*+*+*+* hash_neg_active_groundunits\n");
-
-  wr_print_termhash(g,rotp(g,g->hash_neg_active_groundunits));
-
-  printf("\n*+*+*+* hash_pos_active_groundunits\n");
-
-  wr_print_termhash(g,rotp(g,g->hash_pos_active_groundunits));
-
-  printf("\n*+*+*+* hash_pos_groundunits\n");
-
-  //wr_clterm_hashlist_print(g,rotp(g,g->hash_pos_groundunits));
-  wr_print_termhash(g,rotp(g,g->hash_pos_groundunits));
-
-  printf("\n*+*+*+* hash_neg_groundunits\n");
-
-  //wr_clterm_hashlist_print(g,rotp(g,g->hash_neg_groundunits)); 
-  wr_print_termhash(g,rotp(g,g->hash_neg_groundunits));
-  */
   mpool=wg_create_mpool(db,1000000);
   printf("\nproof:\n");
   htype=wg_get_encoded_type(db,history);  
   if (htype!=WG_RECORDTYPE) {
     wr_print_simpleterm_otter(g,history,1);
   } else {
-    //wr_print_record(g,otp(db,history))
     wr_flatten_history(g,mpool,history,NULL,0,&clnr,&assoc);
   }  
   assoc=wg_reverselist(db,mpool,assoc); 
@@ -590,8 +506,7 @@ void wr_show_history(glb* g, gint history) {
   snprintf(namebuf,19,"%d",clnr++);
   wr_print_one_history(g,mpool,history,NULL,namebuf,clnr-1,&assoc);
   printf("\n\n");
-
-  //wg_mpool_print(db,assoc); 
+ 
   wg_free_mpool(db,mpool);
 }
  
@@ -669,8 +584,6 @@ char* wr_print_flat_history(glb* g, void* mpool, int maxclnr, void **assoc) {
   void* db=g->db;  
   void *flat, *part, *tmp;
   gint cl, history; 
-  //gint cln;
-  //char *clns;
   char namebuf[20];
   int num;
   
@@ -681,9 +594,6 @@ char* wr_print_flat_history(glb* g, void* mpool, int maxclnr, void **assoc) {
       tmp=wg_first(db,part);   
       cl=(gint)(wg_first(db,tmp));
       history=wr_get_history(g,rotp(g,cl));      
-      //cln=(gint)(wg_nth(db,tmp,1));       
-      //clns=wg_atomstr1(db,(void *)cln);
-      //num=maxclnr-(int)(gint)(wg_nth(db,tmp,2));
       num=(int)(gint)(wg_nth(db,tmp,2));
       snprintf(namebuf,19,"%d",num);
       wr_print_one_history(g,mpool,history,rotp(g,cl),namebuf,maxclnr,assoc);     
@@ -704,7 +614,7 @@ char* wr_print_one_history
   char namebuf1[20];  
   char orderbuf[80];
   gptr historyptr;
-#ifdef RECORD_HISTORY_ORDER  
+#ifdef SHOW_HISTORY_ORDER  
   int o1,o2;
 #endif
   if (!history) {
@@ -714,15 +624,10 @@ char* wr_print_one_history
     else wr_print_clause(g,cl);   
     return clns;
   } 
-#ifdef RECORD_HISTORY_ORDER
+#ifdef SHOW_HISTORY_ORDER
   o1=wr_get_history_record_field(g,otp(db,history),HISTORY_DERIVED_ORDER_POS);
   o2=wr_get_history_record_field(g,otp(db,history),HISTORY_GIVEN_ORDER_POS);
   snprintf(orderbuf,79," %8ld %6ld",wg_decode_int(db,o1),wg_decode_int(db,o2));
-  /*
-      ((o1) ? wg_decode_int(db,o1) : -1),
-      ((o2) ? wg_decode_int(db,o2) : -1)     
-  );
-  */
 #else
   orderbuf[0]=(char)0;      
 #endif  
@@ -758,16 +663,6 @@ char* wr_print_one_history
     for(i=HISTORY_PARENT1_POS;i<len;i++) {
       cl1=wr_get_history_record_field(g,otp(db,history),i);
       tmp1=wg_get_assoc(db,(void *)cl1,*assoc);
-      /*
-      if (tmp1) {
-        n1=wg_nth(db,tmp1,1);  
-      } else {      
-        show_history_error(g,"could not find parent in wr_print_flat_history");
-        return NULL;
-      }        
-      h1=wr_get_history(g,otp(db,cl1));
-      */
-      //num=maxclnr-(int)(gint)(wg_nth(db,tmp1,2));
       num=(int)(gint)(wg_nth(db,tmp1,2));
       snprintf(namebuf1,19,"%d",num);
       if (i==1+HISTORY_DERIVATION_TAG_POS) {
@@ -791,16 +686,6 @@ char* wr_print_one_history
     for(i=HISTORY_PARENT1_POS;i<len;i++) {
       cl1=wr_get_history_record_field(g,otp(db,history),i);
       tmp1=wg_get_assoc(db,(void *)cl1,*assoc);
-      /*
-      if (tmp1) {
-        n1=wg_nth(db,tmp1,1);  
-      } else {      
-        show_history_error(g,"could not find parent in wr_print_flat_history");
-        return NULL;
-      } 
-      h1=wr_get_history(g,otp(db,cl1));
-      */
-      //num=maxclnr-(int)(gint)(wg_nth(db,tmp1,2));
       num=(int)(gint)(wg_nth(db,tmp1,2));
       snprintf(namebuf1,19,"%d",num);
       if (i==1+HISTORY_DERIVATION_TAG_POS) {
@@ -820,16 +705,6 @@ char* wr_print_one_history
     for(i=HISTORY_PARENT1_POS;i<len;i++) {
       cl1=wr_get_history_record_field(g,otp(db,history),i);
       tmp1=wg_get_assoc(db,(void *)cl1,*assoc);
-      /*
-      if (tmp1) {
-        n1=wg_nth(db,tmp1,1);  
-      } else {      
-        show_history_error(g,"could not find parent in wr_print_flat_history");
-        return NULL;
-      } 
-      h1=wr_get_history(g,otp(db,cl1));
-      */
-      //num=maxclnr-(int)(gint)(wg_nth(db,tmp1,2));
       num=(int)(gint)(wg_nth(db,tmp1,2));
       snprintf(namebuf1,19,"%d",num);
       if (i==1+HISTORY_DERIVATION_TAG_POS) {
@@ -852,19 +727,6 @@ char* wr_print_one_history
     for(i=HISTORY_PARA_PARENT1_POS;i<len;i++) {
       cl1=wr_get_history_record_field(g,otp(db,history),i);
       tmp1=wg_get_assoc(db,(void *)cl1,*assoc);
-      /*
-      if (tmp1) {
-        n1=wg_nth(db,tmp1,1);  
-      } else {      
-        show_history_error(g,"could not find parent in wr_print_flat_history");
-        return NULL;
-      }        
-      h1=wr_get_history(g,otp(db,cl1));
-      */
-      //num=maxclnr-(int)(gint)(wg_nth(db,tmp1,2));
-      /*
-      repllitnr=wr_decode_para_termpath_litnr(g,replpath);
-      */
       num=(int)(gint)(wg_nth(db,tmp1,2));
       snprintf(namebuf1,19,"%d",num);     
       if (i==2+HISTORY_DERIVATION_TAG_POS) {        
@@ -895,16 +757,6 @@ char* wr_print_one_history
     for(i=HISTORY_PARENT1_POS;i<len;i++) {
       cl1=wr_get_history_record_field(g,otp(db,history),i);
       tmp1=wg_get_assoc(db,(void *)cl1,*assoc);
-      /*
-      if (tmp1) {
-        n1=wg_nth(db,tmp1,1);  
-      } else {      
-        show_history_error(g,"could not find parent in wr_print_flat_history");
-        return NULL;
-      }        
-      h1=wr_get_history(g,otp(db,cl1));
-      */
-      //num=maxclnr-(int)(gint)(wg_nth(db,tmp1,2));
       num=(int)(gint)(wg_nth(db,tmp1,2));
       snprintf(namebuf1,19,"%d",num);
       printf("%s",namebuf1);          
@@ -980,9 +832,6 @@ void wr_print_clause_name_history(glb* g, gint history) {
     else if (decprior==WR_HISTORY_FROMAXIOM_ROLENR) printf(",fromaxiom] ");
     else if (decprior==WR_HISTORY_EXTAXIOM_ROLENR) printf(",extaxiom] ");
     else if (decprior) printf(", dp %d] ",(int)decprior);
-
-    //else if (decprior==1) printf(",goal] ");
-    //else if (decprior==2) printf(",assumption] ");
     else printf("] ");     
     return;
   } else {
