@@ -72,7 +72,7 @@ int init_shared_database(void* db, char* guidefilename) {
   int guideres=0;
 
 #ifdef DEBUG
-  printf("\ninit_shared_database starts\n");
+  wr_printf("\ninit_shared_database starts\n");
 #endif    
   //g=sys_malloc(sizeof(glb)); // allocate space
   g=wg_rawalloc(db,sizeof(glb));
@@ -92,23 +92,23 @@ int init_shared_database(void* db, char* guidefilename) {
   (g->inkb)=1; // g is inside the shared knowledge base 
 
 #ifdef DEBUG
-  printf("\ng->db is %ld or %lx\n",
+  wr_printf("\ng->db is %ld or %lx\n",
   (unsigned long int)(g->db),(unsigned long int)(g->db)); 
 
-  printf("db is %lx and g->db is %lx\n",(unsigned long int)db,(unsigned long int)(g->db));
-  printf("(g->db_offset) is %ld\n",(g->db_offset));
-  printf("\n dbcheck(db) gives %d \n", dbcheck(db));
-  printf("\n dbcheck(g->db) gives %d \n", dbcheck(g->db));
+  wr_printf("db is %lx and g->db is %lx\n",(unsigned long int)db,(unsigned long int)(g->db));
+  wr_printf("(g->db_offset) is %ld\n",(g->db_offset));
+  wr_printf("\n dbcheck(db) gives %d \n", dbcheck(db));
+  wr_printf("\n dbcheck(g->db) gives %d \n", dbcheck(g->db));
 #endif   
 
   wr_glb_init_simple(g);  // fills in simple values (ints, strings etc)   
 #ifdef DEBUG  
-  printf("\ninit_shared_database returned from wr_glb_init_simple\n");
+  wr_printf("\ninit_shared_database returned from wr_glb_init_simple\n");
 #endif 
 
   if (guidefilename!=NULL) {
     argvbuf[2]=guidefilename;
-    printf("\n");
+    wr_printf("\n");
     guide=wr_parse_guide_file(3,argvbuf,&guidebuf);
     if (guide==NULL) {
       if (guidebuf!=NULL) free(guidebuf);
@@ -129,11 +129,11 @@ int init_shared_database(void* db, char* guidefilename) {
     return -1;
   }
 #ifdef DEBUG  
-  printf("\ninit_shared_database returned from wr_glb_init_complex\n");
+  wr_printf("\ninit_shared_database returned from wr_glb_init_complex\n");
 #endif 
   (g->inkb)=0; // temporarily pretend g is not inside the shared knowledge base 
   if (wr_glb_init_local_complex(g)) { // creates and fills in local tables, substructures, etc  
-    printf("\nerror: cannot init local complex datastructures\n");
+    wr_printf("\nerror: cannot init local complex datastructures\n");
     wr_glb_free_shared_complex(g);
     wr_glb_free_local_complex(g); 
     (g->inkb)=1;  // restore: g is inside the shared knowledge base  
@@ -143,9 +143,9 @@ int init_shared_database(void* db, char* guidefilename) {
   
 #ifdef DEBUG  
   wg_show_db_memsegment_header(db);
-  printf("\nwg_show_db_memsegment_header ends\n");
+  wr_printf("\nwg_show_db_memsegment_header ends\n");
   wg_show_strhash(db);
-  printf("\nwg_show_strhash ends\n");
+  wr_printf("\nwg_show_strhash ends\n");
 #endif 
   tmp=wr_analyze_clause_list(g,db,db);
   if (!tmp) return -1;
@@ -173,7 +173,7 @@ int wr_init_db_clause_indexes(glb* g, void* db) {
   gcell *cellptr;
 
 #ifdef DEBUG
-  printf("\nwr_init_db_clause_indexes starts, g->inkb is %d\n",(g->inkb)); 
+  wr_printf("\nwr_init_db_clause_indexes starts, g->inkb is %d\n",(g->inkb)); 
 #endif  
   // next two need init_local_complex do be performed before:
   wr_clear_all_varbanks(g);
@@ -190,48 +190,48 @@ int wr_init_db_clause_indexes(glb* g, void* db) {
       exit(0);
     }  
 #ifdef DEBUG
-    printf("\nrule with len %ld x\n",wg_get_record_len(db,rec));
+    wr_printf("\nrule with len %ld x\n",wg_get_record_len(db,rec));
     wg_print_record(db,rec);
 #endif
     clmeta=wr_calc_clause_meta(g,rec,given_cl_metablock);
 #ifdef DEBUG
-    printf("\nafter wr_calc_clause_meta\n");
+    wr_printf("\nafter wr_calc_clause_meta\n");
     wg_print_record(db,rec);
 #endif
     wr_add_cl_to_unithash(g,rec,clmeta);     
 #ifdef DEBUG
-    printf("\nafter wr_add_cl_to_unithash\n");
+    wr_printf("\nafter wr_add_cl_to_unithash\n");
     wg_print_record(db,rec);     
-    printf("\npreparing to do wr_process_given_cl\n");
+    wr_printf("\npreparing to do wr_process_given_cl\n");
 #endif    
     // start allocating from record area instead of g->build_buffer 
     (g->build_buffer)=NULL;
     given_cl=wr_process_given_cl(g,(gptr)rec, NULL);
     if (!given_cl) {
-      printf("\nwr_process_given_cl failed\n");
+      wr_printf("\nwr_process_given_cl failed\n");
       return -1;
     }
     if ( ((gint)given_cl==ACONST_FALSE) || ((gint)given_cl==ACONST_TRUE) ||
           (given_cl==NULL) ) {
 #ifdef DEBUG
-      printf("\nrule clause was simplified while adding to sos, original:\n");
+      wr_printf("\nrule clause was simplified while adding to sos, original:\n");
       wr_print_clause(g,(gptr)rec);
 #endif
       cell=cellptr->cdr; 
       continue;
     };
 #ifdef DEBUG
-    printf("\nwr_process_given_cl gives given_cl\n");
+    wr_printf("\nwr_process_given_cl gives given_cl\n");
     wg_print_record(db,given_cl);
 #endif  
     if (wg_rec_is_rule_clause(db,rec)) {
       rules_found++;
 #ifdef DEBUG      
-      printf("\nto do wr_sort_cl with given_cl\n");
+      wr_printf("\nto do wr_sort_cl with given_cl\n");
 #endif      
       wr_sort_cl(g,given_cl);    
 #ifdef DEBUG      
-      printf("\nafter wr_sort_cl given_cl\n");  
+      wr_printf("\nafter wr_sort_cl given_cl\n");  
 #endif      
     } else {
       facts_found++;
@@ -244,13 +244,13 @@ int wr_init_db_clause_indexes(glb* g, void* db) {
     // start allocating from record area instead of g->build_buffer 
     given_cl=wr_add_given_cl_active_list(g,given_cl,given_cl_metablock,0,NULL,(g->tmp_resolvability_vec));
 #ifdef DEBUG 
-    printf("\ngiven_cl after wr_add_given_cl_active_list\n");
+    wr_printf("\ngiven_cl after wr_add_given_cl_active_list\n");
     wg_print_record(db,given_cl);
 #endif                
     cell=cellptr->cdr;
   }  
 #ifdef DEBUG            
-  printf("\nrules_found %d facts_found %d \n",rules_found,facts_found); 
+  wr_printf("\nrules_found %d facts_found %d \n",rules_found,facts_found); 
 #endif   
   return rules_found+facts_found;
 }
@@ -275,7 +275,7 @@ void wr_show_database_details(glb* passedg,void* db, char* desc) {
   gint cell;
   gcell *cellptr;
 
-  printf("\n*** wr_show_database_details for desc %s\n",desc);
+  db_printf("\n*** wr_show_database_details for desc %s\n",desc);
   
   if (passedg==NULL) {
     printf("\ndirect g block passedg is NULL, hence using g inside db \n");
@@ -374,13 +374,13 @@ void wr_show_database_details(glb* passedg,void* db, char* desc) {
   printf("\n** hash_pos_active_groundunits:\n"); 
   wr_print_termhash(g,rotp(g,g->hash_pos_active_groundunits));
   
-  printf("\n** clactivesubsume:\n"); 
+  wr_printf("\n** clactivesubsume:\n"); 
   wr_show_clactivesubsume(g);
 
-  printf("\n** hash_para_terms:\n");      
+  wr_printf("\n** hash_para_terms:\n");      
   wr_clterm_hashlist_print_para(g,rotp(g,g->hash_para_terms)); 
   
-  printf("\n** hash_eq_terms:");      
+  wr_printf("\n** hash_eq_terms:");      
   wr_clterm_hashlist_print_para(g,rotp(g,g->hash_eq_terms));  
   
 }
@@ -390,14 +390,14 @@ void wr_show_database_details(glb* passedg,void* db, char* desc) {
 void wr_show_database_headers(void* db) {
   db_memsegment_header* dbh;
 
-  printf("\n*** wr_show_database_headers for ptr %lx as int %ld\n",
+  db_printf("\n*** wr_show_database_headers for ptr %lx as int %ld\n",
       (unsigned long int)db,(gint)db);
-  printf("\ndbcheck(db) gives %d \n", dbcheck(db));
+  db_printf("\ndbcheck(db) gives %d \n", dbcheck(db));
   dbh=dbmemsegh(db);
-  printf("\ndbcheckh(dbh) gives %d \n", dbcheck(dbh));
+  db_printf("\ndbcheckh(dbh) gives %d \n", dbcheck(dbh));
   
-  printf("\ndb->kb_db is ptr %lx and int %ld\n",(unsigned long int)(dbh->kb_db),(gint)(dbh->kb_db));
-  printf("\ndb->rglb is ptr %lx and int %ld\n",(unsigned long int)(dbh->rglb),(gint)(dbh->rglb));
+  db_printf("\ndb->kb_db is ptr %lx and int %ld\n",(unsigned long int)(dbh->kb_db),(gint)(dbh->kb_db));
+  db_printf("\ndb->rglb is ptr %lx and int %ld\n",(unsigned long int)(dbh->rglb),(gint)(dbh->rglb));
 
   wg_show_database(db);
 }

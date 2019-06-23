@@ -153,7 +153,7 @@ int wr_term_hashstore(glb* g, void* hashdata, gint term, gptr cl) {
     // here store!
     //tmp=1; // dummy    
 #ifdef XDEBUG 
-    printf("adding to hash (vec)hashdata in wr_term_hashstore\n");
+    wr_printf("adding to hash (vec)hashdata in wr_term_hashstore\n");
 #endif    
     tmp=wr_clterm_add_hashlist(g,(vec)hashdata,thash,term,cl); 
     if (tmp) {
@@ -179,7 +179,7 @@ gint wr_term_complexhash(glb* g, gint* hasharr, gint hashposbits, gint term) {
   int thash;
 
 #ifdef DEBUG
-  printf("wr_term_complexhash called with term %d bits %d \n",term,hashposbits);
+  wr_printf("wr_term_complexhash called with term %d bits %d \n",term,hashposbits);
 #endif    
   tptr=decode_record(g->db,term);  
   tlen=get_record_len(tptr);
@@ -208,7 +208,7 @@ gint wr_term_complexhash(glb* g, gint* hasharr, gint hashposbits, gint term) {
   }  
   //if (hash<0) hash=0-hash;  // uint hash!
 #ifdef DEBUG
-  printf("wr_term_complexhash computed hash %d using NROF_CLTERM_HASHVEC_ELS-2 %d gives final res %d \n",
+  wr_printf("wr_term_complexhash computed hash %d using NROF_CLTERM_HASHVEC_ELS-2 %d gives final res %d \n",
          hash,NROF_CLTERM_HASHVEC_ELS-2,1+(hash%(NROF_CLTERM_HASHVEC_ELS-2)));
 #endif    
   return (gint)(1+(hash%(NROF_CLTERM_HASHVEC_ELS-2)));
@@ -234,15 +234,15 @@ gint wr_term_funhash(glb* g, gint term) {
   gint fun;
   gint chash;
   
-  printf("\nwr_term_funhash called\n");
+  wr_printf("\nwr_term_funhash called\n");
   if (!isdatarec(term)) {
     fun=term;
   } else {
     fun=get_field(decode_record(db,term),(g->unify_funpos)); 
   }  
-  printf("\nfun %d\n",(int)fun);  
+  wr_printf("\nfun %d\n",(int)fun);  
   chash=wr_term_basehash(g,fun);
-  printf("\nchash %d\n",(int)chash);
+  wr_printf("\nchash %d\n",(int)chash);
   return chash;
 }
 
@@ -254,9 +254,9 @@ int wr_atom_calc_prefhashes(glb* g, gint x, gint* prefhashes) {
   (*(prefhashes+1))=(gint)0;
   (*(prefhashes+2))=(gint)0;
 #ifdef DEBUG
-  printf("\nwr_atom_calc_prefhashes called with ");
+  wr_printf("\nwr_atom_calc_prefhashes called with ");
   wg_print_record(g->db,rotp(g,x));
-  printf("\n");
+  wr_printf("\n");
 #endif
   wr_atom_calc_prefhashes_aux(g,x,&preflen,prefhashes);
 
@@ -264,7 +264,7 @@ int wr_atom_calc_prefhashes(glb* g, gint x, gint* prefhashes) {
   //(*(prefhashes+1))=(*(prefhashes+1))+(gint)1;
   //(*(prefhashes+2))=(*(prefhashes+2))+(gint)2;
 #ifdef DEBUG
-  printf("\n preflen %d prefhashes %ld %ld %ld\n",
+  wr_printf("\n preflen %d prefhashes %ld %ld %ld\n",
     preflen,
     *prefhashes,
     (*(prefhashes+1)),
@@ -363,18 +363,18 @@ gint wr_term_basehash(glb* g, gint enc) {
   //gint res;
   
 #ifdef DEBUG
-  printf("wr_termhash called with enc %d visually ", enc);
+  wr_printf("wr_termhash called with enc %d visually ", enc);
   wr_print_simpleterm_otter(g,enc,(g->print_clause_detaillevel));  
-  printf("\n");
-  printf("wg_get_encoded_type %d\n",wg_get_encoded_type(db,enc));
+  wr_printf("\n");
+  wr_printf("wg_get_encoded_type %d\n",wg_get_encoded_type(db,enc));
 #endif   
   switch(wg_get_encoded_type(db, enc)) {    
     case WG_NULLTYPE:
       hash=0;
       /*
-      printf("\n in wr_term_basehash nulltype\n");
+      wr_printf("\n in wr_term_basehash nulltype\n");
       wr_print_simpleterm_otter(g,enc,(g->print_clause_detaillevel)); 
-      printf("\n");
+      wr_printf("\n");
       */
       break;       
     case WG_INTTYPE:
@@ -433,7 +433,7 @@ gint wr_term_basehash(glb* g, gint enc) {
   }
   if (hash<0) hash=0-hash;
 #ifdef DEBUG
-  printf("wr_termhash computed hash %d using NROF_CLTERM_HASHVEC_ELS-2 %d gives final res %d \n",
+  wr_printf("wr_termhash computed hash %d using NROF_CLTERM_HASHVEC_ELS-2 %d gives final res %d \n",
          hash,NROF_CLTERM_HASHVEC_ELS-2,0+(hash%(NROF_CLTERM_HASHVEC_ELS-2)));
 #endif 
  
@@ -523,31 +523,31 @@ int wr_clterm_add_hashlist_withpath(glb* g, vec hashvec, gint hash, gint term, g
   gint nextnode;
 
 #ifdef DEBUG
-  printf("\nwr_clterm_add_hashlist_withpath called\n");
-  printf("\nhash %ld path %d term %ld %lx:\n",hash,path,term,rotp(g,term));
+  wr_printf("\nwr_clterm_add_hashlist_withpath called\n");
+  wr_printf("\nhash %ld path %d term %ld %lx:\n",hash,path,term,rotp(g,term));
   wr_print_term(g, term);
-  printf("\n cl %lx:\n",cl);
+  wr_printf("\n cl %lx:\n",cl);
   wr_print_record(g,cl);
-  printf("\n");
+  wr_printf("\n");
 #endif  
   vlen=VEC_LEN(hashvec);  
   if ((hash>=vlen) || (hash<1)) { 
     // err case
-    printf("\nCP1 hash %d vlen %d\n",(int)hash,(int)vlen);
+    wr_printf("\nCP1 hash %d vlen %d\n",(int)hash,(int)vlen);
     if  (hash>=vlen)  {
-       printf("\nhash>=vlen hash %d vlen %d\n",(int)hash,(int)vlen);
+       wr_printf("\nhash>=vlen hash %d vlen %d\n",(int)hash,(int)vlen);
     }
     if  (hash<1)  {
-       printf("\n(hash<1) hash %d vlen %d\n",(int)hash,(int)vlen);
+       wr_printf("\n(hash<1) hash %d vlen %d\n",(int)hash,(int)vlen);
     }
-    printf("\n record \n");
-    printf("\n term as gint %d\n",(int)term);
+    wr_printf("\n record \n");
+    wr_printf("\n term as gint %d\n",(int)term);
     wr_print_record(g,cl);
-    printf("\n");
+    wr_printf("\n");
     wr_print_clause(g,cl);
-    printf("\n");
+    wr_printf("\n");
     //wr_print_term(g,otp(db,term));
-    printf("\n");
+    wr_printf("\n");
     return 1; 
   } 
   cell=hashvec[hash];
@@ -601,21 +601,21 @@ int wr_clterm_add_hashlist_offset_withpath(glb* g, vec hashvec, gint hash, gint 
   vlen=VEC_LEN(hashvec);  
   if ((hash>=vlen) || (hash<1)) { 
     // err case
-    printf("\nCP2 hash %d vlen %d\n",(int)hash,(int)vlen);
+    wr_printf("\nCP2 hash %d vlen %d\n",(int)hash,(int)vlen);
     if  (hash>=vlen)  {
-       printf("\nhash>=vlen hash %d vlen %d\n",(int)hash,(int)vlen);
+       wr_printf("\nhash>=vlen hash %d vlen %d\n",(int)hash,(int)vlen);
     }
     if  (hash<1)  {
-       printf("\n(hash<1) hash %d vlen %d\n",(int)hash,(int)vlen);
+       wr_printf("\n(hash<1) hash %d vlen %d\n",(int)hash,(int)vlen);
     }
-    printf("\n record \n");
-    printf("\n term as gint %d\n",(int)term);
+    wr_printf("\n record \n");
+    wr_printf("\n term as gint %d\n",(int)term);
     wr_print_record(g,cl);
-    printf("\n");
+    wr_printf("\n");
     wr_print_clause(g,cl);
-    printf("\n");
+    wr_printf("\n");
     //wr_print_term(g,otp(db,term));
-    printf("\n");
+    wr_printf("\n");
     return 1; 
   } 
   cell=hashvec[hash];
@@ -632,7 +632,7 @@ int wr_clterm_add_hashlist_offset_withpath(glb* g, vec hashvec, gint hash, gint 
   } else {
     // hash chain exists: first node contains counter to increase
     // then take next ptr for node to handle
-    // printf("\n hash chain exists !!!!\n");    
+    // wr_printf("\n hash chain exists !!!!\n");    
     prevnode=otp(db,cell);
     prevnode[CLTERM_HASHNODE_LEN_POS]++;
     nextnode=prevnode[CLTERM_HASHNODE_NEXT_POS];
@@ -670,7 +670,7 @@ gint wr_clterm_hashlist_start(glb* g, vec hashvec, gint hash) {
   gint vlen;
   gint cell;
 #ifdef DEBUG  
-  printf("wr_clterm_hashlist_start len %d hash %d\n",VEC_LEN(hashvec),hash);
+  wr_printf("wr_clterm_hashlist_start len %d hash %d\n",VEC_LEN(hashvec),hash);
 #endif  
   vlen=VEC_LEN(hashvec);
   if (hash>=vlen || hash<1) return 0; // err case
@@ -732,14 +732,14 @@ void wr_clterm_hashlist_print(glb* g, vec hashvec) {
    
   vlen=VEC_LEN(hashvec); 
   //printf("\nhashvec len %d ptr %lx and els:\n",(int)vlen,(unsigned long int)hashvec); 
-  printf("\nhashvec len %d els:\n",(int)vlen);
+  wr_printf("\nhashvec len %d els:\n",(int)vlen);
   for(i=VEC_START;i<vlen+1;i++) {
     if (hashvec[i]!=0) {
       //printf("\ni %d hashvec[i] %d \n",i,hashvec[i]);      
       node=(rotp(g,hashvec[i]))[CLTERM_HASHNODE_NEXT_POS];
       //printf("\nhashslot i %d node %ld len %d:\n",
       //   i, node, (int)((rotp(g,hashvec[i]))[CLTERM_HASHNODE_LEN_POS]));
-      printf("\nhashslot %d len %d:\n",
+      wr_printf("\nhashslot %d len %d:\n",
          i, (int)((rotp(g,hashvec[i]))[CLTERM_HASHNODE_LEN_POS]));   
       while(node!=0) {        
         tmp=(rotp(g,node))[CLTERM_HASHNODE_PATH_POS];
@@ -749,10 +749,10 @@ void wr_clterm_hashlist_print(glb* g, vec hashvec) {
           path=wg_decode_int(g->db,tmp);
         } 
         wr_print_term(g,(rotp(g,node))[CLTERM_HASHNODE_TERM_POS]);
-        printf(" at path %d ",(int)path);       
-        printf("in cl ");
+        wr_printf(" at path %d ",(int)path);       
+        wr_printf("in cl ");
         wr_print_clause(g,rotp(g,(rotp(g,node))[CLTERM_HASHNODE_CL_POS])); 
-        printf("\n");       
+        wr_printf("\n");       
         //printf(" as rec ");      
         //wg_print_record(g->db,rotp(g,tmp));
         //wg_print_record(g->db,rotp(g,(rotp(g,node))[CLTERM_HASHNODE_CL_POS]));
@@ -763,7 +763,7 @@ void wr_clterm_hashlist_print(glb* g, vec hashvec) {
         //printf("\nterm (rotp(g,node))[CLTERM_HASHNODE_TERM_POS] %ld\n",tmp);
   
         wg_print_record(g->db,rotp(g,tmp));
-        printf(" as term ");
+        wr_printf(" as term ");
         wr_print_term(g,(rotp(g,node))[CLTERM_HASHNODE_TERM_POS]);
 
         tmp=(rotp(g,node))[CLTERM_HASHNODE_PATH_POS];
@@ -772,10 +772,10 @@ void wr_clterm_hashlist_print(glb* g, vec hashvec) {
         } else {
           path=wg_decode_int(g->db,tmp);
         }        
-        printf(" at path %d ",(int)path);       
-        printf("in cl ");
+        wr_printf(" at path %d ",(int)path);       
+        wr_printf("in cl ");
         wr_print_clause(g,rotp(g,(rotp(g,node))[CLTERM_HASHNODE_CL_POS]));
-        printf("\n");        
+        wr_printf("\n");        
         node=(rotp(g,node))[CLTERM_HASHNODE_NEXT_POS];
         //printf(" node %d \n",node);
         */
@@ -793,15 +793,15 @@ void wr_clterm_hashlist_print_para(glb* g, vec hashvec) {
   int i;
   
   vlen=VEC_LEN(hashvec); 
-  printf("\nhashvec len %d ptr %lx and els:\n",(int)vlen,(unsigned long int)hashvec);  
+  wr_printf("\nhashvec len %d ptr %lx and els:\n",(int)vlen,(unsigned long int)hashvec);  
   for(i=VEC_START;i<vlen+1;i++) {
     if (hashvec[i]!=0) {
       //printf("\ni %d hashvec[i] %d \n",i,hashvec[i]);   
       node=(rotp(g,hashvec[i]))[CLTERM_HASHNODE_NEXT_POS];
-      printf("\nhashslot i %d node %ld len %d:\n",
+      wr_printf("\nhashslot i %d node %ld len %d:\n",
          i, node, (int)((rotp(g,hashvec[i]))[CLTERM_HASHNODE_LEN_POS]));
       while(node!=0) {
-        printf("term ");      
+        wr_printf("term ");      
       
         wr_print_term(g,(rotp(g,node))[CLTERM_HASHNODE_TERM_POS]);
         tmp=(rotp(g,node))[CLTERM_HASHNODE_PATH_POS];
@@ -810,10 +810,10 @@ void wr_clterm_hashlist_print_para(glb* g, vec hashvec) {
         } else {
           path=wg_decode_int(g->db,tmp);
         }        
-        printf(" at path %d ",(int)path);       
-        printf("in cl ");
+        wr_printf(" at path %d ",(int)path);       
+        wr_printf("in cl ");
         wr_print_clause(g,rotp(g,(rotp(g,node))[CLTERM_HASHNODE_CL_POS]));
-        printf("\n");        
+        wr_printf("\n");        
         node=(rotp(g,node))[CLTERM_HASHNODE_NEXT_POS];
         //printf(" node %d \n",node);
       }        
@@ -926,9 +926,9 @@ gint* wr_find_offset_termhash(glb* g, gint* hasharr, gptr term, int hash) {
   gint oterm; // offset of term
 
   /*
-  printf("\nfind from termhash with length %d and hash %d the term: \n",hasharr[0],hash);
+  wr_printf("\nfind from termhash with length %d and hash %d the term: \n",hasharr[0],hash);
   wr_print_clause(g,term);
-  printf("\n");
+  wr_printf("\n");
   */
  
   // negative hashes not ok: make positive
@@ -949,11 +949,11 @@ gint* wr_find_offset_termhash(glb* g, gint* hasharr, gptr term, int hash) {
   bucket_asp=rotp(g,bucket);
   for(j=2;j<bucket_asp[0] && j<bucket_asp[1]; j=j+2) {
     /*
-    printf("%d ",(j-2)/2);
+    wr_printf("%d ",(j-2)/2);
     wr_print_term(g,rpto(g,bucket[j]));
-    printf(" in cl ");
+    wr_printf(" in cl ");
     wr_print_clause(g,bucket[j+1]);
-    printf("\n");
+    wr_printf("\n");
     */
     (g->tmp4)++;
     if (wr_equal_term(g,oterm,bucket_asp[j],1)) {
@@ -1003,26 +1003,26 @@ void wr_print_offset_termhash(glb* g, gint* hasharr) {
   cvec bucket;
  
   //printf("\nhashvec len %ld ptr %lx and els:\n",hasharr[0],(unsigned long int)hasharr);  
-  printf("\nhashvec len %ld els:\n",hasharr[0]);  
+  wr_printf("\nhashvec len %ld els:\n",hasharr[0]);  
   for(i=1;i<hasharr[0];i++) {    
     if (hasharr[i]) {
       bucket=rotp(g,(hasharr[i]));
       //printf("\nhashslot i %d node %ld size %ld next free %ld\n",
       //        i,hasharr[i],bucket[0],bucket[1]);
-      printf("\nhashslot i %d size %ld next free %ld\n",i,bucket[0],bucket[1]);        
+      wr_printf("\nhashslot i %d size %ld next free %ld\n",i,bucket[0],bucket[1]);        
       if (1) {
         for(j=2;j<bucket[0] && j<bucket[1]; j=j+2) {
-          printf("term ");
+          wr_printf("term ");
           wr_print_term(g,bucket[j]);
           //printf(" path %d in cl ",0);
           //CP1
           //printf("\nj %d bucket[j+1] %ld \n",j,bucket[j+1]);
           //CP2          
-          printf(" in clause ");
+          wr_printf(" in clause ");
           wr_print_clause(g,rotp(g,bucket[j+1]));          
-          printf(" as rec ");
+          wr_printf(" as rec ");
           wg_print_record(g->db,rotp(g,bucket[j+1]));
-          printf("\n");
+          wr_printf("\n");
         }
       }  
     }
@@ -1054,11 +1054,11 @@ gint* wr_push_atomhash(glb* g, gint* hasharr, int hash, gint atom, gptr cl, int 
   int bnodestart, found, clvecpos;
 
 #ifdef DEBUG
-  printf("\nwwr_push_atomhash called with atom ");
+  wr_printf("\nwwr_push_atomhash called with atom ");
   wr_print_term(g,atom);
-  printf(" and cl: ");
+  wr_printf(" and cl: ");
   wr_print_clause(g,cl);
-  printf("\n");
+  wr_printf("\n");
 #endif
 
   (g->stat_atom_hash_added)++;
@@ -1186,9 +1186,9 @@ gint* wr_find_atomhash_bucketnode(glb* g, gint* hasharr, gint atom, int hash) {
   cvec bucket; 
   int bnodestart;
 #ifdef DEBUG  
-  printf("\nwr_find_atomhash called with hash %d and the term: \n",hash);
+  wr_printf("\nwr_find_atomhash called with hash %d and the term: \n",hash);
   wr_print_term(g,atom);
-  printf("\n");  
+  wr_printf("\n");  
 #endif 
   // negative hashes not ok: make positive
   if (hash<0) hash=0-hash;
@@ -1260,25 +1260,25 @@ void wr_print_atomhash(glb* g, gint* hasharr) {
   int i,j;
   cvec bucket;
   
-  printf("\natomhash with length %d: \n",(int)(hasharr[0]));  
+  wr_printf("\natomhash with length %d: \n",(int)(hasharr[0]));  
 
   for(i=1;i<hasharr[0];i++) {
     if (hasharr[i]) {
       bucket=(cvec)(hasharr[i]);
-      printf("bucket for hash %d size %d next free %d\n",i-1,(int)(bucket[0]),(int)(bucket[1]));
+      wr_printf("bucket for hash %d size %d next free %d\n",i-1,(int)(bucket[0]),(int)(bucket[1]));
       if (1) {
         for(j=2;j<bucket[0]+2 && j<bucket[1]; j=j+ATOMHASH_NODE_SIZE) {
-          printf("j %d nr %d ",j,(j-2)/ATOMHASH_NODE_SIZE);
+          wr_printf("j %d nr %d ",j,(j-2)/ATOMHASH_NODE_SIZE);
           wr_print_term(g,bucket[j+ATOMHASH_ATOM_POS]);
-          printf("  atomnr %d ",(int)(bucket[j+ATOMHASH_ATOMNR_POS]));
+          wr_printf("  atomnr %d ",(int)(bucket[j+ATOMHASH_ATOMNR_POS]));
           if (bucket[j+ATOMHASH_POSCLAUSES_POS]) {
-            printf("  pos clauses count %d nextfree %d:\n",
+            wr_printf("  pos clauses count %d nextfree %d:\n",
               (int)(((gptr)(bucket[j+ATOMHASH_POSCLAUSES_POS]))[0]),
               (int)(((gptr)(bucket[j+ATOMHASH_POSCLAUSES_POS]))[1]));
             wr_print_atomhash_clvec(g,(gptr)(bucket[j+ATOMHASH_POSCLAUSES_POS])); 
           }
           if (bucket[j+ATOMHASH_NEGCLAUSES_POS]) {
-            printf("  neg clauses count %d nextfree %d:\n",
+            wr_printf("  neg clauses count %d nextfree %d:\n",
               (int)(((gptr)(bucket[j+ATOMHASH_NEGCLAUSES_POS]))[0]),
               (int)(((gptr)(bucket[j+ATOMHASH_NEGCLAUSES_POS]))[1]));
             wr_print_atomhash_clvec(g,(gptr)(bucket[j+ATOMHASH_NEGCLAUSES_POS])); 
@@ -1294,9 +1294,9 @@ void wr_print_atomhash_clvec(glb* g, cvec clvec) {
 
   //printf("\nwr_print_atomhash_clvec called, clvec[0] %d clvec[1] %d\n",clvec[0],clvec[1]); 
   for(i=2;i<clvec[0]+2 && i<clvec[1];i++) {
-    printf("    i %d ",i);
+    wr_printf("    i %d ",i);
     wr_print_clause(g,(gptr)(clvec[i]));
-    printf("\n");
+    wr_printf("\n");
   }
   //printf("\nwr_print_atomhash_clvec ended\n"); 
 }  

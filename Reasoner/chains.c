@@ -82,7 +82,7 @@ void check_process_chain_clause(glb* g, gptr cl) {
       !isvar(a0ptr[start+1])) 
     return;
   
-  // printf("\nappears to be chain clause ok");
+  // wr_printf("\nappears to be chain clause ok");
 
   if (wg_atom_meta_is_neg(db,meta0) &&
       !wg_atom_meta_is_neg(db,meta1)) {

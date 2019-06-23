@@ -69,7 +69,7 @@ store a clause in a passive stack
 void wr_push_clpickstack_cl(glb* g, gptr cl) {
 
 #ifdef DEBUG  
-  printf("\npushing to clpickstack pos %d\n",(int)((rotp(g,g->clpickstack))[1]));  
+  wr_printf("\npushing to clpickstack pos %d\n",(int)((rotp(g,g->clpickstack))[1]));  
 #endif  
   (g->clpickstack)=rpto(g,wr_cvec_push(g,rotp(g,(g->clpickstack)),(gint)cl));
   //wr_show_clpickstack(g);
@@ -80,7 +80,7 @@ void wr_show_clpickstack(glb* g) {
   int i;
   
   for(i=2;i<(rotp(g,g->clpickstack))[1];i++) {
-    printf("\nclpickstack nr %d :",i);
+    wr_printf("\nclpickstack nr %d :",i);
     wr_print_record(g,(gptr)((rotp(g,g->clpickstack))[i]));    
   } 
 }
@@ -95,7 +95,7 @@ store a clause in a passive queue
 void wr_push_clqueue_cl(glb* g, gptr cl) {
 
 #ifdef DEBUG  
-  printf("\npushing to clqueue pos %d\n",(int)((rotp(g,g->clqueue))[1]));  
+  wr_printf("\npushing to clqueue pos %d\n",(int)((rotp(g,g->clqueue))[1]));  
 #endif  
   (g->clqueue)=rpto(g,wr_cvec_push(g,rotp(g,(g->clqueue)),(gint)cl));
   //wr_show_clqueue(g);
@@ -106,16 +106,16 @@ void wr_show_clqueue(glb* g) {
   int i;
   
   for(i=2;i<(rotp(g,g->clqueue))[1];i++) {
-    printf("\nclqueue nr %d :",i);
+    wr_printf("\nclqueue nr %d :",i);
     wr_print_record(g,(gptr)((rotp(g,g->clqueue))[i]));
-    printf(" ");
+    wr_printf(" ");
     if (wg_rec_is_rule_clause(g->db, (gptr)((rotp(g,g->clqueue))[i]))) {
-      printf("rule");
+      wr_printf("rule");
     } else {
-      printf("fact");
+      wr_printf("fact");
     }
   } 
-  printf("\n");
+  wr_printf("\n");
 }
 
 /*
@@ -129,7 +129,7 @@ void wr_show_clactive(glb* g) {
   int i;
   
   for(i=2;i<(rotp(g,g->clactive))[1];i++) {
-    printf("\nclactive nr %d :",i);
+    wr_printf("\nclactive nr %d :",i);
     wr_print_record(g,(gptr)((rotp(g,g->clactive))[i]));    
   } 
 }
@@ -138,27 +138,27 @@ void wr_show_clactivesubsume(glb* g) {
   int i;
   
   if (!(g->clactivesubsume)) {
-    printf("\n g->clactivesubsume is NULL\n");
+    wr_printf("\n g->clactivesubsume is NULL\n");
     return;
   }
   for(i=2;i<(rotp(g,g->clactivesubsume))[1];i+=CLMETABLOCK_ELS) {
-    printf("\nclactivesubsume nr %d :",i);       
-    printf("\n lengths   ");
+    wr_printf("\nclactivesubsume nr %d :",i);       
+    wr_printf("\n lengths   ");
     wr_print_gint_hashmask(g, (rotp(g,g->clactivesubsume))[i+CLMETABLOCK_LENGTHS_POS]);
-    printf("\n sizes     ");
+    wr_printf("\n sizes     ");
     wr_print_gint_hashmask(g, (rotp(g,g->clactivesubsume))[i+CLMETABLOCK_SIZES_POS]);
-    printf("\n pref1bits ");
+    wr_printf("\n pref1bits ");
     wr_print_gint_hashmask(g, (rotp(g,g->clactivesubsume))[i+CLMETABLOCK_PREF1BITS_POS]);
-    printf("\n pref2bits ");
+    wr_printf("\n pref2bits ");
     wr_print_gint_hashmask(g, (rotp(g,g->clactivesubsume))[i+CLMETABLOCK_PREF2BITS_POS]);
-    printf("\n pref3bits ");
+    wr_printf("\n pref3bits ");
     wr_print_gint_hashmask(g, (rotp(g,g->clactivesubsume))[i+CLMETABLOCK_PREF3BITS_POS]);
-    printf("\n clause    ");
+    wr_printf("\n clause    ");
     wr_print_clause(g,rotp(g,(rotp(g,g->clactivesubsume))[i+CLMETABLOCK_CL_POS]));
-    printf("\n record    ");
+    wr_printf("\n record    ");
     wg_print_record(g->db,rotp(g,(rotp(g,g->clactivesubsume))[i+CLMETABLOCK_CL_POS]));
 
-    printf("\n"); 
+    wr_printf("\n"); 
   } 
 }
 
@@ -314,7 +314,7 @@ int wr_cl_store_res_terms(glb* g, gptr cl, cvec resolvability) {
   gint prefhashes[ATOM_PREFHASH_MAXLEN+1];
   
 #ifdef DEBUG
-  printf("cl_store_res_terms called on cl: "); 
+  wr_printf("cl_store_res_terms called on cl: "); 
   wr_print_clause(g,cl);
 #endif  
 
@@ -325,7 +325,7 @@ int wr_cl_store_res_terms(glb* g, gptr cl, cvec resolvability) {
   else len=1;
  
 #ifdef DEBUG
-  printf("ruleflag %d len %d posok %d negok %d\n",
+  wr_printf("ruleflag %d len %d posok %d negok %d\n",
           ruleflag,len,posok,negok);
 #endif  
   // loop over literals
@@ -342,7 +342,7 @@ int wr_cl_store_res_terms(glb* g, gptr cl, cvec resolvability) {
     }
     if (1) {
 #ifdef XDEBUG 
-      printf("adding to hash g->hash_pos_atoms or g->hash_neg_atoms in wr_cl_store_res_terms\n");
+      wr_printf("adding to hash g->hash_pos_atoms or g->hash_neg_atoms in wr_cl_store_res_terms\n");
 #endif       
 
 #ifdef SIMPLE_ACTIVE_SEARCH_HASH
@@ -354,7 +354,7 @@ int wr_cl_store_res_terms(glb* g, gptr cl, cvec resolvability) {
       if (negflag) hashvec=rotp(g,g->hash_neg_atoms);
       else hashvec=rotp(g,g->hash_pos_atoms);
 #ifdef XDEBUG 
-      printf("before adding to hash negflag: %d hash: %d\n",negflag,(int)hash);
+      wr_printf("before adding to hash negflag: %d hash: %d\n",negflag,(int)hash);
 #endif     
       for(j=0;j<preflen;j++) {
 #ifdef SIMPLE_ACTIVE_SEARCH_HASH
@@ -363,11 +363,11 @@ int wr_cl_store_res_terms(glb* g, gptr cl, cvec resolvability) {
 #endif    
         //printf("\n storing preflen %d j %d prefhashes[j] %d hash %d \n",preflen,j,prefhashes[j],hash);    
 #ifdef DEBUG        
-        printf("\n storing preflen %d j %d prefhashes[j] %d hash %d \n",preflen,j,prefhashes[j],hash);
+        wr_printf("\n storing preflen %d j %d prefhashes[j] %d hash %d \n",preflen,j,prefhashes[j],hash);
 #endif        
         tmp=wr_clterm_add_hashlist(g,hashvec,hash,atom,cl);  
 #ifdef XDEBUG 
-        printf("adding to hash ended with %d\n",tmp);
+        wr_printf("adding to hash ended with %d\n",tmp);
 #endif       
         if (tmp) {
           wr_sys_exiterr2int(g,"adding term to hashlist in cl_store_res_terms, code ",tmp);
@@ -375,15 +375,15 @@ int wr_cl_store_res_terms(glb* g, gptr cl, cvec resolvability) {
         }  
       }  
 #ifdef DEBUGHASH    
-      printf("\nhash_pos_atoms after adding:");      
+      wr_printf("\nhash_pos_atoms after adding:");      
       wr_clterm_hashlist_print(g,rotp(g,g->hash_pos_atoms));
-      printf("\nhash_neg_atoms after adding:");      
+      wr_printf("\nhash_neg_atoms after adding:");      
       wr_clterm_hashlist_print(g,rotp(g,g->hash_neg_atoms));  
 #endif      
     }  
   }     
 #ifdef DEBUG
-  printf("cl_store_res_terms finished\n"); 
+  wr_printf("cl_store_res_terms finished\n"); 
 #endif      
   return 0;
 }
@@ -412,7 +412,7 @@ int wr_cl_store_para_terms(glb* g, gptr cl, cvec resolvability) {
   int eqtermorder;
   
 #ifdef DEBUG
-  printf("cl_store_para_terms called on cl: "); 
+  wr_printf("cl_store_para_terms called on cl: "); 
   wr_print_clause(g,cl);
 #endif 
   // get clause data for input clause
@@ -420,7 +420,7 @@ int wr_cl_store_para_terms(glb* g, gptr cl, cvec resolvability) {
   if (ruleflag) len = wg_count_clause_atoms(db, cl);
   else len=1;
 #ifdef DEBUG
-  printf("ruleflag %d len %d poscount %d negcount %d posok %d negok %d\n",
+  wr_printf("ruleflag %d len %d poscount %d negcount %d posok %d negok %d\n",
           ruleflag,len,poscount,negcount,posok,negok);
 #endif  
   // loop over literals
@@ -495,12 +495,12 @@ int wr_cl_store_eq_arg(glb* g, gptr cl, gint term, int termtype, int litnr, int 
   gptr tptr;
 
 #ifdef XDEBUG 
-  printf("\nwr_cl_store_eq_arg starts\n");
-  printf("term \n");
+  wr_printf("\nwr_cl_store_eq_arg starts\n");
+  wr_printf("term \n");
   wr_print_term(g,term);
-  printf("clause \n");
+  wr_printf("clause \n");
   wr_print_clause(g,cl);
-  printf("\nwtermtype %d litnr %d leftflag %d\n",termtype,litnr,leftflag);
+  wr_printf("\nwtermtype %d litnr %d leftflag %d\n",termtype,litnr,leftflag);
 #endif  
   if (termtype==WG_RECORDTYPE) {
     tptr=rotp(g,term);
@@ -513,14 +513,14 @@ int wr_cl_store_eq_arg(glb* g, gptr cl, gint term, int termtype, int litnr, int 
   path=wr_encode_para_termpath(g,litnr,leftflag);
   tmp=wr_clterm_add_hashlist_withpath(g,hashvec,hash,term,cl,path);
 #ifdef XDEBUG 
-  printf("\nadding to eq_hash ended with %d\n",tmp);
+  wr_printf("\nadding to eq_hash ended with %d\n",tmp);
 #endif       
   if (tmp) {
     wr_sys_exiterr2int(g,"adding term to hashlist in  wr_cl_store_eq_arg, code ",tmp);
     return 1;        
   }  
 #ifdef DEBUGHASH      
-  printf("\nhash_eq_terms after adding:");      
+  wr_printf("\nhash_eq_terms after adding:");      
   wr_clterm_hashlist_print_para(g,hashvec);
 #endif 
   return 1; 
@@ -536,14 +536,14 @@ int wr_cl_store_term_rewriter(glb* g, gptr cl, gint term, int termtype, int litn
   gptr tptr;
 
 #ifdef XDEBUG 
-  printf("\n*** wr_cl_store_term_rewriter starts \n");
-  printf("rewriter ");
+  wr_printf("\n*** wr_cl_store_term_rewriter starts \n");
+  wr_printf("rewriter ");
   wr_print_term(g,term);
-  printf(" --> ");
+  wr_printf(" --> ");
   //wr_print_term(g,toterm);
-  printf("\n clause \n");
+  wr_printf("\n clause \n");
   wr_print_clause(g,cl);
-  printf("\nwtermtype %d litnr %d leftflag %d\n",termtype,litnr,leftflag);
+  wr_printf("\nwtermtype %d litnr %d leftflag %d\n",termtype,litnr,leftflag);
 #endif  
   if (termtype==WG_RECORDTYPE) {
     tptr=rotp(g,term);
@@ -556,7 +556,7 @@ int wr_cl_store_term_rewriter(glb* g, gptr cl, gint term, int termtype, int litn
   path=wr_encode_para_termpath(g,litnr,leftflag);
   tmp=wr_clterm_add_hashlist_withpath(g,hashvec,hash,term,cl,path);
 #ifdef XDEBUG 
-  printf("\nadding to rewrite_hash ended with %d\n",tmp);
+  wr_printf("\nadding to rewrite_hash ended with %d\n",tmp);
 #endif       
   if (tmp) {
     wr_sys_exiterr2int(g,"adding term to hashlist in  wr_cl_store_term_rewriter, code ",tmp);
@@ -567,7 +567,7 @@ int wr_cl_store_term_rewriter(glb* g, gptr cl, gint term, int termtype, int litn
     wr_print_clause(g,cl);
   }  
 #ifdef DEBUGHASH      
-  printf("\nhash_rewrite_terms after adding:");      
+  wr_printf("\nhash_rewrite_terms after adding:");      
   wr_clterm_hashlist_print_para(g,hashvec);
 #endif 
   return 1; 
@@ -583,11 +583,11 @@ int wr_cl_store_para_subterms(glb* g, gptr cl, gint term, int depth, int litnr, 
   vec hashvec;
   
 #ifdef PARADEBUG
-  printf("\ncl_store_para_subterms called at depth %d on term and cl: ",depth); 
+  wr_printf("\ncl_store_para_subterms called at depth %d on term and cl: ",depth); 
   wr_print_term(g,term);
-  printf("\n");
+  wr_printf("\n");
   wr_print_clause(g,cl);
-  printf("\n");
+  wr_printf("\n");
 #endif  
   if (litnr>PARA_TERMPATH_MAXLITNR || (*termpath)>PARA_TERMPATH_MAXPOS) {
     (g->stat_internlimit_discarded_para)++;
@@ -636,21 +636,21 @@ int wr_cl_store_para_subterms(glb* g, gptr cl, gint term, int depth, int litnr, 
   // put term into the hash table
   hash=wr_term_basehash(g,fun);
 #ifdef XDEBUG 
-  printf("\nbefore adding to g->hash_para_terms fun hash is: %d litnr %d origtermpath %d\n",
+  wr_printf("\nbefore adding to g->hash_para_terms fun hash is: %d litnr %d origtermpath %d\n",
     (int)hash,litnr,origtermpath);
 #endif      
   hashvec=rotp(g,g->hash_para_terms);  
   path=wr_encode_para_termpath(g,litnr,origtermpath);
   tmp=wr_clterm_add_hashlist_withpath(g,hashvec,hash,term,cl,path);
 #ifdef XDEBUG 
-  printf("\nadding to hash ended with %d\n",tmp);
+  wr_printf("\nadding to hash ended with %d\n",tmp);
 #endif       
   if (tmp) {
     wr_sys_exiterr2int(g,"adding term to hashlist in cl_store_para_terms, code ",tmp);
     return 1;        
   }  
 #ifdef DEBUGHASH      
-  printf("\nhash_para_terms after adding:");      
+  wr_printf("\nhash_para_terms after adding:");      
   wr_clterm_hashlist_print(g,hashvec);
 #endif 
   return 1;     
@@ -759,7 +759,7 @@ gint wr_create_clpick_queues(glb* g, int count) {
   gptr tmpvec;
 
 #ifdef QADDDEBUG
-  printf("\n*** wr_create_clpick_queues called with count %d ****\n",count);
+  wr_printf("\n*** wr_create_clpick_queues called with count %d ****\n",count);
 #endif
 
   queues=wr_vec_new_zero(g,NROF_CLPICK_QUEUES*CLPICK_QUEUE_BLOCKGINTS); // use as vec
@@ -768,7 +768,7 @@ gint wr_create_clpick_queues(glb* g, int count) {
   // do big block-size steps over array
   for(i=1; i<limit && i<(NROF_CLPICK_QUEUES*CLPICK_QUEUE_BLOCKGINTS); i=i+CLPICK_QUEUE_BLOCKGINTS) {
 #ifdef QADDDEBUG    
-    printf("\n-- queue nr %d ---\n",i);
+    wr_printf("\n-- queue nr %d ---\n",i);
 #endif    
     queues[i+CLPICK_QUEUE_GIVEN_POS]=2; // 0 contains len and 1 contains next free,  first real is 2
     queues[i+CLPICK_PRIORQUEUE_RATIO]=(g->pick_given_queue_ratio); // 4 is normal
@@ -838,7 +838,7 @@ void oldremove_wr_push_cl_clpick_queues(glb* g, gint queues_offset, gptr cl, int
 
 
 #ifdef QADDDEBUG
-  printf("\nwr_push_cl_clpick_queues called with queryfocus_strat %d (g->cl_pick_queue_strategy) %d weight %d and cl: ",
+  wr_printf("\nwr_push_cl_clpick_queues called with queryfocus_strat %d (g->cl_pick_queue_strategy) %d weight %d and cl: ",
          (g->queryfocus_strat),(g->cl_pick_queue_strategy),weight);
   wr_print_clause(g,cl);
 #endif
@@ -857,7 +857,7 @@ void oldremove_wr_push_cl_clpick_queues(glb* g, gint queues_offset, gptr cl, int
     // modify decpriors according to strat
 
 #ifdef QADDDEBUG
-     printf("\ndecprior originally %d\n",decprior);
+     wr_printf("\ndecprior originally %d\n",decprior);
 #endif
 
     if ((g->cl_pick_queue_strategy)==2) {
@@ -875,7 +875,7 @@ void oldremove_wr_push_cl_clpick_queues(glb* g, gint queues_offset, gptr cl, int
     } 
 
 #ifdef QADDDEBUG
-     printf("\ndecprior changed to %d\n",decprior);
+     wr_printf("\ndecprior changed to %d\n",decprior);
 #endif
 
     // select queue
@@ -891,7 +891,7 @@ void oldremove_wr_push_cl_clpick_queues(glb* g, gint queues_offset, gptr cl, int
     else qstart=AXIOMS_QUEUE_POS;   
 
 #ifdef QADDDEBUG
-     printf("\nqstart %d\n",qstart);
+     wr_printf("\nqstart %d\n",qstart);
 #endif
 
     // push to simple queue  
@@ -933,7 +933,7 @@ void wr_push_cl_clpick_queues(glb* g, gint queues_offset, gptr cl, int weight) {
 
 
 #ifdef QADDDEBUG
-  printf("\nwr_push_cl_clpick_queues called with queryfocus_strat %d (g->cl_pick_queue_strategy) %d weight %d and cl: ",
+  wr_printf("\nwr_push_cl_clpick_queues called with queryfocus_strat %d (g->cl_pick_queue_strategy) %d weight %d and cl: ",
          (g->queryfocus_strat),(g->cl_pick_queue_strategy),weight);
   wr_print_clause(g,cl);
 #endif
@@ -951,7 +951,7 @@ void wr_push_cl_clpick_queues(glb* g, gint queues_offset, gptr cl, int weight) {
     // modify decpriors according to strat
 
 #ifdef QADDDEBUG
-     printf("\ndecprior originally %d\n",decprior);
+     wr_printf("\ndecprior originally %d\n",decprior);
 #endif
 
     if ((g->cl_pick_queue_strategy)==2) {
@@ -972,7 +972,7 @@ void wr_push_cl_clpick_queues(glb* g, gint queues_offset, gptr cl, int weight) {
     }   
 
 #ifdef QADDDEBUG
-     printf("\ndecprior changed to %d\n",decprior);
+     wr_printf("\ndecprior changed to %d\n",decprior);
 #endif
 
     // select queue
@@ -988,7 +988,7 @@ void wr_push_cl_clpick_queues(glb* g, gint queues_offset, gptr cl, int weight) {
     else qstart=AXIOMS_QUEUE_POS;   
 
 #ifdef QADDDEBUG
-     printf("\nqstart %d\n",qstart);
+     wr_printf("\nqstart %d\n",qstart);
 #endif
 
     // push to simple queue  
@@ -1075,7 +1075,7 @@ gptr oldremove_wr_pick_from_clpick_queues(glb* g, gptr queues, gptr given_cl_met
   int loopflag=0;
 
 #ifdef QPICKDEBUG
-  printf("\n!!!! wr_pick_from_clpick_queues starts with queuenr %d \n",(g->next_pick_given_queue_block_nr));
+  wr_printf("\n!!!! wr_pick_from_clpick_queues starts with queuenr %d \n",(g->next_pick_given_queue_block_nr));
 #endif 
 
   // first try to take from the designated next_pick_given_queue_block_nr
@@ -1088,12 +1088,12 @@ gptr oldremove_wr_pick_from_clpick_queues(glb* g, gptr queues, gptr given_cl_met
   limit=queues[0]; // nr of elems in the queue blocks vector
   while(1) {    
 #ifdef QPICKDEBUG
-    printf("\n  queue loop iteration starts loopflag %d queuenr %d first_queuenr %d\n",loopflag,queuenr,first_queuenr);
+    wr_printf("\n  queue loop iteration starts loopflag %d queuenr %d first_queuenr %d\n",loopflag,queuenr,first_queuenr);
 #endif             
     if (loopflag && queuenr==first_queuenr) {
       // full loop done, failed to find any clauses to pick
 #ifdef QPICKDEBUG
-      printf("\n  full queue loop done, no clauses found \n");
+      wr_printf("\n  full queue loop done, no clauses found \n");
 #endif          
       return NULL;
     }
@@ -1116,7 +1116,7 @@ gptr oldremove_wr_pick_from_clpick_queues(glb* g, gptr queues, gptr given_cl_met
       return cl;
     }  
 #ifdef QPICKDEBUG
-    printf("\n  no cl found for queuenr %d \n",queuenr);
+    wr_printf("\n  no cl found for queuenr %d \n",queuenr);
 #endif     
     
     // here we did not get a clause, need to try next until full cycle
@@ -1124,7 +1124,7 @@ gptr oldremove_wr_pick_from_clpick_queues(glb* g, gptr queues, gptr given_cl_met
     if (queuenr>=NROF_CLPICK_QUEUES || blockstart>=limit) {
       // pushed over the edge, loop back
 #ifdef QPICKDEBUG
-      printf("\n  queuenr to loop back \n");
+      wr_printf("\n  queuenr to loop back \n");
 #endif           
       loopflag=1;
       queuenr=0;
@@ -1149,7 +1149,7 @@ gptr oldremove_wr_pick_from_clpick_queues_aux(glb* g, gptr queues, int queuenr, 
   int next;
 
 #ifdef QPICKDEBUG
-  printf("\n\n --- pick cl with queuenr %d limit %d NROF_CLPICK_QUEUES %d ---\n",
+  wr_printf("\n\n --- pick cl with queuenr %d limit %d NROF_CLPICK_QUEUES %d ---\n",
          queuenr,(int)(queues[0]),NROF_CLPICK_QUEUES); 
   //printf("\n queues are: \n");       
   //wr_print_clpick_queues(g,rotp(g,g->clpick_queues));       
@@ -1161,13 +1161,13 @@ gptr oldremove_wr_pick_from_clpick_queues_aux(glb* g, gptr queues, int queuenr, 
 
 #ifdef QPICKDEBUG    
     
-  printf("\n   --  queue nr %d at pos %d --\n",queuenr,i);
+  wr_printf("\n   --  queue nr %d at pos %d --\n",queuenr,i);
     
-  printf("\n   CLPICK_QUEUE_GIVEN_POS: %d",(int)(queues[i+CLPICK_QUEUE_GIVEN_POS]));
-  printf("\n   CLPICK_PRIORQUEUE_RATIO: %d",(int)(queues[i+CLPICK_PRIORQUEUE_RATIO]));
-  printf("\n   CLPICK_PRIORQUEUE_RATIO_COUNTER: %d",(int)(queues[i+CLPICK_PRIORQUEUE_RATIO_COUNTER]));
-  printf("\n   CLPICK_THIS_QUEUE_RATIO: %d",(int)(queues[i+CLPICK_THIS_QUEUE_RATIO]));
-  printf("\n   CLPICK_THIS_QUEUE_RATIO_COUNTER: %d",(int)(queues[i+CLPICK_THIS_QUEUE_RATIO_COUNTER]));
+  wr_printf("\n   CLPICK_QUEUE_GIVEN_POS: %d",(int)(queues[i+CLPICK_QUEUE_GIVEN_POS]));
+  wr_printf("\n   CLPICK_PRIORQUEUE_RATIO: %d",(int)(queues[i+CLPICK_PRIORQUEUE_RATIO]));
+  wr_printf("\n   CLPICK_PRIORQUEUE_RATIO_COUNTER: %d",(int)(queues[i+CLPICK_PRIORQUEUE_RATIO_COUNTER]));
+  wr_printf("\n   CLPICK_THIS_QUEUE_RATIO: %d",(int)(queues[i+CLPICK_THIS_QUEUE_RATIO]));
+  wr_printf("\n   CLPICK_THIS_QUEUE_RATIO_COUNTER: %d",(int)(queues[i+CLPICK_THIS_QUEUE_RATIO_COUNTER]));
   
 #endif
 
@@ -1175,7 +1175,7 @@ gptr oldremove_wr_pick_from_clpick_queues_aux(glb* g, gptr queues, int queuenr, 
   /*
   if (queues[i+CLPICK_THIS_QUEUE_RATIO_COUNTER] >= queues[i+CLPICK_THIS_QUEUE_RATIO]) {
     // over ratio!
-    printf("\nthis whole queue block is over ratio setting to 0\n");
+    wr_printf("\nthis whole queue block is over ratio setting to 0\n");
     queues[i+CLPICK_THIS_QUEUE_RATIO_COUNTER]=0;
     return NULL;
   }
@@ -1192,9 +1192,9 @@ gptr oldremove_wr_pick_from_clpick_queues_aux(glb* g, gptr queues, int queuenr, 
 
 #ifdef QPICKDEBUG   
       if (cl!=NULL) {
-        printf("\n\n  picking from priority queue the clause: ");
+        wr_printf("\n\n  picking from priority queue the clause: ");
         wr_print_clause(g,cl);
-        printf("\n");
+        wr_printf("\n");
         //wr_print_priorqueue(g,queue); 
       }  
 #endif
@@ -1202,10 +1202,10 @@ gptr oldremove_wr_pick_from_clpick_queues_aux(glb* g, gptr queues, int queuenr, 
         (queues[i+CLPICK_PRIORQUEUE_RATIO_COUNTER])++;
         (queues[i+CLPICK_THIS_QUEUE_RATIO_COUNTER])++;
 #ifdef QPICKEDDEBUG
-        printf("\npicked cl from queue nr %d priority queue",queuenr);
+        wr_printf("\npicked cl from queue nr %d priority queue",queuenr);
 #endif        
 #ifdef QPICKDEBUG                   
-        printf("\n  priority queue with max priority %d, max used priority %d: \n",
+        wr_printf("\n  priority queue with max priority %d, max used priority %d: \n",
                 (int)(queue[PRIORQUEUE_ARR_LEN_POS]-2),
                 (int)(queue[PRIORQUEUE_MAX_USED_PRIOR_POS]));  
 #endif
@@ -1218,7 +1218,7 @@ gptr oldremove_wr_pick_from_clpick_queues_aux(glb* g, gptr queues, int queuenr, 
   } else {
     queues[i+CLPICK_PRIORQUEUE_RATIO_COUNTER]=0;
 #ifdef QPICKDEBUG
-    printf("\n  not from priority queue; setting ratio_counter to 0\n");
+    wr_printf("\n  not from priority queue; setting ratio_counter to 0\n");
 #endif    
   }  
 
@@ -1235,12 +1235,12 @@ gptr oldremove_wr_pick_from_clpick_queues_aux(glb* g, gptr queues, int queuenr, 
       next=CVEC_NEXT(simplequeue);
 #ifdef QPICKDEBUG       
       /*
-      printf("\n  simplequeue max len %d count %d, elems:\n",(int)(simplequeue[0]),(int)(simplequeue[1]));
+      wr_printf("\n  simplequeue max len %d count %d, elems:\n",(int)(simplequeue[0]),(int)(simplequeue[1]));
       for(j=2;j<simplequeue[0] && j<simplequeue[1];j++) {
-        printf("\n %d: ",j);
+        wr_printf("\n %d: ",j);
         wr_print_clause(g,simplequeue[j]);        
       }          
-      printf("\n  next %d simplequeue_given_pos %d\n",next,simplequeue_given_pos);
+      wr_printf("\n  next %d simplequeue_given_pos %d\n",next,simplequeue_given_pos);
       */
 #endif
       if (next>2 && next>simplequeue_given_pos) {
@@ -1250,14 +1250,14 @@ gptr oldremove_wr_pick_from_clpick_queues_aux(glb* g, gptr queues, int queuenr, 
         (queues[i+CLPICK_THIS_QUEUE_RATIO_COUNTER])++;
         if (cl!=NULL && !wr_cl_ismarked_given(g,cl)) {
 #ifdef QPICKEDDEBUG
-          printf("\npicked cl from queue nr %d simple queue",queuenr);
+          wr_printf("\npicked cl from queue nr %d simple queue",queuenr);
 #endif           
   #ifdef QPICKDEBUG       
-          printf("\n\n  picking from simple queue the clause: ");
+          wr_printf("\n\n  picking from simple queue the clause: ");
           wr_print_clause(g,cl); 
-          printf("\n");
+          wr_printf("\n");
           /*
-          printf("\n  new next %d queues[i+CLPICK_QUEUE_GIVEN_POS] \n",next,queues[i+CLPICK_QUEUE_GIVEN_POS]);
+          wr_printf("\n  new next %d queues[i+CLPICK_QUEUE_GIVEN_POS] \n",next,queues[i+CLPICK_QUEUE_GIVEN_POS]);
           */
   #endif            
           wr_cl_mark_given(g,cl);
@@ -1305,7 +1305,7 @@ gptr wr_pick_from_clpick_queues(glb* g, gptr queues, gptr given_cl_metablock) {
   int loopflag=0;
 
 #ifdef QPICKDEBUG
-  printf("\n!!!! wr_pick_from_clpick_queues starts with queuenr %d \n",(g->next_pick_given_queue_block_nr));
+  wr_printf("\n!!!! wr_pick_from_clpick_queues starts with queuenr %d \n",(g->next_pick_given_queue_block_nr));
 #endif 
 
   //wr_print_clpick_queues(g,rotp(g,g->clpick_queues));
@@ -1321,12 +1321,12 @@ gptr wr_pick_from_clpick_queues(glb* g, gptr queues, gptr given_cl_metablock) {
   limit=queues[0]; // nr of elems in the queue blocks vector
   while(1) {    
 #ifdef QPICKDEBUG
-    printf("\n  queue loop iteration starts loopflag %d queuenr %d first_queuenr %d\n",loopflag,queuenr,first_queuenr);
+    wr_printf("\n  queue loop iteration starts loopflag %d queuenr %d first_queuenr %d\n",loopflag,queuenr,first_queuenr);
 #endif             
     if (loopflag && queuenr==first_queuenr) {
       // full loop done, failed to find any clauses to pick
 #ifdef QPICKDEBUG
-      printf("\n  full queue loop done, no clauses found \n");
+      wr_printf("\n  full queue loop done, no clauses found \n");
 #endif          
       return NULL;
     }
@@ -1349,7 +1349,7 @@ gptr wr_pick_from_clpick_queues(glb* g, gptr queues, gptr given_cl_metablock) {
       return cl;
     }  
 #ifdef QPICKDEBUG
-    printf("\n  no cl found for queuenr %d \n",queuenr);
+    wr_printf("\n  no cl found for queuenr %d \n",queuenr);
 #endif     
     
     // here we did not get a clause, need to try next until full cycle
@@ -1357,7 +1357,7 @@ gptr wr_pick_from_clpick_queues(glb* g, gptr queues, gptr given_cl_metablock) {
     if (queuenr>=NROF_CLPICK_QUEUES || blockstart>=limit) {
       // pushed over the edge, loop back
 #ifdef QPICKDEBUG
-      printf("\n  queuenr to loop back \n");
+      wr_printf("\n  queuenr to loop back \n");
 #endif           
       loopflag=1;
       queuenr=0;
@@ -1382,7 +1382,7 @@ gptr wr_pick_from_clpick_queues_aux(glb* g, gptr queues, int queuenr, gptr given
   int next;
 
 #ifdef QPICKDEBUG
-  printf("\n\n --- pick cl with queuenr %d limit %d NROF_CLPICK_QUEUES %d ---\n",
+  wr_printf("\n\n --- pick cl with queuenr %d limit %d NROF_CLPICK_QUEUES %d ---\n",
          queuenr,(int)(queues[0]),NROF_CLPICK_QUEUES); 
   //printf("\n queues are: \n");       
   //wr_print_clpick_queues(g,rotp(g,g->clpick_queues));       
@@ -1394,13 +1394,13 @@ gptr wr_pick_from_clpick_queues_aux(glb* g, gptr queues, int queuenr, gptr given
 
 #ifdef QPICKDEBUG    
     
-  printf("\n   --  queue nr %d at pos %d --\n",queuenr,i);
+  wr_printf("\n   --  queue nr %d at pos %d --\n",queuenr,i);
     
-  printf("\n   CLPICK_QUEUE_GIVEN_POS: %d",(int)(queues[i+CLPICK_QUEUE_GIVEN_POS]));
-  printf("\n   CLPICK_PRIORQUEUE_RATIO: %d",(int)(queues[i+CLPICK_PRIORQUEUE_RATIO]));
-  printf("\n   CLPICK_PRIORQUEUE_RATIO_COUNTER: %d",(int)(queues[i+CLPICK_PRIORQUEUE_RATIO_COUNTER]));
-  printf("\n   CLPICK_THIS_QUEUE_RATIO: %d",(int)(queues[i+CLPICK_THIS_QUEUE_RATIO]));
-  printf("\n   CLPICK_THIS_QUEUE_RATIO_COUNTER: %d",(int)(queues[i+CLPICK_THIS_QUEUE_RATIO_COUNTER]));
+  wr_printf("\n   CLPICK_QUEUE_GIVEN_POS: %d",(int)(queues[i+CLPICK_QUEUE_GIVEN_POS]));
+  wr_printf("\n   CLPICK_PRIORQUEUE_RATIO: %d",(int)(queues[i+CLPICK_PRIORQUEUE_RATIO]));
+  wr_printf("\n   CLPICK_PRIORQUEUE_RATIO_COUNTER: %d",(int)(queues[i+CLPICK_PRIORQUEUE_RATIO_COUNTER]));
+  wr_printf("\n   CLPICK_THIS_QUEUE_RATIO: %d",(int)(queues[i+CLPICK_THIS_QUEUE_RATIO]));
+  wr_printf("\n   CLPICK_THIS_QUEUE_RATIO_COUNTER: %d",(int)(queues[i+CLPICK_THIS_QUEUE_RATIO_COUNTER]));
   
 #endif
 
@@ -1408,7 +1408,7 @@ gptr wr_pick_from_clpick_queues_aux(glb* g, gptr queues, int queuenr, gptr given
   /*
   if (queues[i+CLPICK_THIS_QUEUE_RATIO_COUNTER] >= queues[i+CLPICK_THIS_QUEUE_RATIO]) {
     // over ratio!
-    printf("\nthis whole queue block is over ratio setting to 0\n");
+    wr_printf("\nthis whole queue block is over ratio setting to 0\n");
     queues[i+CLPICK_THIS_QUEUE_RATIO_COUNTER]=0;
     return NULL;
   }
@@ -1425,9 +1425,9 @@ gptr wr_pick_from_clpick_queues_aux(glb* g, gptr queues, int queuenr, gptr given
 
 #ifdef QPICKDEBUG   
       if (cl!=NULL) {
-        printf("\n\n  picking from queue nr %d priority queue the clause: ",queuenr);
+        wr_printf("\n\n  picking from queue nr %d priority queue the clause: ",queuenr);
         wr_print_clause(g,cl);
-        printf("\n");
+        wr_printf("\n");
         //wr_print_priorqueue(g,queue); 
       }  
 #endif
@@ -1435,10 +1435,10 @@ gptr wr_pick_from_clpick_queues_aux(glb* g, gptr queues, int queuenr, gptr given
         (queues[i+CLPICK_PRIORQUEUE_RATIO_COUNTER])++;
         (queues[i+CLPICK_THIS_QUEUE_RATIO_COUNTER])++;
 #ifdef QPICKEDDEBUG
-        printf("\npicked cl from queue nr %d priority queue",queuenr);
+        wr_printf("\npicked cl from queue nr %d priority queue",queuenr);
 #endif        
 #ifdef QPICKDEBUG                   
-        printf("\n  priority queue with max priority %d, max used priority %d \n",
+        wr_printf("\n  priority queue with max priority %d, max used priority %d \n",
                 (int)(queue[PRIORQUEUE_ARR_LEN_POS]-2),
                 (int)(queue[PRIORQUEUE_MAX_USED_PRIOR_POS]));  
 #endif
@@ -1451,7 +1451,7 @@ gptr wr_pick_from_clpick_queues_aux(glb* g, gptr queues, int queuenr, gptr given
   } else {
     queues[i+CLPICK_PRIORQUEUE_RATIO_COUNTER]=0;
 #ifdef QPICKDEBUG
-    printf("\n  not from priority queue; setting ratio_counter to 0\n");
+    wr_printf("\n  not from priority queue; setting ratio_counter to 0\n");
 #endif    
   }  
 
@@ -1467,14 +1467,14 @@ gptr wr_pick_from_clpick_queues_aux(glb* g, gptr queues, int queuenr, gptr given
       simplequeue_given_pos=queues[i+CLPICK_QUEUE_GIVEN_POS]; // take the next cl from this pos at queue
       next=CVEC_NEXT(simplequeue);
 #ifdef QPICKDEBUG       
-      printf("\n  simplequeue max len %d count %d, elems:\n",(int)(simplequeue[0]),(int)(simplequeue[1]));
+      wr_printf("\n  simplequeue max len %d count %d, elems:\n",(int)(simplequeue[0]),(int)(simplequeue[1]));
       /*
-      printf("\n  simplequeue max len %d count %d, elems:\n",(int)(simplequeue[0]),(int)(simplequeue[1]));
+      wr_printf("\n  simplequeue max len %d count %d, elems:\n",(int)(simplequeue[0]),(int)(simplequeue[1]));
       for(j=2;j<simplequeue[0] && j<simplequeue[1];j++) {
-        printf("\n %d: ",j);
+        wr_printf("\n %d: ",j);
         wr_print_clause(g,simplequeue[j]);        
       }          
-      printf("\n  next %d simplequeue_given_pos %d\n",next,simplequeue_given_pos);
+      wr_printf("\n  next %d simplequeue_given_pos %d\n",next,simplequeue_given_pos);
       */
 #endif
       if (next>2 && next>simplequeue_given_pos) {
@@ -1484,14 +1484,14 @@ gptr wr_pick_from_clpick_queues_aux(glb* g, gptr queues, int queuenr, gptr given
         (queues[i+CLPICK_THIS_QUEUE_RATIO_COUNTER])++;
         if (cl!=NULL && !wr_cl_ismarked_given(g,cl)) {
 #ifdef QPICKEDDEBUG
-          printf("\npicked cl from queue nr %d simple queue",queuenr);
+          wr_printf("\npicked cl from queue nr %d simple queue",queuenr);
 #endif           
   #ifdef QPICKDEBUG       
-          printf("\n\n  picking from queue nr %d simple queue the clause: ",queuenr);
+          wr_printf("\n\n  picking from queue nr %d simple queue the clause: ",queuenr);
           wr_print_clause(g,cl); 
-          printf("\n");
+          wr_printf("\n");
           /*
-          printf("\n  new next %d queues[i+CLPICK_QUEUE_GIVEN_POS] \n",next,queues[i+CLPICK_QUEUE_GIVEN_POS]);
+          wr_printf("\n  new next %d queues[i+CLPICK_QUEUE_GIVEN_POS] \n",next,queues[i+CLPICK_QUEUE_GIVEN_POS]);
           */
   #endif            
           wr_cl_mark_given(g,cl);
@@ -1515,9 +1515,9 @@ int wr_cl_ismarked_given(glb* g, gptr cl) {
 
   return 0;
   /*
-  printf("\n checking if marked given:");
+  wr_printf("\n checking if marked given:");
   wr_print_clause(g,cl);
-  printf("\n");
+  wr_printf("\n");
   */
   hist=wr_get_history(g,cl);
   if (hist) {
@@ -1561,11 +1561,11 @@ void wr_cl_mark_given(glb* g, gptr cl) {
     prior=wg_encode_int(db,decprior);
     wr_set_history_record_field(g,histptr,HISTORY_PRIORITY_POS,prior);
   } else {
-    printf("\n WARNING: history empty, cannot mark given\n");
+    wr_printf("\n WARNING: history empty, cannot mark given\n");
   }
   /*
-  printf("\n");
-  printf("\n is marked given?: %d\n",wr_cl_ismarked_given(g,cl));
+  wr_printf("\n");
+  wr_printf("\n is marked given?: %d\n",wr_cl_ismarked_given(g,cl));
   */
 }
 
@@ -1586,7 +1586,7 @@ void wr_free_clpick_queues(glb* g, gint* queues) {
 
   /*   
   for(i=0; i<limit; i++) {
-    printf("\ni %d queues[i] %d ",i,queues[i]);
+    wr_printf("\ni %d queues[i] %d ",i,queues[i]);
   } 
   return; 
   */
@@ -1618,53 +1618,58 @@ void wr_print_clpick_queues(glb* g, gint* queues) {
   gint simplequeue_offset;
   gptr simplequeue;
 
-  printf("\n===== g->clpick_queues content =====\n");
+  wr_printf("\n===== g->clpick_queues content =====\n");
   if (!queues) {
-    printf("\nqueues is NULL\n");
+    wr_printf("\nqueues is NULL\n");
     return;    
   }   
   
-  printf("\ng->clpick_given: %d",(int)(g->clpick_given));
+  wr_printf("\ng->clpick_given: %d",(int)(g->clpick_given));
 
   limit=queues[0];
-  printf("\ng->clpick_given vec len (el 0): %d",(int)limit);
-  printf("\nNROF_CLPICK_QUEUES: %d\n",NROF_CLPICK_QUEUES);
+  wr_printf("\ng->clpick_given vec len (el 0): %d",(int)limit);
+  wr_printf("\nNROF_CLPICK_QUEUES: %d\n",NROF_CLPICK_QUEUES);
   // do big block-size steps over array
   for(i=1; i<limit && i<(NROF_CLPICK_QUEUES*CLPICK_QUEUE_BLOCKGINTS); i=i+CLPICK_QUEUE_BLOCKGINTS) {
-    printf("\n-- queue nr %d ",i);
-    if (i==GOAL_ASSUMPTIONS_QUEUE_POS) printf("GOAL_ASSUMPTIONS");
-    else if (i==GOAL_QUEUE_POS) printf("GOAL");
-    else if (i==ASSUMPTIONS_QUEUE_POS) printf("ASSUMPTIONS");
-    else if (i==AXIOMS_QUEUE_POS) printf("AXIOMS");
-    printf(" --\n");
-    printf("\nCLPICK_PRIORQUEUE_RATIO: %d",(int)(queues[i+CLPICK_PRIORQUEUE_RATIO]));
-    printf("\nCLPICK_PRIORQUEUE_RATIO_COUNTER: %d",(int)(queues[i+CLPICK_PRIORQUEUE_RATIO_COUNTER]));
-    printf("\nCLPICK_THIS_QUEUE_RATIO: %d",(int)(queues[i+CLPICK_THIS_QUEUE_RATIO]));
-    printf("\nCLPICK_THIS_QUEUE_RATIO_COUNTER: %d",(int)(queues[i+CLPICK_THIS_QUEUE_RATIO_COUNTER]));
+    wr_printf("\n-- queue nr %d ",i);
+    if (i==GOAL_ASSUMPTIONS_QUEUE_POS) { 
+      wr_printf("GOAL_ASSUMPTIONS");
+    } else if (i==GOAL_QUEUE_POS) { 
+      wr_printf("GOAL");
+    } else if (i==ASSUMPTIONS_QUEUE_POS) {
+      wr_printf("ASSUMPTIONS");
+    } else if (i==AXIOMS_QUEUE_POS) {
+      wr_printf("AXIOMS");
+    }
+    wr_printf(" --\n");
+    wr_printf("\nCLPICK_PRIORQUEUE_RATIO: %d",(int)(queues[i+CLPICK_PRIORQUEUE_RATIO]));
+    wr_printf("\nCLPICK_PRIORQUEUE_RATIO_COUNTER: %d",(int)(queues[i+CLPICK_PRIORQUEUE_RATIO_COUNTER]));
+    wr_printf("\nCLPICK_THIS_QUEUE_RATIO: %d",(int)(queues[i+CLPICK_THIS_QUEUE_RATIO]));
+    wr_printf("\nCLPICK_THIS_QUEUE_RATIO_COUNTER: %d",(int)(queues[i+CLPICK_THIS_QUEUE_RATIO_COUNTER]));
     if (queues[i+CLPICK_QUEUE_POS]!=0) {
 
       simplequeue_offset=queues[i+CLPICK_QUEUE_POS];
       simplequeue=rotp(g,simplequeue_offset);
       //printf("\nlen of queue: %d",(int)(rotp(g,queues[i+CLPICK_QUEUE_POS])[0]));
       if ((int)(simplequeue[1])<=2) {
-        printf("\n\nsimplequeue empty");
+        wr_printf("\n\nsimplequeue empty");
       } else {  
-        printf("\n\nsimplequeue max len %d count %d, elems:\n",(int)(simplequeue[0]),(int)(simplequeue[1]));
+        wr_printf("\n\nsimplequeue max len %d count %d, elems:\n",(int)(simplequeue[0]),(int)(simplequeue[1]));
         for(j=2;j<simplequeue[0] && j<simplequeue[1];j++) {
-          printf("\n %d: ",j);
+          wr_printf("\n %d: ",j);
           wr_print_clause(g,(gptr)(simplequeue[j]));        
         } 
       }  
     } else {
-      printf("\nsimplequeue is 0");  
+      wr_printf("\nsimplequeue is 0");  
     }
     if (queues[i+CLPICK_PRIORQUEUE_POS]!=0) {
       wr_print_priorqueue(g,rotp(g,queues[i+CLPICK_PRIORQUEUE_POS]));
     } else {
-      printf("\npriorqueue is 0");    
+      wr_printf("\npriorqueue is 0");    
     }  
   }    
-   printf("\n===== g->clpick_queues content ends =====\n");
+   wr_printf("\n===== g->clpick_queues content ends =====\n");
 }
 
 
@@ -1675,48 +1680,48 @@ void wr_print_clpick_queue_sizes(glb* g, gint* queues) {
   gint simplequeue_offset;
   gptr simplequeue;
 
-  printf("\n*** g->clpick_queues sizes ****\n");
+  wr_printf("\n*** g->clpick_queues sizes ****\n");
   if (!queues) {
-    printf("\nqueues is NULL\n");
+    wr_printf("\nqueues is NULL\n");
     return;    
   }  
   
-  printf("\ng->clpick_given: %d",(int)(g->clpick_given));
+  wr_printf("\ng->clpick_given: %d",(int)(g->clpick_given));
 
   limit=queues[0];
-  printf("\ng->clpick_given vec len (el 0): %d",(int)limit);
-  printf("\nNROF_CLPICK_QUEUES: %d",NROF_CLPICK_QUEUES);
+  wr_printf("\ng->clpick_given vec len (el 0): %d",(int)limit);
+  wr_printf("\nNROF_CLPICK_QUEUES: %d",NROF_CLPICK_QUEUES);
   // do big block-size steps over array
   for(i=1; i<limit && i<(NROF_CLPICK_QUEUES*CLPICK_QUEUE_BLOCKGINTS); i=i+CLPICK_QUEUE_BLOCKGINTS) {
-    printf("\n-- queue nr %d ---\n",i);
-    printf("\nCLPICK_QUEUE_GIVEN_POS: %d",(int)(queues[i+CLPICK_QUEUE_GIVEN_POS]));
-    printf("\nCLPICK_PRIORQUEUE_RATIO: %d",(int)(queues[i+CLPICK_PRIORQUEUE_RATIO]));
-    printf("\nCLPICK_PRIORQUEUE_RATIO_COUNTER: %d",(int)(queues[i+CLPICK_PRIORQUEUE_RATIO_COUNTER]));
-    printf("\nCLPICK_THIS_QUEUE_RATIO: %d",(int)(queues[i+CLPICK_THIS_QUEUE_RATIO]));
-    printf("\nCLPICK_THIS_QUEUE_RATIO_COUNTER: %d",(int)(queues[i+CLPICK_THIS_QUEUE_RATIO_COUNTER]));
+    wr_printf("\n-- queue nr %d ---\n",i);
+    wr_printf("\nCLPICK_QUEUE_GIVEN_POS: %d",(int)(queues[i+CLPICK_QUEUE_GIVEN_POS]));
+    wr_printf("\nCLPICK_PRIORQUEUE_RATIO: %d",(int)(queues[i+CLPICK_PRIORQUEUE_RATIO]));
+    wr_printf("\nCLPICK_PRIORQUEUE_RATIO_COUNTER: %d",(int)(queues[i+CLPICK_PRIORQUEUE_RATIO_COUNTER]));
+    wr_printf("\nCLPICK_THIS_QUEUE_RATIO: %d",(int)(queues[i+CLPICK_THIS_QUEUE_RATIO]));
+    wr_printf("\nCLPICK_THIS_QUEUE_RATIO_COUNTER: %d",(int)(queues[i+CLPICK_THIS_QUEUE_RATIO_COUNTER]));
 
     if (queues[i+CLPICK_QUEUE_POS]!=0) {
 
       simplequeue_offset=queues[i+CLPICK_QUEUE_POS];
       simplequeue=rotp(g,simplequeue_offset);
       //printf("\nlen of queue: %d",(int)(rotp(g,queues[i+CLPICK_QUEUE_POS])[0])); 
-      printf("\nsimplequeue max len %d count %d\n",(int)(simplequeue[0]),(int)(simplequeue[1]));
+      wr_printf("\nsimplequeue max len %d count %d\n",(int)(simplequeue[0]),(int)(simplequeue[1]));
 
       //for(j=2;j<simplequeue[0] && j<simplequeue[1];j++) {
-      //  printf("\n %d: ",j);
+      //  wr_printf("\n %d: ",j);
       //  wr_print_clause(g,(gptr)(simplequeue[j]));        
       //} 
 
     } else {
-      printf("\nsimplequeue is 0");  
+      wr_printf("\nsimplequeue is 0");  
     }
     if (queues[i+CLPICK_PRIORQUEUE_POS]!=0) {
       wr_print_priorqueue_sizes(g,rotp(g,queues[i+CLPICK_PRIORQUEUE_POS]));
     } else {
-      printf("\npriorqueue is 0");    
+      wr_printf("\npriorqueue is 0");    
     }  
   }    
-   printf("\n* g->clpick_queues content ends *\n");
+   wr_printf("\n* g->clpick_queues content ends *\n");
 }
 
 
@@ -1854,7 +1859,7 @@ gint* wr_pick_priorqueue(glb* g, gint* queue) {
           queue[elstart+PRIORQUEUE_NEXT_PICK_INDEX_POS]<queue[elstart+PRIORQUEUE_ARR_LEN_POS] &&       
           queue[elstart+PRIORQUEUE_ARR_LEN_POS]) {
         /*    
-        printf("\n wr_pick_priorqueue found cl using %d and %d and %d\n",
+        wr_printf("\n wr_pick_priorqueue found cl using %d and %d and %d\n",
           queue[elstart+PRIORQUEUE_NEXT_FREE_INDEX_POS],
           queue[elstart+PRIORQUEUE_NEXT_PICK_INDEX_POS],
           queue[elstart+PRIORQUEUE_ARR_LEN_POS]
@@ -1918,17 +1923,17 @@ void wr_print_priorqueue(glb* g, gint* queue) {
   
   max_used_prior=queue[PRIORQUEUE_MAX_USED_PRIOR_POS];
   if (!max_used_prior) {
-    printf("\npriority queue empty\n");
+    wr_printf("\npriority queue empty\n");
     return;
   }
-  printf("\n\npriority queue with max priority %d, max used priority %d: \n\n",
+  wr_printf("\n\npriority queue with max priority %d, max used priority %d: \n\n",
     (int)(queue[PRIORQUEUE_ARR_LEN_POS]-2),
     max_used_prior
   );  
   for(prior=0;prior<=max_used_prior;prior++) {  
     elstart=(prior+1)*PRIORQUEUE_NODE_GINT_NR; // each prior has a block of N gints    
     if (queue[elstart+PRIORQUEUE_ARR_OFFSET_POS]) {
-      printf("clauses with priority %d bucket size %d next free %d next pick %d\n",
+      wr_printf("clauses with priority %d bucket size %d next free %d next pick %d\n",
         prior,
         (int)(queue[elstart+PRIORQUEUE_ARR_LEN_POS]),
         (int)(queue[elstart+PRIORQUEUE_NEXT_FREE_INDEX_POS]),
@@ -1938,12 +1943,12 @@ void wr_print_priorqueue(glb* g, gint* queue) {
       for(i=0;i<queue[elstart+PRIORQUEUE_NEXT_FREE_INDEX_POS];i++) {
         cl=rotp(g,bucket[i]);
         if (i==queue[elstart+PRIORQUEUE_NEXT_PICK_INDEX_POS]) {
-          printf("%d [pick] ",i);
+          wr_printf("%d [pick] ",i);
         } else {
-          printf("%d: ",i);
+          wr_printf("%d: ",i);
         }
         wr_print_clause(g,cl);
-        printf("\n");
+        wr_printf("\n");
       }
     }
   }
@@ -1959,15 +1964,15 @@ void wr_print_priorqueue_sizes(glb* g, gint* queue) {
   int prior,i;
   
   max_used_prior=queue[PRIORQUEUE_MAX_USED_PRIOR_POS];
-  printf("\n");
-  printf("priority queue with max priority %d, max used priority %d: \n",
+  wr_printf("\n");
+  wr_printf("priority queue with max priority %d, max used priority %d: \n",
     (int)(queue[PRIORQUEUE_ARR_LEN_POS]-2),
     max_used_prior
   );  
   for(prior=0;prior<=max_used_prior;prior++) {  
     elstart=(prior+1)*PRIORQUEUE_NODE_GINT_NR; // each prior has a block of N gints    
     if (queue[elstart+PRIORQUEUE_ARR_OFFSET_POS]) {
-      printf("clauses with priority %d bucket size %d next free %d next pick %d\n",
+      wr_printf("clauses with priority %d bucket size %d next free %d next pick %d\n",
         prior,
         (int)(queue[elstart+PRIORQUEUE_ARR_LEN_POS]),
         (int)(queue[elstart+PRIORQUEUE_NEXT_FREE_INDEX_POS]),
@@ -1978,12 +1983,12 @@ void wr_print_priorqueue_sizes(glb* g, gint* queue) {
       for(i=0;i<queue[elstart+PRIORQUEUE_NEXT_FREE_INDEX_POS] && i<2;i++) {
         cl=rotp(g,bucket[i]);
         if (i==queue[elstart+PRIORQUEUE_NEXT_PICK_INDEX_POS]) {
-          printf("%d [pick] ",i);
+          wr_printf("%d [pick] ",i);
         } else {
-          printf("%d: ",i);
+          wr_printf("%d: ",i);
         }
         wr_print_clause(g,cl);
-        printf("\n");
+        wr_printf("\n");
       }
       
     }

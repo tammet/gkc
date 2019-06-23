@@ -74,9 +74,9 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
   gint prev_rewrites=0;
   
 #ifdef DEBUG
-  printf("\nwr_simplify_cl called with ");
+  wr_printf("\nwr_simplify_cl called with ");
   wr_print_clause(g,cl); 
-  printf("\n"); 
+  wr_printf("\n"); 
 #endif
 
   (g->tmp_rewrites)=0;
@@ -122,6 +122,7 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
         g->proof_found=1;    
         history=wr_build_simplify_history(g,cl,NULL,g->rewrite_clvec);
         g->proof_history=history; 
+        wr_register_answer(g,NULL,g->proof_history);
         return NULL;     
       } 
       if (prev_rewrites==(g->tmp_rewrites)) {
@@ -222,9 +223,9 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
     // second, try to cut and subsume with units
     // nb! should not subsume unit cl-s, otherwise cancel out
     /*
-    printf("\nhash_neg_groundunits\n");
+    wr_printf("\nhash_neg_groundunits\n");
     wr_print_termhash(g,rotp(g,g->hash_neg_groundunits));
-    printf("\nhash_pos_groundunits\n");
+    wr_printf("\nhash_pos_groundunits\n");
     wr_print_termhash(g,rotp(g,g->hash_pos_groundunits));
     */
     if (len<2 && (prev_rewrites==(g->tmp_rewrites))) 
@@ -232,9 +233,9 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
     else 
       tmp=wr_atom_cut_and_subsume(g,yatom,xmeta,&foundbucket,1); // allow subsume
 #ifdef DEBUG
-    printf("\nyatom searched for cut:\n");
+    wr_printf("\nyatom searched for cut:\n");
     wr_print_term(g,yatom);
-    printf("\ntmp returned by wr_atom_cut_and_subsume: %d\n",tmp); 
+    wr_printf("\ntmp returned by wr_atom_cut_and_subsume: %d\n",tmp); 
 #endif
 
     if (tmp<0) {
@@ -264,7 +265,7 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
       rptr[(rpos*LIT_WIDTH)+LIT_META_POS]=xmeta;
       rptr[(rpos*LIT_WIDTH)+LIT_ATOM_POS]=yatom;
       /*
-      printf("\nxatom:\n");
+      wr_printf("\nxatom:\n");
       wr_print_term(g,xatom);
       wr_print_term(g,rptr[(rpos*LIT_WIDTH)+LIT_ATOM_POS]);
       */
@@ -295,6 +296,7 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
     g->proof_found=1;    
     history=wr_build_simplify_history(g,cl,g->cut_clvec,g->rewrite_clvec);
     g->proof_history=history; 
+    wr_register_answer(g,NULL,g->proof_history);
     return NULL;
   }
   // check whether should be stored as a ruleclause or not
@@ -315,8 +317,9 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
   }  
   tmp=wr_cl_derived_is_answer(g,res);
   if (tmp>0) {
-    printf("\n\nfound pure answer: ");
-    wr_print_clause(g,res);
+    wr_register_answer(g,res,history);
+    //wr_printf("\n\nfound pure answer: ");
+    //wr_print_clause(g,res);
     g->proof_found=1;   
     g->proof_history=history;    
     return NULL;

@@ -62,9 +62,9 @@ void wr_propagate_unit(glb* g, gptr cl, gint clmeta, gint hash, gptr cl_as_activ
   cvec clvec,blockvec;
 
 #ifdef DEBUG
-  printf("\nwr_propagate_unit called with clmeta %d, hash %d, cl: ",(int)clmeta,(int)hash);
+  wr_printf("\nwr_propagate_unit called with clmeta %d, hash %d, cl: ",(int)clmeta,(int)hash);
   wr_print_clause(g,cl);
-  printf("\n");
+  wr_printf("\n");
 #endif
   if (wg_rec_is_fact_clause(db,cl)) len=1;
   else len=wg_count_clause_atoms(db,cl);
@@ -79,12 +79,12 @@ void wr_propagate_unit(glb* g, gptr cl, gint clmeta, gint hash, gptr cl_as_activ
     negflag=0;
   }    
 #ifdef DEBUG
-  printf("\n should propagate, negflag is %d \n ",negflag);
+  wr_printf("\n should propagate, negflag is %d \n ",negflag);
 #endif
   bucketnode=wr_find_atomhash_bucketnode(g,rotp(g,(g->hash_atom_occurrences)),atom,hash);  
   if (bucketnode==NULL) {
 #ifdef DEBUG    
-    printf("\n no bucketnode found \n");
+    wr_printf("\n no bucketnode found \n");
 #endif    
     return;
   }
@@ -101,26 +101,26 @@ void wr_propagate_unit(glb* g, gptr cl, gint clmeta, gint hash, gptr cl_as_activ
   if (clvec==NULL) {
     // no clauses in the suitable clvec
 #ifdef DEBUG    
-    printf("\n no clauses in the suitable clvec\n");
+    wr_printf("\n no clauses in the suitable clvec\n");
 #endif    
     //return;
   } else {
 #ifdef DEBUG    
-    printf("\n !!!!!! some clauses in the suitable clvec:\n");    
+    wr_printf("\n !!!!!! some clauses in the suitable clvec:\n");    
 #endif    
     // loop over clauses to be cut
     for(i=2;i<clvec[0]+2 && i<clvec[1];i++) {
 #ifdef DEBUG      
-      printf("\n prop i %d with ",i);      
+      wr_printf("\n prop i %d with ",i);      
       wr_print_clause(g,cl); 
-      printf(" and ");     
+      wr_printf(" and ");     
       wr_print_clause(g,(gptr)(clvec[i]));
-      printf("\n");
+      wr_printf("\n");
 #endif      
       wr_resolve_propagated_clause(g,atom,cl,(gptr)(clvec[i]),negflag,cl);
       if (g->proof_found || g->alloc_err) {
         //wr_clear_varstack(g,g->varstack); 
-        printf("\nproof found in propagate\n");
+        wr_printf("\nproof found in propagate\n");
         return;          
       }  
     }
@@ -128,30 +128,30 @@ void wr_propagate_unit(glb* g, gptr cl, gint clmeta, gint hash, gptr cl_as_activ
   if (blockvec==NULL) {
     // no clauses in the suitable clvec
 #ifdef DEBUG    
-    printf("\n no clauses in blockvec\n");
+    wr_printf("\n no clauses in blockvec\n");
 #endif    
     //return;
   } else {
 #ifdef DEBUG    
-    printf("\n !!!!!! some clauses in blockvec:\n");    
+    wr_printf("\n !!!!!! some clauses in blockvec:\n");    
 #endif    
     // loop over clauses to be blocked
     for(i=2;i<blockvec[0]+2 && i<blockvec[1];i++) {
 #ifdef DEBUG      
-      printf("\n prop i %d with ",i);      
+      wr_printf("\n prop i %d with ",i);      
       wr_print_clause(g,cl); 
-      printf(" and ");     
+      wr_printf(" and ");     
       wr_print_clause(g,(gptr)(blockvec[i]));
-      printf("\n");
+      wr_printf("\n");
 #endif      
       wr_mark_clause_blocked(g,(gptr)(blockvec[i]));    
       (g->stat_propagated_subsumed)++;
     }
   }
 #ifdef DEBUG  
-  printf("\n propagating ended for: ");
+  wr_printf("\n propagating ended for: ");
   wr_print_clause(g,cl);
-  printf("\n");
+  wr_printf("\n");
 #endif  
 }
 
@@ -170,11 +170,11 @@ void wr_resolve_propagated_clause(glb* g, gint atom, gptr cl, gptr cutcl, int ne
   
   UNUSED(db);
 #ifdef DEBUG
-  printf("\n!!! wr_resolve_propagated_clause called for clauses \n");
+  wr_printf("\n!!! wr_resolve_propagated_clause called for clauses \n");
   wr_print_clause(g,cl);
-  printf("\n"); 
+  wr_printf("\n"); 
   wr_print_clause(g,cutcl);
-  printf("\n");   
+  wr_printf("\n");   
   wr_print_vardata(g);
 #endif  
   // just to be sure we are not given fact clauses
@@ -197,7 +197,7 @@ void wr_resolve_propagated_clause(glb* g, gint atom, gptr cl, gptr cutcl, int ne
     }  
   }
 #ifdef DEBUG  
-  printf("\n something wrong: atom not found in wr_resolve_propagated_clause\n");
+  wr_printf("\n something wrong: atom not found in wr_resolve_propagated_clause\n");
 #endif  
 }     
 
@@ -217,11 +217,11 @@ void wr_process_propagated_result
   int i,j, atom, meta;
 
 #ifdef DEBUG
-  printf("\n+++ wr_process_propagated_result called\n");
-  wr_print_clause(g,xcl); printf(" : ");wr_print_term(g,xatom);
-  printf("\n");
-  wr_print_clause(g,ycl);  printf(" : ");wr_print_term(g,yatom);
-  printf("\n");
+  wr_printf("\n+++ wr_process_propagated_result called\n");
+  wr_print_clause(g,xcl); wr_printf(" : ");wr_print_term(g,xatom);
+  wr_printf("\n");
+  wr_print_clause(g,ycl);  wr_printf(" : ");wr_print_term(g,yatom);
+  wr_printf("\n");
   wr_print_vardata(g);  
 #endif  
   ++(g->stat_derived_cl);
@@ -269,7 +269,7 @@ void wr_process_propagated_result
   // check if result contains only ans predicates  
   tmp=wr_cl_derived_is_answer(g,res);
   if (tmp>0) {
-    printf("\n\nfound pure answer: ");
+    wr_printf("\n\nfound pure answer: ");
     wr_print_clause(g,res);
     g->proof_found=1;   
     g->proof_history=history;    
@@ -277,7 +277,7 @@ void wr_process_propagated_result
   }
   // resulting clause is finished
   if (g->print_derived_cl) {
-    printf("\n+ derived by fmp: ");
+    wr_printf("\n+ derived by fmp: ");
     wr_print_clause(g,res);    
   }  
   weight=wr_calc_clause_weight(g,res,&size,&depth,&length);
@@ -286,7 +286,7 @@ void wr_process_propagated_result
   if (!wr_derived_weight_check(g,avg,weight,size,depth,length,0,0)) {
     (g->stat_weight_discarded_cl)++;
     CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
-    if (g->print_derived_cl) printf("\nw discarded overweight");
+    if (g->print_derived_cl) wr_printf("\nw discarded overweight");
     return;
   }
   wr_mark_clause_blocked(g,ycl); // mark long parent blocked
@@ -330,9 +330,9 @@ int wr_store_atom_occurrences(glb* g, gptr cl) {
   gint atom, meta, hash;
 
 #ifdef DEBUG
-  printf("\nwr_store_atom_occurrences called with cl: ");
+  wr_printf("\nwr_store_atom_occurrences called with cl: ");
   wr_print_clause(g,cl);
-  printf("\n");
+  wr_printf("\n");
 #endif
 
   ruleflag=wg_rec_is_rule_clause(db,cl);
@@ -356,7 +356,7 @@ int wr_store_atom_occurrences(glb* g, gptr cl) {
     count++;
   } 
 #ifdef DEBUG
-  printf("\nwr_store_atom_occurrences returns with count %d ",count);
+  wr_printf("\nwr_store_atom_occurrences returns with count %d ",count);
 #endif  
   return count; 
 }  

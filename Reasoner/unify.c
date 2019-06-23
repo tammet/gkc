@@ -85,11 +85,11 @@ gint wr_unify_term_aux(glb* g, gint x, gint y, int uniquestrflag) {
   int xlen,ylen,uselen,ilimit,i,isground;
   
 #ifdef DEBUG
-  printf("wr_unify_term_aux called with x %d ",x);
+  wr_printf("wr_unify_term_aux called with x %d ",x);
   wr_print_term(g,x);
-  printf(" and y %d ",y);
+  wr_printf(" and y %d ",y);
   wr_print_term(g,y);
-  printf("\n");
+  wr_printf("\n");
 #endif  
   // first check if immediately same: return 1 if yes 
   if (x==y)  return 1;     
@@ -205,11 +205,11 @@ static gint wr_occurs_in(glb* g, gint x, gint y, gptr vb) {
   gint tmp; // used by VARVAL_F
     
 #ifdef DEBUG
-  printf("wr_occurs_in called with x %d ",x);
+  wr_printf("wr_occurs_in called with x %d ",x);
   wr_print_term(g,x);
-  printf(" and y %d ",y);
+  wr_printf(" and y %d ",y);
   wr_print_term(g,y);
-  printf("\n");
+  wr_printf("\n");
 #endif 
   yptr=decode_record(db,y);
   ylen=get_record_len(yptr);
@@ -279,11 +279,11 @@ gint wr_match_term_aux(glb* g, gint x, gint y, int uniquestrflag) {
   gint eqencx; // used by WR_EQUAL_TERM macro
 
 #ifdef DEBUG
-  printf("wr_match_term_aux called with x %d ",x);
+  wr_printf("wr_match_term_aux called with x %d ",x);
   wr_print_term(g,x);
-  printf(" and y %d ",y);
+  wr_printf(" and y %d ",y);
   wr_print_term(g,y);
-  printf("\n");
+  wr_printf("\n");
 #endif  
 
   UNUSED(eqencx);  
@@ -359,7 +359,7 @@ gint wr_equal_term1(glb* g, gint x, gint y, int uniquestrflag) {
   int xlen,ylen,uselen,i,ilimit;
   gint eqencx; // used by the WR_EQUAL_TERM macro    
 #ifdef DEBUG
-  printf("wr_equal_term called with x %d and y %d\n",x,y);
+  wr_printf("wr_equal_term called with x %d and y %d\n",x,y);
 #endif   
 
   UNUSED(eqencx);
@@ -416,7 +416,7 @@ gint wr_equal_term2(glb* g, gint x, gint y, int uniquestrflag) {
   int xlen,ylen,uselen,i,ilimit;
   gint eqencx; // used by the WR_EQUAL_TERM macro    
 #ifdef DEBUG
-  printf("wr_equal_term called with x %d and y %d\n",x,y);
+  wr_printf("wr_equal_term called with x %d and y %d\n",x,y);
 #endif   
 
   UNUSED(eqencx);
@@ -473,7 +473,7 @@ gint wr_equal_term3(glb* g, gint x, gint y, int uniquestrflag) {
   int xlen,ylen,uselen,i,ilimit;
   gint eqencx; // used by the WR_EQUAL_TERM macro    
 #ifdef DEBUG
-  printf("wr_equal_term called with x %d and y %d\n",x,y);
+  wr_printf("wr_equal_term called with x %d and y %d\n",x,y);
 #endif   
 
   UNUSED(eqencx); 
@@ -531,7 +531,7 @@ gint wr_equal_term4(glb* g, gint x, gint y, int uniquestrflag) {
   int xlen,ylen,uselen,i,ilimit;
   gint eqencx; // used by the WR_EQUAL_TERM macro    
 #ifdef DEBUG
-  printf("wr_equal_term called with x %d and y %d\n",x,y);
+  wr_printf("wr_equal_term called with x %d and y %d\n",x,y);
 #endif   
 
   UNUSED(eqencx);
@@ -597,7 +597,7 @@ gint wr_equal_term(glb* g, gint x, gint y, int uniquestrflag) {
   int xlen,ylen,uselen,i,ilimit;
   gint eqencx; // used by the WR_EQUAL_TERM macro    
 #ifdef DEBUG
-  printf("wr_equal_term called with x %d and y %d\n",x,y);
+  wr_printf("wr_equal_term called with x %d and y %d\n",x,y);
 #endif   
  
   UNUSED(eqencx);
@@ -677,7 +677,7 @@ gint wr_equal_term_macroaux(glb* g, gint x, gint y, int uniquestrflag) {
   gint eqencx; // used by WR_EQUAL_TERM macro
   
 #ifdef DEBUG
-  printf("wr_equal_term_macroaux called with x %d and y %d\n",x,y);
+  wr_printf("wr_equal_term_macroaux called with x %d and y %d\n",x,y);
 #endif   
   UNUSED(eqencx);
   if (!isdatarec(x)) {
@@ -911,13 +911,13 @@ void wr_print_varbank(glb* g,gptr vb){
   
   start=0;
   end=NROF_VARBANKS*NROF_VARSINBANK;
-  printf("varbank %d:\n",(int)(gint)vb);
+  wr_printf("varbank %d:\n",(int)(gint)vb);
   for(i=start;i<end;i++) {
     cell=vb[i];
     if (cell!=UNASSIGNED) {
-      printf("%d raw %d: ",i,(int)cell);
+      wr_printf("%d raw %d: ",i,(int)cell);
       wr_print_term(g,cell);
-      printf("\n");
+      wr_printf("\n");
     }      
   }    
 }  
@@ -930,13 +930,13 @@ void wr_print_varstack(glb* g, gptr vs) {
   
   start=2;
   end=vs[1];
-  printf("varstack len %d firstfree %d:\n",(int)vs[0],(int)vs[1]);
+  wr_printf("varstack len %d firstfree %d:\n",(int)vs[0],(int)vs[1]);
   for(i=start;i<end;i++) {
     cell=vs[i];
     if (cell!=UNASSIGNED) {
-      printf("%d raw %d: ",i,(int)cell);
+      wr_printf("%d raw %d: ",i,(int)cell);
       //wr_print_term(g,cell);
-      printf("\n");
+      wr_printf("\n");
     }      
   }  
 }  

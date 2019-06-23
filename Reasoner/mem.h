@@ -101,7 +101,7 @@ cvec wr_cvec_push(glb* g,vec v, gint e);
 gptr wr_alloc_from_cvec(glb* g, cvec buf, gint gints);
 
 char* wr_str_new(glb* g, int len);
-void wr_str_guarantee_space(glb* g, char** stradr, int* strlenadr, int needed);
+int wr_str_guarantee_space(glb* g, char** stradr, int* strlenadr, int needed);
 void wr_str_free(glb* g, char* str);
 void wr_str_freeref(glb* g, char** strref);
 

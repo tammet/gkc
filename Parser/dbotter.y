@@ -141,7 +141,7 @@ termlist:    term                { $$ = MKWGPAIR(PP,$1,MKWGNIL); }
 ;
 
 log:       term                   { $$ = $1; }
-        | connlog                 { $$ = $1; }
+      /*  | connlog                 { $$ = $1; } */
 ;
 
 

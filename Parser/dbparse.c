@@ -125,7 +125,7 @@ void* wr_preprocess_tptp_cnf_clause(glb* g, void* mpool, void* cl);
 void* wr_preprocess_tptp_fof_clause(glb* g, void* mpool, void* cl);
 void* wr_process_tptp_import_clause(glb* g, void* mpool, void* cl);
 
-
+void db_err_printf2(char* s1, char* s2);
 
 /* ====== Functions ============== */
 
@@ -351,7 +351,7 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, in
     fp=freopen(fnamestr, "r", stdin);
     if (!fp) {
       //if (g->print_flag)
-      printf("\nCould not open file %s.\n",fnamestr);
+      db_err_printf2("could not open file",fnamestr);
       return 1;
     }
     pp.db=db;
@@ -1545,4 +1545,9 @@ static int show_parse_warning(void* db, char* format, ...) {
   vprintf (format, args);
   va_end (args);
   return -1;
+}
+
+
+void db_err_printf2(char* s1, char* s2) {
+  printf("{\"error\": \"%s %s\"}\n",s1,s2);
 }

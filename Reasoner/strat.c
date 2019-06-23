@@ -100,9 +100,9 @@ int wr_cl_is_assumption(glb* g, gptr cl) {
   int htype;
 
   /*
-  printf("\n wr_cl_is_assumptionl:");
+  wr_printf("\n wr_cl_is_assumptionl:");
   wr_print_clause(g,cl);
-  printf("\n");
+  wr_printf("\n");
   */
 
   hist=wr_get_history(g,cl); // !!! was wrong: hist was uninitialized
@@ -192,7 +192,7 @@ int wr_initial_select_active_cl(glb* g, gptr cl) {
   dp("\ncheck initial cl: ");
   wr_print_clause(g,cl);
   dprintf("\n");
-  printf("\n(g->queryfocusneg_strat): %d\n",(g->queryfocusneg_strat));
+  wr_printf("\n(g->queryfocusneg_strat): %d\n",(g->queryfocusneg_strat));
 #endif
 
   history=wr_get_history(g,cl); 
@@ -503,34 +503,34 @@ int wr_calc_clause_resolvability(glb* g, gptr cl, int allowall) {
 void wr_print_clause_resolvability(glb* g, gptr cl) {
   int len,i;
 
-  printf("\nresolvability for ");
+  wr_printf("\nresolvability for ");
   wr_print_clause(g,cl);
-  printf("\n");  
+  wr_printf("\n");  
   if (!wg_rec_is_rule_clause(db,cl)) {
-    printf("1, since fact clause\n");
+    wr_printf("1, since fact clause\n");
   } else {
     len=wg_count_clause_atoms(db,cl);
     for(i=0;i<len;i++) {
-      printf("%ld ",(g->tmp_resolvability_vec)[i+1]);
+      wr_printf("%ld ",(g->tmp_resolvability_vec)[i+1]);
     }
-    printf("\n");
+    wr_printf("\n");
   }
 }
 
 void wr_print_clause_hardnesses(glb* g, gptr cl) {
   int len,i;
 
-  printf("\nhardness for ");
+  wr_printf("\nhardness for ");
   wr_print_clause(g,cl);
-  printf("\n");  
+  wr_printf("\n");  
   if (!wg_rec_is_rule_clause(db,cl)) {
-    printf("fact clause\n");
+    wr_printf("fact clause\n");
   } else {
     len=wg_count_clause_atoms(db,cl);
     for(i=0;i<len;i++) {
-      printf("%ld ",(g->tmp_hardnessinf_vec)[i+1]);
+      wr_printf("%ld ",(g->tmp_hardnessinf_vec)[i+1]);
     }
-    printf("\n");
+    wr_printf("\n");
   }
 }
 
@@ -550,9 +550,9 @@ int wr_calc_clause_hardnesses(glb* g, gptr cl,
   UNUSED(db);
   if (!wg_rec_is_rule_clause(db,cl)) return MIN_HARDNESS;
   /*
-  printf("\nwr_calc_clause_hardnesses for \n");  
+  wr_printf("\nwr_calc_clause_hardnesses for \n");  
   wr_print_clause(g,cl);
-  printf("\n");
+  wr_printf("\n");
   */
   atomnr=wg_count_clause_atoms(db,cl);
   for(i=0;i<atomnr;i++) {
@@ -589,9 +589,9 @@ int wr_calc_atom_hardness(glb* g, int polarity, gint atom) {
   int hardness=0;
 
   /*
-  printf("\n wr_calc_atom_hardness for ");
+  wr_printf("\n wr_calc_atom_hardness for ");
   wr_print_atom_otter(g,atom,1);
-  printf("\n");
+  wr_printf("\n");
   */
 
   hdata.size=0;
@@ -629,9 +629,9 @@ int wr_calc_atom_hardness(glb* g, int polarity, gint atom) {
     } else hardness-=round(log10((double)hdata.internposocc)/(double)4);
   }
   /*
-  printf("\nresult hardness %d polarity %d maxdepth %d size %d newvars %d repvars %d\n",
+  wr_printf("\nresult hardness %d polarity %d maxdepth %d size %d newvars %d repvars %d\n",
     hardness, polarity,hdata.maxdepth,hdata.size,hdata.newvars,hdata.repvars);
-  printf("\n       atomposocc %ld,atomnegocc %ld,internposocc %ld,internnegocc %ld;\n",
+  wr_printf("\n       atomposocc %ld,atomnegocc %ld,internposocc %ld,internnegocc %ld;\n",
     hdata.atomposocc,hdata.atomnegocc,hdata.internposocc,hdata.internnegocc); 
   */
   
@@ -647,11 +647,11 @@ int wr_calc_atom_hardness_aux(glb* g, gint x, int depth, int pos,
   gint ucount, ucountpos, ucountneg;
 
   /*
-  printf("wr_calc_atom_hardness_aux called with x %d type %d depth %d size %d maxdepth %d\
+  wr_printf("wr_calc_atom_hardness_aux called with x %d type %d depth %d size %d maxdepth %d\
          newvars,repvars\n",
          x,wg_get_encoded_type(g->db,x),depth,size,maxdepth,newvars,repvars);
   wr_print_term(g,x);
-  printf("\n");
+  wr_printf("\n");
   */
 
   if (!isdatarec(x)) {
@@ -680,8 +680,8 @@ int wr_calc_atom_hardness_aux(glb* g, gint x, int depth, int pos,
           (hptr->internnegocc)+=ucountneg;
         }
         /*
-        printf("\npolarity %d depth %d ucountpos %ld ucountneg %ld\n",polarity,depth,ucountpos,ucountneg);
-        printf("\n(hptr->atomposocc) %d (hptr->atomnegocc) %d \n",
+        wr_printf("\npolarity %d depth %d ucountpos %ld ucountneg %ld\n",polarity,depth,ucountpos,ucountneg);
+        wr_printf("\n(hptr->atomposocc) %d (hptr->atomnegocc) %d \n",
           (hptr->atomposocc),(hptr->atomnegocc));
         */
       }
@@ -821,11 +821,11 @@ int wr_order_eqterms(glb* g, gint a, gint b, gptr vb) {
 #ifdef EQORDER_DEBUG  
     dp("\n wr_order_eqterms calcs xw and yw: %d %d\n",xw,yw); 
     if (wr_countedvarlist_is_subset(g,(g->xcountedvarlist),(g->ycountedvarlist))) {
-      printf(" xlist is a subset of ylist \n");
+      wr_printf(" xlist is a subset of ylist \n");
     } else if (wr_countedvarlist_is_subset(g,(g->ycountedvarlist),(g->xcountedvarlist))) {
-      printf(" ylist is a subset of xlist \n");
+      wr_printf(" ylist is a subset of xlist \n");
     } else {
-      printf(" xlist and ylist are not subsets of each other\n");
+      wr_printf(" xlist and ylist are not subsets of each other\n");
     }
 #endif   
 
@@ -837,7 +837,7 @@ int wr_order_eqterms(glb* g, gint a, gint b, gptr vb) {
     // here sizes are the same
     lexorder=wr_order_eqterms_lex_order(g,a,b,vb);
 #ifdef EQORDER_DEBUG    
-    printf("\nlexorder result: %d\n",lexorder);
+    wr_printf("\nlexorder result: %d\n",lexorder);
 #endif       
     // lexorder:
     // 1 if x is smaller than y
@@ -910,16 +910,16 @@ void wr_show_countedvarlist(glb* g, cvec varlist) {
   int i;
   
   if (varlist==NULL) {
-    printf("\nvarlist is NULL\n");
+    wr_printf("\nvarlist is NULL\n");
     return;
   }
-  printf("varlist len %d min var ",(int)((varlist[1]-4)/2));
+  wr_printf("varlist len %d min var ",(int)((varlist[1]-4)/2));
   if (varlist[2]>=0) wr_print_term(g,varlist[2]);
-  else printf(" none");
-  printf(" vars ");
+  else wr_printf(" none");
+  wr_printf(" vars ");
   for(i=4; i<varlist[1]; i=i+2) {
     wr_print_term(g,(gint)(varlist[i]));
-    printf(": %d, ",(int)(varlist[i+1]));
+    wr_printf(": %d, ",(int)(varlist[i+1]));
   }
 }
 
@@ -931,11 +931,11 @@ static int wr_order_eqterms_occurs_in(glb* g, gint x, gint y, gptr vb) {
   gint tmp; // used by VARVAL_F
     
 #ifdef DEBUG
-  printf("wr_order_eqterms_occurs_in called with x %ld ",x);
+  wr_printf("wr_order_eqterms_occurs_in called with x %ld ",x);
   wr_print_term(g,x);
-  printf(" and y %ld ",y);
+  wr_printf(" and y %ld ",y);
   wr_print_term(g,y);
-  printf("\n");
+  wr_printf("\n");
 #endif 
   yptr=decode_record(db,y);
   ylen=get_record_len(yptr);
@@ -966,9 +966,9 @@ static int wr_order_eqterms_weight_vars(glb* g, gint x, gptr vars, gptr vb) {
   gint tmp; // used by VARVAL_F
 
 #ifdef DEBUG
-  printf("wr_order_eqterms_weight_vars called with x %ld ",x);
+  wr_printf("wr_order_eqterms_weight_vars called with x %ld ",x);
   wr_print_term(g,x);
-  printf("\n");
+  wr_printf("\n");
 #endif     
 
   if (isvar(x) && vb!=NULL) x=VARVAL_F(x,vb);
@@ -1061,11 +1061,11 @@ static int wr_order_eqterms_lex_order(glb* g, gint x, gint y, gptr vb) {
   int xlen,ylen,uselen,ilimit,i;
 
 #ifdef EQORDER_DEBUG
-  printf("wr_order_eqterms_lex_order called with x %ld and y %ld: ",x,y);
+  wr_printf("wr_order_eqterms_lex_order called with x %ld and y %ld: ",x,y);
   wr_print_term(g,x);
-  printf("\n");
+  wr_printf("\n");
   wr_print_term(g,y);
-  printf("\n");
+  wr_printf("\n");
 #endif     
 
   if (x==y) return 0; // equal
@@ -1185,17 +1185,17 @@ int wr_calc_clause_knuthbendix_resolvability(glb* g, gptr cl, gptr vb) {
 
 #ifdef EQORDER_DEBUG  
       dp("\n wr_calc_clause_knuthbendix_resolvability i %d and j %d\n",i,j);
-      printf("xatom\n");
+      wr_printf("xatom\n");
       wr_print_term(g,xatom);
-      printf("\nyatom\n");
+      wr_printf("\nyatom\n");
       wr_print_term(g,yatom);
       dp("\n calcs xw and yw: %ld %ld\n",xw,yw); 
       if (wr_countedvarlist_is_subset(g,xvarlist,yvarlist)) {
-        printf(" xvarlist is a subset of yvarlist \n");
+        wr_printf(" xvarlist is a subset of yvarlist \n");
       } else if (wr_countedvarlist_is_subset(g,yvarlist,xvarlist)) {
-        printf(" yvarlist is a subset of xvarlist \n");
+        wr_printf(" yvarlist is a subset of xvarlist \n");
       } else {
-        printf(" xvarlist and yvarlist are not subsets of each other\n");
+        wr_printf(" xvarlist and yvarlist are not subsets of each other\n");
       }
 #endif   
 
@@ -1207,7 +1207,7 @@ int wr_calc_clause_knuthbendix_resolvability(glb* g, gptr cl, gptr vb) {
         // here sizes are the same
         lexorder=wr_order_atoms_lex_order(g,xatom,yatom,vb);
   #ifdef EQORDER_DEBUG    
-         printf("\nlexorder result: %d\n",lexorder);
+         wr_printf("\nlexorder result: %d\n",lexorder);
   #endif       
         // lexorder:
         // 1 if x is smaller than y
@@ -1280,9 +1280,9 @@ int wr_calc_clause_size_countedvarlist(glb* g, gptr cl, gptr vb) {
     xw=wr_order_atom_weight_vars(g, atom, (g->xcountedvarlist), vb);
     gvvec=(g->xcountedvarlist);
 #ifdef EQORDER_DEBUG    
-    printf("\natom nr %d\n",i);
+    wr_printf("\natom nr %d\n",i);
     wr_print_term(g,atom);
-    printf("\n size %d \n",xw);
+    wr_printf("\n size %d \n",xw);
     wr_show_countedvarlist(g,gvvec);
 #endif
     // copy size over
@@ -1306,13 +1306,13 @@ int wr_calc_clause_size_countedvarlist(glb* g, gptr cl, gptr vb) {
       (g->tmp_clinfo)=wr_cvec_store(g,(g->tmp_clinfo),(i*2)+2+1,(gint)NULL);
     }                 
 #ifdef EQORDER_DEBUG 
-    printf("\n stored weight and countedvarlist %ld\n",(g->tmp_clinfo)[(i*2)+2]);
+    wr_printf("\n stored weight and countedvarlist %ld\n",(g->tmp_clinfo)[(i*2)+2]);
     wr_show_countedvarlist(g,(gptr)((g->tmp_clinfo)[(i*2)+2+1]));
-    printf("\n after storing (g->tmp_clinfo)[1] is %ld\n",(g->tmp_clinfo)[1]);
+    wr_printf("\n after storing (g->tmp_clinfo)[1] is %ld\n",(g->tmp_clinfo)[1]);
 #endif
   } 
 #ifdef EQORDER_DEBUG 
-  printf("\nfinal (g->tmp_clinfo)[0] is %ld and (g->tmp_clinfo)[1] is %ld\n",
+  wr_printf("\nfinal (g->tmp_clinfo)[0] is %ld and (g->tmp_clinfo)[1] is %ld\n",
     (g->tmp_clinfo)[0],(g->tmp_clinfo)[1]);
 #endif  
   return atomnr; // mark vec is created
@@ -1322,11 +1322,11 @@ void wr_tmp_clinfo_free(glb* g, cvec v) {
   int i;
 
 #ifdef EQORDER_DEBUG
-  printf("\n wr_tmp_clinfo_free called with v[1] %ld\n",v[1]);
+  wr_printf("\n wr_tmp_clinfo_free called with v[1] %ld\n",v[1]);
 #endif  
   for(i=2;i<v[1];i+=2) {
 #ifdef EQORDER_DEBUG    
-    printf("\n i %d v[i] %ld v[i+1] %ld \n",i,v[i],v[i+1]);
+    wr_printf("\n i %d v[i] %ld v[i+1] %ld \n",i,v[i],v[i+1]);
     wr_show_countedvarlist(g,(gptr)(v[i+1]));
 #endif    
     if (v[i+1]!=(gint)NULL) wr_free(g,(gptr)(v[i+1]));
@@ -1339,9 +1339,9 @@ int wr_order_atom_weight_vars(glb* g, gint x, gptr vars, gptr vb) {
   int i, start, end, w;  
 
 #ifdef DEBUG
-  printf("wr_order_atom_weight_vars called with x %ld ",x);
+  wr_printf("wr_order_atom_weight_vars called with x %ld ",x);
   wr_print_term(g,x);
-  printf("\n");
+  wr_printf("\n");
 #endif     
 
   if (!isdatarec(x)) {
@@ -1380,11 +1380,11 @@ int wr_order_atoms_lex_order(glb* g, gint x, gint y, gptr vb) {
   int xlen,ylen,uselen,ilimit,i,tmp;
 
 #ifdef EQORDER_DEBUG
-  printf("wr_order_atoms_lex_order called with x %ld and y %ld: ",x,y);
+  wr_printf("wr_order_atoms_lex_order called with x %ld and y %ld: ",x,y);
   wr_print_term(g,x);
-  printf("\n");
+  wr_printf("\n");
   wr_print_term(g,y);
-  printf("\n");
+  wr_printf("\n");
 #endif     
 
   if (x==y) return 0; // equal 
@@ -1443,46 +1443,46 @@ int wr_order_atoms_const_lex_smaller(glb* g, gint x, gint y) {
 
 void wr_print_strat_flags(glb* g) {
 
-  printf("\nstrategy flags:\n");
-  printf("----------------------------------\n");
+  wr_printf("\nstrategy flags:\n");
+  wr_printf("----------------------------------\n");
 
-  printf("pick_given_queue_ratio %d\n", (g->pick_given_queue_ratio));         // this is used for all queues to diff btw priority and simple
-  printf("pick_given_queue_ratio_counter %d\n", (g->pick_given_queue_ratio_counter)); // this is not used for queues
-  printf("next_pick_given_queue_block_nr %d\n", (g->next_pick_given_queue_block_nr));
+  wr_printf("pick_given_queue_ratio %d\n", (g->pick_given_queue_ratio));         // this is used for all queues to diff btw priority and simple
+  wr_printf("pick_given_queue_ratio_counter %d\n", (g->pick_given_queue_ratio_counter)); // this is not used for queues
+  wr_printf("next_pick_given_queue_block_nr %d\n", (g->next_pick_given_queue_block_nr));
 
-  printf("cl_depth_penalty %d\n", (g->cl_depth_penalty));
-  printf("cl_length_penalty %d\n", (g->cl_length_penalty));
+  wr_printf("cl_depth_penalty %d\n", (g->cl_depth_penalty));
+  wr_printf("cl_length_penalty %d\n", (g->cl_length_penalty));
 
   /* pre-given limits */
-  printf("max_run_seconds %d\n", (g->max_run_seconds)); // one run max seconds
-  printf("max_seconds %d\n", (g->max_seconds));     // total max seconds
-  printf("cl_maxkeep_weightlimit %d\n", (g->cl_maxkeep_weightlimit));
-  printf("cl_maxkeep_sizelimit %d\n", (g->cl_maxkeep_sizelimit));
-  printf("cl_maxkeep_depthlimit %d\n", (g->cl_maxkeep_depthlimit));
-  printf("cl_maxkeep_lengthlimit %d\n", (g->cl_maxkeep_lengthlimit));  
+  wr_printf("max_run_seconds %d\n", (g->max_run_seconds)); // one run max seconds
+  wr_printf("max_seconds %d\n", (g->max_seconds));     // total max seconds
+  wr_printf("cl_maxkeep_weightlimit %d\n", (g->cl_maxkeep_weightlimit));
+  wr_printf("cl_maxkeep_sizelimit %d\n", (g->cl_maxkeep_sizelimit));
+  wr_printf("cl_maxkeep_depthlimit %d\n", (g->cl_maxkeep_depthlimit));
+  wr_printf("cl_maxkeep_lengthlimit %d\n", (g->cl_maxkeep_lengthlimit));  
 
-  printf("cl_pick_queue_strategy %d\n", (g->cl_pick_queue_strategy)); // default a single 2nd level queue for all
+  wr_printf("cl_pick_queue_strategy %d\n", (g->cl_pick_queue_strategy)); // default a single 2nd level queue for all
   
-  printf("reverse_clauselist_strat %d\n", (g->reverse_clauselist_strat));
-  printf("queryfocus_strat %d\n", (g->queryfocus_strat));
-  printf("queryfocusneg_strat %d\n", (g->queryfocusneg_strat));  
+  wr_printf("reverse_clauselist_strat %d\n", (g->reverse_clauselist_strat));
+  wr_printf("queryfocus_strat %d\n", (g->queryfocus_strat));
+  wr_printf("queryfocusneg_strat %d\n", (g->queryfocusneg_strat));  
 
-  printf("hyperres_strat %d\n", (g->hyperres_strat));
-  printf("weightorder_strat %d\n", (g->weightorder_strat));  
-  printf("negpref_strat %d\n", (g->negpref_strat));
-  printf("pospref_strat %d\n", (g->pospref_strat));
-  printf("knuthbendixpref_strat %d\n", (g->knuthbendixpref_strat));
-  printf("hardnesspref_strat %d\n", (g->hardnesspref_strat));
-  printf("res_shortarglen_limit %d\n", (g->res_shortarglen_limit)); // max non-ans len of the shortest res argument (generalization of unit)
-  printf("back_subsume %d\n", (g->back_subsume)); // 1 does not work any more
-  printf("propagate %d\n", (g->propagate));    // 1 does not work any more
-  printf("use_equality_strat %d\n", (g->use_equality_strat)); // general strategy
-  printf("use_equality %d\n", (g->use_equality)); // current principle
-  printf("posunitpara_strat %d\n", (g->posunitpara_strat)); // only paramodulate from unit equalities
-  printf("use_comp_funs_strat %d\n", (g->use_comp_funs_strat));
-  printf("use_comp_funs %d\n", (g->use_comp_funs));
-  printf("use_rewrite_terms_strat %d\n", (g->use_rewrite_terms_strat)); // general strategy
-  printf("have_rewrite_terms %d\n", (g->have_rewrite_terms)); // do we actually have rewrite terms
+  wr_printf("hyperres_strat %d\n", (g->hyperres_strat));
+  wr_printf("weightorder_strat %d\n", (g->weightorder_strat));  
+  wr_printf("negpref_strat %d\n", (g->negpref_strat));
+  wr_printf("pospref_strat %d\n", (g->pospref_strat));
+  wr_printf("knuthbendixpref_strat %d\n", (g->knuthbendixpref_strat));
+  wr_printf("hardnesspref_strat %d\n", (g->hardnesspref_strat));
+  wr_printf("res_shortarglen_limit %d\n", (g->res_shortarglen_limit)); // max non-ans len of the shortest res argument (generalization of unit)
+  wr_printf("back_subsume %d\n", (g->back_subsume)); // 1 does not work any more
+  wr_printf("propagate %d\n", (g->propagate));    // 1 does not work any more
+  wr_printf("use_equality_strat %d\n", (g->use_equality_strat)); // general strategy
+  wr_printf("use_equality %d\n", (g->use_equality)); // current principle
+  wr_printf("posunitpara_strat %d\n", (g->posunitpara_strat)); // only paramodulate from unit equalities
+  wr_printf("use_comp_funs_strat %d\n", (g->use_comp_funs_strat));
+  wr_printf("use_comp_funs %d\n", (g->use_comp_funs));
+  wr_printf("use_rewrite_terms_strat %d\n", (g->use_rewrite_terms_strat)); // general strategy
+  wr_printf("have_rewrite_terms %d\n", (g->have_rewrite_terms)); // do we actually have rewrite terms
   
 }
 

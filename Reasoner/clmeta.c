@@ -84,9 +84,9 @@ int  oldremove_wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, i
   int vc_tmp;
 
 #ifdef DEBUG  
-  printf("wr_calc_clause_weight called for:\n"); 
+  wr_printf("wr_calc_clause_weight called for:\n"); 
   wr_print_clause(g,xptr);
-  printf("\n");
+  wr_printf("\n");
 #endif
   db=g->db; 
   *size=0;
@@ -125,7 +125,7 @@ int  oldremove_wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, i
 #endif  
   w=w+(((*length)-1)*(g->cl_length_penalty))+(((*depth)-1)*(g->cl_depth_penalty));
 #ifdef DEBUG  
-  printf("\nwr_calc_clause_weight returns weight %d and size %d depth %d length %d\n",
+  wr_printf("\nwr_calc_clause_weight returns weight %d and size %d depth %d length %d\n",
       w,*size,*depth,*length); 
 #endif  
   return w;
@@ -142,9 +142,9 @@ int  wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length
   int vc_tmp;
 
 #ifdef DEBUG  
-  printf("wr_calc_clause_weight called for:\n"); 
+  wr_printf("wr_calc_clause_weight called for:\n"); 
   wr_print_clause(g,xptr);
-  printf("\n");
+  wr_printf("\n");
 #endif
   db=g->db; 
   *size=0;
@@ -182,7 +182,7 @@ int  wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length
 #endif  
   w=w+(((*length)-1)*(g->cl_length_penalty))+(((*depth)-1)*(g->cl_depth_penalty));
 #ifdef DEBUG  
-  printf("\nwr_calc_clause_weight returns weight %d and size %d depth %d length %d\n",
+  wr_printf("\nwr_calc_clause_weight returns weight %d and size %d depth %d length %d\n",
       w,*size,*depth,*length); 
 #endif  
   return w;
@@ -195,7 +195,7 @@ int wr_calc_term_weight(glb* g, gint x, int depth, int* size, int* maxdepth) {
   int w;
 
 #ifdef DEBUG    
-  printf("wr_calc_term_weight called with x %d type %d depth %d size %d maxdepth %d\n",
+  wr_printf("wr_calc_term_weight called with x %d type %d depth %d size %d maxdepth %d\n",
        x,wg_get_encoded_type(g->db,x),depth,*size,*maxdepth);
 #endif
   if (!isdatarec(x)) {
@@ -240,50 +240,50 @@ int wr_calc_term_weight(glb* g, gint x, int depth, int* size, int* maxdepth) {
 
 
 void wr_print_term_metacalc(glb* g, term_metacalc* metaptr) {
-  printf("\nterm_metacalc values:\n");
-  printf("  isground %d\n", metaptr->hasvars); // 1 iff ground
-  printf("  depth %d\n",metaptr->depth);  // clause depth: 1 is predicate without nesting
-  printf("  size %d\n",metaptr->size);   // clause size: count of all pred/fun/const/var occurrences
-  printf("  weight %d\n",metaptr->weight);  // weighted size
-  printf("   preflen %d\n",metaptr->preflen); // length of ground prefix: for ground lit it is size
-  printf("   topvars %d\n",metaptr->topvars);  // nr of var occurrences on top lit level
-  printf("   prefhash %d\n",metaptr->prefhash);  // hash of ground prefix
-  printf("   pref1hash %d\n",metaptr->pref1hash);
-  printf("   pref2hash %d\n",metaptr->pref2hash);
-  printf("   pref3hash %d\n",metaptr->pref3hash);
-  printf("   groundhash %d\n",metaptr->groundhash); // not used yet
+  wr_printf("\nterm_metacalc values:\n");
+  wr_printf("  isground %d\n", metaptr->hasvars); // 1 iff ground
+  wr_printf("  depth %d\n",metaptr->depth);  // clause depth: 1 is predicate without nesting
+  wr_printf("  size %d\n",metaptr->size);   // clause size: count of all pred/fun/const/var occurrences
+  wr_printf("  weight %d\n",metaptr->weight);  // weighted size
+  wr_printf("   preflen %d\n",metaptr->preflen); // length of ground prefix: for ground lit it is size
+  wr_printf("   topvars %d\n",metaptr->topvars);  // nr of var occurrences on top lit level
+  wr_printf("   prefhash %d\n",metaptr->prefhash);  // hash of ground prefix
+  wr_printf("   pref1hash %d\n",metaptr->pref1hash);
+  wr_printf("   pref2hash %d\n",metaptr->pref2hash);
+  wr_printf("   pref3hash %d\n",metaptr->pref3hash);
+  wr_printf("   groundhash %d\n",metaptr->groundhash); // not used yet
 }
 
 void wr_print_cl_metacalc(glb* g, cl_metacalc* metaptr) {
-  printf("\ncl_metacalc values:\n");
-  printf("  length    %10d\n", metaptr->length); // 1, 2, ...
-  printf("  neglength %10d\n", metaptr->neglength); // 1, 2, ...
-  printf("  groundlen %10d\n", metaptr->groundlength); // 1, 2, ...
-  printf("  isground  %10d\n", metaptr->hasvars); // 1 iff ground
-  printf("  depth     %10d\n",metaptr->depth);  // clause depth: 1 is predicate without nesting
-  printf("  size      %10d\n",metaptr->size);   // clause size: count of all pred/fun/const/var occurrences
-  printf("  weight    %10d\n",metaptr->weight);  // weighted size
-  printf("   preflen  %10d\n",metaptr->preflen); // length of ground prefix: for ground lit it is size
-  printf("   topvars  %10d\n",metaptr->topvars);  // nr of var occurrences on top lit level
-  printf("   prefhash %10d\n",metaptr->prefhash);  // hash of ground prefix
+  wr_printf("\ncl_metacalc values:\n");
+  wr_printf("  length    %10d\n", metaptr->length); // 1, 2, ...
+  wr_printf("  neglength %10d\n", metaptr->neglength); // 1, 2, ...
+  wr_printf("  groundlen %10d\n", metaptr->groundlength); // 1, 2, ...
+  wr_printf("  isground  %10d\n", metaptr->hasvars); // 1 iff ground
+  wr_printf("  depth     %10d\n",metaptr->depth);  // clause depth: 1 is predicate without nesting
+  wr_printf("  size      %10d\n",metaptr->size);   // clause size: count of all pred/fun/const/var occurrences
+  wr_printf("  weight    %10d\n",metaptr->weight);  // weighted size
+  wr_printf("   preflen  %10d\n",metaptr->preflen); // length of ground prefix: for ground lit it is size
+  wr_printf("   topvars  %10d\n",metaptr->topvars);  // nr of var occurrences on top lit level
+  wr_printf("   prefhash %10d\n",metaptr->prefhash);  // hash of ground prefix
 
-  printf("   pref1bits %10d ",(int)(metaptr->pref1bits)); // pref len 1 (pred symbs with sign)
+  wr_printf("   pref1bits %10d ",(int)(metaptr->pref1bits)); // pref len 1 (pred symbs with sign)
   wr_print_gint_hashmask(g,metaptr->pref1bits);
-  printf("\n");
-  printf("   pref2bits %10d ",(int)(metaptr->pref2bits)); // pref len 2 (pred symbs with sign + immediate args
+  wr_printf("\n");
+  wr_printf("   pref2bits %10d ",(int)(metaptr->pref2bits)); // pref len 2 (pred symbs with sign + immediate args
   wr_print_gint_hashmask(g,metaptr->pref2bits);
-  printf("\n");
-  printf("   pref3bits %10d ",(int)(metaptr->pref3bits)); // pref len 3
+  wr_printf("\n");
+  wr_printf("   pref3bits %10d ",(int)(metaptr->pref3bits)); // pref len 3
   wr_print_gint_hashmask(g,metaptr->pref3bits);
-  printf("\n"); 
-  printf("   groundbits %10d\n",(int)(metaptr->groundbits)); // one bit for each full-ground lit (from ground lit hash)
+  wr_printf("\n"); 
+  wr_printf("   groundbits %10d\n",(int)(metaptr->groundbits)); // one bit for each full-ground lit (from ground lit hash)
   wr_print_gint_hashmask(g,metaptr->groundbits);
-  printf("\n");
+  wr_printf("\n");
 
-  printf("   pref1hash %d\n",metaptr->pref1hash);
-  printf("   pref2hash %d\n",metaptr->pref2hash);
-  printf("   pref3hash %d\n",metaptr->pref3hash);
-  printf("   groundhash %d\n",metaptr->groundhash);  
+  wr_printf("   pref1hash %d\n",metaptr->pref1hash);
+  wr_printf("   pref2hash %d\n",metaptr->pref2hash);
+  wr_printf("   pref3hash %d\n",metaptr->pref3hash);
+  wr_printf("   groundhash %d\n",metaptr->groundhash);  
 }
 
 
@@ -325,9 +325,9 @@ gint wr_calc_clause_meta(glb* g, gptr xptr, gptr cl_metablock) {
   int i,tmp;
 
 #ifdef DEBUG   
-  printf("\nwr_calc_clause_meta called on \n"); 
+  wr_printf("\nwr_calc_clause_meta called on \n"); 
   wr_print_clause(g,xptr);
-  printf("\n");
+  wr_printf("\n");
 #endif  
   UNUSED(db);
   ruleflag=wg_rec_is_rule_clause(db,xptr);  
@@ -365,7 +365,7 @@ gint wr_calc_clause_meta(glb* g, gptr xptr, gptr cl_metablock) {
       } else negflag=0;
       
       if (wg_atom_meta_is_neg(db,litmetagint)!=wg_atom_meta_is_neg(db,xmeta)) {
-        printf("\n *?*?*? wrong %ld %ld %ld %ld\n",
+        wr_printf("\n *?*?*? wrong %ld %ld %ld %ld\n",
           litmetagint,xmeta,wg_atom_meta_is_neg(db,litmetagint),wg_atom_meta_is_neg(db,xmeta));
         wr_print_term(g,xatom);
         wr_print_clause(g,xptr);
@@ -424,25 +424,25 @@ gint wr_calc_clause_meta(glb* g, gptr xptr, gptr cl_metablock) {
 
   //finished
 #ifdef DEBUG
-  printf("wr_calc_clause_meta returns for the clause:\n"); 
+  wr_printf("wr_calc_clause_meta returns for the clause:\n"); 
   wr_print_cl_metacalc(g,&clmeta);
   
-  printf("\n in details:");            
-  printf("\nmeta addr %d\n",(int)cl_metablock); 
-  printf("\nmetablock2 %d %d %d %d \n",*(cl_metablock),*(cl_metablock+1),*(cl_metablock+2),*(cl_metablock+3));
-  printf("\n lengths   ");
+  wr_printf("\n in details:");            
+  wr_printf("\nmeta addr %d\n",(int)cl_metablock); 
+  wr_printf("\nmetablock2 %d %d %d %d \n",*(cl_metablock),*(cl_metablock+1),*(cl_metablock+2),*(cl_metablock+3));
+  wr_printf("\n lengths   ");
   wr_print_gint_hashmask(g,cl_metablock[CLMETABLOCK_LENGTHS_POS]);
-  printf("\n real length %d\n",
+  wr_printf("\n real length %d\n",
     (*(cl_metablock) & (255<<CLMETABLOCK_LENGTH_SHIFT))>>CLMETABLOCK_LENGTH_SHIFT);
-  printf("\n sizes     ");
+  wr_printf("\n sizes     ");
   wr_print_gint_hashmask(g,cl_metablock[CLMETABLOCK_SIZES_POS]);
-  printf("\n pref1bits ");
+  wr_printf("\n pref1bits ");
   wr_print_gint_hashmask(g,cl_metablock[CLMETABLOCK_PREF1BITS_POS]);
-  printf("\n pref2bits ");
+  wr_printf("\n pref2bits ");
   wr_print_gint_hashmask(g,cl_metablock[CLMETABLOCK_PREF2BITS_POS]);
-  printf("\n pref3bits ");
+  wr_printf("\n pref3bits ");
   wr_print_gint_hashmask(g,cl_metablock[CLMETABLOCK_PREF3BITS_POS]);
-  printf("\n");
+  wr_printf("\n");
 #endif        
 
   return litmetagint;
@@ -494,7 +494,7 @@ gint wr_calc_term_meta(glb* g, gint x, int depth, int pos, term_metacalc* metapt
   UNUSED(end);  
   UNUSED(smeta);
 #ifdef DEBUG  
-  printf("wr_calc_term_meta called with x %d type %d\n",x,wg_get_encoded_type(g->db,x));
+  wr_printf("wr_calc_term_meta called with x %d type %d\n",x,wg_get_encoded_type(g->db,x));
 #endif  
   if (!isdatarec(x)) {
     // now we have a simple value  
@@ -547,17 +547,17 @@ gint wr_calc_term_meta(glb* g, gint x, int depth, int pos, term_metacalc* metapt
   xptr[start-TERMMETA_POS_DIFF]=encode_smallint(tmeta);
 #ifdef DEBUG
   if (xptr[start-TERMMETA_POS_DIFF]==0 || !isdatarec(xptr[start-TERMMETA_POS_DIFF])) {    
-    printf("\nOK %ld %ld\n",xptr[start-TERMMETA_POS_DIFF],tmeta);
+    wr_printf("\nOK %ld %ld\n",xptr[start-TERMMETA_POS_DIFF],tmeta);
     wg_print_record(db,xptr);
-    printf(" end\n");
+    wr_printf(" end\n");
     xptr[start-TERMMETA_POS_DIFF]=encode_smallint(tmeta);
     
   } else {
-    printf("\nPROBLEM %ld \n",xptr[start-TERMMETA_POS_DIFF]);
+    wr_printf("\nPROBLEM %ld \n",xptr[start-TERMMETA_POS_DIFF]);
     wr_print_term(g,rpto(g,xptr));
-    printf("\n");
+    wr_printf("\n");
     wg_print_record(db,xptr);
-    printf("\n");
+    wr_printf("\n");
   } 
 #endif
 #endif  
@@ -571,7 +571,7 @@ void wr_print_cl_meta(glb* g, gint meta1) {
   unsigned int bit,mask;
   int i,num;
 
-  printf(" GROUND %d SIZE %d DEPTH %d PREFLEN %d DEPTHCANSUBS %d PREFLENCANSUBS %d ",        
+  wr_printf(" GROUND %d SIZE %d DEPTH %d PREFLEN %d DEPTHCANSUBS %d PREFLENCANSUBS %d ",        
         (int)((meta1&((ATOM_META_GROUND_MASK<<ATOM_META_GROUND_SHIFT)<<SMALLINTSHFT))
           >>ATOM_META_GROUND_SHIFT)>>SMALLINTSHFT,        
         (int)((meta1&((ATOM_META_SIZE_MASK<<ATOM_META_SIZE_SHIFT)<<SMALLINTSHFT))
@@ -582,21 +582,21 @@ void wr_print_cl_meta(glb* g, gint meta1) {
           >>ATOM_META_PREFLEN_SHIFT)>>SMALLINTSHFT,
         (int)(meta1&(ATOM_META_DEPTHCANSUBS_MASK<<SMALLINTSHFT)),
         (int)(meta1&(ATOM_META_PREFLENCANSUBS_MASK<<SMALLINTSHFT)) );
-  printf("\n");      
-  printf("; int      29       24              16               8             1|\n");
-  printf("          |r|s|c|e|i|l|n|g|  size   | depth   | pln | prfhs         |\n");
-  printf("           ");
+  wr_printf("\n");      
+  wr_printf("; int      29       24              16               8             1|\n");
+  wr_printf("          |r|s|c|e|i|l|n|g|  size   | depth   | pln | prfhs         |\n");
+  wr_printf("           ");
   num=meta1>>SMALLINTSHFT;
   for(i=size; i>=0; --i){
     mask=1<<i;
     bit=num & mask;
     if (bit) {
-      printf("1 ");      
+      wr_printf("1 ");      
     } else {
-      printf("0 ");
+      wr_printf("0 ");
     }   
   }  
-  printf("\n");
+  wr_printf("\n");
 }
 
 
@@ -604,18 +604,18 @@ void wr_print_cl_literals_meta(glb* g, gptr cl) {
    int i, len;
    gint imeta, iatom;
 
-   printf("\nmetas for clause with \n");
+   wr_printf("\nmetas for clause with \n");
    wr_print_clause(g,cl);
    len=wg_count_clause_atoms(db,cl);
 
    for(i=0; i<len; i++) {
-    printf("\n atom %d ",i);
+    wr_printf("\n atom %d ",i);
     imeta=(gint)(wg_get_rule_clause_atom_meta(db,cl,i));
     iatom=(gint)(wg_get_rule_clause_atom(db,cl,i));
     wr_print_term(g,iatom);
-    printf("\n");   
+    wr_printf("\n");   
     wr_print_cl_meta(g,imeta);
-    printf("\n");
+    wr_printf("\n");
    }  
 }
 
@@ -630,9 +630,9 @@ void wr_print_gint_hashmask(glb* g, gint meta) {
     mask=1<<i;
     bit=num & mask;
     if (bit) {
-      printf("1");      
+      wr_printf("1");      
     } else {
-      printf("0");
+      wr_printf("0");
     }   
   }    
 }
@@ -651,12 +651,12 @@ void wr_sort_cl(glb* g, gptr cl) {
 #ifdef DEBUG
   dp("\nwr_sort_cl called with:\n"); 
   wr_print_clause(g,cl);
-  printf("\n");
+  wr_printf("\n");
   wg_print_record(g->db,cl);
-  printf("\n");  
-  printf("field 0: %d field 1: %d\n",get_field(cl,0),get_field(cl,1));
+  wr_printf("\n");  
+  wr_printf("field 0: %d field 1: %d\n",get_field(cl,0),get_field(cl,1));
   wr_print_cl_meta(g,get_field(cl,0));
-  printf("\n");
+  wr_printf("\n");
 #endif
   db=g->db; 
   UNUSED(db);
@@ -668,7 +668,7 @@ void wr_sort_cl(glb* g, gptr cl) {
 #ifdef DEBUG
   dp("\nwr_sort_cl returns with sorted:\n"); 
   wr_print_clause(g,cl);
-  printf("\n");
+  wr_printf("\n");
   wg_print_record(g->db,cl);
 #endif
   return;

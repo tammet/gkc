@@ -64,9 +64,9 @@ gint wr_rewrite_term(glb* g, gint x) {
 
   //UNUSED(tmp);
 #ifdef DEBUG
-  printf("\nwr_rewrite_term called on ");
+  wr_printf("\nwr_rewrite_term called on ");
   wr_print_term(g,x);
-  printf("\n");
+  wr_printf("\n");
 #endif  
 
   // loop over local termhash (dbused==0) and external termhash (dbused==1) 
@@ -86,7 +86,7 @@ gint wr_rewrite_term(glb* g, gint x) {
       hlen=wr_clterm_hashlist_len(g,hashvec,hash);
       if (hlen==0) {
   #ifdef DEBUG        
-        printf("no matching atoms in local hash\n");
+        wr_printf("no matching atoms in local hash\n");
   #endif        
         continue;
       }   
@@ -97,7 +97,7 @@ gint wr_rewrite_term(glb* g, gint x) {
       hlen=wr_clterm_hashlist_len(g,hashvec,hash);
       if (hlen==0) {
   #ifdef DEBUG        
-        printf("no matching atoms in external hash\n");
+        wr_printf("no matching atoms in external hash\n");
   #endif        
         continue;
       }               
@@ -105,7 +105,7 @@ gint wr_rewrite_term(glb* g, gint x) {
 
     node=wr_clterm_hashlist_start(g,hashvec,hash);
     if (!node)  {      
-      printf("\nnode was null \n");
+      wr_printf("\nnode was null \n");
       continue; 
     }  
     // suitable node was found    
@@ -119,16 +119,16 @@ gint wr_rewrite_term(glb* g, gint x) {
       }
 
 #ifdef DEBUG   
-      printf("\n before matching yterm (left side of rewrite rule):\n");
+      wr_printf("\n before matching yterm (left side of rewrite rule):\n");
       wr_print_term(g,yterm);
-      printf("\n and input term x:\n");
+      wr_printf("\n and input term x:\n");
       wr_print_term(g,x);
-      printf("\n and vardata:\n");
+      wr_printf("\n and vardata:\n");
       wr_print_vardata(g); ;
 #endif      
       ures=wr_match_term(g,yterm,x,1); // uniquestrflag=1
 #ifdef DEBUG        
-      printf("match check res: %d\n",ures);
+      wr_printf("match check res: %d\n",ures);
 #endif        
       if (!ures) {
         // matching failed     
@@ -161,9 +161,9 @@ gint wr_rewrite_term(glb* g, gint x) {
         // build the result
         // b is now the raw right side of rewrite rule before rebuilding
 #ifdef DEBUG 
-        printf("\n right side of rewrite rule before rebuilding ");
+        wr_printf("\n right side of rewrite rule before rebuilding ");
         wr_print_term(g,b);
-        printf("\n");
+        wr_printf("\n");
 #endif 
         if (isvar(b)) {
           b=VARVAL_DIRECT(b,(g->varbanks));          
@@ -204,9 +204,9 @@ gint wr_rewrite_term(glb* g, gint x) {
     } // end loop over nodes in the hash bucket
   }  // end loop over local and external termhashes
 #ifdef DEBUG
-  printf("\nwr_rewrite_term returns unchanged term ");
+  wr_printf("\nwr_rewrite_term returns unchanged term ");
   wr_print_term(g,x);
-  printf("\n");
+  wr_printf("\n");
 #endif    
   return x;
 }
@@ -219,9 +219,9 @@ gint wr_rewrite_constant(glb* g, gint x) {
   gptr hashvec,nodeptr,ycl;
   
 #ifdef DEBUG
-  printf("\nwr_rewrite_constant called on ");
+  wr_printf("\nwr_rewrite_constant called on ");
   wr_print_term(g,x);
-  printf("\n");
+  wr_printf("\n");
 #endif  
 
   // loop over local termhash (dbused==0) and external termhash (dbused==1)   
@@ -233,7 +233,7 @@ gint wr_rewrite_constant(glb* g, gint x) {
       hlen=wr_clterm_hashlist_len(g,hashvec,hash);
       if (hlen==0) {
   #ifdef DEBUG        
-        printf("no matching atoms in local hash\n");
+        wr_printf("no matching atoms in local hash\n");
   #endif        
         continue;
       }   
@@ -245,7 +245,7 @@ gint wr_rewrite_constant(glb* g, gint x) {
       hlen=wr_clterm_hashlist_len(g,hashvec,hash);
       if (hlen==0) {
   #ifdef DEBUG        
-        printf("no matching atoms in external hash\n");
+        wr_printf("no matching atoms in external hash\n");
   #endif        
         continue;
       }               
@@ -253,7 +253,7 @@ gint wr_rewrite_constant(glb* g, gint x) {
 
     node=wr_clterm_hashlist_start(g,hashvec,hash);
     if (!node)  {      
-      printf("\nnode was null \n");
+      wr_printf("\nnode was null \n");
       continue; 
     }  
     // suitable node was found    
@@ -267,11 +267,11 @@ gint wr_rewrite_constant(glb* g, gint x) {
       }
 
 #ifdef DEBUG   
-      printf("\n before matching yterm (left side of rewrite rule):\n");
+      wr_printf("\n before matching yterm (left side of rewrite rule):\n");
       wr_print_term(g,yterm);
-      printf("\n and input term x:\n");
+      wr_printf("\n and input term x:\n");
       wr_print_term(g,x);
-      printf("\n and vardata:\n");
+      wr_printf("\n and vardata:\n");
       wr_print_vardata(g); 
 #endif     
       if (!wr_equal_term(g,yterm,x,1)) { // uniquestrflag=1
@@ -297,9 +297,9 @@ gint wr_rewrite_constant(glb* g, gint x) {
         }        
         // b is now the raw right side of rewrite rule before rebuilding
 #ifdef DEBUG 
-        printf("\n right side of rewrite rule before rebuilding ");
+        wr_printf("\n right side of rewrite rule before rebuilding ");
         wr_print_term(g,b);
-        printf("\n");
+        wr_printf("\n");
 #endif         
         // store rewriter 
         tmp=(int)((g->rewrite_clvec)[1]);
@@ -313,9 +313,9 @@ gint wr_rewrite_constant(glb* g, gint x) {
     } // end loop over nodes in the hash bucket
   }  // end loop over local and external termhashes
 #ifdef DEBUG
-  printf("\nwr_rewrite_constant returns unchanged term ");
+  wr_printf("\nwr_rewrite_constant returns unchanged term ");
   wr_print_term(g,x);
-  printf("\n");
+  wr_printf("\n");
 #endif    
   return x;
 }

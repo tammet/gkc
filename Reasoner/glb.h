@@ -82,6 +82,8 @@
 #define INITIAL_CLTMPVEC_LEN 1000
 #define INITIAL_VARTMPVEC_LEN 1000
 
+#define INITIAL_ANSWERS_LEN 1000
+
 #define MAX_CLPRIOR 10000 // priorities differentiated in a priority queue for picking clauses
 /*
 #define NROF_PRIORQUEUES 4
@@ -178,6 +180,7 @@ typedef struct {
   cvec cut_clvec; // used for storing cutters of a derived clause
   cvec rewrite_clvec; // used for storing rewriters of a clause
   cvec hyper_queue; // storing partially derived clauses during hyperres for picking as given
+  cvec answers; // storing answer/proof pairs
 
   cvec tmp_clinfo; // used for storing additional clause info while ordering for knuth-bendix
   cvec tmp_varinfo; // used for storing additional var info while ordering for knuth-bendix
@@ -258,6 +261,7 @@ typedef struct {
   int use_rewrite_terms_strat; // general strategy
   int have_rewrite_terms; // observation  
   
+  int max_proofs;
   int store_history;
   
   /*  printout configuration */

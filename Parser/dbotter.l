@@ -296,9 +296,22 @@ ID       [a-zA-Z][a-zA-Z0-9_:+\-*/<>]*
 
 
 void wg_yyottererror (parse_parm* parm, void* scanner, const char* msg) {
+  int i;
+  char *s;
   //printf("\n yyerror called with xx msg %s\n",msg);
-  printf("%s: file %s place '%s' in line %d:\n%s\n", 
-          msg,parm->filename,yyget_text(scanner),yyget_lineno(scanner),linebuf);  
+  if (linebuf!=NULL) {
+    for(i=0;linebuf[i]!=0;i++) {
+      if (linebuf[i]=='"') linebuf[i]='\'';
+    }
+  }
+  s=yyget_text(scanner);
+  if (s!=NULL) {
+    for(i=0;s[i]!=0;i++) {
+      if (s[i]=='"') s[i]='\'';
+    }
+  }
+  printf("{\"error\": \"%s: file %s place '%s' in line %d:\n%s\"}\n", 
+          msg,parm->filename,s,yyget_lineno(scanner),linebuf);  
 }
 
    

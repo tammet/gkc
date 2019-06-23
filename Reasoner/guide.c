@@ -122,7 +122,7 @@ cJSON* wr_parse_guide_file(int argc, char **argv, char** guidebuf) {
   buf[len] = '\0';
   if (fp!=NULL) fclose(fp);
   guide=wr_parse_guide_str(buf);
-  printf("Using strategy from %s.\n",filename);
+  //printf("Using strategy from %s.\n",filename);
   return guide; 
 }
 
@@ -130,13 +130,19 @@ cJSON* wr_parse_guide_file(int argc, char **argv, char** guidebuf) {
 cJSON* wr_parse_guide_str(char* buf) {
   cJSON *guide=NULL;
   char *errorptr=NULL;
+  int i;
 
   //printf("\nbuf:\n%s\n",buf);
   guide=cJSON_Parse(buf);
   if (guide==NULL) {
     errorptr=(char*)cJSON_GetErrorPtr();
+    if (errorptr!=NULL) {
+      for(i=0;errorptr[i]!=0;i++) {
+        if (errorptr[i]=='"') errorptr[i]='\'';
+      }
+    }  
     if (errorptr!=NULL) {      
-      wr_errprint2("Incorrect json in strategy before ",errorptr);
+      wr_errprint2("Incorrect json in strategy before",errorptr);
       return NULL;
     }
     wr_errprint("Empty guide");

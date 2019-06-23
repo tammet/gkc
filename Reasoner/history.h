@@ -116,6 +116,11 @@ where
 #define WR_HISTORY_FROMAXIOM_ROLENR 11            // parents are only axioms
 #define WR_HISTORY_EXTAXIOM_ROLENR 12             // direct axiom from external file
 
+typedef struct {  
+  int len;  // buf length
+  int pos;     // next pos in buf to print
+  char* buf;   // char array to print into
+} printstr;
 
 gint wr_build_input_history(glb* g, gptr cl1, char* name, gint priority);
 gint wr_build_resolve_history(glb* g, gptr cl1, gptr cl2, int pos1, int pos2, gptr cut_clvec);
@@ -159,5 +164,7 @@ gint wr_get_history_record_field(glb* g, gptr rec, int pos);
 gptr wr_create_raw_history_record(glb* g, gint length, gptr buffer);
 
 gint wr_decode_priority(glb* g, gint encpriority);
+
+int wr_register_answer(glb* g, gptr cl, gint history);
 
 #endif

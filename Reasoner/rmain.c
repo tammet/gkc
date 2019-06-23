@@ -66,7 +66,6 @@ void show_cur_time(void);
 #define SHOW_MEM_STATS
 #define SHOW_HASH_CUT_STATS
 
-
   
 /* ======= Private protos ================ */
 
@@ -114,8 +113,8 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
     return -1;
   }
 #ifdef SHOWTIME
-  printf("Guide parsed.\n");
-  printf("\ndb is %d \n",(int)((gint)db));
+  wr_printf("Guide parsed.\n");
+  wr_printf("\ndb is %d \n",(int)((gint)db));
   show_cur_time();
 #endif 
   // kb_db is set to parent db
@@ -124,7 +123,7 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
     // separate child_db and kb_db
     // from now one var db will point to the parent, i.e. kb_db
 #ifdef DEBUG
-    printf("\nseparate child_db and kb_db\n");
+    wr_printf("\nseparate child_db and kb_db\n");
 #endif    
     //have_shared_kb=1;
     child_db=db;
@@ -138,23 +137,21 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
     // set the db ptr of kb_g to the shared db
     (kb_g->db)=kb_db; 
 #ifdef DEBUG       
-    printf("\n** input stats for kb_g ****** \n");
+    wr_printf("\n** input stats for kb_g ****** \n");
     show_cur_time();
     wr_show_in_stats(kb_g);
-    printf("\n");
+    wr_printf("\n");
 #endif   
   } else {
-    
     // just one single db 
 #ifdef DEBUG
-    printf("\njust one single db \n");
+    wr_printf("\njust one single db \n");
 #endif 
     //have_shared_kb=0;
     child_db=db;
     kb_db=db;
     kb_g=NULL;
   }
-
   analyze_g=wr_glb_new_simple(db);
   if (kb_g!=NULL) {
     (analyze_g->kb_g)=kb_g; // points to the copy of globals of the external kb
@@ -176,7 +173,7 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
 
   for(iter=0; 1; iter++) { 
 #ifdef DEBUG    
-    printf("\n**** run %d starts\n",iter+1);    
+    wr_printf("\n**** run %d starts\n",iter+1);    
 #endif
     g=wr_glb_new_simple(db);
     // copy analyze_g stats to g for easier handling
@@ -193,7 +190,7 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
       return -1;
     }   
 #ifdef DEBUG
-    printf("\nnow db is %ld and child_db is %ld \n",(gint)db,(gint)child_db);
+    wr_printf("\nnow db is %ld and child_db is %ld \n",(gint)db,(gint)child_db);
 #endif    
     (g->child_db)=child_db;
     (g->db)=db;
@@ -220,14 +217,13 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
     else if ((g->print_level_flag)<=50) wr_set_detailed_printout(g);    
     else wr_set_detailed_plus_printout(g);
 
-
     if (g->print_runs) {      
       if (guidetext!=NULL) {   
-        printf("\n**** run %d starts with strategy\n",iter+1); 
-        printf("%s\n",guidetext);
+        wr_printf("\n**** run %d starts with strategy\n",iter+1); 
+        wr_printf("%s\n",guidetext);
         free(guidetext);
       } else {
-        printf("\n**** run %d starts\n",iter+1);
+        wr_printf("\n**** run %d starts\n",iter+1);
       }          
     }  
 
@@ -255,7 +251,7 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
       return -1; 
     }   
 #ifdef SHOWTIME    
-    printf("\nto call wr_init_active_passive_lists_from_all\n");
+    wr_printf("\nto call wr_init_active_passive_lists_from_all\n");
     show_cur_time();
 #endif    
     // if two db-s, this will take the clauses from the shared db     
@@ -263,7 +259,7 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
     if (db!=child_db) {
       // two separate db-s
 #ifdef DEBUG
-      printf("\n *** separate (local) child kb found, using\n");
+      wr_printf("\n *** separate (local) child kb found, using\n");
 #endif      
       // analyze local clauses; have to temporarily replace g->db to child
       /*
@@ -284,10 +280,10 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
       // wr_show_in_stats(g);  // show local stats
       // wr_show_in_stats(rglb); // show global stats
 #ifdef DEBUG
-      printf("\n** input stats for local g ****** \n");
+      wr_printf("\n** input stats for local g ****** \n");
       show_cur_time();
       wr_show_in_stats(g);
-      printf("\n"); 
+      wr_printf("\n"); 
       //exit(0);
 #endif
       if (!(g->queryfocus_strat)) {
@@ -296,7 +292,7 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
         // indexes present there
         //printf("\n(g->initial_cl_list) is %ld\n",(gint)((r_kb_g(g))->initial_cl_list));
 #ifdef DEBUG 
-        printf("\n**** starting to read from the external shared mem kb\n");
+        wr_printf("\n**** starting to read from the external shared mem kb\n");
 #endif              
         clause_count+=wr_init_active_passive_lists_from_one(g,db,db);        
         (g->kb_g)=NULL;        
@@ -321,23 +317,23 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
       
       // if two db-s, this will take the clauses from the local db:
 #ifdef DEBUG 
-      printf("\n**** starting to read from the local db kb\n");
+      wr_printf("\n**** starting to read from the local db kb\n");
 #endif      
       clause_count+=wr_init_active_passive_lists_from_one(g,db,child_db);      
     } else {
       // one single db      
 #ifdef DEBUG 
-        printf("\n external kb NOT found\n");      
-        printf("\n** starting to calc input stats for g ****** \n");
+        wr_printf("\n external kb NOT found\n");      
+        wr_printf("\n** starting to calc input stats for g ****** \n");
         show_cur_time();
 #endif          
         //tmp=wr_analyze_clause_list(g,db,db);
         //if (!tmp) return -1;
 #ifdef DEBUG
-        printf("\n** input stats for g ****** \n");
+        wr_printf("\n** input stats for g ****** \n");
         show_cur_time();
         wr_show_in_stats(g);
-        printf("\n");   
+        wr_printf("\n");   
 #endif           
 
       // if no goals, set negative-or-ans-into passive initialization strat
@@ -353,23 +349,23 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
       
       /// ----
 #ifdef DEBUG       
-      printf("\n**** starting to read from the single local db\n");      
+      wr_printf("\n**** starting to read from the single local db\n");      
 #endif     
       clause_count=wr_init_active_passive_lists_from_one(g,db,db);      
     } 
 
 #ifdef SHOWTIME     
-    printf("\nreturned from wr_init_active_passive_lists_from_all\n");
+    wr_printf("\nreturned from wr_init_active_passive_lists_from_all\n");
     show_cur_time();
 #endif    
     if (clause_count<0) {
       // error
-      printf("\nError initializing clause lists.\n");
+      wr_printf("\nError initializing clause lists.\n");
       wr_glb_free(g);
       break;
     } else if (!clause_count) {
       // no clauses found
-      printf("\nNo clauses found.\n");
+      wr_printf("\nNo clauses found.\n");
       wr_glb_free(g);
       break;
     }
@@ -391,6 +387,20 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
 
     if (g->print_flag) { 
       if (res==0) {
+        wr_printf("\n\nProof found.\n"); 
+        wr_show_history(g,g->proof_history);
+      } else if (res==1) {
+        wr_printf("\n\nSearch finished without proof, result code %d.\n",res); 
+      } else if (res==2 && (g->print_runs)) {
+        wr_printf("\n\nSearch terminated without proof.\n");        
+      } else if (res==-1) {
+        wr_printf("\n\nSearch cancelled: memory overflow.\n");
+      } else if (res<0) {
+        wr_printf("\n\nSearch cancelled, error code %d.\n",res);
+      }      
+      wr_show_stats(g,1);     
+    } else {
+      if (res==0) {
         printf("\n\nProof found.\n"); 
         wr_show_history(g,g->proof_history);
       } else if (res==1) {
@@ -401,25 +411,24 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
         printf("\n\nSearch cancelled: memory overflow.\n");
       } else if (res<0) {
         printf("\n\nSearch cancelled, error code %d.\n",res);
-      }      
-      wr_show_stats(g,1);     
+      }
     }   
     if (res==0) {
       // proof found 
       if (exit_on_proof) {
 #ifdef SHOWTIME       
-        printf("\nexiting\n");
+        wr_printf("\nexiting\n");
         show_cur_time();  
 #endif              
         exit(0);
       }
 #ifdef SHOWTIME       
-      printf("\nto call wr_glb_free\n");
+      wr_printf("\nto call wr_glb_free\n");
       show_cur_time();  
 #endif            
       wr_glb_free(g);
 #ifdef SHOWTIME       
-      printf("\nwr_glb_free returns\n");
+      wr_printf("\nwr_glb_free returns\n");
       show_cur_time(); 
 #endif      
       break;
@@ -432,7 +441,7 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
   if (guidebuf!=NULL) free(guidebuf);
   if (guide!=NULL) cJSON_Delete(guide);  
 #ifdef SHOWTIME       
-  printf("\nto return from rmain\n");
+  wr_printf("\nto return from rmain\n");
   show_cur_time(); 
 #endif  
   return res;  
@@ -443,7 +452,7 @@ int wg_import_otter_file(void *db, char* filename, int iskb) {
   glb* g;
   int res;
 
-  printf("wg_import_otterfile starts for file %s\n",filename); 
+  //db_printf("wg_import_otterfile starts for file %s\n",filename); 
 
   g=wr_glb_new_simple(db); // no complex values given to glb elements 
   if (g==NULL) return 1; 
@@ -452,13 +461,13 @@ int wg_import_otter_file(void *db, char* filename, int iskb) {
   (g->print_generic_parser_result)=1;
   res=wr_import_otter_file(g,filename,NULL,NULL,iskb);
   if (res==1) {  
-    if (1) { //} ((g->print_flag) &&  (g->print_level_flag)) {
-      printf("No clauses generated by parser.\n");  
+    if (0) { //} ((g->print_flag) &&  (g->print_level_flag)) {
+      db_printf("No clauses generated by parser.\n");  
     }
   } else {
     //wg_mpool_print(db,pres2);
     if (0) { //((g->print_flag) && (g->print_generic_parser_result)>0) {    
-      printf("\nGeneric parser result:\n");
+      db_printf("\nGeneric parser result:\n");
       //wr_print_db_otter(g,(g->print_clause_detaillevel));
     }  
   } 
@@ -571,9 +580,9 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
     //wr_print_clause(g,rec);
     //printf("\n");
 #ifdef DEBUG   
-    printf("\n next rec from db: ");
+    wr_printf("\n next rec from db: ");
     wg_print_record(db,rec);
-    printf("\n");    
+    wr_printf("\n");    
 #endif
      
     if (wg_rec_is_rule_clause(db,rec)) {
@@ -582,19 +591,19 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
       wr_add_cl_to_unithash(g,rec,clmeta);
 
 #ifdef DEBUG      
-      printf("\n+++++++ nrec is a rule  "); 
+      wr_printf("\n+++++++ nrec is a rule  "); 
       wr_print_rule_clause_otter(g, (gint *) rec,(g->print_clause_detaillevel));
-      printf("\n"); 
+      wr_printf("\n"); 
 
-      printf("\nraw clause: ");
+      wr_printf("\nraw clause: ");
       wg_print_record(db,rec);
-      printf("\n");
+      wr_printf("\n");
       wr_print_clause(g,rec);
-      printf("\n");
+      wr_printf("\n");
       
-      printf("\nhash_neg_groundunits\n");
+      wr_printf("\nhash_neg_groundunits\n");
       wr_print_termhash(g,rotp(g,g->hash_neg_groundunits));
-      printf("\nhash_pos_groundunits\n");
+      wr_printf("\nhash_pos_groundunits\n");
       wr_print_termhash(g,rotp(g,g->hash_pos_groundunits));
 #endif       
 
@@ -627,7 +636,7 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
         }
         weight=-1;
 #ifdef SHOW_ADDED
-        printf("\nadding rulecl used weight %ld real weight %ld assumptionflag %d goalflag %d\n",
+        wr_printf("\nadding rulecl used weight %ld real weight %ld assumptionflag %d goalflag %d\n",
           weight,
           wr_calc_clause_weight(g,rec,&size,&depth,&length),
           wr_cl_is_assumption(g,rec),
@@ -642,19 +651,19 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
       clmeta=wr_calc_clause_meta(g,rec,given_cl_metablock);
       wr_add_cl_to_unithash(g,rec,clmeta);
 #ifdef DEBUG
-      printf("\n+++++++ nrec is a fact  ");
+      wr_printf("\n+++++++ nrec is a fact  ");
       wr_print_fact_clause_otter(g, (gint *) rec,(g->print_clause_detaillevel));
-      printf("\n"); 
+      wr_printf("\n"); 
 
-      printf("\nraw clause: ");
+      wr_printf("\nraw clause: ");
       wg_print_record(db,rec);
-      printf("\n");
+      wr_printf("\n");
       wr_print_clause(g,rec);
-      printf("\n");
+      wr_printf("\n");
      
-      printf("\nhash_neg_groundunits\n");
+      wr_printf("\nhash_neg_groundunits\n");
       wr_print_termhash(g,rotp(g,g->hash_neg_groundunits));
-      printf("\nhash_pos_groundunits\n");
+      wr_printf("\nhash_pos_groundunits\n");
       wr_print_termhash(g,rotp(g,g->hash_pos_groundunits));
 #endif      
       if (g->queryfocus_strat && wr_initial_select_active_cl(g,(gptr)rec)) {
@@ -683,7 +692,7 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
         }        
         weight=-1;
 #ifdef SHOW_ADDED
-        printf("\nadding factcl used weight %ld real weight %ld assumptionflag %d goalflag %d\n",
+        wr_printf("\nadding factcl used weight %ld real weight %ld assumptionflag %d goalflag %d\n",
           weight,
           wr_calc_clause_weight(g,rec,&size,&depth,&length),
           wr_cl_is_assumption(g,rec),
@@ -695,9 +704,9 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
       
     }  else {
 #ifdef DEBUG            
-      printf("\nrec is not a rule nor a fact: "); 
+      wr_printf("\nrec is not a rule nor a fact: "); 
       wg_print_record(db,rec);
-      printf("\n");
+      wr_printf("\n");
 #endif  
     }
     // take next element
@@ -709,7 +718,7 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
     }        
   }
 #ifdef DEBUG            
-  printf("\nrules_found %d facts_found %d \n",rules_found,facts_found); 
+  wr_printf("\nrules_found %d facts_found %d \n",rules_found,facts_found); 
 #endif   
   return rules_found+facts_found;
 }
@@ -918,117 +927,117 @@ void wr_show_stats(glb* g, int show_local_complex) {
   
   if (!(g->print_stats)) return;
   
-  printf("\nstatistics:\n");
-  printf("----------------------------------\n");
-  printf("this run seconds: %f\n",
+  wr_printf("\nstatistics:\n");
+  wr_printf("----------------------------------\n");
+  wr_printf("this run seconds: %f\n",
     (float)(clock() - (g->run_start_clock)) / (float)CLOCKS_PER_SEC);
-  printf("total seconds: %f\n",
+  wr_printf("total seconds: %f\n",
     (float)(clock() - (g->allruns_start_clock)) / (float)CLOCKS_PER_SEC);
-  printf("stat_given_used: %d\n",g->stat_given_used);
-  printf("stat_given_candidates:   %d\n",g->stat_given_candidates); 
-  printf("stat_given_candidates_h: %d\n",g->stat_given_candidates_hyper); 
+  wr_printf("stat_given_used: %d\n",g->stat_given_used);
+  wr_printf("stat_given_candidates:   %d\n",g->stat_given_candidates); 
+  wr_printf("stat_given_candidates_h: %d\n",g->stat_given_candidates_hyper); 
   //printf("stat_derived_cl: %d\n",g->stat_derived_cl);
-  printf("stat_binres_derived_cl:   %d\n",g->stat_binres_derived_cl);
-  printf("stat_binres_derived_cl_h: %d\n",g->stat_derived_partial_hyper_cl);
-  printf("stat_propagated_derived_cl: %d\n",g->stat_propagated_derived_cl);
-  printf("stat_factor_derived_cl: %d\n",g->stat_factor_derived_cl);
-  printf("stat_para_derived_cl: %d\n",g->stat_para_derived_cl);
-  printf("stat_tautologies_discarded: %d\n",g->stat_tautologies_discarded);
-  printf("stat_forward_subsumed: %d\n",g->stat_forward_subsumed);   
-  printf("stat_derived_cut: %d\n",g->stat_derived_cut);  
-  printf("stat_derived_rewritten: %d\n",g->stat_derived_rewritten); 
-  printf("stat_weight_discarded_building: %d\n",g->stat_weight_discarded_building);
-  printf("stat_weight_discarded_cl: %d\n",g->stat_weight_discarded_cl);
-  printf("stat_internlimit_discarded_cl: %d\n",g->stat_internlimit_discarded_cl);
-  printf("stat_simplified:  %d simplified %d derived %d given\n",
+  wr_printf("stat_binres_derived_cl:   %d\n",g->stat_binres_derived_cl);
+  wr_printf("stat_binres_derived_cl_h: %d\n",g->stat_derived_partial_hyper_cl);
+  wr_printf("stat_propagated_derived_cl: %d\n",g->stat_propagated_derived_cl);
+  wr_printf("stat_factor_derived_cl: %d\n",g->stat_factor_derived_cl);
+  wr_printf("stat_para_derived_cl: %d\n",g->stat_para_derived_cl);
+  wr_printf("stat_tautologies_discarded: %d\n",g->stat_tautologies_discarded);
+  wr_printf("stat_forward_subsumed: %d\n",g->stat_forward_subsumed);   
+  wr_printf("stat_derived_cut: %d\n",g->stat_derived_cut);  
+  wr_printf("stat_derived_rewritten: %d\n",g->stat_derived_rewritten); 
+  wr_printf("stat_weight_discarded_building: %d\n",g->stat_weight_discarded_building);
+  wr_printf("stat_weight_discarded_cl: %d\n",g->stat_weight_discarded_cl);
+  wr_printf("stat_internlimit_discarded_cl: %d\n",g->stat_internlimit_discarded_cl);
+  wr_printf("stat_simplified:  %d simplified %d derived %d given\n",
          g->stat_simplified, g->stat_simplified_derived, g->stat_simplified_given);  
-  printf("stat_kept_cl: %d\n",g->stat_kept_cl);       
-  printf("stat_built_cl: %d\n",g->stat_built_cl); 
-  printf("stat_hyperres_partial_cl: %d\n",g->stat_hyperres_partial_cl);
-  printf("stat_backward_subsumed: %d\n",g->stat_backward_subsumed);  
-  printf("stat_propagated_subsumed: %d\n",g->stat_propagated_subsumed);
+  wr_printf("stat_kept_cl: %d\n",g->stat_kept_cl);       
+  wr_printf("stat_built_cl: %d\n",g->stat_built_cl); 
+  wr_printf("stat_hyperres_partial_cl: %d\n",g->stat_hyperres_partial_cl);
+  wr_printf("stat_backward_subsumed: %d\n",g->stat_backward_subsumed);  
+  wr_printf("stat_propagated_subsumed: %d\n",g->stat_propagated_subsumed);
   
 #ifdef SHOW_SUBSUME_STATS  
-  printf("stat_clsubs_attempted:           %15d\n",g->stat_clsubs_attempted);  
-  printf("stat_clsubs_fact_groundunit_found: %13d\n",g->stat_clsubs_fact_groundunit_found);
-  printf("stat_clsubs_rule_groundunit_found: %13d\n",g->stat_clsubs_rule_groundunit_found);
-  printf("stat_clsubs_top_meta_attempted:    %15ld\n",g->stat_clsubs_top_meta_attempted);
-  printf("stat_clsubs_top_meta_failed:       %15ld\n",g->stat_clsubs_top_meta_failed);
+  wr_printf("stat_clsubs_attempted:           %15d\n",g->stat_clsubs_attempted);  
+  wr_printf("stat_clsubs_fact_groundunit_found: %13d\n",g->stat_clsubs_fact_groundunit_found);
+  wr_printf("stat_clsubs_rule_groundunit_found: %13d\n",g->stat_clsubs_rule_groundunit_found);
+  wr_printf("stat_clsubs_top_meta_attempted:    %15ld\n",g->stat_clsubs_top_meta_attempted);
+  wr_printf("stat_clsubs_top_meta_failed:       %15ld\n",g->stat_clsubs_top_meta_failed);
 
-  printf("stat_clsubs_top_meta_nonpref_attempted:     %15ld\n",g->stat_clsubs_top_meta_nonpref_attempted);
-  printf("stat_clsubs_top_meta_nonpref_succeeded:     %15ld\n",g->stat_clsubs_top_meta_nonpref_succeeded);
-  printf("stat_clsubs_top_meta_pref_attempted:        %15ld\n",g->stat_clsubs_top_meta_pref_attempted);  
-  printf("stat_clsubs_top_meta_pref1_succeeded:       %15ld\n",g->stat_clsubs_top_meta_pref1_succeeded);
-  printf("stat_clsubs_top_meta_pref2_succeeded:       %15ld\n",g->stat_clsubs_top_meta_pref2_succeeded);
-  printf("stat_clsubs_top_meta_pref3_succeeded:       %15ld\n",g->stat_clsubs_top_meta_pref3_succeeded);
-  printf("stat_clsubs_top_meta_pref_succeeded:        %15ld\n",g->stat_clsubs_top_meta_pref_succeeded);
+  wr_printf("stat_clsubs_top_meta_nonpref_attempted:     %15ld\n",g->stat_clsubs_top_meta_nonpref_attempted);
+  wr_printf("stat_clsubs_top_meta_nonpref_succeeded:     %15ld\n",g->stat_clsubs_top_meta_nonpref_succeeded);
+  wr_printf("stat_clsubs_top_meta_pref_attempted:        %15ld\n",g->stat_clsubs_top_meta_pref_attempted);  
+  wr_printf("stat_clsubs_top_meta_pref1_succeeded:       %15ld\n",g->stat_clsubs_top_meta_pref1_succeeded);
+  wr_printf("stat_clsubs_top_meta_pref2_succeeded:       %15ld\n",g->stat_clsubs_top_meta_pref2_succeeded);
+  wr_printf("stat_clsubs_top_meta_pref3_succeeded:       %15ld\n",g->stat_clsubs_top_meta_pref3_succeeded);
+  wr_printf("stat_clsubs_top_meta_pref_succeeded:        %15ld\n",g->stat_clsubs_top_meta_pref_succeeded);
 
-  printf("stat_clsubs_meta_attempted:      %15d\n",g->stat_clsubs_meta_attempted);
-  printf("stat_clsubs_meta_failed:         %15d\n",g->stat_clsubs_meta_failed);
-  printf("stat_clsubs_predsymbs_attempted: %15d\n",g->stat_clsubs_predsymbs_attempted);
-  printf("stat_clsubs_unit_attempted:      %15d\n",g->stat_clsubs_unit_attempted);
-  printf("stat_clsubs_full_attempted:      %15d\n",g->stat_clsubs_full_attempted);
-  printf("stat_forwardsubs_attempted:      %15d\n",g->stat_forwardsubs_attempted);
+  wr_printf("stat_clsubs_meta_attempted:      %15d\n",g->stat_clsubs_meta_attempted);
+  wr_printf("stat_clsubs_meta_failed:         %15d\n",g->stat_clsubs_meta_failed);
+  wr_printf("stat_clsubs_predsymbs_attempted: %15d\n",g->stat_clsubs_predsymbs_attempted);
+  wr_printf("stat_clsubs_unit_attempted:      %15d\n",g->stat_clsubs_unit_attempted);
+  wr_printf("stat_clsubs_full_attempted:      %15d\n",g->stat_clsubs_full_attempted);
+  wr_printf("stat_forwardsubs_attempted:      %15d\n",g->stat_forwardsubs_attempted);
 #endif 
 #ifdef SHOW_HASH_CUT_STATS  
-  printf("stat_lit_hash_added:        %15d\n",g->stat_lit_hash_added);
-  printf("stat_lit_hash_computed:     %15d\n",g->stat_lit_hash_computed);  
-  printf("stat_lit_hash_match_found:  %15d\n",g->stat_lit_hash_match_found);
-  printf("stat_lit_hash_match_miss:   %15d\n",g->stat_lit_hash_match_miss); 
-  printf("stat_lit_hash_cut_ok:       %15d\n",g->stat_lit_hash_cut_ok); 
-  printf("stat_lit_hash_subsume_ok:   %15d\n",g->stat_lit_hash_subsume_ok); 
+  wr_printf("stat_lit_hash_added:        %15d\n",g->stat_lit_hash_added);
+  wr_printf("stat_lit_hash_computed:     %15d\n",g->stat_lit_hash_computed);  
+  wr_printf("stat_lit_hash_match_found:  %15d\n",g->stat_lit_hash_match_found);
+  wr_printf("stat_lit_hash_match_miss:   %15d\n",g->stat_lit_hash_match_miss); 
+  wr_printf("stat_lit_hash_cut_ok:       %15d\n",g->stat_lit_hash_cut_ok); 
+  wr_printf("stat_lit_hash_subsume_ok:   %15d\n",g->stat_lit_hash_subsume_ok); 
 #endif
 #ifdef SHOW_MEM_STATS
   
   if (show_local_complex) {
     //if ((g->clbuilt)!=(gint)NULL) 
-    //  printf("clbuilt els %d used %d\n",
+    //  wr_printf("clbuilt els %d used %d\n",
     //         (rotp(g,g->clbuilt))[0],(rotp(g,g->clbuilt))[1]-1);
     if ((g->clqueue)!=(gint)NULL) 
-      printf("clqueue els %d used %d\n",
+      wr_printf("clqueue els %d used %d\n",
             (int)((rotp(g,g->clqueue))[0]),(int)((rotp(g,g->clqueue))[1]-1));
     if ((g->clactive)!=(gint)NULL) 
-      printf("clactive els %d used %d\n",
+      wr_printf("clactive els %d used %d\n",
             (int)((rotp(g,g->clactive))[0]),(int)((rotp(g,g->clactive))[1]-1));
     if ((g->clactivesubsume)!=(gint)NULL) 
-      printf("clactivesubsume els %d used %d\n",
+      wr_printf("clactivesubsume els %d used %d\n",
             (int)((rotp(g,g->clactivesubsume))[0]),(int)((rotp(g,g->clactivesubsume))[1]-1));           
     //if ((g->clweightqueue)!=(gint)NULL) 
-    //  printf("clweightqueue els %d used %d\n",((gptr)(g->clweightqueue))[0],((gptr)(g->clweightqueue))[1]-1);
+    //  wr_printf("clweightqueue els %d used %d\n",((gptr)(g->clweightqueue))[0],((gptr)(g->clweightqueue))[1]-1);
     
     if ((g->queue_termbuf)!=NULL) 
-      printf("queue_termbuf els %d used %d\n",(int)((g->queue_termbuf)[0]),(int)((g->queue_termbuf)[1]-1));
+      wr_printf("queue_termbuf els %d used %d\n",(int)((g->queue_termbuf)[0]),(int)((g->queue_termbuf)[1]-1));
     if ((g->hyper_termbuf)!=NULL) 
-      printf("hyper_termbuf els %d used %d\n",(int)((g->hyper_termbuf)[0]),(int)((g->hyper_termbuf)[1]-1));  
+      wr_printf("hyper_termbuf els %d used %d\n",(int)((g->hyper_termbuf)[0]),(int)((g->hyper_termbuf)[1]-1));  
     if ((g->active_termbuf)!=NULL) 
-      printf("active_termbuf els %d used %d\n",(int)((g->active_termbuf)[0]),(int)((g->active_termbuf)[1]-1));
+      wr_printf("active_termbuf els %d used %d\n",(int)((g->active_termbuf)[0]),(int)((g->active_termbuf)[1]-1));
     if ((g->varstack)!=NULL) 
-      printf("varstack els %d last used %d\n",(int)((g->varstack)[0]),(int)((g->varstack)[1]-1));
+      wr_printf("varstack els %d last used %d\n",(int)((g->varstack)[0]),(int)((g->varstack)[1]-1));
     if ((g->given_termbuf)!=NULL) 
-      printf("given_termbuf els %d last used %d\n",(int)((g->given_termbuf)[0]),(int)((g->given_termbuf)[1]-1));
+      wr_printf("given_termbuf els %d last used %d\n",(int)((g->given_termbuf)[0]),(int)((g->given_termbuf)[1]-1));
     if ((g->simplified_termbuf)!=NULL) 
-      printf("simplified_termbuf els %d last used %d\n",(int)((g->simplified_termbuf)[0]),(int)((g->simplified_termbuf)[1]-1));  
+      wr_printf("simplified_termbuf els %d last used %d\n",(int)((g->simplified_termbuf)[0]),(int)((g->simplified_termbuf)[1]-1));  
     if ((g->derived_termbuf)!=NULL) 
-      printf("derived_termbuf els %d last used %d\n",(int)((g->derived_termbuf)[0]),(int)((g->derived_termbuf)[1]-1));
+      wr_printf("derived_termbuf els %d last used %d\n",(int)((g->derived_termbuf)[0]),(int)((g->derived_termbuf)[1]-1));
   }
 
-  printf("wr_mallocs: %d\n",(g->stat_wr_mallocs));
-  printf("wr_callocs: %d\n",(g->stat_wr_callocs));
-  printf("wr_reallocs: %d\n",(g->stat_wr_reallocs));
-  printf("wr_frees: %d\n",(g->stat_wr_frees));
-  printf("wr_malloc_bytes: %ld\n",(g->stat_wr_malloc_bytes));
-  printf("wr_calloc_bytes: %ld\n",(g->stat_wr_calloc_bytes));
-  printf("wr_realloc_bytes: %ld\n",(g->stat_wr_realloc_bytes));
-  printf("wr_realloc_freebytes: %ld\n",(g->stat_wr_realloc_freebytes));
+  wr_printf("wr_mallocs: %d\n",(g->stat_wr_mallocs));
+  wr_printf("wr_callocs: %d\n",(g->stat_wr_callocs));
+  wr_printf("wr_reallocs: %d\n",(g->stat_wr_reallocs));
+  wr_printf("wr_frees: %d\n",(g->stat_wr_frees));
+  wr_printf("wr_malloc_bytes: %ld\n",(g->stat_wr_malloc_bytes));
+  wr_printf("wr_calloc_bytes: %ld\n",(g->stat_wr_calloc_bytes));
+  wr_printf("wr_realloc_bytes: %ld\n",(g->stat_wr_realloc_bytes));
+  wr_printf("wr_realloc_freebytes: %ld\n",(g->stat_wr_realloc_freebytes));
   /*
-  printf("tmp1: %d\n",(g->tmp1));
-  printf("tmp2: %d\n",(g->tmp2));
-  printf("tmp3: %d\n",(g->tmp3));
-  printf("tmp4: %d\n",(g->tmp4));
-  printf("tmp5: %d\n",(g->tmp5));
+  wr_printf("tmp1: %d\n",(g->tmp1));
+  wr_printf("tmp2: %d\n",(g->tmp2));
+  wr_printf("tmp3: %d\n",(g->tmp3));
+  wr_printf("tmp4: %d\n",(g->tmp4));
+  wr_printf("tmp5: %d\n",(g->tmp5));
   */ 
 #endif  
-  printf("----------------------------------\n");
+  wr_printf("----------------------------------\n");
 
   if (g->print_datastructs) print_datastructs(g);
 }  
@@ -1088,7 +1097,7 @@ void wr_print_active_clauses(glb* g)  {
     iactivelimit=CVEC_NEXT(actptr);
     for(iactive=CVEC_START; iactive<iactivelimit; iactive+=CLMETABLOCK_ELS) {
       wr_print_clause(g,rotp(g,(actptr[iactive+CLMETABLOCK_CL_POS])));
-      printf("\n");
+      wr_printf("\n");
     }  
   }
   wr_printf("\n\n===== end of active clauses as used for subsumption  =====  \n\n");

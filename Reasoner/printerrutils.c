@@ -85,17 +85,24 @@ void* wr_warn2(glb* g, char* errstr1, char* errstr2) {
 */
 
 void* wr_errprint(char* errstr) {
-  printf("Error: %s.\n",errstr);
+  //printf("Error: %s.\n",errstr);
+  printf("{\"error\": \"%s\"}\n",errstr);
   return NULL;
 }  
-
 
 /** Error not requiring immediate exit; will exit up in the calling tree
 *
 */
 
 void* wr_errprint2(char* errstr1, char* errstr2) {
-  printf("Error: %s %s.\n",errstr1,errstr2);
+  //printf("Error: %s %s.\n",errstr1,errstr2);
+  printf("{\"error\": \"%s %s\"}\n",errstr1,errstr2);
+  return NULL;
+}
+
+void* wr_errprint3(char* errstr1, char* errstr2, char* errstr3) {
+  //printf("Error: %s %s.\n",errstr1,errstr2);
+  printf("{\"error\": \"%s %s %s\"}\n",errstr1,errstr2,errstr3);
   return NULL;
 }
 
@@ -104,7 +111,10 @@ void* wr_errprint2(char* errstr1, char* errstr2) {
 */
 
 void* wr_alloc_err(glb* g, char* errstr) {
-  if (g->print_flag) printf("Cannot allocate memory: %s.\n",errstr);
+  if (g->print_flag) {
+    //printf("Cannot allocate memory: %s.\n",errstr);
+    wr_errprint2("cannot allocate memory",errstr);
+  }  
   (g->alloc_err)=1;
   return NULL;
 }  
@@ -115,7 +125,10 @@ void* wr_alloc_err(glb* g, char* errstr) {
 */
 
 void* wr_alloc_err2(glb* g, char* errstr1, char* errstr2) {
-  if (g->print_flag) printf("Cannot allocate memory: %s %s.\n",errstr1,errstr2);
+  if (g->print_flag) {
+    //printf("Cannot allocate memory: %s %s.\n",errstr1,errstr2);
+    wr_errprint3("cannot allocate memory",errstr1,errstr2);
+  }  
   (g->alloc_err)=1;
   return NULL;
 }  
@@ -138,7 +151,8 @@ void* wr_alloc_err2int(glb* g, char* errstr, int n) {
 */
 
 void wr_sys_exiterr(glb* g, char* errstr) {
-  printf("System error in wgdb reasoner, exiting: %s.\n",errstr);
+  //printf("System error in wgdb reasoner, exiting: %s.\n",errstr);
+  wr_errprint2("system error",errstr);
   exit(1);
 }  
 
@@ -148,7 +162,8 @@ void wr_sys_exiterr(glb* g, char* errstr) {
 */
 
 void wr_sys_exiterr2(glb* g, char* errstr1, char* errstr2) {
-  printf("System error in wgdb reasoner, exiting: %s %s.\n",errstr1,errstr2);
+  //printf("System error in wgdb reasoner, exiting: %s %s.\n",errstr1,errstr2);
+  wr_errprint3("system error",errstr1,errstr2);
   exit(1);
 }  
 
@@ -167,7 +182,8 @@ void wr_sys_exiterr2int(glb* g, char* errstr, int n) {
 */
 
 void wr_exiterr(glb* g, char* errstr1) {
-  printf("%s.\n",errstr1);
+  //printf("%s.\n",errstr1);
+  wr_errprint(errstr1);
   exit(1);
 } 
 
@@ -176,7 +192,8 @@ void wr_exiterr(glb* g, char* errstr1) {
 */
 
 void wr_exiterr2(glb* g, char* errstr1, char* errstr2) {
-  printf("%s %s.\n",errstr1,errstr2);
+  //printf("%s %s.\n",errstr1,errstr2);
+  wr_errprint2(errstr1,errstr2);
   exit(1);
 }  
 

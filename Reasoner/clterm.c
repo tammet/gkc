@@ -186,9 +186,9 @@ int wr_blocked_clause_simple(glb* g, gptr clause) {
 
   //printf("\n wr_blocked_clause starts \n ");
   if (wg_rec_is_blocked_clause(db,clause)) {
-    printf("\n direct block ");
+    wr_printf("\n direct block ");
     wr_print_clause(g,clause);
-    printf("\n");
+    wr_printf("\n");
     return 1;
   }    
   history=wr_get_history(g,clause);
@@ -204,16 +204,16 @@ int wr_blocked_clause_simple(glb* g, gptr clause) {
   if (tag!=WR_HISTORY_TAG_RESOLVE) return 0;
   cl1=wr_get_history_record_field(g,historyptr,HISTORY_PARENT1_POS);
   if (wg_rec_is_blocked_clause(db,wg_decode_record(db,cl1))) {
-    printf("\n parent1 block \n");
+    wr_printf("\n parent1 block \n");
     wr_print_clause(g,clause);
-    printf("\n");
+    wr_printf("\n");
     return 1;
   }  
   cl1=wr_get_history_record_field(g,historyptr,HISTORY_PARENT2_POS);
   if (wg_rec_is_blocked_clause(db,wg_decode_record(db,cl1)))  {
-    printf("\n parent2 block \n");
+    wr_printf("\n parent2 block \n");
     wr_print_clause(g,clause);
-    printf("\n");
+    wr_printf("\n");
     return 1;
   }  
   return 0;
@@ -232,9 +232,9 @@ int wr_blocked_clause(glb* g, gptr clause) {
   //printf("\n wr_blocked_clause starts \n ");
   if (wg_rec_is_blocked_clause(db,clause)) {
     /*
-    printf("\n direct block ");
+    wr_printf("\n direct block ");
     wr_print_clause(g,clause);
-    printf("\n");
+    wr_printf("\n");
     */
     return 1;
   }   
@@ -251,16 +251,16 @@ int wr_blocked_clause(glb* g, gptr clause) {
   if (tag!=WR_HISTORY_TAG_RESOLVE) return 0;
   cl1=wr_get_history_record_field(g,historyptr,HISTORY_PARENT1_POS);
   if (wr_blocked_clause(g,wg_decode_record(db,cl1))) {
-    printf("\n parent1 block \n");
+    wr_printf("\n parent1 block \n");
     wr_print_clause(g,clause);
-    printf("\n");
+    wr_printf("\n");
     return 1;
   }  
   cl1=wr_get_history_record_field(g,historyptr,HISTORY_PARENT2_POS);
   if (wr_blocked_clause(g,wg_decode_record(db,cl1)))  {
-    printf("\n parent2 block \n");
+    wr_printf("\n parent2 block \n");
     wr_print_clause(g,clause);
-    printf("\n");
+    wr_printf("\n");
     return 1;
   }  
   return 0;

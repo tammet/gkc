@@ -55,12 +55,26 @@ extern "C" {
 #define HISTORY_PARA_PARENT2_POS HISTORY_PREFIX_LEN+3
 */
 
+
+
+
+#define EXPAND(X) X
+
+#define wrr_printf(...) EXPAND(printf(__VA_ARGS__))
+
+
+
+
 /* ======= Private protos ================ */
   
 void wr_print_history_extra(glb* g, gint history);
 gint wr_encode_priority(glb* g, gint priority);
 
+
+
 /* ====== Functions ============== */
+
+/* ------- building history ----------- */
 
 gint wr_build_input_history(glb* g, gptr cl1, char* name, gint priority) {  
   void* db=g->db;
@@ -481,7 +495,7 @@ int wr_get_history_pos2(glb* g, gint head) {
 }
 
 
-/* --------- printing --------- */
+/* --------- printing history --------- */
 
 
 void wr_show_history(glb* g, gint history) {
@@ -491,9 +505,22 @@ void wr_show_history(glb* g, gint history) {
   void* mpool;
   int clnr=1;
   char namebuf[20];
+  gptr ans;
+  //gint anshistory;
 
+  //if (!(g->store_history)) return;
+
+  //printf("\nansw 0 %ld 1 %ld 2 %ld\n",(g->answers)[0],(g->answers)[1],(g->answers)[2]); 
+  if (((g->answers)[1])>2 && (gptr)((g->answers)[2])!=NULL) {
+    printf("\nanswer: ");
+    ans=(gptr)((g->answers)[2]);
+    wr_print_clause(g,ans);
+  }
+
+  if (!(g->store_history)) return;
+  
   mpool=wg_create_mpool(db,1000000);
-  printf("\nproof:\n");
+  wr_printf("\nproof:\n");
   htype=wg_get_encoded_type(db,history);  
   if (htype!=WG_RECORDTYPE) {
     wr_print_simpleterm_otter(g,history,1);
@@ -505,7 +532,7 @@ void wr_show_history(glb* g, gint history) {
   // print last step
   snprintf(namebuf,19,"%d",clnr++);
   wr_print_one_history(g,mpool,history,NULL,namebuf,clnr-1,&assoc);
-  printf("\n\n");
+  wr_printf("\n\n");
  
   wg_free_mpool(db,mpool);
 }
@@ -619,10 +646,12 @@ char* wr_print_one_history
 #endif
   if (!history) {
     // empty history
-    printf("\n %s: [] ",clns);
-    if (!cl) printf("false");
-    else wr_print_clause(g,cl);   
-    return clns;
+    wr_printf("\n %s: [] ",clns);
+    if (!cl) {
+      wr_printf("false");
+    } else {
+      wr_print_clause(g,cl);   
+    } return clns;
   } 
 #ifdef SHOW_HISTORY_ORDER
   o1=wr_get_history_record_field(g,otp(db,history),HISTORY_DERIVED_ORDER_POS);
@@ -634,19 +663,24 @@ char* wr_print_one_history
   len=wg_get_record_len(db,otp(db,history)); 
   if (len==HISTORY_PREFIX_LEN) {
     // input clause
-    printf("\n %s:%s [in",clns,orderbuf);
+    wr_printf("\n %s:%s [in",clns,orderbuf);
     historyptr=otp(db,history);    
     name = wr_get_history_record_field(db,historyptr,HISTORY_NAME_POS);
     if (name && wg_get_encoded_type(db,name)==WG_STRTYPE) {
       namestr=wg_decode_str(db,name);
-      printf(",%s",namestr);
+      wr_printf(",%s",namestr);
     } else if (name && wg_get_encoded_type(db,name)==WG_INTTYPE) {
-      printf(",%d",(int)(wg_decode_int(db,name)));
+      wr_printf(",%d",(int)(wg_decode_int(db,name)));
     }   
     if (g->print_history_extra) wr_print_history_extra(g,history);
-    else printf("] ");    
-    if (!cl) printf("false");
-    else wr_print_clause(g,cl);   
+    else {
+      wr_printf("] ");    
+    }
+    if (!cl) {
+      wr_printf("false");
+    } else {
+      wr_print_clause(g,cl);   
+    } 
     return clns;
   } 
   head=wr_get_history_record_field(db,otp(db,history),HISTORY_DERIVATION_TAG_POS);
@@ -658,69 +692,88 @@ char* wr_print_one_history
   pos2=wr_get_history_pos2(g,dechead);
   //printf("\n dechead %d tag %d pos1 %d pos2 %d \n",dechead,tag,pos1,pos2);
   if (tag==WR_HISTORY_TAG_RESOLVE || tag==WR_HISTORY_TAG_PROPAGATE) {
-    if (tag==WR_HISTORY_TAG_RESOLVE) printf("\n %s:%s [mp, ",clns,orderbuf);
-    else printf("\n %s:%s [fmp, ",clns,orderbuf);
+    if (tag==WR_HISTORY_TAG_RESOLVE) {
+      wr_printf("\n %s:%s [mp, ",clns,orderbuf);
+    } else {
+      wr_printf("\n %s:%s [fmp, ",clns,orderbuf);
+    }
     for(i=HISTORY_PARENT1_POS;i<len;i++) {
       cl1=wr_get_history_record_field(g,otp(db,history),i);
       tmp1=wg_get_assoc(db,(void *)cl1,*assoc);
       num=(int)(gint)(wg_nth(db,tmp1,2));
       snprintf(namebuf1,19,"%d",num);
       if (i==1+HISTORY_DERIVATION_TAG_POS) {
-        if (pos1) printf("%s.%d",namebuf1,pos1);
-        else printf("%s",namebuf1);
+        if (pos1) {
+          wr_printf("%s.%d",namebuf1,pos1);
+        } else {
+          wr_printf("%s",namebuf1);
+        }  
       } else if (i==2+HISTORY_DERIVATION_TAG_POS) {
-        if (pos2) printf("%s.%d",namebuf1,pos2);
-        else printf("%s",namebuf1);
+        if (pos2) {
+          wr_printf("%s.%d",namebuf1,pos2);
+        } else {
+          wr_printf("%s",namebuf1);
+        }  
       } else {
-       printf("%s",namebuf1);
+       wr_printf("%s",namebuf1);
       }    
-      if (i<len-1) printf(", ");
+      if (i<len-1) wr_printf(", ");
     }    
     if (g->print_history_extra) wr_print_history_extra(g,history);
-    else printf("] ");
-    if (!cl) printf("false");
-    else wr_print_clause(g,cl);   
+    else {
+      wr_printf("] ");
+    }
+    if (!cl) {
+      wr_printf("false");
+    } else wr_print_clause(g,cl);   
    
   } else if (tag==WR_HISTORY_TAG_FACTORIAL) {
-    printf("\n %s:%s [merge, ",clns,orderbuf);
+    wr_printf("\n %s:%s [merge, ",clns,orderbuf);
     for(i=HISTORY_PARENT1_POS;i<len;i++) {
       cl1=wr_get_history_record_field(g,otp(db,history),i);
       tmp1=wg_get_assoc(db,(void *)cl1,*assoc);
       num=(int)(gint)(wg_nth(db,tmp1,2));
       snprintf(namebuf1,19,"%d",num);
       if (i==1+HISTORY_DERIVATION_TAG_POS) {
-        printf("%s.%d.%d",namebuf1,pos1,pos2);       
+        wr_printf("%s.%d.%d",namebuf1,pos1,pos2);       
       } else {
-       printf("%s",namebuf1);
+       wr_printf("%s",namebuf1);
       }    
-      if (i<len-1) printf(", ");
+      if (i<len-1) wr_printf(", ");
     }    
     if (g->print_history_extra) wr_print_history_extra(g,history);
-    else printf("] ");  
-    if (!cl) printf("false");
-    else wr_print_clause(g,cl);  
+    else {
+      wr_printf("] ");  
+    } if (!cl) {
+      wr_printf("false");
+    } else wr_print_clause(g,cl);  
 
    } else if (tag==WR_HISTORY_TAG_EQUALITY_REFLEXIVE) {
-    printf("\n %s:%s [r=, ",clns,orderbuf);
+    wr_printf("\n %s:%s [r=, ",clns,orderbuf);
     for(i=HISTORY_PARENT1_POS;i<len;i++) {
       cl1=wr_get_history_record_field(g,otp(db,history),i);
       tmp1=wg_get_assoc(db,(void *)cl1,*assoc);
       num=(int)(gint)(wg_nth(db,tmp1,2));
       snprintf(namebuf1,19,"%d",num);
       if (i==1+HISTORY_DERIVATION_TAG_POS) {
-        printf("%s.%d",namebuf1,pos1);       
+        wr_printf("%s.%d",namebuf1,pos1);       
       } else {
-       printf("%s",namebuf1);
+       wr_printf("%s",namebuf1);
       }    
-      if (i<len-1) printf(", ");
+      if (i<len-1) {
+        wr_printf(", ");
+      }  
     }     
     if (g->print_history_extra) wr_print_history_extra(g,history);
-    else printf("] ");  
-    if (!cl) printf("false");
-    else wr_print_clause(g,cl);    
+    else {
+      wr_printf("] ");  
+    } 
+    if (!cl) {
+      wr_printf("false");
+    } else wr_print_clause(g,cl);    
 
   } else if (tag==WR_HISTORY_TAG_PARA) {
-    printf("\n %s:%s [=, ",clns,orderbuf);    
+    wr_printf("\n %s:%s [=, ",clns,orderbuf);    
     leftflag=wr_get_history_extra(g,dechead);
     path=wr_get_history_record_field(g,otp(db,history),HISTORY_PATH_POS);   
     termpos=wr_decode_para_termpath_pos(g,wg_decode_int(db,path));    
@@ -731,41 +784,56 @@ char* wr_print_one_history
       snprintf(namebuf1,19,"%d",num);     
       if (i==2+HISTORY_DERIVATION_TAG_POS) {        
         if (pos1) {
-          if (!leftflag) printf("%s.%d.R",namebuf1,pos1);
-          else printf("%s.%d.L",namebuf1,pos1);
+          if (!leftflag) {
+            wr_printf("%s.%d.R",namebuf1,pos1);
+          } else {
+            wr_printf("%s.%d.L",namebuf1,pos1);
+          }  
         } else {
-          if (leftflag) printf("%s",namebuf1);
-          else printf("%s.0.R",namebuf1);
+          if (leftflag) {
+            wr_printf("%s",namebuf1);
+          } else {
+            wr_printf("%s.0.R",namebuf1);
+          }  
         }  
       } else if (i==3+HISTORY_DERIVATION_TAG_POS) {
-        if (pos2) printf("%s.%d.%d",namebuf1,pos2,termpos);
-        else printf("%s.0.%d",namebuf1,termpos);
+        if (pos2) {
+          wr_printf("%s.%d.%d",namebuf1,pos2,termpos);
+        } else {
+          wr_printf("%s.0.%d",namebuf1,termpos);
+        }  
       } else {
-       printf("%s",namebuf1);
+       wr_printf("%s",namebuf1);
       }    
-      if (i<len-1) printf(", ");
+      if (i<len-1) wr_printf(", ");
     }   
     if (g->print_history_extra) wr_print_history_extra(g,history);
-    else printf("] ");  
-    if (!cl) printf("false");
     else {
+      wr_printf("] ");  
+    }
+    if (!cl) {
+      wr_printf("false");
+    } else {
       wr_print_clause(g,cl);   
       //wg_print_record(db,cl);
     }  
   } else if (tag==WR_HISTORY_TAG_SIMPLIFY) {
-    printf("\n %s:%s [simp, ",clns,orderbuf);    
+    wr_printf("\n %s:%s [simp, ",clns,orderbuf);    
     for(i=HISTORY_PARENT1_POS;i<len;i++) {
       cl1=wr_get_history_record_field(g,otp(db,history),i);
       tmp1=wg_get_assoc(db,(void *)cl1,*assoc);
       num=(int)(gint)(wg_nth(db,tmp1,2));
       snprintf(namebuf1,19,"%d",num);
-      printf("%s",namebuf1);          
-      if (i<len-1) printf(", ");
+      wr_printf("%s",namebuf1);          
+      if (i<len-1) wr_printf(", ");
     }      
     if (g->print_history_extra) wr_print_history_extra(g,history);
-    else printf("] ");  
-    if (!cl) printf("false");
-    else wr_print_clause(g,cl); 
+    else {
+      wr_printf("] ");  
+    }
+    if (!cl) {
+      wr_printf("false");
+    } else wr_print_clause(g,cl); 
   }
   return clns;
 }
@@ -778,16 +846,27 @@ void wr_print_history_extra(glb* g, gint history) {
   historyptr=otp(db,history);
   priority = wr_get_history_record_field(db,historyptr,HISTORY_PRIORITY_POS);
   decprior=wr_decode_priority(g,priority);
-  if (decprior==WR_HISTORY_GOAL_ROLENR) printf(",goal] ");
-  else if (decprior==WR_HISTORY_ASSUMPTION_ROLENR) printf(",assumption] ");
-  else if (decprior==WR_HISTORY_FROMGOALASSUMPTION_ROLENR) printf(",fromga] "); 
-  else if (decprior==WR_HISTORY_FROMGOAL_ROLENR) printf(",fromgoal] ");
-  else if (decprior==WR_HISTORY_FROMASSUMPTION_ROLENR) printf(",fromassumption] ");
-  else if (decprior==WR_HISTORY_AXIOM_ROLENR) printf(",axiom] ");
-  else if (decprior==WR_HISTORY_FROMAXIOM_ROLENR) printf(",fromaxiom] ");
-  else if (decprior==WR_HISTORY_EXTAXIOM_ROLENR) printf(",extaxiom] ");
-  else if (decprior) printf(", dp %d] ",(int)decprior);
-  else printf("] ");
+  if (decprior==WR_HISTORY_GOAL_ROLENR) {
+    wr_printf(",goal] ");
+  } else if (decprior==WR_HISTORY_ASSUMPTION_ROLENR) {
+    wr_printf(",assumption] ");
+  } else if (decprior==WR_HISTORY_FROMGOALASSUMPTION_ROLENR) {
+    wr_printf(",fromga] "); 
+  } else if (decprior==WR_HISTORY_FROMGOAL_ROLENR) {
+    wr_printf(",fromgoal] ");
+  } else if (decprior==WR_HISTORY_FROMASSUMPTION_ROLENR) {
+    wr_printf(",fromassumption] ");
+  } else if (decprior==WR_HISTORY_AXIOM_ROLENR) {
+    wr_printf(",axiom] ");
+  } else if (decprior==WR_HISTORY_FROMAXIOM_ROLENR) {
+    wr_printf(",fromaxiom] ");
+  } else if (decprior==WR_HISTORY_EXTAXIOM_ROLENR) {
+    wr_printf(",extaxiom] ");
+  } else if (decprior) {
+    wr_printf(", dp %d] ",(int)decprior);
+  } else {
+    wr_printf("] ");
+  }  
 }
 
 /*
@@ -806,7 +885,7 @@ void wr_print_clause_name_history(glb* g, gint history) {
 
   if (!history) {
     // empty history
-    printf("[] ");   
+    wr_printf("[] ");   
     return;
   } 
   historyptr=otp(db,history);
@@ -817,26 +896,418 @@ void wr_print_clause_name_history(glb* g, gint history) {
     name = wr_get_history_record_field(db,historyptr,HISTORY_NAME_POS);
     if (name && wg_get_encoded_type(db,name)==WG_STRTYPE) {
       namestr=wg_decode_str(db,name);
-      printf("[%s",namestr);
+      wr_printf("[%s",namestr);
     } else if (name && wg_get_encoded_type(db,name)==WG_INTTYPE) {
-      printf("[%d",(int)(wg_decode_int(db,name)));
+      wr_printf("[%d",(int)(wg_decode_int(db,name)));
     } else {
-      printf("[");
+      wr_printf("[");
     }
     decprior=wr_decode_priority(g,priority);
-    if (decprior==WR_HISTORY_GOAL_ROLENR) printf(",goal] ");
-    else if (decprior==WR_HISTORY_ASSUMPTION_ROLENR) printf(",assumption] ");
-    else if (decprior==WR_HISTORY_FROMGOALASSUMPTION_ROLENR) printf(",fromga] ");
-    else if (decprior==WR_HISTORY_FROMASSUMPTION_ROLENR) printf(",fromassumption] ");
-    else if (decprior==WR_HISTORY_AXIOM_ROLENR) printf(",axiom] ");
-    else if (decprior==WR_HISTORY_FROMAXIOM_ROLENR) printf(",fromaxiom] ");
-    else if (decprior==WR_HISTORY_EXTAXIOM_ROLENR) printf(",extaxiom] ");
-    else if (decprior) printf(", dp %d] ",(int)decprior);
-    else printf("] ");     
+    if (decprior==WR_HISTORY_GOAL_ROLENR) {
+      wr_printf(",goal] ");
+    } else if (decprior==WR_HISTORY_ASSUMPTION_ROLENR) {
+      wr_printf(",assumption] ");
+    } else if (decprior==WR_HISTORY_FROMGOALASSUMPTION_ROLENR) {
+      wr_printf(",fromga] ");
+    } else if (decprior==WR_HISTORY_FROMASSUMPTION_ROLENR) {
+      wr_printf(",fromassumption] ");
+    } else if (decprior==WR_HISTORY_AXIOM_ROLENR) {
+      wr_printf(",axiom] ");
+    } else if (decprior==WR_HISTORY_FROMAXIOM_ROLENR) {
+      wr_printf(",fromaxiom] ");
+    } else if (decprior==WR_HISTORY_EXTAXIOM_ROLENR) {
+      wr_printf(",extaxiom] ");
+    } else if (decprior) {
+      wr_printf(", dp %d] ",(int)decprior);
+    } else {
+      wr_printf("] ");     
+    }  
     return;
   } else {
     // not an input clause
-    printf("[] ");
+    wr_printf("[] ");
+  }
+}
+
+
+/* --------- printing history to a string --------- */
+
+
+int wr_show_result(glb* g, gint history) {
+  void* db=g->db;
+  int htype;
+  void* assoc=NULL;
+  void* mpool;
+  int clnr=1;
+  char namebuf[20];
+  gptr ans;
+  //gint anshistory;
+  printstr histstr;
+
+  //if (!(g->store_history)) return;
+
+  //printf("\nansw 0 %ld 1 %ld 2 %ld\n",(g->answers)[0],(g->answers)[1],(g->answers)[2]); 
+  if (((g->answers)[1])>2 && (gptr)((g->answers)[2])!=NULL) {
+    printf("\nanswer: ");
+    ans=(gptr)((g->answers)[2]);
+    wr_print_clause(g,ans);
+  }
+
+  if (!(g->store_history)) return -1;
+  
+  // create mpool for building and histstr for printing
+
+  mpool=wg_create_mpool(db,1000000);
+  if (mpool==NULL) return -1;
+  (histstr.len)=1000;
+  (histstr.pos)=0;
+  (histstr.buf)=wr_malloc(g,histstr.len);
+  if ((histstr.buf)==NULL) {
+    wg_free_mpool(db,mpool);
+    return -1;
+  }  
+
+  //if (!wr_hist_print(g,histstr,"\nproof:\n")) return -1;
+
+  return 0;
+
+  htype=wg_get_encoded_type(db,history);  
+  if (htype!=WG_RECORDTYPE) {
+    wr_print_simpleterm_otter(g,history,1);
+  } else {
+    wr_flatten_history(g,mpool,history,NULL,0,&clnr,&assoc);
+  }  
+  assoc=wg_reverselist(db,mpool,assoc); 
+  wr_print_flat_history(g,mpool,clnr,&assoc);
+  // print last step
+  snprintf(namebuf,19,"%d",clnr++);
+  wr_print_one_history(g,mpool,history,NULL,namebuf,clnr-1,&assoc);
+  wr_printf("\n\n");
+ 
+  wg_free_mpool(db,mpool);
+  return 1;
+}
+ 
+
+char* wr_strprint_flat_history(glb* g, void* mpool, int maxclnr, void **assoc) {
+  void* db=g->db;  
+  void *flat, *part, *tmp;
+  gint cl, history; 
+  char namebuf[20];
+  int num;
+  
+  // print all proof steps before last
+  flat=*assoc; 
+  if (flat) {
+    for(part=flat; wg_ispair(db,part); part=wg_rest(db,part)) {
+      tmp=wg_first(db,part);   
+      cl=(gint)(wg_first(db,tmp));
+      history=wr_get_history(g,rotp(g,cl));      
+      num=(int)(gint)(wg_nth(db,tmp,2));
+      snprintf(namebuf,19,"%d",num);
+      wr_print_one_history(g,mpool,history,rotp(g,cl),namebuf,maxclnr,assoc);     
+    }
+  }
+  return NULL;
+}
+
+char* wr_strprint_one_history
+        (glb* g, void* mpool, gint history, gptr cl, char* clns, int maxclnr, void **assoc) {
+  void* db=g->db;
+  int htype,tag,dechead;
+  void *tmp1;
+  gint head, cl1, path, name;
+  char* namestr;
+  //char *n, *n1;
+  int pos1, pos2, num, len, i, termpos, leftflag;
+  char namebuf1[20];  
+  char orderbuf[80];
+  gptr historyptr;
+#ifdef SHOW_HISTORY_ORDER  
+  int o1,o2;
+#endif
+  if (!history) {
+    // empty history
+    wr_printf("\n %s: [] ",clns);
+    if (!cl) {
+      wr_printf("false");
+    } else {
+      wr_print_clause(g,cl);   
+    } return clns;
+  } 
+#ifdef SHOW_HISTORY_ORDER
+  o1=wr_get_history_record_field(g,otp(db,history),HISTORY_DERIVED_ORDER_POS);
+  o2=wr_get_history_record_field(g,otp(db,history),HISTORY_GIVEN_ORDER_POS);
+  snprintf(orderbuf,79," %8ld %6ld",wg_decode_int(db,o1),wg_decode_int(db,o2));
+#else
+  orderbuf[0]=(char)0;      
+#endif  
+  len=wg_get_record_len(db,otp(db,history)); 
+  if (len==HISTORY_PREFIX_LEN) {
+    // input clause
+    wr_printf("\n %s:%s [in",clns,orderbuf);
+    historyptr=otp(db,history);    
+    name = wr_get_history_record_field(db,historyptr,HISTORY_NAME_POS);
+    if (name && wg_get_encoded_type(db,name)==WG_STRTYPE) {
+      namestr=wg_decode_str(db,name);
+      wr_printf(",%s",namestr);
+    } else if (name && wg_get_encoded_type(db,name)==WG_INTTYPE) {
+      wr_printf(",%d",(int)(wg_decode_int(db,name)));
+    }   
+    if (g->print_history_extra) wr_print_history_extra(g,history);
+    else {
+      wr_printf("] ");    
+    }
+    if (!cl) {
+      wr_printf("false");
+    } else {
+      wr_print_clause(g,cl);   
+    } 
+    return clns;
+  } 
+  head=wr_get_history_record_field(db,otp(db,history),HISTORY_DERIVATION_TAG_POS);
+  htype=wg_get_encoded_type(db,head);
+  if (htype!=WG_INTTYPE) return NULL;
+  dechead=wg_decode_int(db,head);
+  tag=wr_get_history_tag(g,dechead);
+  pos1=wr_get_history_pos1(g,dechead);
+  pos2=wr_get_history_pos2(g,dechead);
+  //printf("\n dechead %d tag %d pos1 %d pos2 %d \n",dechead,tag,pos1,pos2);
+  if (tag==WR_HISTORY_TAG_RESOLVE || tag==WR_HISTORY_TAG_PROPAGATE) {
+    if (tag==WR_HISTORY_TAG_RESOLVE) {
+      wr_printf("\n %s:%s [mp, ",clns,orderbuf);
+    } else {
+      wr_printf("\n %s:%s [fmp, ",clns,orderbuf);
+    }
+    for(i=HISTORY_PARENT1_POS;i<len;i++) {
+      cl1=wr_get_history_record_field(g,otp(db,history),i);
+      tmp1=wg_get_assoc(db,(void *)cl1,*assoc);
+      num=(int)(gint)(wg_nth(db,tmp1,2));
+      snprintf(namebuf1,19,"%d",num);
+      if (i==1+HISTORY_DERIVATION_TAG_POS) {
+        if (pos1) {
+          wr_printf("%s.%d",namebuf1,pos1);
+        } else {
+          wr_printf("%s",namebuf1);
+        }  
+      } else if (i==2+HISTORY_DERIVATION_TAG_POS) {
+        if (pos2) {
+          wr_printf("%s.%d",namebuf1,pos2);
+        } else {
+          wr_printf("%s",namebuf1);
+        }  
+      } else {
+       wr_printf("%s",namebuf1);
+      }    
+      if (i<len-1) wr_printf(", ");
+    }    
+    if (g->print_history_extra) wr_print_history_extra(g,history);
+    else {
+      wr_printf("] ");
+    }
+    if (!cl) {
+      wr_printf("false");
+    } else wr_print_clause(g,cl);   
+   
+  } else if (tag==WR_HISTORY_TAG_FACTORIAL) {
+    wr_printf("\n %s:%s [merge, ",clns,orderbuf);
+    for(i=HISTORY_PARENT1_POS;i<len;i++) {
+      cl1=wr_get_history_record_field(g,otp(db,history),i);
+      tmp1=wg_get_assoc(db,(void *)cl1,*assoc);
+      num=(int)(gint)(wg_nth(db,tmp1,2));
+      snprintf(namebuf1,19,"%d",num);
+      if (i==1+HISTORY_DERIVATION_TAG_POS) {
+        wr_printf("%s.%d.%d",namebuf1,pos1,pos2);       
+      } else {
+       wr_printf("%s",namebuf1);
+      }    
+      if (i<len-1) wr_printf(", ");
+    }    
+    if (g->print_history_extra) wr_print_history_extra(g,history);
+    else {
+      wr_printf("] ");  
+    } if (!cl) {
+      wr_printf("false");
+    } else wr_print_clause(g,cl);  
+
+   } else if (tag==WR_HISTORY_TAG_EQUALITY_REFLEXIVE) {
+    wr_printf("\n %s:%s [r=, ",clns,orderbuf);
+    for(i=HISTORY_PARENT1_POS;i<len;i++) {
+      cl1=wr_get_history_record_field(g,otp(db,history),i);
+      tmp1=wg_get_assoc(db,(void *)cl1,*assoc);
+      num=(int)(gint)(wg_nth(db,tmp1,2));
+      snprintf(namebuf1,19,"%d",num);
+      if (i==1+HISTORY_DERIVATION_TAG_POS) {
+        wr_printf("%s.%d",namebuf1,pos1);       
+      } else {
+       wr_printf("%s",namebuf1);
+      }    
+      if (i<len-1) {
+        wr_printf(", ");
+      }  
+    }     
+    if (g->print_history_extra) wr_print_history_extra(g,history);
+    else {
+      wr_printf("] ");  
+    } 
+    if (!cl) {
+      wr_printf("false");
+    } else wr_print_clause(g,cl);    
+
+  } else if (tag==WR_HISTORY_TAG_PARA) {
+    wr_printf("\n %s:%s [=, ",clns,orderbuf);    
+    leftflag=wr_get_history_extra(g,dechead);
+    path=wr_get_history_record_field(g,otp(db,history),HISTORY_PATH_POS);   
+    termpos=wr_decode_para_termpath_pos(g,wg_decode_int(db,path));    
+    for(i=HISTORY_PARA_PARENT1_POS;i<len;i++) {
+      cl1=wr_get_history_record_field(g,otp(db,history),i);
+      tmp1=wg_get_assoc(db,(void *)cl1,*assoc);
+      num=(int)(gint)(wg_nth(db,tmp1,2));
+      snprintf(namebuf1,19,"%d",num);     
+      if (i==2+HISTORY_DERIVATION_TAG_POS) {        
+        if (pos1) {
+          if (!leftflag) {
+            wr_printf("%s.%d.R",namebuf1,pos1);
+          } else {
+            wr_printf("%s.%d.L",namebuf1,pos1);
+          }  
+        } else {
+          if (leftflag) {
+            wr_printf("%s",namebuf1);
+          } else {
+            wr_printf("%s.0.R",namebuf1);
+          }  
+        }  
+      } else if (i==3+HISTORY_DERIVATION_TAG_POS) {
+        if (pos2) {
+          wr_printf("%s.%d.%d",namebuf1,pos2,termpos);
+        } else {
+          wr_printf("%s.0.%d",namebuf1,termpos);
+        }  
+      } else {
+       wr_printf("%s",namebuf1);
+      }    
+      if (i<len-1) wr_printf(", ");
+    }   
+    if (g->print_history_extra) wr_print_history_extra(g,history);
+    else {
+      wr_printf("] ");  
+    }
+    if (!cl) {
+      wr_printf("false");
+    } else {
+      wr_print_clause(g,cl);   
+      //wg_print_record(db,cl);
+    }  
+  } else if (tag==WR_HISTORY_TAG_SIMPLIFY) {
+    wr_printf("\n %s:%s [simp, ",clns,orderbuf);    
+    for(i=HISTORY_PARENT1_POS;i<len;i++) {
+      cl1=wr_get_history_record_field(g,otp(db,history),i);
+      tmp1=wg_get_assoc(db,(void *)cl1,*assoc);
+      num=(int)(gint)(wg_nth(db,tmp1,2));
+      snprintf(namebuf1,19,"%d",num);
+      wr_printf("%s",namebuf1);          
+      if (i<len-1) wr_printf(", ");
+    }      
+    if (g->print_history_extra) wr_print_history_extra(g,history);
+    else {
+      wr_printf("] ");  
+    }
+    if (!cl) {
+      wr_printf("false");
+    } else wr_print_clause(g,cl); 
+  }
+  return clns;
+}
+
+void wr_strprint_history_extra(glb* g, gint history) {
+  void* db=g->db;
+  gint priority, decprior;
+  gptr historyptr;
+
+  historyptr=otp(db,history);
+  priority = wr_get_history_record_field(db,historyptr,HISTORY_PRIORITY_POS);
+  decprior=wr_decode_priority(g,priority);
+  if (decprior==WR_HISTORY_GOAL_ROLENR) {
+    wr_printf(",goal] ");
+  } else if (decprior==WR_HISTORY_ASSUMPTION_ROLENR) {
+    wr_printf(",assumption] ");
+  } else if (decprior==WR_HISTORY_FROMGOALASSUMPTION_ROLENR) {
+    wr_printf(",fromga] "); 
+  } else if (decprior==WR_HISTORY_FROMGOAL_ROLENR) {
+    wr_printf(",fromgoal] ");
+  } else if (decprior==WR_HISTORY_FROMASSUMPTION_ROLENR) {
+    wr_printf(",fromassumption] ");
+  } else if (decprior==WR_HISTORY_AXIOM_ROLENR) {
+    wr_printf(",axiom] ");
+  } else if (decprior==WR_HISTORY_FROMAXIOM_ROLENR) {
+    wr_printf(",fromaxiom] ");
+  } else if (decprior==WR_HISTORY_EXTAXIOM_ROLENR) {
+    wr_printf(",extaxiom] ");
+  } else if (decprior) {
+    wr_printf(", dp %d] ",(int)decprior);
+  } else {
+    wr_printf("] ");
+  }  
+}
+
+/*
+  print a history without operation or parents: just a name and role
+
+  this is used in otterprint
+
+*/
+
+void wr_strprint_clause_name_history(glb* g, gint history) {
+  void* db=g->db; 
+  int len;
+  gptr historyptr;  
+  char* namestr;
+  gint name, priority, decprior;
+
+  if (!history) {
+    // empty history
+    wr_printf("[] ");   
+    return;
+  } 
+  historyptr=otp(db,history);
+  len=wg_get_record_len(db,historyptr); 
+  if (len==HISTORY_PREFIX_LEN) {
+    // input clause    
+    priority = wr_get_history_record_field(db,historyptr,HISTORY_PRIORITY_POS);
+    name = wr_get_history_record_field(db,historyptr,HISTORY_NAME_POS);
+    if (name && wg_get_encoded_type(db,name)==WG_STRTYPE) {
+      namestr=wg_decode_str(db,name);
+      wr_printf("[%s",namestr);
+    } else if (name && wg_get_encoded_type(db,name)==WG_INTTYPE) {
+      wr_printf("[%d",(int)(wg_decode_int(db,name)));
+    } else {
+      wr_printf("[");
+    }
+    decprior=wr_decode_priority(g,priority);
+    if (decprior==WR_HISTORY_GOAL_ROLENR) {
+      wr_printf(",goal] ");
+    } else if (decprior==WR_HISTORY_ASSUMPTION_ROLENR) {
+      wr_printf(",assumption] ");
+    } else if (decprior==WR_HISTORY_FROMGOALASSUMPTION_ROLENR) {
+      wr_printf(",fromga] ");
+    } else if (decprior==WR_HISTORY_FROMASSUMPTION_ROLENR) {
+      wr_printf(",fromassumption] ");
+    } else if (decprior==WR_HISTORY_AXIOM_ROLENR) {
+      wr_printf(",axiom] ");
+    } else if (decprior==WR_HISTORY_FROMAXIOM_ROLENR) {
+      wr_printf(",fromaxiom] ");
+    } else if (decprior==WR_HISTORY_EXTAXIOM_ROLENR) {
+      wr_printf(",extaxiom] ");
+    } else if (decprior) {
+      wr_printf(", dp %d] ",(int)decprior);
+    } else {
+      wr_printf("] ");     
+    }  
+    return;
+  } else {
+    // not an input clause
+    wr_printf("[] ");
   }
 }
 
@@ -866,7 +1337,24 @@ gint wr_get_history_record_field(glb* g, gptr rec, int pos) {
   return rec[RECORD_HEADER_GINTS+pos];
 }
 
+/* =============== answer and proof registration ================= */
 
+
+int wr_register_answer(glb* g, gptr cl, gint history) {
+  gint count;
+  cvec answers;
+
+  wr_print_clause(g,cl);
+
+  if (!(g->store_history)) return 0;
+  answers=(g->answers);
+  count=(g->answers)[1];
+  (g->answers)=wr_cvec_store(g,answers,count,(gint)cl);
+  if (!(g->answers)) return -1;
+  (g->answers)=wr_cvec_store(g,answers,count+1,history);
+  if (!(g->answers)) return -1;
+  return (((g->answers)[1])-2)/2;
+}
 
 /* ============== error handling ==================== */
 

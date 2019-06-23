@@ -100,11 +100,11 @@ void wr_process_resolve_result
   int size,depth,length; 
   
 #ifdef DEBUG
-  printf("\n+++ wr_process_resolve_result called\n");
-  wr_print_clause(g,xcl); printf(" : ");wr_print_term(g,xatom);
-  printf("\n");
-  wr_print_clause(g,ycl);  printf(" : ");wr_print_term(g,yatom);
-  printf("\n");
+  wr_printf("\n+++ wr_process_resolve_result called\n");
+  wr_print_clause(g,xcl); wr_printf(" : ");wr_print_term(g,xatom);
+  wr_printf("\n");
+  wr_print_clause(g,ycl);  wr_printf(" : ");wr_print_term(g,yatom);
+  wr_printf("\n");
   wr_print_vardata(g);  
 #endif  
   ++(g->stat_derived_cl);
@@ -122,6 +122,7 @@ void wr_process_resolve_result
   if (rlen==0) {
     g->proof_found=1;
     g->proof_history=wr_build_resolve_history(g,xcl_as_active,ycl,0,0,NULL);
+    wr_register_answer(g,NULL,g->proof_history);
     return;
   }  
   (g->derived_termbuf)[1]=2; // init termbuf
@@ -156,30 +157,31 @@ void wr_process_resolve_result
   if (rpos==0) {
     g->proof_found=1;     
     g->proof_history=wr_build_resolve_history(g,xcl_as_active,ycl,cutpos1,cutpos2,NULL);
+    wr_register_answer(g,NULL,g->proof_history);
     return;
   } 
 
   // check subsumption and cutoff
   
   if (g->print_derived_precut_cl) {
-    printf("\nc pre-cut derived by mp: ");
+    wr_printf("\nc pre-cut derived by mp: ");
     wr_print_halfbuilt_clause(g,rptr,rpos);
   }
   tmp=wr_derived_cl_cut_and_subsume(g,rptr,rpos);
   if (tmp<0) {
     // clause was subsumed
 #ifdef DEBUG      
-    printf("\nwr_process_resolve_result was subsumed with new subsumer\n");
+    wr_printf("\nwr_process_resolve_result was subsumed with new subsumer\n");
 #endif    
     if (g->print_derived_subsumed_cl) {
-      printf("\n- subsumed derived by mp ");
+      wr_printf("\n- subsumed derived by mp ");
       wr_print_halfbuilt_clause(g,rptr,rpos);
     }
     return;    
   } else if (tmp>0) {
     // there were cuts
     if (g->print_derived_precut_cl) {
-      printf("\nc post-cut derived by mp ");
+      wr_printf("\nc post-cut derived by mp ");
       wr_print_halfbuilt_clause(g,rptr,rpos);
     }
     wr_process_resolve_result_remove_cuts(g,rptr,&rpos,tmp);
@@ -222,7 +224,7 @@ void wr_process_resolve_result
   // now the resulting clause is fully built
   /*
   if (g->print_derived_cl) {
-    printf("\n+ derived by mp: ");
+    wr_printf("\n+ derived by mp: ");
     wr_print_clause(g,res);
   }  
   */
@@ -232,8 +234,9 @@ void wr_process_resolve_result
   //wr_print_clause(g,res);
   tmp=wr_cl_derived_is_answer(g,res);
   if (tmp>0) {
-    printf("\n\nfound pure answer: ");
-    wr_print_clause(g,res);
+    wr_register_answer(g,res,history);
+    //wr_printf("\n\nfound pure answer: ");
+    //wr_print_clause(g,res);
     g->proof_found=1;   
     g->proof_history=history;    
     return;
@@ -247,7 +250,7 @@ void wr_process_resolve_result
     ++(g->stat_hyperres_partial_cl);
     ++(g->stat_derived_partial_hyper_cl);
     if (g->print_partial_derived_cl) {
-      printf("\n+ partial derived by mp: ");
+      wr_printf("\n+ partial derived by mp: ");
       wr_print_clause(g,res);
     }
     weight=wr_calc_clause_weight(g,res,&size,&depth,&length);
@@ -256,7 +259,7 @@ void wr_process_resolve_result
     if (!wr_derived_weight_check(g,avg,weight,size,depth,length,0,0)) {
       (g->stat_weight_discarded_cl)++;
       CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
-      if (g->print_derived_cl) printf("\nw discarded overweight");
+      if (g->print_derived_cl) wr_printf("\nw discarded overweight");
       return;
     }
     tmp=wr_push_cl_hyper_queue(g,(g->hyper_queue),res,weight);     
@@ -267,7 +270,7 @@ void wr_process_resolve_result
   } else {           
     // ordinary case (not partial hyperres): resulting clause is finished
     if (g->print_derived_cl) {
-      printf("\n+ derived by mp: ");
+      wr_printf("\n+ derived by mp: ");
       wr_print_clause(g,res);    
     }  
     weight=wr_calc_clause_weight(g,res,&size,&depth,&length);
@@ -276,7 +279,7 @@ void wr_process_resolve_result
     if (!wr_derived_weight_check(g,avg,weight,size,depth,length,xatomnr,yatomnr)) {
       (g->stat_weight_discarded_cl)++;
       CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
-      if (g->print_derived_cl) printf("\nw discarded overweight");
+      if (g->print_derived_cl) wr_printf("\nw discarded overweight");
       return;
     }
     ++(g->stat_kept_cl);
@@ -330,12 +333,12 @@ void wr_process_factor_result
   int size,depth,length;
   
 #ifdef DEBUG
-  printf("+++ wr_process_factor_result called\n");
-  wr_print_clause(g,xcl); printf(" %d, %d : ",x,y);
+  wr_printf("+++ wr_process_factor_result called\n");
+  wr_print_clause(g,xcl); wr_printf(" %d, %d : ",x,y);
   wr_print_term(g,xatom);
-  printf("\n");
+  wr_printf("\n");
   wr_print_term(g,yatom);
-  printf("\n");
+  wr_printf("\n");
   wr_print_vardata(g);
 #endif  
 
@@ -344,9 +347,10 @@ void wr_process_factor_result
   // reserve sufficient space in derived_termbuf for simple sequential store of atoms:
   // no top-level meta kept
   rlen=(len-1)*LIT_WIDTH;
-  if (rlen==0) { 
+  if (rlen==0) {     
     g->proof_found=1;    
     g->proof_history=wr_build_factorial_history(g,xcl_as_active,x,y,NULL);
+    wr_register_answer(g,NULL,g->proof_history);
     return;
   }  
   (g->derived_termbuf)[1]=2; // init termbuf
@@ -370,30 +374,31 @@ void wr_process_factor_result
   if (rpos==0) { 
     g->proof_found=1; 
     g->proof_history=wr_build_factorial_history(g,xcl_as_active,x,y,NULL);
+    wr_register_answer(g,NULL,g->proof_history);
     return; 
   } 
 
   // check subsumption and cutoff
 
   if (g->print_derived_precut_cl) {
-    printf("\nc pre-cut derived by merge: ");
+    wr_printf("\nc pre-cut derived by merge: ");
     wr_print_halfbuilt_clause(g,rptr,rpos);
   }
   tmp=wr_derived_cl_cut_and_subsume(g,rptr,rpos);
   if (tmp<0) {
     // clause was subsumed
 #ifdef DEBUG    
-    printf("\nwr_process_resolve_result was subsumed with new subsumer\n");
+    wr_printf("\nwr_process_resolve_result was subsumed with new subsumer\n");
 #endif    
     if (g->print_derived_subsumed_cl) {
-      printf("\n- subsumed derived by merge ");
+      wr_printf("\n- subsumed derived by merge ");
       wr_print_halfbuilt_clause(g,rptr,rpos);
     }
     return;    
   } else if (tmp>0) {
     // there were cuts
     if (g->print_derived_precut_cl) {
-      printf("\nc post-cut derived by merge ");
+      wr_printf("\nc post-cut derived by merge ");
       wr_print_halfbuilt_clause(g,rptr,rpos);
     }
     wr_process_resolve_result_remove_cuts(g,rptr,&rpos,tmp);
@@ -426,8 +431,9 @@ void wr_process_factor_result
   //wr_print_clause(g,res);
   tmp=wr_cl_derived_is_answer(g,res);
   if (tmp>0) {
-    printf("\n\nfound pure answer: ");
-    wr_print_clause(g,res);
+    wr_register_answer(g,NULL,history);
+    //wr_printf("\n\nfound pure answer: ");
+    //wr_print_clause(g,res);
     g->proof_found=1;
     g->proof_history=history;     
     return;
@@ -435,7 +441,7 @@ void wr_process_factor_result
 
   // resulting clause is finished
   if (g->print_derived_cl) {
-    printf("\n+ derived by merge: ");
+    wr_printf("\n+ derived by merge: ");
     wr_print_clause(g,res);    
   }  
   weight=wr_calc_clause_weight(g,res,&size,&depth,&length);
@@ -443,7 +449,7 @@ void wr_process_factor_result
   if (!wr_derived_weight_check(g,avg,weight,size,depth,length,0,0)) {
     (g->stat_weight_discarded_cl)++;
     CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
-    if (g->print_derived_cl) printf("\nw discarded overweight");
+    if (g->print_derived_cl) wr_printf("\nw discarded overweight");
     return;
   }
   ++(g->stat_kept_cl);
@@ -491,14 +497,14 @@ void wr_process_paramodulate_result
   int size,depth,length;
     
 #ifdef DEBUG
-  printf("\n+++ wr_process_paramodulate_result called\n");
-  wr_print_clause(g,xcl); printf(" : ");wr_print_term(g,xatom);
-  printf("\n");
+  wr_printf("\n+++ wr_process_paramodulate_result called\n");
+  wr_print_clause(g,xcl); wr_printf(" : ");wr_print_term(g,xatom);
+  wr_printf("\n");
   wr_print_clause(g,ycl);  //printf(" : ");wr_print_term(g,yatom);
-  printf("\naterm:");
-  wr_print_term(g,aterm);  printf("\nbterm:");
-  wr_print_term(g,bterm);  printf("\npath: %d\n",path); 
-  printf("\leftflag: %d\n",leftflag); 
+  wr_printf("\naterm:");
+  wr_print_term(g,aterm);  wr_printf("\nbterm:");
+  wr_print_term(g,bterm);  wr_printf("\npath: %d\n",path); 
+  wr_printf("\leftflag: %d\n",leftflag); 
   wr_print_vardata(g);
 #endif  
   ++(g->stat_derived_cl);
@@ -522,6 +528,7 @@ void wr_process_paramodulate_result
       //printf("\n fromflag %d cutpos1 %d cutpos2 %d leftflag %d\n",fromflag,cutpos1,cutpos2,leftflag);
       g->proof_history=wr_build_para_history(g,xcl,xcl_as_active,0,0,NULL,path,leftflag,fromflag);  
     }   
+    wr_register_answer(g,NULL,g->proof_history);
     //g->proof_history=wr_build_para_history(g,xcl_as_active,ycl,0,0,NULL,path,leftflag,fromflag);
     return;
   }  
@@ -563,40 +570,49 @@ void wr_process_paramodulate_result
       //printf("\n fromflag %d cutpos1 %d cutpos2 %d leftflag %d\n",fromflag,cutpos1,cutpos2,leftflag);
       g->proof_history=wr_build_para_history(g,xcl,xcl_as_active,cutpos2,cutpos1,NULL,path,leftflag,fromflag);  
     }   
+    wr_register_answer(g,NULL,g->proof_history);
     //g->proof_history=wr_build_para_history(g,xcl_as_active,ycl,cutpos1,cutpos2,NULL,path,leftflag,fromflag);
     return;
   } 
   /*
-  printf("\nin wr_process_paramodulate_result we got halfbuilt:\n");
+  wr_printf("\nin wr_process_paramodulate_result we got halfbuilt:\n");
   wr_print_halfbuilt_clause(g,rptr,rpos);
-  printf("\n");
+  wr_printf("\n");
   */
   // check subsumption and cutoff
   if (g->print_derived_precut_cl) {    
-    printf("\nc pre-cut derived by =: ");
-    if (fromflag) printf("from: ");
-    else printf("into: ");
+    wr_printf("\nc pre-cut derived by =: ");
+    if (fromflag) {
+      wr_printf("from: ");
+    } else {
+      wr_printf("into: ");
+    }
     wr_print_halfbuilt_clause(g,rptr,rpos);
   }
   tmp=wr_derived_cl_cut_and_subsume(g,rptr,rpos);
   if (tmp<0) {
     // clause was subsumed
 #ifdef DEBUG      
-    printf("\nwr_process_paramodulate_result was subsumed with new subsumer\n");
+    wr_printf("\nwr_process_paramodulate_result was subsumed with new subsumer\n");
 #endif    
     if (g->print_derived_subsumed_cl) {
-      printf("\n- subsumed derived by = ");
-      if (fromflag) printf("from: ");
-      else printf("into: ");
-      wr_print_halfbuilt_clause(g,rptr,rpos);
+      wr_printf("\n- subsumed derived by = ");
+      if (fromflag) {
+        wr_printf("from: ");
+      } else {
+        wr_printf("into: ");
+      } wr_print_halfbuilt_clause(g,rptr,rpos);
     }    
     return;    
   } else if (tmp>0) {
     // there were cuts
     if (g->print_derived_precut_cl) {
-      printf("\nc post-cut derived by = ");
-      if (fromflag) printf("from: ");
-      else printf("into: ");
+      wr_printf("\nc post-cut derived by = ");
+      if (fromflag) {
+        wr_printf("from: ");
+      } else {
+        wr_printf("into: ");
+      } 
       wr_print_halfbuilt_clause(g,rptr,rpos);
     }
     wr_process_resolve_result_remove_cuts(g,rptr,&rpos,tmp);
@@ -610,6 +626,7 @@ void wr_process_paramodulate_result
         //printf("\n fromflag %d cutpos1 %d cutpos2 %d leftflag %d\n",fromflag,cutpos1,cutpos2,leftflag);
         g->proof_history=wr_build_para_history(g,xcl,xcl_as_active,cutpos2,cutpos1,g->cut_clvec,path,leftflag,fromflag);  
       }
+      wr_register_answer(g,NULL,g->proof_history);
       //g->proof_history=wr_build_para_history(g,xcl_as_active,ycl,cutpos1,cutpos2,g->cut_clvec,path,leftflag,fromflag); 
       return;
     } 
@@ -630,9 +647,9 @@ void wr_process_paramodulate_result
     //printf("\n fromflag %d cutpos1 %d cutpos2 %d leftflag %d\n",fromflag,cutpos1,cutpos2,leftflag);
     /*
     wr_print_clause(g,xcl_as_active);
-    printf("\n");
+    wr_printf("\n");
     wr_print_clause(g,ycl);
-    printf("\n");
+    wr_printf("\n");
     */
     history=wr_build_para_history(g,xcl_as_active,ycl,cutpos1,cutpos2,g->cut_clvec,path,leftflag,fromflag);
   } else {
@@ -648,9 +665,9 @@ void wr_process_paramodulate_result
   // now the resulting clause is fully built
 
   /*
-  printf("\n+!+!+!+!+ derived by = ");
-  if (fromflag) printf("from: ");
-  else printf("into: ");
+  wr_printf("\n+!+!+!+!+ derived by = ");
+  if (fromflag) wr_printf("from: ");
+  else wr_printf("into: ");
   wr_print_clause(g,res);
   */
   //printf("\n derived as raw record: \n");
@@ -658,9 +675,9 @@ void wr_process_paramodulate_result
   //printf("\n");
   /*
   if (g->print_derived_cl) {
-    printf("\n+ derived by = ");
-    if (fromflag) printf("from: ");
-    else printf("into: ");
+    wr_printf("\n+ derived by = ");
+    if (fromflag) wr_printf("from: ");
+    else wr_printf("into: ");
     wr_print_clause(g,res);
     //printf("\n derived as raw record: \n");
     //wg_print_record(g->db,res);
@@ -674,8 +691,9 @@ void wr_process_paramodulate_result
   //wr_print_clause(g,res);
   tmp=wr_cl_derived_is_answer(g,res);
   if (tmp>0) {
-    printf("\n\nfound pure answer: ");
-    wr_print_clause(g,res);
+    wr_register_answer(g,res,history);
+    //wr_printf("\n\nfound pure answer: ");
+    //wr_print_clause(g,res);
     g->proof_found=1;     
     g->proof_history=history;   
     return;
@@ -685,9 +703,12 @@ void wr_process_paramodulate_result
     
   //  resulting clause is finished
   if (g->print_derived_cl) {
-    printf("\n+ derived by = ");
-    if (fromflag) printf("from: ");
-    else printf("into: ");
+    wr_printf("\n+ derived by = ");
+    if (fromflag) {
+      wr_printf("from: ");
+    } else {
+      wr_printf("into: ");
+    } 
     wr_print_clause(g,res);
   }    
   weight=wr_calc_clause_weight(g,res,&size,&depth,&length);  
@@ -696,7 +717,7 @@ void wr_process_paramodulate_result
   if (!wr_derived_weight_check(g,avg,weight,size,depth,length,xatomnr,yatomnr)) {
     (g->stat_weight_discarded_cl)++;
     CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
-    if (g->print_derived_cl) printf("\nw discarded overweight");
+    if (g->print_derived_cl) wr_printf("\nw discarded overweight");
     return;
   }
   ++(g->stat_kept_cl);
@@ -726,10 +747,10 @@ int wr_process_resolve_result_aux
   int termpath;
 
 #ifdef DEBUG
-  printf("\nwr_process_resolve_result_aux called on atomnr %d with clause and term:\n",atomnr);
+  wr_printf("\nwr_process_resolve_result_aux called on atomnr %d with clause and term:\n",atomnr);
   wr_print_clause(g,cl);
   wr_print_term(g,cutatom);
-  printf("\n and atomnr %d *rpos %d *cutpos %d replpath %d and replterm:\n",atomnr,*rpos,*cutpos,replpath);
+  wr_printf("\n and atomnr %d *rpos %d *cutpos %d replpath %d and replterm:\n",atomnr,*rpos,*cutpos,replpath);
   wr_print_term(g,replterm);
 #endif        
   (g->tmp3)++;
@@ -760,11 +781,11 @@ int wr_process_resolve_result_aux
     }  
     if (!meta) {
       // check that no meta is actual 0: we will mark cutoff literals with meta being actual 0
-      printf("\n!! unexpected error: atom meta in wr_process_resolve_result_aux is 0\n ");
+      wr_printf("\n!! unexpected error: atom meta in wr_process_resolve_result_aux is 0\n ");
       return 0;     
     }  
 #ifdef DEBUG
-    printf("\nwr_process_resolve_result_aux loop i %d built meta %d and term\n",i,(int)meta);    
+    wr_printf("\nwr_process_resolve_result_aux loop i %d built meta %d and term\n",i,(int)meta);    
     wr_print_term(g,newatom);          
 #endif
     if (newatom==WG_ILLEGAL) {
@@ -785,11 +806,11 @@ int wr_process_resolve_result_aux
     // check if xatom present somewhere earlier      
     for(j=0;j < *rpos;j++){
 #ifdef DEBUG          
-          printf("\nlooking for equal term at pos j %d for newatom: ",j);
+          wr_printf("\nlooking for equal term at pos j %d for newatom: ",j);
           wr_print_term(g,newatom);
-          printf(" and atom at pos j %d: ",j);
+          wr_printf(" and atom at pos j %d: ",j);
           wr_print_term(g,rptr[(j*LIT_WIDTH)+LIT_ATOM_POS]);
-          printf("\n");
+          wr_printf("\n");
 #endif       
       (g->tmp1)++;
       if (wr_equal_term(g,newatom,rptr[(j*LIT_WIDTH)+LIT_ATOM_POS],1)) {        
@@ -798,16 +819,16 @@ int wr_process_resolve_result_aux
           //same sign, drop lit
           posfoundflag=1;          
 #ifdef DEBUG          
-          printf("\nequals found:\n");
+          wr_printf("\nequals found:\n");
           wr_print_term(g,newatom);
-          printf("\n");
+          wr_printf("\n");
           wr_print_term(g,rptr[(j*LIT_WIDTH)+LIT_ATOM_POS]);
-          printf("\n");
+          wr_printf("\n");
 #endif          
           break;                                
         } else {
 #ifdef DEBUG           
-          printf("\nin wr_process_resolve_result_aux return 0\n");
+          wr_printf("\nin wr_process_resolve_result_aux return 0\n");
 #endif           
           // negative sign, tautology, drop clause          
           (g->stat_tautologies_discarded)++;
@@ -833,7 +854,7 @@ void wr_process_resolve_result_remove_cuts(glb* g, gptr rptr, int* rpos, int cut
   gint xatom,xatommeta;
 
   #ifdef DEBUG
-    printf("\nwr_process_resolve_result_remove_cuts called with %d cuts\n",cuts);
+    wr_printf("\nwr_process_resolve_result_remove_cuts called with %d cuts\n",cuts);
   #endif        
           
   storepos=0;        
@@ -900,22 +921,22 @@ gptr wr_derived_build_cl_from_initial_cl(glb* g, gptr rptr, int rpos, int rulefl
     // resulting clause was not a rule
 
     /*
-    printf("\nwr_derived_build_cl_from_initial_cl notrule case \n");
+    wr_printf("\nwr_derived_build_cl_from_initial_cl notrule case \n");
     wr_print_term_otter(g,rptr[LIT_ATOM_POS],1000);
-    printf("\n");
+    wr_printf("\n");
     //wg_print_record(db,rptr[LIT_ATOM_POS]);
-    printf("\n");
+    wr_printf("\n");
     */
 
     meta=RECORD_META_FACT_CLAUSE;
     blt=wr_build_calc_term(g,rptr[LIT_ATOM_POS]);
 
     /*
-    printf("\nwr_derived_build_cl_from_initial_cl notrule case built blt\n");
+    wr_printf("\nwr_derived_build_cl_from_initial_cl notrule case built blt\n");
     wr_print_term_otter(g,blt,1000);
-    printf("\n");
+    wr_printf("\n");
     //wg_print_record(db,rptr[LIT_ATOM_POS]);
-    printf("\n");
+    wr_printf("\n");
     */
 
     if (blt==WG_ILLEGAL) {
@@ -929,11 +950,11 @@ gptr wr_derived_build_cl_from_initial_cl(glb* g, gptr rptr, int rpos, int rulefl
     ++(g->stat_built_cl);
 
     /*
-    printf("\nwr_derived_build_cl_from_initial_cl notrule case built res\n");
+    wr_printf("\nwr_derived_build_cl_from_initial_cl notrule case built res\n");
     wr_print_clause(g,res) ;
-    printf("\n");
+    wr_printf("\n");
     //wg_print_record(db,rptr[LIT_ATOM_POS]);
-    printf("\n");
+    wr_printf("\n");
     */
 
   } 
@@ -1002,7 +1023,7 @@ int wr_derived_weight_check(glb* g, double avg, int weight,  int size, int depth
     /*
     if (length>xatomnr && length>yatomnr & xatomnr & yatomnr) {
       (g->stat_weight_discarded_cl)++;
-      if (g->print_derived_cl) printf("\n -lengthlimit %d by parents %d %d ",length,xatomnr,yatomnr);       
+      if (g->print_derived_cl) wr_printf("\n -lengthlimit %d by parents %d %d ",length,xatomnr,yatomnr);       
       return;
     }  
     */
@@ -1057,10 +1078,10 @@ gint wr_add_cl_to_unithash(glb* g, gptr cl, gint clmeta) {
       //wr_print_termhash(g,rotp(g,g->hash_pos_groundunits));
     }      
 #ifdef DEBUGHASH    
-    printf("\ng->hash_neg_groundunits after adding:");      
+    wr_printf("\ng->hash_neg_groundunits after adding:");      
     wr_print_termhash(g,rotp(g,g->hash_neg_groundunits));
     //wr_clterm_hashlist_print(g,rotp(g,g->hash_neg_groundunits));
-    printf("\ng->hash_pos_groundunits after adding:");   
+    wr_printf("\ng->hash_pos_groundunits after adding:");   
     wr_print_termhash(g,rotp(g,g->hash_pos_groundunits));   
     //wr_clterm_hashlist_print(g,rotp(g,g->hash_pos_groundunits));
 #endif

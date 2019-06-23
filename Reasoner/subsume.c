@@ -76,16 +76,16 @@ int wr_given_cl_subsumed(glb* g, gptr given_cl, gptr given_cl_metablock) {
   int dbused;
 
 #ifdef DEBUG
-  printf("wr_given_cl_is_subsumed is called with \n");
+  wr_printf("wr_given_cl_is_subsumed is called with \n");
   wr_print_clause(g,given_cl); 
-  printf("\n"); 
+  wr_printf("\n"); 
 #endif  
   UNUSED(db);
   // first try to subsume with active unit clauses  
   if (!wg_rec_is_rule_clause(db,given_cl)) {
     if (wr_active_subsumed_lit(g,rpto(g,given_cl),0)) {
 #ifdef DEBUG
-      printf("\n fact cl is subsumed by active unit by wr_active_subsumed_lit\n");
+      wr_printf("\n fact cl is subsumed by active unit by wr_active_subsumed_lit\n");
 #endif      
       (g->stat_clsubs_fact_groundunit_found)++;
       return 1;
@@ -99,7 +99,7 @@ int wr_given_cl_subsumed(glb* g, gptr given_cl, gptr given_cl_metablock) {
       lit=wg_get_rule_clause_atom(db,given_cl,i);
       if (wr_active_subsumed_lit(g,lit,wg_atom_meta_is_neg(db,meta))) {
 #ifdef DEBUG
-        printf("\n rule cl literal is subsumed by active unit by wr_active_subsumed_lit\n");
+        wr_printf("\n rule cl literal is subsumed by active unit by wr_active_subsumed_lit\n");
 #endif           
         (g->stat_clsubs_rule_groundunit_found)++;
         return 1;
@@ -109,7 +109,7 @@ int wr_given_cl_subsumed(glb* g, gptr given_cl, gptr given_cl_metablock) {
   }  
 
 #ifdef DEBUG
-  printf("wr_given_cl_is_subsumed ground unit subsumption loop did not find a subsumer \n");
+  wr_printf("wr_given_cl_is_subsumed ground unit subsumption loop did not find a subsumer \n");
 #endif     
 
   // next try to subsume with active clauses in lists
@@ -123,16 +123,16 @@ int wr_given_cl_subsumed(glb* g, gptr given_cl, gptr given_cl_metablock) {
     if (dbused==0) {
       actptr=rotp(g,g->clactivesubsume);   
 #ifdef DEBUG
-      printf("\n ** dbused %d trying local clactivesubsume\n",dbused);
+      wr_printf("\n ** dbused %d trying local clactivesubsume\n",dbused);
 #endif          
     } else {
 #ifdef DEBUG
-        printf("\n ** dbused %d \n",dbused);        
+        wr_printf("\n ** dbused %d \n",dbused);        
 #endif        
       if (r_kb_g(g)) {        
         actptr=rotp(g,(r_kb_g(g))->clactivesubsume); 
 #ifdef DEBUG
-        printf("\n ** dbused %d trying external clactivesubsume\n",dbused);        
+        wr_printf("\n ** dbused %d trying external clactivesubsume\n",dbused);        
 #endif          
       }  
       else break;      
@@ -144,94 +144,94 @@ int wr_given_cl_subsumed(glb* g, gptr given_cl, gptr given_cl_metablock) {
         if (given_cl_metablock!=NULL) {
   #ifdef DEBUG          
             
-            printf("\ngeneral iactive %d :",iactive);    
+            wr_printf("\ngeneral iactive %d :",iactive);    
             wr_print_clause(g,rotp(g,(actptr[iactive+CLMETABLOCK_CL_POS])));
-            printf("\n");
+            wr_printf("\n");
             wr_print_record(g,rotp(g,(actptr[iactive+CLMETABLOCK_CL_POS])));    
-            printf("\nmeta addr %d\n",(int)actptr+iactive);
-            printf("\nmetablock1 %d %d %d %d \n",*(actptr+iactive),*(actptr+iactive+1),*(actptr+iactive+2),*(actptr+iactive+3));
-            printf("\n lengths   ");
+            wr_printf("\nmeta addr %d\n",(int)actptr+iactive);
+            wr_printf("\nmetablock1 %d %d %d %d \n",*(actptr+iactive),*(actptr+iactive+1),*(actptr+iactive+2),*(actptr+iactive+3));
+            wr_printf("\n lengths   ");
             wr_print_gint_hashmask(g, actptr[iactive+CLMETABLOCK_LENGTHS_POS]);
-            printf("\n real length %d\n",
+            wr_printf("\n real length %d\n",
               (*(actptr+iactive) & (255<<CLMETABLOCK_LENGTH_SHIFT))>>CLMETABLOCK_LENGTH_SHIFT);
-            printf("\n sizes     ");
+            wr_printf("\n sizes     ");
             wr_print_gint_hashmask(g, actptr[iactive+CLMETABLOCK_SIZES_POS]);
-            printf("\n pref1bits ");
+            wr_printf("\n pref1bits ");
             wr_print_gint_hashmask(g, actptr[iactive+CLMETABLOCK_PREF1BITS_POS]);
-            printf("\n pref2bits ");
+            wr_printf("\n pref2bits ");
             wr_print_gint_hashmask(g, actptr[iactive+CLMETABLOCK_PREF2BITS_POS]);
-            printf("\n pref3bits ");
+            wr_printf("\n pref3bits ");
             wr_print_gint_hashmask(g, actptr[iactive+CLMETABLOCK_PREF3BITS_POS]);
-            printf("\n");
+            wr_printf("\n");
 
-            printf("\n specific given_cl:");    
+            wr_printf("\n specific given_cl:");    
             wr_print_clause(g,given_cl);
-            printf("\n");
+            wr_printf("\n");
             wr_print_record(g,given_cl);   
             
-            printf("\nmeta addr %d\n",(int)given_cl_metablock); 
-            printf("\nmetablock2 %d %d %d %d \n",*(given_cl_metablock),*(given_cl_metablock+1),*(given_cl_metablock+2),*(given_cl_metablock+3));
-            printf("\n lengths   ");
+            wr_printf("\nmeta addr %d\n",(int)given_cl_metablock); 
+            wr_printf("\nmetablock2 %d %d %d %d \n",*(given_cl_metablock),*(given_cl_metablock+1),*(given_cl_metablock+2),*(given_cl_metablock+3));
+            wr_printf("\n lengths   ");
             wr_print_gint_hashmask(g,given_cl_metablock[CLMETABLOCK_LENGTHS_POS]);
-            printf("\n real length %d\n",
+            wr_printf("\n real length %d\n",
               (*(given_cl_metablock) & (255<<CLMETABLOCK_LENGTH_SHIFT))>>CLMETABLOCK_LENGTH_SHIFT);
-            printf("\n sizes     ");
+            wr_printf("\n sizes     ");
             wr_print_gint_hashmask(g,given_cl_metablock[CLMETABLOCK_SIZES_POS]);
-            printf("\n pref1bits ");
+            wr_printf("\n pref1bits ");
             wr_print_gint_hashmask(g,given_cl_metablock[CLMETABLOCK_PREF1BITS_POS]);
-            printf("\n pref2bits ");
+            wr_printf("\n pref2bits ");
             wr_print_gint_hashmask(g,given_cl_metablock[CLMETABLOCK_PREF2BITS_POS]);
-            printf("\n pref3bits ");
+            wr_printf("\n pref3bits ");
             wr_print_gint_hashmask(g,given_cl_metablock[CLMETABLOCK_PREF3BITS_POS]);
-            printf("\n");
+            wr_printf("\n");
             
   #endif       
           (g->stat_clsubs_top_meta_attempted)++;
           if (!wr_clmetablock_can_subsume(g,actptr+iactive,given_cl_metablock)) {
             (g->stat_clsubs_top_meta_failed)++;
   #ifdef DEBUG          
-            printf("\n meta-detected cannot subsume \n");            
+            wr_printf("\n meta-detected cannot subsume \n");            
             wr_print_clause(g,rotp(g,(actptr[iactive+CLMETABLOCK_CL_POS])));
-            printf("\n");
+            wr_printf("\n");
             wr_print_clause(g,given_cl);
-            printf("\n");            
+            wr_printf("\n");            
   #endif    
                   
             continue;
           }
   #ifdef DEBUG        
-          printf("\n meta-detected CAN subsume \n");          
+          wr_printf("\n meta-detected CAN subsume \n");          
           wr_print_clause(g,rotp(g,(actptr[iactive+CLMETABLOCK_CL_POS])));
-          printf("\n");
+          wr_printf("\n");
           wr_print_clause(g,given_cl);
-          printf("\n");          
+          wr_printf("\n");          
   #endif        
         }        
         cl=rotp(g,(actptr[iactive+CLMETABLOCK_CL_POS]));
         if (cl!=NULL) {      
   #ifdef DEBUG
-          printf(" *** about to try subsuming with active clause at pos %d nr %d:\n",
+          wr_printf(" *** about to try subsuming with active clause at pos %d nr %d:\n",
             iactive+CLMETABLOCK_CL_POS,iactive/CLMETABLOCK_ELS); 
           wr_print_clause(g,cl);
-          printf("\n"); 
+          wr_printf("\n"); 
   #endif            
           // try to subsume
           sres=wr_subsume_cl(g,cl,given_cl,1);
           if (sres) {
   #ifdef DEBUG
-            printf(" * subsumer was found! \n");         
+            wr_printf(" * subsumer was found! \n");         
   #endif           
             return 1;
           }  
         }	      
       }
   #ifdef DEBUG
-      printf(" *** no subsumer was found from this list of active clauses\n");         
+      wr_printf(" *** no subsumer was found from this list of active clauses\n");         
   #endif         
     }  
   }
 #ifdef DEBUG
-  printf(" *** no subsumer was found from all active clauses\n");         
+  wr_printf(" *** no subsumer was found from all active clauses\n");         
 #endif     
   return 0;    
 }  
@@ -252,9 +252,9 @@ int wr_given_cl_backsubsume(glb* g, gptr given_cl, gptr given_cl_metablock) {
   int subsumedcount;
 
 #ifdef BACKDEBUG
-  printf("wr_given_cl_backsubsume is called with \n");
+  wr_printf("wr_given_cl_backsubsume is called with \n");
   wr_print_clause(g,given_cl); 
-  printf("\n"); 
+  wr_printf("\n"); 
 #endif  
  
   UNUSED(db);
@@ -267,66 +267,66 @@ int wr_given_cl_backsubsume(glb* g, gptr given_cl, gptr given_cl_metablock) {
       if (given_cl_metablock!=NULL) {
         
 #ifdef BACKDEBUG          
-          printf("\nspecific iactive %d :",iactive);    
+          wr_printf("\nspecific iactive %d :",iactive);    
           wr_print_clause(g,(gptr)(actptr[iactive+CLMETABLOCK_CL_POS]));
-          printf("\n");
+          wr_printf("\n");
           wr_print_record(g,(gptr)(gptr)(actptr[iactive+CLMETABLOCK_CL_POS]));    
-          printf("\nmeta addr %d\n",(int)actptr+iactive);
-          printf("\nmetablock1 %d %d %d %d \n",*(actptr+iactive),*(actptr+iactive+1),*(actptr+iactive+2),*(actptr+iactive+3));
-          printf("\n lengths   ");
+          wr_printf("\nmeta addr %d\n",(int)actptr+iactive);
+          wr_printf("\nmetablock1 %d %d %d %d \n",*(actptr+iactive),*(actptr+iactive+1),*(actptr+iactive+2),*(actptr+iactive+3));
+          wr_printf("\n lengths   ");
           wr_print_gint_hashmask(g, actptr[iactive+CLMETABLOCK_LENGTHS_POS]);
-          printf("\n real length %d\n",
+          wr_printf("\n real length %d\n",
             (*(actptr+iactive) & (255<<CLMETABLOCK_LENGTH_SHIFT))>>CLMETABLOCK_LENGTH_SHIFT);
-          printf("\n sizes     ");
+          wr_printf("\n sizes     ");
           wr_print_gint_hashmask(g, actptr[iactive+CLMETABLOCK_SIZES_POS]);
-          printf("\n pref1bits ");
+          wr_printf("\n pref1bits ");
           wr_print_gint_hashmask(g, actptr[iactive+CLMETABLOCK_PREF1BITS_POS]);
-          printf("\n pref2bits ");
+          wr_printf("\n pref2bits ");
           wr_print_gint_hashmask(g, actptr[iactive+CLMETABLOCK_PREF2BITS_POS]);
-          printf("\n pref3bits ");
+          wr_printf("\n pref3bits ");
           wr_print_gint_hashmask(g, actptr[iactive+CLMETABLOCK_PREF3BITS_POS]);
-          printf("\n");
+          wr_printf("\n");
 
-          printf("\n general given_cl:");    
+          wr_printf("\n general given_cl:");    
           wr_print_clause(g,given_cl);
-          printf("\n");
+          wr_printf("\n");
           wr_print_record(g,given_cl);   
-          printf("\nmeta addr %d\n",(int)given_cl_metablock); 
-          printf("\nmetablock2 %d %d %d %d \n",*(given_cl_metablock),*(given_cl_metablock+1),*(given_cl_metablock+2),*(given_cl_metablock+3));
-          printf("\n lengths   ");
+          wr_printf("\nmeta addr %d\n",(int)given_cl_metablock); 
+          wr_printf("\nmetablock2 %d %d %d %d \n",*(given_cl_metablock),*(given_cl_metablock+1),*(given_cl_metablock+2),*(given_cl_metablock+3));
+          wr_printf("\n lengths   ");
           wr_print_gint_hashmask(g,given_cl_metablock[CLMETABLOCK_LENGTHS_POS]);
-          printf("\n real length %d\n",
+          wr_printf("\n real length %d\n",
             (*(given_cl_metablock) & (255<<CLMETABLOCK_LENGTH_SHIFT))>>CLMETABLOCK_LENGTH_SHIFT);
-          printf("\n sizes     ");
+          wr_printf("\n sizes     ");
           wr_print_gint_hashmask(g,given_cl_metablock[CLMETABLOCK_SIZES_POS]);
-          printf("\n pref1bits ");
+          wr_printf("\n pref1bits ");
           wr_print_gint_hashmask(g,given_cl_metablock[CLMETABLOCK_PREF1BITS_POS]);
-          printf("\n pref2bits ");
+          wr_printf("\n pref2bits ");
           wr_print_gint_hashmask(g,given_cl_metablock[CLMETABLOCK_PREF2BITS_POS]);
-          printf("\n pref3bits ");
+          wr_printf("\n pref3bits ");
           wr_print_gint_hashmask(g,given_cl_metablock[CLMETABLOCK_PREF3BITS_POS]);
-          printf("\n");
+          wr_printf("\n");
 #endif         
 
         (g->stat_clsubs_top_meta_attempted)++;
         if (!wr_clmetablock_can_subsume(g,given_cl_metablock,actptr+iactive)) {
           (g->stat_clsubs_top_meta_failed)++;
 #ifdef BACKDEBUG          
-          printf("\n meta-detected cannot subsume \n");
+          wr_printf("\n meta-detected cannot subsume \n");
           wr_print_clause(g,(gptr)(actptr[iactive+CLMETABLOCK_CL_POS]));
-          printf("\n");
+          wr_printf("\n");
           wr_print_clause(g,given_cl);
-          printf("\n");
+          wr_printf("\n");
 #endif    
                  
           continue;
         }
 #ifdef BACKDEBUG        
-        printf("\n meta-detected CAN subsume \n");
+        wr_printf("\n meta-detected CAN subsume \n");
         wr_print_clause(g,(gptr)(actptr[iactive+CLMETABLOCK_CL_POS]));
-        printf("\n");
+        wr_printf("\n");
         wr_print_clause(g,given_cl);
-        printf("\n");
+        wr_printf("\n");
 #endif        
       }        
  
@@ -334,10 +334,10 @@ int wr_given_cl_backsubsume(glb* g, gptr given_cl, gptr given_cl_metablock) {
       if (cl!=NULL) {  
    
 #ifdef BACKDEBUG
-        printf(" *** about to try back-subsuming with active clause at pos %d nr %d:\n",
+        wr_printf(" *** about to try back-subsuming with active clause at pos %d nr %d:\n",
           iactive+CLMETABLOCK_CL_POS,iactive/CLMETABLOCK_ELS); 
         wr_print_clause(g,cl);
-        printf("\n"); 
+        wr_printf("\n"); 
 #endif           
         // try to subsume
         sres=wr_subsume_cl(g,given_cl,cl,1);
@@ -346,18 +346,18 @@ int wr_given_cl_backsubsume(glb* g, gptr given_cl, gptr given_cl_metablock) {
           subsumedcount++;
           wr_mark_clause_blocked(g,cl);
           /*
-          printf("\n * back-subsumed: \n");
+          wr_printf("\n * back-subsumed: \n");
           wr_print_clause(g,cl);
-          printf("\n"); 
+          wr_printf("\n"); 
           */
 #ifdef BACKDEBUG
-          printf(" * back-subsumer was found! \n");         
+          wr_printf(" * back-subsumer was found! \n");         
 #endif                     
         }  
       }	      
     }
 #ifdef BACKDEBUG
-    printf(" *** back-subsumed: %d\n",subsumedcount);         
+    wr_printf(" *** back-subsumed: %d\n",subsumedcount);         
 #endif     
     return 0;
   }    
@@ -371,21 +371,21 @@ int wr_clmetablock_can_subsume(glb* g, gptr genblock, gptr specblock) {
   sel=specblock[CLMETABLOCK_LENGTHS_POS];
   (g->stat_clsubs_top_meta_nonpref_attempted)++;
   /*
-  printf("\ngel %d sel %d",gel,sel);
-  printf("\n gel bits:\n");
+  wr_printf("\ngel %d sel %d",gel,sel);
+  wr_printf("\n gel bits:\n");
   wr_print_cl_meta(g, gel);
-  printf(" sel bits:\n");
+  wr_printf(" sel bits:\n");
   wr_print_cl_meta(g, sel);
-  printf("\n");
+  wr_printf("\n");
   
-  printf("gel isground %d\n",(gel & (1<<CLMETABLOCK_ISGROUND_SHIFT))>>CLMETABLOCK_ISGROUND_SHIFT);
-  printf("sel isground %d\n",(sel & (1<<CLMETABLOCK_ISGROUND_SHIFT))>>CLMETABLOCK_ISGROUND_SHIFT);
-  printf("gel length %d\n",(gel & (255<<CLMETABLOCK_LENGTH_SHIFT))>>CLMETABLOCK_LENGTH_SHIFT);
-  printf("sel length %d\n",(sel & (255<<CLMETABLOCK_LENGTH_SHIFT))>>CLMETABLOCK_LENGTH_SHIFT);
-  printf("gel neglength %d\n",(gel & (255<<CLMETABLOCK_NEGLENGTH_SHIFT))>>CLMETABLOCK_NEGLENGTH_SHIFT);
-  printf("sel neglength %d\n",(sel & (255<<CLMETABLOCK_NEGLENGTH_SHIFT))>>CLMETABLOCK_NEGLENGTH_SHIFT);
-  printf("gel groundlength %d\n",(gel & (255<<CLMETABLOCK_GROUNDLENGTH_SHIFT))>>CLMETABLOCK_GROUNDLENGTH_SHIFT);
-  printf("sel groundlength %d\n",(sel & (255<<CLMETABLOCK_GROUNDLENGTH_SHIFT))>>CLMETABLOCK_GROUNDLENGTH_SHIFT);
+  wr_printf("gel isground %d\n",(gel & (1<<CLMETABLOCK_ISGROUND_SHIFT))>>CLMETABLOCK_ISGROUND_SHIFT);
+  wr_printf("sel isground %d\n",(sel & (1<<CLMETABLOCK_ISGROUND_SHIFT))>>CLMETABLOCK_ISGROUND_SHIFT);
+  wr_printf("gel length %d\n",(gel & (255<<CLMETABLOCK_LENGTH_SHIFT))>>CLMETABLOCK_LENGTH_SHIFT);
+  wr_printf("sel length %d\n",(sel & (255<<CLMETABLOCK_LENGTH_SHIFT))>>CLMETABLOCK_LENGTH_SHIFT);
+  wr_printf("gel neglength %d\n",(gel & (255<<CLMETABLOCK_NEGLENGTH_SHIFT))>>CLMETABLOCK_NEGLENGTH_SHIFT);
+  wr_printf("sel neglength %d\n",(sel & (255<<CLMETABLOCK_NEGLENGTH_SHIFT))>>CLMETABLOCK_NEGLENGTH_SHIFT);
+  wr_printf("gel groundlength %d\n",(gel & (255<<CLMETABLOCK_GROUNDLENGTH_SHIFT))>>CLMETABLOCK_GROUNDLENGTH_SHIFT);
+  wr_printf("sel groundlength %d\n",(sel & (255<<CLMETABLOCK_GROUNDLENGTH_SHIFT))>>CLMETABLOCK_GROUNDLENGTH_SHIFT);
   //printf("gel length %d\n",(gel & (255<<CLMETABLOCK_LENGTH_SHIFT))>>CLMETABLOCK_LENGTH_SHIFT);
   //printf("sel length %d\n",(sel & (255<<CLMETABLOCK_LENGTH_SHIFT))>>CLMETABLOCK_LENGTH_SHIFT);
   */
@@ -440,9 +440,9 @@ int wr_active_subsumed_lit(glb* g, gint atom, int negflag) {
   gptr atomptr;
 
 #ifdef DEBUG
-  printf("\nwr_active_subsumed_lit is called \n");
+  wr_printf("\nwr_active_subsumed_lit is called \n");
   wr_print_term(g,atom);  
-  printf("\n and negflag %d\n",negflag);
+  wr_printf("\n and negflag %d\n",negflag);
 #endif
 
   hash=wr_lit_hash(g,atom); 
@@ -491,7 +491,7 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos) {
   int cuts=0;
 
 #ifdef DEBUG
-  printf("\nwr_derived_cl_cut_and_subsume is called \n");
+  wr_printf("\nwr_derived_cl_cut_and_subsume is called \n");
 #endif
 
   (g->stat_forwardsubs_attempted)++;
@@ -501,25 +501,25 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos) {
     xatom=rptr[tmp+LIT_ATOM_POS];
     xatommeta=rptr[tmp+LIT_META_POS];   
 #ifdef DEBUG     
-    printf("\n i %d xatom %d xatommeta %d atom:\n",i,xatom,xatommeta);
+    wr_printf("\n i %d xatom %d xatommeta %d atom:\n",i,xatom,xatommeta);
     wr_print_term(g,xatom);    
 #endif    
     xatomptr=rotp(g,xatom);
     hash=wr_lit_hash(g,xatom); 
 #ifdef DEBUG    
-    printf("\ncalculated hash %d \n",hash);
+    wr_printf("\ncalculated hash %d \n",hash);
 #endif    
     if (wg_atom_meta_is_neg(db,xatommeta)) {
 #ifdef DEBUG      
-      printf("\nneg\n");
+      wr_printf("\nneg\n");
 #endif      
       bucket=wr_find_termhash(g,rotp(g,g->hash_neg_groundunits),xatomptr,hash);      
       //printf("\ncpneg\n");
       if (bucket!=NULL) {
 #ifdef DEBUG        
-        printf("\nsubsumed by ground hash as neg!\n"); 
+        wr_printf("\nsubsumed by ground hash as neg!\n"); 
         wr_print_term(g,xatomptr);
-        printf("\n bucket:\n");
+        wr_printf("\n bucket:\n");
         wr_print_clause(g,bucket); 
 #endif        
         (g->stat_lit_hash_subsume_ok)++;
@@ -528,14 +528,14 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos) {
       }
       if (r_kb_g(g)) {
 #ifdef DEBUG
-        printf("\nexternal kb r_kb_g(g) present");
+        wr_printf("\nexternal kb r_kb_g(g) present");
 #endif        
         bucket=wr_find_termhash(g,rotp(g,(r_kb_g(g))->hash_neg_groundunits),xatomptr,hash);     
         if (bucket!=NULL) {
   #ifdef DEBUG        
-          printf("\nsubsumed by kb ground hash as neg!\n"); 
+          wr_printf("\nsubsumed by kb ground hash as neg!\n"); 
           wr_print_term(g,xatomptr);
-          printf("\n bucket:\n");
+          wr_printf("\n bucket:\n");
           wr_print_clause(g,bucket); 
   #endif        
           (g->stat_lit_hash_subsume_ok)++;
@@ -547,9 +547,9 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos) {
       bucket=wr_find_termhash(g,rotp(g,g->hash_pos_groundunits),xatomptr,hash);      
       if (bucket!=NULL) {         
 #ifdef DEBUG        
-        printf("\ncutoff by ground hash as neg!\n"); 
+        wr_printf("\ncutoff by ground hash as neg!\n"); 
         wr_print_term(g,xatom);
-        printf("\n bucket:\n");
+        wr_printf("\n bucket:\n");
         wr_print_clause(g,bucket);        
 #endif
         cuts++;
@@ -563,14 +563,14 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos) {
       }
       if (r_kb_g(g)) {
 #ifdef DEBUG
-        printf("\nexternal kb r_kb_g(g) present");
+        wr_printf("\nexternal kb r_kb_g(g) present");
 #endif          
         bucket=wr_find_termhash(g,rotp(g,(r_kb_g(g))->hash_pos_groundunits),xatomptr,hash);      
         if (bucket!=NULL) {         
   #ifdef DEBUG        
-          printf("\ncutoff by kb ground hash as neg!\n"); 
+          wr_printf("\ncutoff by kb ground hash as neg!\n"); 
           wr_print_term(g,xatom);
-          printf("\n bucket:\n");
+          wr_printf("\n bucket:\n");
           wr_print_clause(g,bucket);        
   #endif        
           cuts++;
@@ -586,15 +586,15 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos) {
 
     } else {
 #ifdef DEBUG      
-      printf("\npos\n");
+      wr_printf("\npos\n");
 #endif
       bucket=wr_find_termhash(g,rotp(g,g->hash_pos_groundunits),xatomptr,hash);
       //printf("\ncppos\n");
       if (bucket!=NULL) {
 #ifdef DEBUG        
-        printf("\nsubsumed by ground hash as pos!\n");
+        wr_printf("\nsubsumed by ground hash as pos!\n");
         wr_print_term(g,xatom);;
-        printf("\n bucket:\n");
+        wr_printf("\n bucket:\n");
         wr_print_clause(g,bucket);
 #endif        
         (g->stat_lit_hash_subsume_ok)++;
@@ -603,14 +603,14 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos) {
       }
       if (r_kb_g(g)) {
 #ifdef DEBUG
-        printf("\nexternal kb r_kb_g(g) present");
+        wr_printf("\nexternal kb r_kb_g(g) present");
 #endif          
         bucket=wr_find_termhash(g,rotp(g,(r_kb_g(g))->hash_pos_groundunits),xatomptr,hash);      
         if (bucket!=NULL) {
   #ifdef DEBUG        
-          printf("\nsubsumed by kb ground hash as pos!\n"); 
+          wr_printf("\nsubsumed by kb ground hash as pos!\n"); 
           wr_print_term(g,xatomptr);
-          printf("\n bucket:\n");
+          wr_printf("\n bucket:\n");
           wr_print_clause(g,bucket); 
   #endif        
           (g->stat_lit_hash_subsume_ok)++;
@@ -621,9 +621,9 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos) {
       bucket=wr_find_termhash(g,rotp(g,g->hash_neg_groundunits),xatomptr,hash);      
       if (bucket!=NULL) {            
 #ifdef DEBUG        
-        printf("\ncutoff by ground hash as pos!\n"); 
+        wr_printf("\ncutoff by ground hash as pos!\n"); 
         wr_print_term(g,xatom);
-        printf("\n bucket:\n");
+        wr_printf("\n bucket:\n");
         wr_print_clause(g,bucket);    
 #endif        
         cuts++;
@@ -637,14 +637,14 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos) {
       }
       if (r_kb_g(g)) {
 #ifdef DEBUG
-        printf("\nexternal kb r_kb_g(g) present");
+        wr_printf("\nexternal kb r_kb_g(g) present");
 #endif          
         bucket=wr_find_termhash(g,rotp(g,(r_kb_g(g))->hash_neg_groundunits),xatomptr,hash);      
         if (bucket!=NULL) {         
   #ifdef DEBUG        
-          printf("\ncutoff by kb ground hash as pos!\n"); 
+          wr_printf("\ncutoff by kb ground hash as pos!\n"); 
           wr_print_term(g,xatom);
-          printf("\n bucket:\n");
+          wr_printf("\n bucket:\n");
           wr_print_clause(g,bucket);        
   #endif        
           cuts++;
@@ -661,7 +661,7 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos) {
     //blt=wr_build_calc_term(g,rptr[tmp+LIT_ATOM_POS]);       
   }
 #ifdef DEBUG  
-  printf("\n! wr_derived_cl_cut_and_subsume is returning %d \n",cuts);
+  wr_printf("\n! wr_derived_cl_cut_and_subsume is returning %d \n",cuts);
 #endif  
   return cuts;  
 }
@@ -684,8 +684,8 @@ int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucke
   gint hash;
 
 #ifdef DEBUG
-  printf("\n!!!!! wr_atom_cut_and_subsume is called \n");    
-  printf("\n xatom %d xatommeta %d atom:\n",xatom,xatommeta);
+  wr_printf("\n!!!!! wr_atom_cut_and_subsume is called \n");    
+  wr_printf("\n xatom %d xatommeta %d atom:\n",xatom,xatommeta);
   wr_print_term(g,xatom);  
 #endif     
   xatomptr=rotp(g,xatom);
@@ -697,9 +697,9 @@ int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucke
       //printf("\ncpneg\n");
       if (bucket!=NULL) {
   #ifdef DEBUG
-        printf("\nsubsumed by ground hash as neg!\n"); 
+        wr_printf("\nsubsumed by ground hash as neg!\n"); 
         wr_print_term(g,xatom);
-        printf("\n bucket:\n");
+        wr_printf("\n bucket:\n");
         wr_print_clause(g,bucket); 
   #endif    
         return -1;
@@ -708,9 +708,9 @@ int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucke
         bucket=wr_find_termhash(g,rotp(g,(r_kb_g(g))->hash_neg_active_groundunits),xatomptr,hash);
         if (bucket!=NULL) {
     #ifdef DEBUG
-          printf("\nsubsumed by ground hash as neg!\n"); 
+          wr_printf("\nsubsumed by ground hash as neg!\n"); 
           wr_print_term(g,xatom);
-          printf("\n bucket:\n");
+          wr_printf("\n bucket:\n");
           wr_print_clause(g,bucket); 
     #endif    
           return -1;
@@ -720,9 +720,9 @@ int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucke
     bucket=wr_find_termhash(g,rotp(g,g->hash_pos_groundunits),xatomptr,hash);      
     if (bucket!=NULL) {         
 #ifdef DEBUG            
-      printf("\ncutoff by ground hash as neg!\n"); 
+      wr_printf("\ncutoff by ground hash as neg!\n"); 
       wr_print_term(g,xatom);
-      printf("\n bucket:\n");
+      wr_printf("\n bucket:\n");
       wr_print_clause(g,bucket);        
 #endif
       *foundbucket=bucket;      
@@ -732,9 +732,9 @@ int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucke
       bucket=wr_find_termhash(g,rotp(g,(r_kb_g(g))->hash_pos_active_groundunits),xatomptr,hash);
       if (bucket!=NULL) {
   #ifdef DEBUG
-        printf("\ncutoff by ground hash as neg!\n"); 
+        wr_printf("\ncutoff by ground hash as neg!\n"); 
         wr_print_term(g,xatom);
-        printf("\n bucket:\n");
+        wr_printf("\n bucket:\n");
         wr_print_clause(g,bucket);
   #endif    
         *foundbucket=bucket;
@@ -749,9 +749,9 @@ int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucke
       //printf("\ncppos\n");
       if (bucket!=NULL) {
   #ifdef DEBUG
-        printf("\nsubsumed by ground hash as pos!\n");
+        wr_printf("\nsubsumed by ground hash as pos!\n");
         wr_print_term(g,xatom);
-        printf("\n bucket:\n");
+        wr_printf("\n bucket:\n");
         wr_print_clause(g,bucket);
   #endif
         return -1;
@@ -760,9 +760,9 @@ int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucke
         bucket=wr_find_termhash(g,rotp(g,(r_kb_g(g))->hash_pos_active_groundunits),xatomptr,hash);
         if (bucket!=NULL) {
     #ifdef DEBUG
-          printf("\nsubsumed by ground hash as pos!\n"); 
+          wr_printf("\nsubsumed by ground hash as pos!\n"); 
           wr_print_term(g,xatom);
-          printf("\n bucket:\n");
+          wr_printf("\n bucket:\n");
           wr_print_clause(g,bucket); 
     #endif    
           return -1;
@@ -772,9 +772,9 @@ int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucke
     bucket=wr_find_termhash(g,rotp(g,g->hash_neg_groundunits),xatomptr,hash);      
     if (bucket!=NULL) {            
 #ifdef DEBUG       
-      printf("\ncutoff by ground hash as pos!\n"); 
+      wr_printf("\ncutoff by ground hash as pos!\n"); 
       wr_print_term(g,xatom);
-      printf("\n bucket:\n");
+      wr_printf("\n bucket:\n");
       wr_print_clause(g,bucket);    
 #endif
       *foundbucket=bucket;      
@@ -784,9 +784,9 @@ int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucke
       bucket=wr_find_termhash(g,rotp(g,(r_kb_g(g))->hash_neg_active_groundunits),xatomptr,hash);
       if (bucket!=NULL) {
   #ifdef DEBUG
-        printf("\ncutoff by ground hash as pos!\n"); 
+        wr_printf("\ncutoff by ground hash as pos!\n"); 
         wr_print_term(g,xatom);
-        printf("\n bucket:\n");
+        wr_printf("\n bucket:\n");
         wr_print_clause(g,bucket);
   #endif    
         *foundbucket=bucket;
@@ -795,7 +795,7 @@ int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucke
     }     
   }   
 #ifdef DEBUG
-  printf("\n!!!!! wr_atom_cut_and_subsume found no subs or cuts \n");
+  wr_printf("\n!!!!! wr_atom_cut_and_subsume found no subs or cuts \n");
 #endif     
   return 0;  
 }
@@ -841,11 +841,11 @@ gint wr_subsume_cl(glb* g, gptr cl1, gptr cl2, int uniquestrflag) {
   int mres;
   
 #ifdef DEBUG  
-  printf("\nwr_subsume_cl called on clauses %d %d :\n",(int)cl1,(int)cl2);
+  wr_printf("\nwr_subsume_cl called on clauses %d %d :\n",(int)cl1,(int)cl2);
   wr_print_clause(g,cl1);
-  printf("\n");
+  wr_printf("\n");
   wr_print_clause(g,cl2);
-  printf("\n");
+  wr_printf("\n");
 #endif
 
   ++(g->stat_clsubs_attempted);  
@@ -854,7 +854,7 @@ gint wr_subsume_cl(glb* g, gptr cl1, gptr cl2, int uniquestrflag) {
   if (!wg_rec_is_rule_clause(db,cl1)) {
     if (!wg_rec_is_rule_clause(db,cl2)) {
 #ifdef DEBUG  
-       printf("both clauses are facts \n");
+       wr_printf("both clauses are facts \n");
 #endif            
       ++(g->stat_clsubs_unit_attempted);      
       if (wr_equal_term(g,encode_record(db,cl1),encode_record(db,cl2),uniquestrflag))
@@ -898,12 +898,12 @@ gint wr_subsume_cl(glb* g, gptr cl1, gptr cl2, int uniquestrflag) {
   // now both clauses are rule clauses   
 
 #ifdef DEBUG  
-  printf("cllen1 %d cllen2 %d\n",cllen1,cllen2);
+  wr_printf("cllen1 %d cllen2 %d\n",cllen1,cllen2);
 #endif   
   // check unit rule clause case
   if (cllen1==1) { 
 #ifdef DEBUG  
-    printf("unit clause subsumption case \n");
+    wr_printf("unit clause subsumption case \n");
 #endif        
     //++(g->stat_clsubs_unit_attempted);    // ?? why double??
     ++(g->stat_clsubs_unit_attempted);
@@ -935,7 +935,7 @@ gint wr_subsume_cl(glb* g, gptr cl1, gptr cl2, int uniquestrflag) {
   // now both clauses are nonunit rule clauses and we do full subsumption
   // prepare for subsumption: set globals etc 
 #ifdef DEBUG  
-  printf("general subsumption case \n");
+  wr_printf("general subsumption case \n");
 #endif  
   g->tmp_unify_vc=(g->varstack)+1;  // var counter for varstack   
   // clear lit information vector (0 pos holds vec len)
@@ -988,12 +988,12 @@ gint wr_subsume_cl_aux(glb* g,gptr cl1vec, gptr cl2vec,
   int nobackflag;	    
 
 #ifdef DEBUG 
-  printf("\nwr_subsume_cl_aux called with litind1 %d litind2 %d cllen1 %d cllen2 %d gen and specific literals:\n",
+  wr_printf("\nwr_subsume_cl_aux called with litind1 %d litind2 %d cllen1 %d cllen2 %d gen and specific literals:\n",
     litind1,litind2,cllen1,cllen2);
   wr_print_term(g,*(litpt1+LIT_ATOM_POS)); 
-  printf("\n");
+  wr_printf("\n");
   wr_print_term(g,*(litpt2+LIT_ATOM_POS)); 
-  printf("\n");
+  wr_printf("\n");
 #endif            
   if(litind1<cllen1) {   
     i1=litind1;
@@ -1003,7 +1003,7 @@ gint wr_subsume_cl_aux(glb* g,gptr cl1vec, gptr cl2vec,
     nobackflag=0; // backtracing will be prohibited if match found without vars set
     for(i2=0,pt2=litpt2; !nobackflag && i2<cllen2; i2++,pt2+=LIT_WIDTH) {
 #ifdef DEBUG      
-      printf("\n in wr_subsume_cl_aux i2 %d nobackflag %d cllen2 %d\n",i2,nobackflag,cllen2);
+      wr_printf("\n in wr_subsume_cl_aux i2 %d nobackflag %d cllen2 %d\n",i2,nobackflag,cllen2);
 #endif      
       if ((g->tmp_litinf_vec)[i2+1]==0) {
 	      // literal not bound by subsumption yet
@@ -1011,11 +1011,11 @@ gint wr_subsume_cl_aux(glb* g,gptr cl1vec, gptr cl2vec,
         lit2=*(pt2+LIT_ATOM_POS);         
         //foundflag=0;          
 #ifdef DEBUG
-        printf("\n in wr_subsume_cl_aux gen lit1 and specific lit2:\n");
+        wr_printf("\n in wr_subsume_cl_aux gen lit1 and specific lit2:\n");
         wr_print_term(g,lit1);
-        printf("\n");
+        wr_printf("\n");
         wr_print_term(g,lit2);
-        printf("\n");
+        wr_printf("\n");
 #endif        
         if (wr_sort_meta_bigger(meta1,meta2)) {
           // lit1 cannot subsume any literal in cl2vec here or coming after, like:
@@ -1027,17 +1027,17 @@ gint wr_subsume_cl_aux(glb* g,gptr cl1vec, gptr cl2vec,
           return 0;
         } else if (!litmeta_negpolarities(meta1,meta2) && wr_matchable_lit_meta(g,meta1,meta2)) {          
 #ifdef DEBUG      
-          printf("\n ok polarities and matchable lit meta\n");
+          wr_printf("\n ok polarities and matchable lit meta\n");
 #endif             
           vc_tmp=*(g->tmp_unify_vc); // store current value of varstack pointer ????????
           if (wr_match_term_aux(g,lit1,lit2,uniquestrflag)) {
 #ifdef DEBUG      
-            printf("\n wr_match_term_aux returned 1\n");
+            wr_printf("\n wr_match_term_aux returned 1\n");
 #endif                
         
             
 #ifdef DEBUG             
-	          printf("lit match ok with *(g->tmp_unify_vc): %d\n",*(g->tmp_unify_vc));
+	          wr_printf("lit match ok with *(g->tmp_unify_vc): %d\n",*(g->tmp_unify_vc));
             wr_print_vardata(g);
 #endif            
             // literals were successfully matched
@@ -1048,13 +1048,13 @@ gint wr_subsume_cl_aux(glb* g,gptr cl1vec, gptr cl2vec,
 	                             i1+1,i2,cllen1,cllen2,uniquestrflag)) {
 	            // found a right match for current gcl lit
 #ifdef DEBUG                                  
-              printf("rest ok with *(g->tmp_unify_vc): %d\n",*(g->tmp_unify_vc));		
+              wr_printf("rest ok with *(g->tmp_unify_vc): %d\n",*(g->tmp_unify_vc));		
               wr_print_vardata(g);                                  
 #endif                                 
 	            return 1;	    
 	          } 
 #ifdef DEBUG             
-	          printf("rest failed with *(g->tmp_unify_vc): %d\n",*(g->tmp_unify_vc));
+	          wr_printf("rest failed with *(g->tmp_unify_vc): %d\n",*(g->tmp_unify_vc));
             wr_print_vardata(g);
 #endif            
 	          if (vc_tmp!=*(g->tmp_unify_vc)) wr_clear_varstack_topslice(g,g->varstack,vc_tmp);
@@ -1070,7 +1070,7 @@ gint wr_subsume_cl_aux(glb* g,gptr cl1vec, gptr cl2vec,
     return 0;        
   }
   // clause 
-  printf("REASONER ERROR! something wrong in calling wr_subsume_cl_aux\n");
+  wr_printf("REASONER ERROR! something wrong in calling wr_subsume_cl_aux\n");
   //printf("litind1: %d cllen1: %d i1: %d \n", litind1,cllen1,i1);  
   return 0;  
 }     
@@ -1082,12 +1082,12 @@ gint wr_subsume_cl_aux(glb* g,gptr cl1vec, gptr cl2vec,
 int wr_matchable_lit_meta(glb* g, gint mx, gint my) {
 
 #ifdef DEBUG
-  printf("\nwr_matchable_lit_meta called on\n  general mx %d: ",mx);
+  wr_printf("\nwr_matchable_lit_meta called on\n  general mx %d: ",mx);
   wr_print_cl_meta(g, mx);
-  printf("\n");
-  printf("  specific my %d: ",my);
+  wr_printf("\n");
+  wr_printf("  specific my %d: ",my);
   wr_print_cl_meta(g, my);
-  printf("\n");
+  wr_printf("\n");
 #endif  
   (g->stat_clsubs_meta_attempted)++;
   if ((mx&(ATOM_META_CANSUBS_MASK<<SMALLINTSHFT)) > (my&(ATOM_META_CANSUBS_MASK<<SMALLINTSHFT))) {

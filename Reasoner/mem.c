@@ -57,7 +57,7 @@ void* wr_malloc(glb* g, int bytes) {
   ++(g->stat_wr_mallocs);
   (g->stat_wr_malloc_bytes)+=bytes;
 #ifdef DEBUG  
-  printf("\nwr_malloc %d \n",bytes);
+  wr_printf("\nwr_malloc %d \n",bytes);
 #endif  
   if (g->inkb) return wr_inkb_malloc(g,bytes);
   else return sys_malloc(bytes);  
@@ -67,7 +67,7 @@ void* wr_calloc(glb* g, size_t nmemb, int bytes) {
   ++(g->stat_wr_callocs);
   (g->stat_wr_calloc_bytes)+=nmemb*bytes;
 #ifdef DEBUG  
-  printf("\nwr_calloc nmemb %d bytes each %d altogether %d\n",nmemb,bytes,nmemb*bytes);
+  wr_printf("\nwr_calloc nmemb %d bytes each %d altogether %d\n",nmemb,bytes,nmemb*bytes);
 #endif  
   if (g->inkb) return wr_inkb_calloc(g,nmemb,bytes);
   else return sys_calloc(nmemb,bytes);  
@@ -77,7 +77,7 @@ void* wr_realloc(glb* g, void* p, int bytes) {
   ++(g->stat_wr_reallocs);
   (g->stat_wr_realloc_bytes)+=bytes;
 #ifdef DEBUG   
-  printf("\nwr_realloc %d \n",bytes);
+  wr_printf("\nwr_realloc %d \n",bytes);
 #endif  
   if (g->inkb) return wr_inkb_realloc(g,p,bytes);
   else return sys_realloc(p,bytes);  
@@ -86,7 +86,7 @@ void* wr_realloc(glb* g, void* p, int bytes) {
 void wr_free(glb* g, void* p) {
   ++(g->stat_wr_frees);
 #ifdef DEBUG 
-  printf("\nwr_free\n");
+  wr_printf("\nwr_free\n");
 #endif  
   if (g->inkb) wr_inkb_free(g,p);
   else sys_free(p);
@@ -98,13 +98,13 @@ void* wr_inkb_malloc(glb* g, int bytes) {
   void* ntmp;
 
 #ifdef DEBUG  
-  printf("\nwr_inkb_malloc bytes %d\n",bytes); 
+  wr_printf("\nwr_inkb_malloc bytes %d\n",bytes); 
 #endif
   tmp=wg_rawalloc(g->db,bytes+sizeof(gint));
   if (tmp==NULL) return NULL;
   ntmp=(void*)((char*)tmp+sizeof(gint));
 #ifdef DEBUG  
-  printf("\nwr_inkb_malloc got tmp %ld ntmp %ld size at tmp %ld\n",
+  wr_printf("\nwr_inkb_malloc got tmp %ld ntmp %ld size at tmp %ld\n",
        (gint)tmp,(gint)ntmp,(gint)*((gint*)tmp));
 #endif       
   return ntmp;
@@ -114,14 +114,14 @@ void* wr_inkb_calloc(glb* g, size_t nmemb, int bytes) {
   void* tmp;
   void* ntmp;
 #ifdef DEBUG  
-  printf("\nwr_inkb_calloc nmemb %d bytes each %d altogether %d\n",nmemb,bytes,nmemb*bytes);
+  wr_printf("\nwr_inkb_calloc nmemb %d bytes each %d altogether %d\n",nmemb,bytes,nmemb*bytes);
 #endif
   tmp=wg_rawalloc(g->db,(nmemb*bytes)+sizeof(gint));
   if (tmp==NULL) return NULL;
   ntmp=(void*)((char*)tmp+sizeof(gint));
   memset(ntmp,0,(nmemb*bytes));
 #ifdef DEBUG  
-  printf("\nwr_inkb_calloc got tmp %ld ntmp %ld size at tmp %ld cleared bytes %d\n",
+  wr_printf("\nwr_inkb_calloc got tmp %ld ntmp %ld size at tmp %ld cleared bytes %d\n",
     (gint)tmp,(gint)ntmp,(gint)*((gint*)tmp),(nmemb*bytes));
 #endif  
   return ntmp; 
@@ -133,13 +133,13 @@ void* wr_inkb_realloc(glb* g, void* p, int bytes) {
   void* ntmp;
   gint size;
 #ifdef DEBUG  
-  printf("\nwr_inkb_realloc bytes %d\n",bytes); 
+  wr_printf("\nwr_inkb_realloc bytes %d\n",bytes); 
 #endif
   oldstart=(void*)((char*)p-sizeof(gint));
   size= *((gint*)oldstart);
 #ifdef DEBUG  
-  printf("p %ld oldstart %ld \n",(gint)p,(gint)oldstart);  
-  printf("old size %ld\n",size);
+  wr_printf("p %ld oldstart %ld \n",(gint)p,(gint)oldstart);  
+  wr_printf("old size %ld\n",size);
 #endif  
   tmp=wg_rawalloc(g->db,bytes+sizeof(gint));
   if (tmp==NULL) return NULL;
@@ -147,7 +147,7 @@ void* wr_inkb_realloc(glb* g, void* p, int bytes) {
   
   memcpy(ntmp,p,size);
 #ifdef DEBUG    
-  printf("\nwr_inkb_realloc got tmp %ld ntmp %ld size at tmp %ld\n",
+  wr_printf("\nwr_inkb_realloc got tmp %ld ntmp %ld size at tmp %ld\n",
        (gint)tmp,(gint)ntmp,(gint)*((gint*)tmp));
 #endif
   return ntmp;
@@ -156,7 +156,7 @@ void* wr_inkb_realloc(glb* g, void* p, int bytes) {
 void wr_inkb_free(glb* g, void* p) {
   //wg_rawalloc(g->db,bytes); 
 #ifdef DEBUG    
-  printf("\nwr_inkb_free p %ld\n",(gint)p);
+  wr_printf("\nwr_inkb_free p %ld\n",(gint)p);
 #endif  
 }
 
@@ -415,7 +415,7 @@ gptr wr_alloc_from_cvec(glb* g, cvec buf, gint gints) {
   gint pos;
   gint i;
 #ifdef DEBUG  
-  printf("\nwr_alloc_from_cvec called with gints %ld\n",gints);
+  wr_printf("\nwr_alloc_from_cvec called with gints %ld\n",gints);
 #endif
   pos=CVEC_NEXT(buf);
   // set correct alignment for pos
@@ -462,26 +462,30 @@ char* wr_str_new(glb* g, int len) {
 *
 */
 
-void wr_str_guarantee_space(glb* g, char** stradr, int* strlenadr, int needed) {
+int wr_str_guarantee_space(glb* g, char** stradr, int* strlenadr, int needed) {
   char* tmp;
   int newlen;
   int j;
   
   //printf("str_guarantee_space, needed: %d, *strlenadr: %d\n",needed,*strlenadr);
-  if (needed>(*strlenadr)) {    
-    newlen=(*strlenadr)*2;
-    tmp=wr_realloc(g,*stradr,newlen);
-    //printf("str_guarantee_space, realloc done, newlen: %d\n",newlen);
-    if (tmp==NULL) {
-      wr_sys_exiterr2int(g,"Cannot reallocate memory for a string with length",newlen);    
-      return;
-    }  
-    for(j=(*strlenadr)-1;j<newlen;j++) *(tmp+j)=' '; // clear new space
-    tmp[newlen-1]=0;   // set last byte to 0  
-    *stradr=tmp;
-    *strlenadr=newlen;
-    wr_str_guarantee_space(g,stradr,strlenadr,needed); // maybe still not enough?    
+  if (needed<=(*strlenadr)) return 1;
+  // now need more space
+  newlen=(*strlenadr);
+  while(1) {
+    newlen=newlen*2;      
+    if (newlen>1000000000) return 0; // too big, over one gig
+    if (newlen>needed) break;          
   }  
+  tmp=wr_realloc(g,*stradr,newlen);
+  if (tmp==NULL) {
+    wr_sys_exiterr2int(g,"Cannot reallocate memory for a string with length",newlen);    
+    return 0;
+  }  
+  for(j=(*strlenadr)-1;j<newlen;j++) *(tmp+j)=' '; // clear new space
+  tmp[newlen-1]=0;   // set last byte to 0  
+  *stradr=tmp;
+  *strlenadr=newlen;
+  return 1;
 }
     
 /** Free the passed string.

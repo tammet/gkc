@@ -100,11 +100,11 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
 #endif
 
 #ifdef DEBUG
-  printf("\n wr_analyze_clause \n");
+  wr_printf("\n wr_analyze_clause \n");
   wr_print_clause(g,cl); 
-  printf("\n");
+  wr_printf("\n");
   wg_print_record(g->db,cl); 
-  printf("\n");
+  wr_printf("\n");
 #endif
 
   history=wr_get_history(g,cl);
@@ -119,9 +119,9 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
       name = wr_get_history_record_field(db,historyptr,HISTORY_NAME_POS);
       if (name && wg_get_encoded_type(db,name)==WG_STRTYPE) {
         namestr=wg_decode_str(db,name);
-        printf("name: %s",namestr);
+        wr_printf("name: %s",namestr);
       } else if (name && wg_get_encoded_type(db,name)==WG_INTTYPE) {
-        printf("name as int: %d",(int)(wg_decode_int(db,name)));
+        wr_printf("name as int: %d",(int)(wg_decode_int(db,name)));
       }
       //wr_print_history_extra(g,history);
 #endif      
@@ -130,15 +130,15 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
       decprior=wr_decode_priority(g,priority);
       
 #ifdef DEBUG      
-      if (decprior==WR_HISTORY_GOAL_ROLENR) printf(",goal] ");
-      else if (decprior==WR_HISTORY_ASSUMPTION_ROLENR) printf(",assumption] ");
-      else if (decprior==WR_HISTORY_FROMGOALASSUMPTION_ROLENR) printf(",fromga] "); 
-      else if (decprior==WR_HISTORY_FROMGOAL_ROLENR) printf(",fromgoal] ");
-      else if (decprior==WR_HISTORY_FROMASSUMPTION_ROLENR) printf(",fromassumption] ");
-      else if (decprior==WR_HISTORY_AXIOM_ROLENR) printf(",axiom] ");
-      else if (decprior==WR_HISTORY_FROMAXIOM_ROLENR) printf(",fromaxiom] ");
-      else if (decprior==WR_HISTORY_EXTAXIOM_ROLENR) printf(",extaxiom] ");
-      else if (decprior) printf(", dp %d] ",(int)decprior);
+      if (decprior==WR_HISTORY_GOAL_ROLENR) wr_printf(",goal] ");
+      else if (decprior==WR_HISTORY_ASSUMPTION_ROLENR) wr_printf(",assumption] ");
+      else if (decprior==WR_HISTORY_FROMGOALASSUMPTION_ROLENR) wr_printf(",fromga] "); 
+      else if (decprior==WR_HISTORY_FROMGOAL_ROLENR) wr_printf(",fromgoal] ");
+      else if (decprior==WR_HISTORY_FROMASSUMPTION_ROLENR) wr_printf(",fromassumption] ");
+      else if (decprior==WR_HISTORY_AXIOM_ROLENR) wr_printf(",axiom] ");
+      else if (decprior==WR_HISTORY_FROMAXIOM_ROLENR) wr_printf(",fromaxiom] ");
+      else if (decprior==WR_HISTORY_EXTAXIOM_ROLENR) wr_printf(",extaxiom] ");
+      else if (decprior) wr_printf(", dp %d] ",(int)decprior);
 #endif      
     }
        
@@ -183,7 +183,7 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
             &size,&maxdepth,!wg_atom_meta_is_neg(db,meta),haveextdb);
       if (!tmp) {
         // something wrong with the atom
-        printf("\nError: found an incorrectly encoded clause\n");
+        wr_printf("\nError: found an incorrectly encoded clause\n");
         wg_print_record(db,cl);
         return 0; 
       }
@@ -262,10 +262,10 @@ int wr_analyze_term(glb* g, gint x,
   gint ucount, ucountpos, ucountneg;
 
 #ifdef DEBUG
-  printf("wr_analyze_term called with x %d type %d depth %d size %d maxdepth %d\n",
+  wr_printf("wr_analyze_term called with x %d type %d depth %d size %d maxdepth %d\n",
          x,wg_get_encoded_type(g->db,x),depth,*size,*maxdepth);
   wr_print_term(g,x);
-  printf("\n");
+  wr_printf("\n");
 #endif
   if (!isdatarec(x)) {
     // now we have a simple value  
@@ -276,8 +276,8 @@ int wr_analyze_term(glb* g, gint x,
       
       if (dtype==WG_URITYPE && !haveextdb) {
 #ifdef DEBUG                
-        printf("\nuri: ");
-        printf(" %s \n", wg_decode_unistr(db,x,WG_URITYPE));
+        wr_printf("\nuri: ");
+        wr_printf(" %s \n", wg_decode_unistr(db,x,WG_URITYPE));
 #endif        
         ucount=wg_decode_uri_count(db,x);
         ucountpos=ucount >> URI_COUNT_POSCOUNT_SHIFT;        
@@ -386,7 +386,7 @@ char* make_auto_guide(glb* g, glb* kb_g) {
   int tmp;
 
   if (kb_g) {
-    printf("\nglobal stats:\n");
+    wr_printf("\nglobal stats:\n");
     wr_show_in_stats(kb_g);
   }   
   make_sum_input_stats(g,kb_g);
@@ -939,7 +939,7 @@ char* make_auto_guide(glb* g, glb* kb_g) {
 
   pos+=sprintf(buf+pos,"\n]}\n");
   
-  printf("\nauto guide:\n-----------\n%s\n",buf);
+  wr_printf("\nauto guide:\n-----------\n%s\n",buf);
    
   //guide=wr_parse_guide_str(buf);
   //printf("Using default strategy.");
@@ -1079,81 +1079,81 @@ void wr_copy_sin_stats(glb* fromg, glb* tog) {
 void wr_show_in_stats(glb* g) {
   if (!(g->print_stats)) return;
     
-  printf("\ninput clause set statistics:\n");
-  printf("----------------------------------\n");
+  wr_printf("\ninput clause set statistics:\n");
+  wr_printf("----------------------------------\n");
 
-  printf("in_clause_count:         %13d\n",g->in_clause_count);  
-  printf("in_rule_clause_count:    %13d\n",g->in_rule_clause_count);
-  printf("in_fact_clause_count:    %13d\n",g->in_fact_clause_count);
-  printf("in_answer_clause_count:  %13d\n",g->in_answer_clause_count);
-  printf("in_ground_clause_count:  %13d\n",g->in_ground_clause_count);
-  printf("in_unit_clause_count:    %13d\n",g->in_unit_clause_count);
-  printf("in_horn_clause_count:    %13d\n",g->in_horn_clause_count);
-  printf("in_pos_clause_count:     %13d\n",g->in_pos_clause_count);
-  printf("in_neg_clause_count:     %13d\n",g->in_neg_clause_count);
-  printf("in_poseq_clause_count:   %13d\n",g->in_poseq_clause_count);
-  printf("in_negeq_clause_count:   %13d\n",g->in_negeq_clause_count);
-  printf("in_unitposeq_clause_count:  %10d\n",g->in_unitposeq_clause_count);
-  printf("in_chain_clause_count:   %13d\n", g->in_chain_clause_count);
-  printf("in_min_length: %13d\n",g->in_min_length);
-  printf("in_max_length: %13d\n",g->in_max_length);
-  printf("in_min_depth:  %13d\n",g->in_min_depth);
-  printf("in_max_depth:  %13d\n",g->in_max_depth);
-  printf("in_min_size:   %13d\n",g->in_min_size);
-  printf("in_max_size:   %13d\n",g->in_max_size);
-  printf("in_min_vars:   %13d\n",g->in_min_vars);
-  printf("in_max_vars:   %13d\n",g->in_max_vars);
-  printf("in_average_length:     %f\n",g->in_average_length);
-  printf("in_average_depth:      %f\n",g->in_average_depth);
-  printf("in_predicate_count:    %13d\n",g->in_predicate_count);
-  printf("in_funsymb_count:      %13d\n",g->in_funsymb_count);
-  printf("in_extaxiom_count:     %13d\n",g->in_extaxiom_count);
-  printf("in_axiom_count:        %13d\n",g->in_axiom_count);
-  printf("in_assumption_count:   %13d\n",g->in_assumption_count);
-  printf("in_goal_count:         %13d\n",g->in_goal_count);
-  printf("in_neg_goal_count:     %13d\n",g->in_neg_goal_count);
-  printf("in_pos_goal_count:     %13d\n",g->in_pos_goal_count);
-  printf("in_posunit_goal_count: %13d\n",g->in_posunit_goal_count);
+  wr_printf("in_clause_count:         %13d\n",g->in_clause_count);  
+  wr_printf("in_rule_clause_count:    %13d\n",g->in_rule_clause_count);
+  wr_printf("in_fact_clause_count:    %13d\n",g->in_fact_clause_count);
+  wr_printf("in_answer_clause_count:  %13d\n",g->in_answer_clause_count);
+  wr_printf("in_ground_clause_count:  %13d\n",g->in_ground_clause_count);
+  wr_printf("in_unit_clause_count:    %13d\n",g->in_unit_clause_count);
+  wr_printf("in_horn_clause_count:    %13d\n",g->in_horn_clause_count);
+  wr_printf("in_pos_clause_count:     %13d\n",g->in_pos_clause_count);
+  wr_printf("in_neg_clause_count:     %13d\n",g->in_neg_clause_count);
+  wr_printf("in_poseq_clause_count:   %13d\n",g->in_poseq_clause_count);
+  wr_printf("in_negeq_clause_count:   %13d\n",g->in_negeq_clause_count);
+  wr_printf("in_unitposeq_clause_count:  %10d\n",g->in_unitposeq_clause_count);
+  wr_printf("in_chain_clause_count:   %13d\n", g->in_chain_clause_count);
+  wr_printf("in_min_length: %13d\n",g->in_min_length);
+  wr_printf("in_max_length: %13d\n",g->in_max_length);
+  wr_printf("in_min_depth:  %13d\n",g->in_min_depth);
+  wr_printf("in_max_depth:  %13d\n",g->in_max_depth);
+  wr_printf("in_min_size:   %13d\n",g->in_min_size);
+  wr_printf("in_max_size:   %13d\n",g->in_max_size);
+  wr_printf("in_min_vars:   %13d\n",g->in_min_vars);
+  wr_printf("in_max_vars:   %13d\n",g->in_max_vars);
+  wr_printf("in_average_length:     %f\n",g->in_average_length);
+  wr_printf("in_average_depth:      %f\n",g->in_average_depth);
+  wr_printf("in_predicate_count:    %13d\n",g->in_predicate_count);
+  wr_printf("in_funsymb_count:      %13d\n",g->in_funsymb_count);
+  wr_printf("in_extaxiom_count:     %13d\n",g->in_extaxiom_count);
+  wr_printf("in_axiom_count:        %13d\n",g->in_axiom_count);
+  wr_printf("in_assumption_count:   %13d\n",g->in_assumption_count);
+  wr_printf("in_goal_count:         %13d\n",g->in_goal_count);
+  wr_printf("in_neg_goal_count:     %13d\n",g->in_neg_goal_count);
+  wr_printf("in_pos_goal_count:     %13d\n",g->in_pos_goal_count);
+  wr_printf("in_posunit_goal_count: %13d\n",g->in_posunit_goal_count);
 }
 
 void wr_show_in_summed_stats(glb* g) {
   if (!(g->print_stats)) return;
     
-  printf("\ninput clause set summed statistics:\n");
-  printf("----------------------------------\n");
+  wr_printf("\ninput clause set summed statistics:\n");
+  wr_printf("----------------------------------\n");
 
-  printf("in_clause_count:         %13d\n",g->sin_clause_count);  
-  printf("in_rule_clause_count:    %13d\n",g->sin_rule_clause_count);
-  printf("in_fact_clause_count:    %13d\n",g->sin_fact_clause_count);
-  printf("in_answer_clause_count:  %13d\n",g->sin_answer_clause_count);
-  printf("in_ground_clause_count:  %13d\n",g->sin_ground_clause_count);
-  printf("in_unit_clause_count:    %13d\n",g->sin_unit_clause_count);
-  printf("in_horn_clause_count:    %13d\n",g->sin_horn_clause_count);
-  printf("in_pos_clause_count:     %13d\n",g->sin_pos_clause_count);
-  printf("in_neg_clause_count:     %13d\n",g->sin_neg_clause_count);
-  printf("in_poseq_clause_count:   %13d\n",g->sin_poseq_clause_count);
-  printf("in_negeq_clause_count:   %13d\n",g->sin_negeq_clause_count);
-  printf("in_unitposeq_clause_count:  %10d\n",g->sin_unitposeq_clause_count);
-  printf("in_chain_clause_count:   %13d\n", g->sin_chain_clause_count);
-  printf("in_min_length: %13d\n",g->sin_min_length);
-  printf("in_max_length: %13d\n",g->sin_max_length);
-  printf("in_min_depth:  %13d\n",g->sin_min_depth);
-  printf("in_max_depth:  %13d\n",g->sin_max_depth);
-  printf("in_min_size:   %13d\n",g->sin_min_size);
-  printf("in_max_size:   %13d\n",g->sin_max_size);
-  printf("in_min_vars:   %13d\n",g->sin_min_vars);
-  printf("in_max_vars:   %13d\n",g->sin_max_vars);
-  printf("in_average_length:     %f\n",g->sin_average_length);
-  printf("in_average_depth:      %f\n",g->sin_average_depth);
-  printf("in_predicate_count:    %13d\n",g->sin_predicate_count);
-  printf("in_funsymb_count:      %13d\n",g->sin_funsymb_count);
-  printf("in_extaxiom_count:     %13d\n",g->sin_extaxiom_count);
-  printf("in_axiom_count:        %13d\n",g->sin_axiom_count);
-  printf("in_assumption_count:   %13d\n",g->sin_assumption_count);
-  printf("in_goal_count:         %13d\n",g->sin_goal_count);
-  printf("in_neg_goal_count:     %13d\n",g->sin_neg_goal_count);
-  printf("in_pos_goal_count:     %13d\n",g->sin_pos_goal_count);
-  printf("in_posunit_goal_count: %13d\n",g->sin_posunit_goal_count);
+  wr_printf("in_clause_count:         %13d\n",g->sin_clause_count);  
+  wr_printf("in_rule_clause_count:    %13d\n",g->sin_rule_clause_count);
+  wr_printf("in_fact_clause_count:    %13d\n",g->sin_fact_clause_count);
+  wr_printf("in_answer_clause_count:  %13d\n",g->sin_answer_clause_count);
+  wr_printf("in_ground_clause_count:  %13d\n",g->sin_ground_clause_count);
+  wr_printf("in_unit_clause_count:    %13d\n",g->sin_unit_clause_count);
+  wr_printf("in_horn_clause_count:    %13d\n",g->sin_horn_clause_count);
+  wr_printf("in_pos_clause_count:     %13d\n",g->sin_pos_clause_count);
+  wr_printf("in_neg_clause_count:     %13d\n",g->sin_neg_clause_count);
+  wr_printf("in_poseq_clause_count:   %13d\n",g->sin_poseq_clause_count);
+  wr_printf("in_negeq_clause_count:   %13d\n",g->sin_negeq_clause_count);
+  wr_printf("in_unitposeq_clause_count:  %10d\n",g->sin_unitposeq_clause_count);
+  wr_printf("in_chain_clause_count:   %13d\n", g->sin_chain_clause_count);
+  wr_printf("in_min_length: %13d\n",g->sin_min_length);
+  wr_printf("in_max_length: %13d\n",g->sin_max_length);
+  wr_printf("in_min_depth:  %13d\n",g->sin_min_depth);
+  wr_printf("in_max_depth:  %13d\n",g->sin_max_depth);
+  wr_printf("in_min_size:   %13d\n",g->sin_min_size);
+  wr_printf("in_max_size:   %13d\n",g->sin_max_size);
+  wr_printf("in_min_vars:   %13d\n",g->sin_min_vars);
+  wr_printf("in_max_vars:   %13d\n",g->sin_max_vars);
+  wr_printf("in_average_length:     %f\n",g->sin_average_length);
+  wr_printf("in_average_depth:      %f\n",g->sin_average_depth);
+  wr_printf("in_predicate_count:    %13d\n",g->sin_predicate_count);
+  wr_printf("in_funsymb_count:      %13d\n",g->sin_funsymb_count);
+  wr_printf("in_extaxiom_count:     %13d\n",g->sin_extaxiom_count);
+  wr_printf("in_axiom_count:        %13d\n",g->sin_axiom_count);
+  wr_printf("in_assumption_count:   %13d\n",g->sin_assumption_count);
+  wr_printf("in_goal_count:         %13d\n",g->sin_goal_count);
+  wr_printf("in_neg_goal_count:     %13d\n",g->sin_neg_goal_count);
+  wr_printf("in_pos_goal_count:     %13d\n",g->sin_pos_goal_count);
+  wr_printf("in_posunit_goal_count: %13d\n",g->sin_posunit_goal_count);
 }
 
 #ifdef __cplusplus

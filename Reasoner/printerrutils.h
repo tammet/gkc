@@ -35,7 +35,7 @@
 
 /* ==== Global defines ==== */
 
-
+#define db_printf(...) printf(FIRST(__VA_ARGS__)  REST(__VA_ARGS__))
 #define wr_printf(...) if(g->print_flag) printf(FIRST(__VA_ARGS__)  REST(__VA_ARGS__))
 /* expands to the first argument */
 #define FIRST(...) FIRST_HELPER(__VA_ARGS__, throwaway)

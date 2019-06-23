@@ -120,6 +120,10 @@ void wg_show_strhash(void* db);
 void wg_show_database(void* db);
 void gkc_show_cur_time(void);
 
+void initial_printf(char* s);
+void err_printf(char* s);
+void err_printf2(char* s1, char* s2);
+
 //#define SHOW_CONTENTS 1
 //#undef SHOW_CONTENTS
 
@@ -422,24 +426,24 @@ int main(int argc, char **argv) {
     wg_int err;
 
     if (cmdfileslen<2) {
-      printf("Error: -prove needs a file as an argument\n");
+      err_printf("-prove needs a file as an argument");
       exit(1);
     }  
     shmptr=wg_attach_local_database(shmsize);
     if(!shmptr) {
-      fprintf(stderr, "Failed to attach local database.\n");
+      err_printf("failed to attach local database");
       exit(1);
     }
     //islocaldb=1;
     err = wg_import_otter_file(shmptr,cmdfiles[1],0);   
     if(!err) {
-      printf("Data read from %s.\n",cmdfiles[1]);
+      //printf("Data read from %s.\n",cmdfiles[1]);
     } else if(err<-1) {
-      fprintf(stderr, "Fatal error when reading otter file, data may be partially"\
-        " imported\n");
+      err_printf("fatal error when reading otter file, data may be partially"\
+        " imported");
       exit(1);   
     } else {
-      fprintf(stderr, "Import failed.\n");           
+      //err_printf("import failed");           
       exit(1); 
     }  
 
@@ -463,17 +467,17 @@ int main(int argc, char **argv) {
     wg_int err;
 
     if (cmdfileslen<2) {
-      printf("Error: -readkb needs a file as an argument\n");
+      err_printf("-readkb needs a file as an argument");
       exit(1);
     }   
 #ifdef _WIN32      
     if (mbsize && mbsize<100) {
-      printf("Error:-readkb needs at least 100 megabytes: change -mbsize argument \n");
+      err_printf("-readkb needs at least 100 megabytes: change -mbsize argument");
       exit(1);
     }        
 #else
     if (mbsize && mbsize<1000) {
-      printf("Error: -readkb needs at least 1000 megabytes: change -mbsize argument \n");
+      err_printf("-readkb needs at least 1000 megabytes: change -mbsize argument");
       exit(1);
     }
 #endif         
@@ -488,7 +492,7 @@ int main(int argc, char **argv) {
 #endif
     shmptr=wg_attach_database(shmname, shmsize);
     if(!shmptr) {
-      fprintf(stderr, "Failed to attach to database.\n");
+      err_printf("failed to attach to database");
       exit(1);
     }
 #ifdef SHOWTIME       
@@ -503,10 +507,10 @@ int main(int argc, char **argv) {
     if(!err)
       printf("Data parsed into the shared memory db, starting to build indexes.");
     else if(err<-1)
-      fprintf(stderr, "Fatal error when reading otter file, data may be partially"\
-        " imported\n");
+      err_printf("problem reading otter file, data may be partially"\
+        " imported");
     else {
-      fprintf(stderr, "Reading failed.\n");
+      err_printf("reading failed");
       wg_delete_database(shmname);
       exit(1);
     }
@@ -518,7 +522,7 @@ int main(int argc, char **argv) {
     if (cmdfileslen==3) tmp=init_shared_database(shmptr,cmdfiles[2]);
     else tmp=init_shared_database(shmptr,NULL);
     if (tmp<0) {
-      printf("\nDb creation failed.\n");
+      err_printf("db creation failed");
       wg_delete_database(shmname);
       exit(1);
     }  
@@ -543,7 +547,7 @@ int main(int argc, char **argv) {
     wg_int err;
 
     if (cmdfileslen<2) {
-      printf("Error: -provekb needs a file as an argument\n");
+      err_printf("-provekb needs a file as an argument");
       exit(1);
     }      
 #ifdef SHOWTIME 
@@ -552,7 +556,7 @@ int main(int argc, char **argv) {
 #endif      
     shmptr=wg_attach_existing_database(shmname);
     if(!shmptr) {
-      fprintf(stderr, "Failed to attach to database.\n");
+      err_printf("failed to attach to database");
       exit(1);
     }
     printf("Using the existing shared memory kb %s.\n",shmname);
@@ -576,7 +580,7 @@ int main(int argc, char **argv) {
     gkc_show_cur_time();
 #endif      
     if(!shmptrlocal) {
-      fprintf(stderr, "Failed to attach local database.\n");
+      err_printf("failed to attach local database");
       exit(1);
     }        
     //islocaldb=1;
@@ -587,13 +591,13 @@ int main(int argc, char **argv) {
 #endif      
     err = wg_import_otter_file(shmptrlocal,cmdfiles[1],0);
     if(!err) {
-      printf("Data read from %s.\n",cmdfiles[1]);
+      //printf("Data read from %s.\n",cmdfiles[1]);
     } else if(err<-1) {
-      fprintf(stderr, "Fatal error when reading otter file, data may be partially"\
-        " imported\n");
+      err_printf("fatal error when reading otter file, data may be partially"\
+        " imported");
       exit(1);   
     } else {
-      fprintf(stderr, "Import failed.\n");           
+      //err_printf("import failed");           
       exit(1); 
     }  
     
@@ -632,12 +636,12 @@ int main(int argc, char **argv) {
      int flags = 0;
 
     if (cmdfileslen<2) {
-      printf("Error: -writekb needs a file as an argument.\n");
+      err_printf("-writekb needs a file as an argument");
       exit(1);
     }  
     shmptr=wg_attach_existing_database(shmname);
     if(!shmptr) {
-      printf("Error: failed to attach local database.\n");
+      err_printf("failed to attach local database");
       exit(1);
     }
 
@@ -648,11 +652,11 @@ int main(int argc, char **argv) {
       err = wg_dump(shmptr,cmdfiles[1]);
 
     if(err<-1) {
-      printf("Error: cannot write to file, kb may have"\
-        " become corrupt\n");
+      err_printf("cannot write to file, kb may have"\
+        " become corrupt");
       exit(1);  
     } else if(err) {
-      printf("Error: writing failed.\n");
+      err_printf("writing failed");
       exit(1);
     }
     exit(0);
@@ -665,19 +669,19 @@ int main(int argc, char **argv) {
     int flags = 0;  
 
     if (cmdfileslen<2) {
-      printf("Error: -loadkb needs a file as an argument.\n");
+      err_printf("-loadkb needs a file as an argument");
       exit(1);
     }  
     err = wg_check_dump(NULL, cmdfiles[1], &minsize, &maxsize);
     if(err) {
-      printf("Error: loading failed, problem with %s.\n",cmdfiles[1]);
+      err_printf2("loading failed, problem with %s",cmdfiles[1]);
       exit(1);
     }
 
     shmptr=wg_attach_memsegment(shmname, minsize, maxsize, 1,
       (flags & FLAGS_LOGGING), 0);
     if(!shmptr) {
-      printf("Error: failed to attach local database.\n");
+      err_printf("error: failed to attach local database");
       exit(1);
     }
 
@@ -686,11 +690,11 @@ int main(int argc, char **argv) {
     if(!err)
       printf("Database imported.\n");
     else if(err<-1) {
-      printf("Error: failed to load, db may have"\
-        " become corrupt.\n");
+      err_printf("failed to load, db may have"\
+        " become corrupt");
       exit(1);  
     } else {
-      printf("Error: loading failed.\n");
+      err_printf("loading failed");
       exit(1);
     }
 #ifdef _WIN32    
@@ -707,17 +711,17 @@ int main(int argc, char **argv) {
     int flags = 0;
 
     if (cmdfileslen<3) {
-      printf("Error: -readwritekb needs a data file and a dump filename as arguments\n");
+      err_printf("-readwritekb needs a data file and a dump filename as arguments");
       exit(1);
     }   
 #ifdef _WIN32      
     if (mbsize && mbsize<100) {
-      printf("Error: -readwritekb needs at least 100 megabytes: change -mbsize argument \n");
+      err_printf("-readwritekb needs at least 100 megabytes: change -mbsize argument");
       exit(1);
     }        
 #else
     if (mbsize && mbsize<1000) {
-      printf("Error: -readwritekb needs at least 1000 megabytes: change -mbsize argument \n");
+      err_printf("-readwritekb needs at least 1000 megabytes: change -mbsize argument");
       exit(1);
     }
 #endif
@@ -732,7 +736,7 @@ int main(int argc, char **argv) {
 #endif
     shmptr=wg_attach_database(shmname, shmsize);
     if(!shmptr) {
-      fprintf(stderr, "Failed to attach to database.\n");
+      err_printf("failed to attach to database");
       exit(1);
     }
 #ifdef SHOWTIME       
@@ -747,10 +751,10 @@ int main(int argc, char **argv) {
     if(!err)
       printf("Data parsed into the shared memory db, starting to build indexes.");
     else if(err<-1)
-      fprintf(stderr, "Fatal error when reading otter file, data may be partially"\
-        " imported\n");
+      err_printf("fatal error when reading otter file, data may be partially"\
+        " imported");
     else {
-      fprintf(stderr, "Reading failed.\n");
+      err_printf("reading failed");
       wg_delete_database(shmname);
       exit(1);
     }
@@ -762,7 +766,7 @@ int main(int argc, char **argv) {
     if (cmdfileslen==4) tmp=init_shared_database(shmptr,cmdfiles[3]);
     else tmp=init_shared_database(shmptr,NULL);    
     if (tmp<0) {
-      printf("\nDb creation failed.\n");
+      err_printf("db creation failed");
       wg_delete_database(shmname);
       exit(1);
     }  
@@ -778,11 +782,11 @@ int main(int argc, char **argv) {
       err = wg_dump(shmptr,cmdfiles[2]);
 
     if(err<-1) {
-      printf("Error: cannot write to file, kb may have"\
-        " become corrupt\n");
+      err_printf("cannot write to file, kb may have"\
+        " become corrupt");
       exit(1);  
     } else if(err) {
-      printf("Error: writing failed.\n");
+      err_printf("writing failed");
       exit(1);
     }
     printf("Database written to file %s and remains present in memory.\n",cmdfiles[2]);
@@ -800,7 +804,7 @@ int main(int argc, char **argv) {
   if (!(strncmp(cmdstr,"-deletekb",15))) {
     /* free shared memory */
 #ifdef _WIN32      
-    printf("Error: -deletekb is available on Linux and OSX only\n");
+    err_printf("-deletekb is available on Linux and OSX only");
     exit(0);
 #endif      
     wg_delete_database(shmname);
@@ -942,6 +946,17 @@ void gkc_show_cur_time(void)  {
   printf("run_seconds %f time %s\n", run_seconds,asctime (timeinfo));
 }
 
+void initial_printf(char* s) {
+  printf("{\"error\": \"%s\"}",s);
+}
+
+void err_printf(char* s) {
+  printf("{\"error\": \"%s\"}\n",s);
+}
+
+void err_printf2(char* s1, char* s2) {
+  printf("{\"error\": \"%s %s\"}\n",s1,s2);
+}
 
 
 #ifdef __cplusplus

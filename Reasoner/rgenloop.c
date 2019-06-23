@@ -102,7 +102,7 @@ int wr_genloop(glb* g) {
 #endif  
   
 #ifndef QUIET    
-  printf("========= rwr_genloop starting ========= \n");   
+  wr_printf("========= rwr_genloop starting ========= \n");   
 #endif  
   UNUSED(db);
 
@@ -153,7 +153,7 @@ int wr_genloop(glb* g) {
     
 
 #ifdef DEBUG
-    printf("wr_genloop for loop beginning queue is\n");
+    wr_printf("wr_genloop for loop beginning queue is\n");
     //wr_show_clqueue(g);
     //printf("queue ended\n");
 #endif     
@@ -172,7 +172,7 @@ int wr_genloop(glb* g) {
     }
 
     if (!picked_given_cl_cand && !(g->stat_given_candidates)) {
-       if ((g->print_flag) && (g->print_runs)) printf("No candidate clauses found.\n");
+       if ((g->print_flag) && (g->print_runs)) wr_printf("No candidate clauses found.\n");
        return 2; // code for no candidates at all.
     }
     // given_kept_flag will now indicate whether to add to active list or not
@@ -213,7 +213,7 @@ int wr_genloop(glb* g) {
       if (g->alloc_err) return -1;
       else if (g->proof_found) {
 #ifdef DEBUG
-        printf("\nproof found, returning 0\n");
+        wr_printf("\nproof found, returning 0\n");
 #endif         
         return 0;
       }
@@ -224,11 +224,11 @@ int wr_genloop(glb* g) {
     // -- check part 1 starts ---
     
     if ((gint)given_cl_cand==ACONST_FALSE) {
-      printf("\nggiven_cl_cand is ACONST_FALSE\n");
+      wr_printf("\nggiven_cl_cand is ACONST_FALSE\n");
       continue;
     }
     if ((gint)given_cl_cand==ACONST_TRUE) {
-      printf("\ngiven_cl_cand is ACONST_TRUE\n");
+      wr_printf("\ngiven_cl_cand is ACONST_TRUE\n");
       continue;
     }
 
@@ -237,7 +237,7 @@ int wr_genloop(glb* g) {
 
     if (wr_given_cl_subsumed(g,given_cl_cand,given_cl_metablock)) {
 #ifdef DEBUG
-      printf("\ngiven cl is subsumed\n");
+      wr_printf("\ngiven cl is subsumed\n");
 #endif    
       continue;
     }
@@ -332,16 +332,16 @@ gptr wr_pick_given_cl(glb* g, gptr given_cl_metablock) {
   int next;
   
 #ifdef DEBUG  
-  printf("picking cl nr %d as given\n",g->clqueue_given);
+  wr_printf("picking cl nr %d as given\n",g->clqueue_given);
 #endif  
   //if (g->clqueue_given>=4) exit(0);
   // first try stack
 #ifdef DEBUG  
-  printf("trying stack\n");
+  wr_printf("trying stack\n");
 #endif  
 
 #ifdef DEBUG  
-  printf("trying priority queue:\n");
+  wr_printf("trying priority queue:\n");
   //wr_print_priorqueue(g,rotp(g,g->clpickpriorqueue));
 #endif
   // then try priority queue
@@ -356,7 +356,7 @@ gptr wr_pick_given_cl(glb* g, gptr given_cl_metablock) {
     (g->pick_given_queue_ratio_counter)=0;
   }
 #ifdef DEBUG  
-  printf("trying queue\n");
+  wr_printf("trying queue\n");
 #endif
   // then try queue
   next=CVEC_NEXT(rotp(g,g->clqueue));
@@ -384,26 +384,26 @@ gptr wr_process_given_cl(glb* g, gptr given_cl_cand, gptr buf) {
 
 #ifdef DEBUG
   void* db=g->db;
-  printf("\nwr_process_given_cl called with \n");
-  printf("int %d type %d\n",(int)given_cl_cand,(int)(wg_get_encoded_type(db,given_cl_cand)));
+  wr_printf("\nwr_process_given_cl called with \n");
+  wr_printf("int %d type %d\n",(int)given_cl_cand,(int)(wg_get_encoded_type(db,given_cl_cand)));
   wr_print_record(g,given_cl_cand);
-  printf("\n");
+  wr_printf("\n");
   wr_print_clause(g,given_cl_cand);  
-  printf("\n");
+  wr_printf("\n");
 #endif    
 #ifdef DEBUG
-  printf("\nwr_process_given_cl to do wr_process_given_cl_setupsubst \n");
+  wr_printf("\nwr_process_given_cl to do wr_process_given_cl_setupsubst \n");
 #endif  
   wr_process_given_cl_setupsubst(g,buf,1,1);
 #ifdef DEBUG
-  printf("\nwr_process_given_cl to do wr_build_calc_cl \n");
+  wr_printf("\nwr_process_given_cl to do wr_build_calc_cl \n");
 #endif    
   given_cl=wr_build_calc_cl(g,given_cl_cand);
   if (!given_cl) return NULL;
 #ifdef DEBUG
-  printf("\nwr_process_given_cl got a given_cl \n");
+  wr_printf("\nwr_process_given_cl got a given_cl \n");
   wr_print_clause(g,given_cl); 
-  printf("\n");
+  wr_printf("\n");
 #endif    
 
   // -- check 3 starts --
@@ -429,11 +429,11 @@ gptr wr_process_given_cl(glb* g, gptr given_cl_cand, gptr buf) {
   if (given_cl==NULL) return NULL; // could be memory err  
   //wr_print_varbank(g,g->varbanks);
 #ifdef DEBUG
-  printf("\nrebuilt as \n");
+  wr_printf("\nrebuilt as \n");
   wr_print_record(g,given_cl);
-  printf("\n");
+  wr_printf("\n");
   wr_print_clause(g,given_cl);  
-  printf("\n");
+  wr_printf("\n");
 #endif  
   return given_cl;
 } 
@@ -449,14 +449,14 @@ gptr wr_add_given_cl_active_list(glb* g, gptr given_cl, gptr given_cl_metablock,
 
 #ifdef DEBUG
   void* db=g->db;
-  printf("\nwr_add_given_cl_active_list called with \n");
-  printf("int %d type %d\n",(int)given_cl,(int)(wg_get_encoded_type(db,given_cl)));
-  printf("\nwg_rec_is_fact_clause(db,rec): %d \n",wg_rec_is_fact_clause(g->db,given_cl));
-  printf("\nwg_count_clause_atoms(db,clause): %d \n",wg_count_clause_atoms(g->db,given_cl));
+  wr_printf("\nwr_add_given_cl_active_list called with \n");
+  wr_printf("int %d type %d\n",(int)given_cl,(int)(wg_get_encoded_type(db,given_cl)));
+  wr_printf("\nwg_rec_is_fact_clause(db,rec): %d \n",wg_rec_is_fact_clause(g->db,given_cl));
+  wr_printf("\nwg_count_clause_atoms(db,clause): %d \n",wg_count_clause_atoms(g->db,given_cl));
   wr_print_record(g,given_cl);
-  printf("\n");
+  wr_printf("\n");
   wr_print_clause(g,given_cl);  
-  printf("\n");
+  wr_printf("\n");
 #endif          
   wr_process_given_cl_setupsubst(g,build_buffer,2,0); 
   active_cl=wr_build_calc_cl(g,given_cl);
@@ -464,18 +464,18 @@ gptr wr_add_given_cl_active_list(glb* g, gptr given_cl, gptr given_cl_metablock,
   wr_process_given_cl_cleanupsubst(g); 
   if (active_cl==NULL) return NULL; // could be memory err
 #ifdef DEBUG
-  printf("\nwr_add_given_cl_active_list generated for storage \n");
-  printf("int %d type %d\n",(int)given_cl,(int)(wg_get_encoded_type(db,active_cl)));
+  wr_printf("\nwr_add_given_cl_active_list generated for storage \n");
+  wr_printf("int %d type %d\n",(int)given_cl,(int)(wg_get_encoded_type(db,active_cl)));
   wr_print_record(g,active_cl);
-  printf("\n");
+  wr_printf("\n");
   wr_print_clause(g,active_cl);
-  printf("\n");
+  wr_printf("\n");
 #endif    
   // add to a list of all active clauses
  
   if ((g->clactive)!=(gint)NULL) {
 #ifdef DEBUG  
-    printf("\npushing to clactive pos %d\n",(int)((rotp(g,g->clactive))[1]));    
+    wr_printf("\npushing to clactive pos %d\n",(int)((rotp(g,g->clactive))[1]));    
 #endif     
     (g->clactive)=rpto(g,wr_cvec_push(g,rotp(g,(g->clactive)),(gint)active_cl));
   }  
@@ -485,7 +485,7 @@ gptr wr_add_given_cl_active_list(glb* g, gptr given_cl, gptr given_cl_metablock,
     hashadded=wr_add_cl_to_active_unithash(g,active_cl);
     if (!hashadded && subsflag && (g->clactivesubsume)!=(gint)NULL) {    
   #ifdef DEBUG  
-      printf("\npushing to clactivesubsume pos %d\n",(int)((rotp(g,g->clactivesubsume))[1]));
+      wr_printf("\npushing to clactivesubsume pos %d\n",(int)((rotp(g,g->clactivesubsume))[1]));
   #endif  
       (g->clactivesubsume)=rpto(g,wr_cvec_push(g,rotp(g,(g->clactivesubsume)),given_cl_metablock[0]));
       (g->clactivesubsume)=rpto(g,wr_cvec_push(g,rotp(g,(g->clactivesubsume)),given_cl_metablock[1]));
@@ -521,9 +521,9 @@ int wr_add_cl_to_active_unithash(glb* g, gptr cl) {
   UNUSED(db);
   len=wg_count_clause_atoms(db,cl);
 #ifdef DEBUGHASH
-  printf("\nwr_add_cl_to_active_unithash:\n");
+  wr_printf("\nwr_add_cl_to_active_unithash:\n");
   wr_print_clause(g,cl);
-  printf("\nlen %d wg_rec_is_rule_clause %d\n",len,wg_rec_is_rule_clause(db,cl));
+  wr_printf("\nlen %d wg_rec_is_rule_clause %d\n",len,wg_rec_is_rule_clause(db,cl));
 #endif
   if (len==1) { 
     if (wg_rec_is_rule_clause(db,cl)) {
@@ -546,10 +546,10 @@ int wr_add_cl_to_active_unithash(glb* g, gptr cl) {
       //wr_print_termhash(g,rotp(g,g->hash_pos_groundunits));
     }      
 #ifdef DEBUGHASH    
-    printf("\ng->hash_neg_active_groundunits after adding:");      
+    wr_printf("\ng->hash_neg_active_groundunits after adding:");      
     wr_print_termhash(g,rotp(g,g->hash_neg_active_groundunits));
     //wr_clterm_hashlist_print(g,rotp(g,g->hash_neg_groundunits));
-    printf("\ng->hash_pos_active_groundunits after adding:");   
+    wr_printf("\ng->hash_pos_active_groundunits after adding:");   
     wr_print_termhash(g,rotp(g,g->hash_pos_active_groundunits));   
     //wr_clterm_hashlist_print(g,rotp(g,g->hash_pos_groundunits));
 #endif

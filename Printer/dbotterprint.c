@@ -78,7 +78,22 @@ void wr_print_clause(glb* g, gptr rec) {
     history=wr_get_history(g,rec);
     wr_print_clause_name_history(g,history);
   }
+  /* 
+  int tmp, len=80;
+  char *buf;
+  buf=malloc(len);  
+  tmp=wr_strprint_clause_otter(g,rec,(g->print_clause_detaillevel),&buf,&len,0);
+  if (tmp<0 || buf==NULL) {
+    printf("printing error for clause \n");
+    wr_print_clause_otter(g,rec,(g->print_clause_detaillevel));
+  } else {
+    printf("%s %d %d",buf,tmp,len);
+  }
+  if (buf!=NULL) free(buf);
+  */
+
   wr_print_clause_otter(g,rec,(g->print_clause_detaillevel));
+
   printf(" ");
   //wg_print_record(g->db,rec);
 }  
@@ -170,44 +185,13 @@ void wr_print_rule_clause_otter(glb* g, gint* rec,int printlevel) {
   void* db=g->db;
   gint meta, enc;
   int i, len;
-  //char strbuf[256];
-#if 0
-/* XXX: FIXME */
-#ifdef USE_CHILD_DB
-  gint parent;
-#endif
-#endif
 
   if (rec==NULL) {printf("NULL\n"); return;}  
-#if 0
-/* XXX: FIXME */
-#ifdef USE_CHILD_DB
-  parent = wg_get_rec_base_offset(db, rec);
-#endif
-#endif
-  //len = wg_get_record_len(db, rec);
   len = wg_count_clause_atoms(db, rec);
-  //printf("[%d ",len);
   for(i=0; i<len; i++) {
-    //printf(" #%d-%d ",i,((i-CLAUSE_EXTRAHEADERLEN)%2));
-    //if (i<CLAUSE_EXTRAHEADERLEN) continue;
-    //if (((i-CLAUSE_EXTRAHEADERLEN)%2)==0) continue;
-    //if(i>(CLAUSE_EXTRAHEADERLEN+2)) printf(" | ");
-    //if (i>1 && i+1<len) printf(" | ");
-    //enc = wg_get_field(db, rec, i);
-    
     if (i>0 && i<len) printf(" | ");
     meta=wg_get_rule_clause_atom_meta(db,rec,i);
     enc=wg_get_rule_clause_atom(db,rec,i);
-    //printf("[i %d meta %d enc %d]",i,meta,enc);
-    //enc=wg_get_field(db,rec,i);
-#if 0
-/* XXX: FIXME */
-#ifdef USE_CHILD_DB
-    if(parent)
-      enc = wg_encode_parent_data(parent, enc);
-#endif
-#endif
     if (wg_atom_meta_is_neg(db,meta)) printf("-");
     if (wg_get_encoded_type(db, enc)==WG_RECORDTYPE) {   
       wr_print_atom_otter(g,enc,printlevel);
@@ -241,17 +225,8 @@ void wr_print_atom_otter(glb* g, gint rec, int printlevel) {
     wr_print_simpleterm_otter(g,rec,printlevel);
     return;
   }
-#if 0
-/* XXX: FIXME */
-#ifdef USE_CHILD_DB
-  gint parent;
-  parent = wg_get_rec_base_offset(db, rec);
-#endif
-#endif
   recptr=wg_decode_record(db, rec);
   len = wg_get_record_len(db, recptr);
-  //printf("["); 
-  //wg_print_record(g->db,rec);
   for(i=0; i<len; i++) {
 #ifdef PRINT_TERMMETA    
     if ((i==(g->unify_firstuseterm)-1) && (wg_get_field(db,recptr,i)!=0) &&
@@ -265,13 +240,6 @@ void wr_print_atom_otter(glb* g, gint rec, int printlevel) {
     if (i<(g->unify_firstuseterm)) continue;
     if(i>((g->unify_firstuseterm)+1)) printf(",");
     enc = wg_get_field(db, recptr, i);
-#if 0
-/* XXX: FIXME */
-#ifdef USE_CHILD_DB
-    if(parent)
-      enc = wg_encode_parent_data(parent, enc);
-#endif
-#endif
     if (wg_get_encoded_type(db, enc)==WG_RECORDTYPE) {
       wr_print_term_otter(g,enc,printlevel);
     } else {  
@@ -296,13 +264,6 @@ void wr_print_term_otter(glb* g, gint rec,int printlevel) {
     wr_print_simpleterm_otter(g,rec,printlevel);
     return;
   }
-#if 0
-/* XXX: FIXME */
-#ifdef USE_CHILD_DB
-  gint parent;
-  parent = wg_get_rec_base_offset(db, rec);
-#endif
-#endif
   recptr=wg_decode_record(db, rec);
   len = wg_get_record_len(db, recptr);
   for(i=0; i<len; i++) {
@@ -317,14 +278,7 @@ void wr_print_term_otter(glb* g, gint rec,int printlevel) {
 #endif
     if (i<(g->unify_firstuseterm)) continue;
     if(i>((g->unify_firstuseterm)+1)) printf(",");
-    enc = wg_get_field(db, recptr, i);
-#if 0
-/* XXX: FIXME */
-#ifdef USE_CHILD_DB
-    if(parent)
-      enc = wg_encode_parent_data(parent, enc);
-#endif
-#endif     
+    enc = wg_get_field(db, recptr, i);    
     if (wg_get_encoded_type(db, enc)==WG_RECORDTYPE) {
       wr_print_term_otter(g,enc,printlevel);
     } else {  
@@ -439,6 +393,257 @@ void wg_nice_print_var(void* db, gint i) {
 
 }
 
+
+/* ============= print clause to a string ============ */
+
+
+
+/** Print single clause (rule/fact record)
+ * 
+ * return next-to-write position in buf or -1 if error
+ */
+
+int wr_strprint_clause_otter(glb* g, gptr rec, int printlevel, char** buf, int *len, int pos) {
+  if (!wr_str_guarantee_space(g,buf,len,pos+10)) return -1;  
+  if (rec==NULL) { pos+=sprintf((*buf)+pos,"NULL"); return pos; }
+  if (wg_rec_is_rule_clause(db,rec)) {
+    pos=wr_strprint_rule_clause_otter(g,(gptr)rec,printlevel,buf,len,pos);
+  } else if (wg_rec_is_fact_clause(db,rec)) {
+    pos=wr_strprint_fact_clause_otter(g,(gptr)rec,printlevel,buf,len,pos);
+  }     
+  return pos;
+}
+
+/** Print single rule record
+ *
+ * return next-to-write position in buf or -1 if error
+ * 
+ */
+
+int wr_strprint_rule_clause_otter(glb* g, gint* rec,int printlevel, char** buf, int *len, int pos) {
+  void* db=g->db;
+  gint meta, enc;
+  int i, clen;
+  
+  if (!wr_str_guarantee_space(g,buf,len,pos+10)) return -1;
+  if (rec==NULL) { pos+=snprintf((*buf)+pos,(*len)-pos,"NULL"); return pos; }  
+  clen = wg_count_clause_atoms(db, rec);
+  for(i=0; i<clen; i++) {
+    if (i>0 && i<clen) {
+      if (!wr_str_guarantee_space(g,buf,len,pos+10)) return -1;
+      pos+=snprintf((*buf)+pos,(*len)-pos," | ");
+    }  
+    meta=wg_get_rule_clause_atom_meta(db,rec,i);
+    enc=wg_get_rule_clause_atom(db,rec,i);
+    if (!wr_str_guarantee_space(g,buf,len,pos+10)) return -1;
+    if (wg_atom_meta_is_neg(db,meta)) pos+=snprintf((*buf)+pos,(*len)-pos,"-");
+    if (wg_get_encoded_type(db, enc)==WG_RECORDTYPE) {   
+      pos=wr_strprint_atom_otter(g,enc,printlevel,buf,len,pos);
+      if (pos<0) return pos;
+    } else {  
+      pos=wr_strprint_simpleterm_otter(g,enc,printlevel,buf,len,pos);
+      if (pos<0) return pos;
+    }      
+  }
+  if (!wr_str_guarantee_space(g,buf,len,pos+10)) return -1;
+  pos+=snprintf((*buf)+pos,(*len)-pos,".");
+  return pos;
+}
+
+/** Print single fact record
+ *
+ */
+
+int wr_strprint_fact_clause_otter(glb* g, gint* rec, int printlevel, char** buf, int *len, int pos) {
+  void* db=g->db;
+    
+  
+  if (!wr_str_guarantee_space(g,buf,len,pos+10)) return -1;
+  if (rec==NULL) { 
+    pos+=snprintf((*buf)+pos,(*len)-pos,"NULL"); 
+    return pos; 
+  } else {
+    pos=wr_strprint_atom_otter(g,wg_encode_record(db,rec),printlevel,buf,len,pos);
+    if (pos<0) return pos;
+  }
+  pos+=sprintf((*buf)+pos,".");
+  return pos;
+}
+
+
+int wr_strprint_atom_otter(glb* g, gint rec, int printlevel,char** buf, int *len, int pos) {
+  void* db=g->db;
+  gptr recptr;
+  gint clen, enc;
+  int i;
+  
+  if (wg_get_encoded_type(db,rec)!=WG_RECORDTYPE) {
+    return wr_strprint_simpleterm_otter(g,rec,printlevel,buf,len,pos);    
+  }
+  recptr=wg_decode_record(db, rec);
+  clen = wg_get_record_len(db, recptr);
+  for(i=0; i<clen; i++) {  
+    if (i<(g->unify_firstuseterm)) continue;
+    if (!wr_str_guarantee_space(g,buf,len,pos+10)) return -1;
+    if(i>((g->unify_firstuseterm)+1)) pos+=snprintf((*buf)+pos,(*len)-pos,",");
+    enc = wg_get_field(db, recptr, i);
+    if (wg_get_encoded_type(db, enc)==WG_RECORDTYPE) {
+      pos=wr_strprint_term_otter(g,enc,printlevel,buf,len,pos);
+      if (pos<0) return pos;
+    } else {  
+      pos=wr_strprint_simpleterm_otter(g, enc,printlevel,buf,len,pos);
+      if (pos<0) return pos;
+    }       
+    if (!wr_str_guarantee_space(g,buf,len,pos+10)) return -1;
+    if (i==(g->unify_firstuseterm))  pos+=snprintf((*buf)+pos,(*len)-pos,"(");
+  }
+  if (!wr_str_guarantee_space(g,buf,len,pos+10)) return -1;
+  pos+=snprintf((*buf)+pos,(*len)-pos,")");
+  return pos;
+}
+
+
+int wr_strprint_term_otter(glb* g, gint rec,int printlevel, char** buf, int *len, int pos) {
+  void* db=g->db;
+  gptr recptr;
+  gint  enc;
+  int i, clen;
+
+#ifdef DEBUG  
+  printf("print_term called with enc %d and type %d \n",(int)rec,wg_get_encoded_type(db,rec)); 
+#endif   
+  if (wg_get_encoded_type(db,rec)!=WG_RECORDTYPE) {
+    pos=wr_strprint_simpleterm_otter(g,rec,printlevel,buf,len,pos);
+    return pos;
+  }
+  recptr=wg_decode_record(db, rec);
+  clen = wg_get_record_len(db, recptr);
+  for(i=0; i<clen; i++) {
+    if (i<(g->unify_firstuseterm)) continue;
+    if (!wr_str_guarantee_space(g,buf,len,pos+10)) return -1;
+    if(i>((g->unify_firstuseterm)+1)) pos+=snprintf((*buf)+pos,(*len)-pos,",");
+    enc = wg_get_field(db, recptr, i);    
+    if (wg_get_encoded_type(db, enc)==WG_RECORDTYPE) {
+      pos=wr_strprint_term_otter(g,enc,printlevel,buf,len,pos);
+      if (pos<0) return pos;
+    } else {  
+      pos=wr_strprint_simpleterm_otter(g, enc,printlevel,buf,len,pos);
+      if (pos<0) return pos;
+    }           
+    if (!wr_str_guarantee_space(g,buf,len,pos+10)) return -1;
+    if (i==(g->unify_firstuseterm)) pos+=snprintf((*buf)+pos,(*len)-pos,"(");
+  }
+  if (!wr_str_guarantee_space(g,buf,len,pos+10)) return -1;
+  pos+=snprintf((*buf)+pos,(*len)-pos,")");
+  return pos;
+}
+
+
+/** Print a single, encoded value or a subrecord
+ *  
+ */
+int wr_strprint_simpleterm_otter(glb* g, gint enc,int printlevel, char** buf, int *len, int pos) {
+  void* db=g->db;
+  
+  int intdata;
+  char *strdata, *exdata;
+  double doubledata;
+  char strbuf[80];
+  int len1=0,len2=0;
+
+#ifdef DEBUG  
+  printf("simpleterm called with enc %d and type %d \n",(int)enc,wg_get_encoded_type(db,enc)); 
+#endif  
+
+  if (!wr_str_guarantee_space(g,buf,len,pos+50)) return -1;
+  switch(wg_get_encoded_type(db, enc)) {
+    case WG_NULLTYPE:
+      return pos+snprintf((*buf)+pos,(*len)-pos,"NULL");      
+    //case WG_RECORDTYPE:
+    //  ptrdata = (gint) wg_decode_record(db, enc);
+    //  wg_print_subrecord_otter(db,(gint*)ptrdata);
+    //  break;    
+    case WG_INTTYPE:
+      intdata = wg_decode_int(db, enc);
+      return pos+snprintf((*buf)+pos,(*len)-pos,"%d", intdata);
+    case WG_DOUBLETYPE:
+      doubledata = wg_decode_double(db, enc);
+      return pos+snprintf((*buf)+pos,(*len)-pos,"%f", doubledata);
+    case WG_STRTYPE:
+      strdata = wg_decode_str(db, enc);
+      return pos+snprintf((*buf)+pos,(*len)-pos,"\"%s\"", strdata);
+    case WG_URITYPE:
+      strdata = wg_decode_uri(db, enc);
+      exdata = wg_decode_uri_prefix(db, enc);
+      if (strdata) len1=strlen(strdata);
+      if (exdata) len2=strlen(exdata);
+      if (!wr_str_guarantee_space(g,buf,len,pos+len1+len2+50)) return -1;
+      if (exdata==NULL)
+        return pos+snprintf((*buf)+pos,(*len)-pos,"%s", strdata);
+      else
+        return pos+snprintf((*buf)+pos,(*len)-pos,"%s:%s", exdata, strdata);      
+    case WG_XMLLITERALTYPE:
+      strdata = wg_decode_xmlliteral(db, enc);
+      exdata = wg_decode_xmlliteral_xsdtype(db, enc);
+      if (strdata) len1=strlen(strdata);
+      if (exdata) len2=strlen(exdata);
+      if (!wr_str_guarantee_space(g,buf,len,pos+len1+len2+50)) return -1;
+      return pos+snprintf((*buf)+pos,(*len)-pos,"\"<xsdtype %s>%s\"", exdata, strdata);
+    case WG_CHARTYPE:
+      intdata = wg_decode_char(db, enc);
+      return pos+snprintf((*buf)+pos,(*len)-pos,"%c", (char) intdata);
+    case WG_DATETYPE:
+      intdata = wg_decode_date(db, enc);
+      wg_strf_iso_datetime(db,intdata,0,strbuf);
+      strbuf[10]=0;
+      if (!wr_str_guarantee_space(g,buf,len,pos+50)) return -1;
+      return pos+snprintf((*buf)+pos,(*len)-pos,"<raw date %d>%s", intdata,strbuf);
+    case WG_TIMETYPE:
+      intdata = wg_decode_time(db, enc);
+      wg_strf_iso_datetime(db,1,intdata,strbuf);        
+      return pos+snprintf((*buf)+pos,(*len)-pos,"<raw time %d>%s",intdata,strbuf+11);
+    case WG_VARTYPE:
+      intdata = wg_decode_var(db, enc);
+      return wg_nice_strprint_var(db,intdata,buf,len,pos);
+    case WG_ANONCONSTTYPE:
+      strdata = wg_decode_anonconst(db, enc);
+      return pos+snprintf((*buf)+pos,(*len)-pos,"!%s", strdata);
+    default:
+      return pos+snprintf((*buf)+pos,(*len)-pos,"<unsupported type>");
+  }
+}
+
+int wg_nice_strprint_var(glb* g, gint i, char** buf, int *len, int pos) {
+  char strbuf[80];
+
+  if (!wr_str_guarantee_space(g,buf,len,pos+20)) return -1;
+
+  if      (i==1000) strcpy(strbuf,"X1");
+  else if (i==1001) strcpy(strbuf,"Y1");
+  else if (i==1002) strcpy(strbuf,"Z1");
+  else if (i==1003) strcpy(strbuf,"U1");
+  else if (i==1004) strcpy(strbuf,"V1");
+  else if (i==1005) strcpy(strbuf,"W1");
+
+  else if (i==2000) strcpy(strbuf,"X");
+  else if (i==2001) strcpy(strbuf,"Y");
+  else if (i==2002) strcpy(strbuf,"Z");
+  else if (i==2003) strcpy(strbuf,"U");
+  else if (i==2004) strcpy(strbuf,"V");
+  else if (i==2005) strcpy(strbuf,"W");
+
+  else if (i==3000) strcpy(strbuf,"X3");
+  else if (i==3001) strcpy(strbuf,"Y3");
+  else if (i==3002) strcpy(strbuf,"Z3");
+  else if (i==3003) strcpy(strbuf,"U3");
+  else if (i==3004) strcpy(strbuf,"V3");
+  else if (i==3005) strcpy(strbuf,"W3");
+
+  else snprintf(strbuf,70,"?%d", (int)i);
+
+  return pos+snprintf((*buf)+pos,(*len)-pos,"%s",strbuf);
+
+}
 
 
 /* ------------ errors ---------------- */

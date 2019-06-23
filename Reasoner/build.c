@@ -76,13 +76,13 @@ gptr wr_build_calc_cl(glb* g, gptr xptr) {
   int ilimit;
 
 #ifdef DEBUG
-  printf("\nwr_build_calc_cl called\n");
+  wr_printf("\nwr_build_calc_cl called\n");
   wr_print_record(g,xptr);
-  printf("\n");
+  wr_printf("\n");
 #endif
 
 #ifdef DEBUG
-  printf("\nwr_build_calc_cl called, g->build_buffer ptr is %lx \n", (unsigned long int)g->build_buffer); 
+  wr_printf("\nwr_build_calc_cl called, g->build_buffer ptr is %lx \n", (unsigned long int)g->build_buffer); 
 #endif
   db=g->db;
   if (g->build_rename) (g->build_rename_vc)=0;
@@ -94,11 +94,11 @@ gptr wr_build_calc_cl(glb* g, gptr xptr) {
     // in some cases, no change, no copy: normally copy
     //yptr=xptr;     
 #ifdef DEBUG    
-    printf("\nin wr_build_calc_cl !ruleflag case\n"); 
+    wr_printf("\nin wr_build_calc_cl !ruleflag case\n"); 
 #endif    
     xlen=get_record_len(xptr);
 #ifdef DEBUG
-    printf("\nin wr_build_calc_cl got record with len %ld\n",xlen);
+    wr_printf("\nin wr_build_calc_cl got record with len %ld\n",xlen);
 #endif   
 
     // allocate space
@@ -131,13 +131,13 @@ gptr wr_build_calc_cl(glb* g, gptr xptr) {
     }        
     if (yptr==NULL) return NULL;
 #ifdef DEBUG    
-    printf("\n in wr_build_calc_cl cp0 original xptr:\n");
+    wr_printf("\n in wr_build_calc_cl cp0 original xptr:\n");
     wr_print_record(g,xptr);
-    printf("\n");
+    wr_printf("\n");
 
-    printf("\n in wr_build_calc_cl cp0 created yptr:\n");
+    wr_printf("\n in wr_build_calc_cl cp0 created yptr:\n");
     wr_print_record(g,yptr);
-    printf("\n");
+    wr_printf("\n");
 #endif    
     /*
     // copy rec header and clause header
@@ -148,9 +148,9 @@ gptr wr_build_calc_cl(glb* g, gptr xptr) {
     }  
     */
     /*
-    printf("\n in wr_build_calc_cl cp1 yptr:\n");
+    wr_printf("\n in wr_build_calc_cl cp1 yptr:\n");
     wr_print_record(g,yptr);
-    printf("\n");
+    wr_printf("\n");
     */
     //wr_print_varbank(g,g->varbanks);
     // loop over rest of clause elems
@@ -165,20 +165,20 @@ gptr wr_build_calc_cl(glb* g, gptr xptr) {
       yptr[i]=tmp; 
     } 
 #ifdef DEBUG    
-    printf("\n in wr_build_calc_cl final result yptr:\n");
+    wr_printf("\n in wr_build_calc_cl final result yptr:\n");
     wr_print_record(g,yptr);
-    printf("\n");
+    wr_printf("\n");
 #endif    
 
   } else {        
     // rule case starts
 
 #ifdef DEBUG
-    printf("\nin wr_build_calc_cl ruleflag case\n"); 
+    wr_printf("\nin wr_build_calc_cl ruleflag case\n"); 
 #endif    
     xlen=get_record_len(xptr);
 #ifdef DEBUG
-    printf("\nnin wr_build_calc_cl got record with len %ld\n",xlen);
+    wr_printf("\nnin wr_build_calc_cl got record with len %ld\n",xlen);
 #endif
     // allocate space
     if ((g->build_buffer)!=NULL) {
@@ -194,13 +194,13 @@ gptr wr_build_calc_cl(glb* g, gptr xptr) {
       yptr[i]=xptr[i];     
     }  
 #ifdef DEBUG
-    printf("\n in wr_build_calc_cl cp0 original xptr:\n");
+    wr_printf("\n in wr_build_calc_cl cp0 original xptr:\n");
     wr_print_record(g,xptr);
-    printf("\n");
+    wr_printf("\n");
 
-    printf("\n in wr_build_calc_cl cp0 created yptr:\n");
+    wr_printf("\n in wr_build_calc_cl cp0 created yptr:\n");
     wr_print_record(g,yptr);
-    printf("\n");
+    wr_printf("\n");
 #endif
 
     // loop over clause elems
@@ -216,9 +216,9 @@ gptr wr_build_calc_cl(glb* g, gptr xptr) {
       wr_set_rule_clause_atom(g,yptr,i,yatom);
     }   
 #ifdef DEBUG
-    printf("\n in wr_build_calc_cl final result yptr:\n");
+    wr_printf("\n in wr_build_calc_cl final result yptr:\n");
     wr_print_record(g,yptr);
-    printf("\n");
+    wr_printf("\n");
 #endif    
   }
   ++(g->stat_built_cl);
@@ -255,9 +255,9 @@ gint wr_build_calc_term(glb* g, gint x) {
 #endif  
 
 #ifdef DEBUG
-  printf("\nwr_build_calc_term called, g->build_buffer ptr is %lx \n", (unsigned long int)g->build_buffer); 
+  wr_printf("\nwr_build_calc_term called, g->build_buffer ptr is %lx \n", (unsigned long int)g->build_buffer); 
   wr_print_term(g,x);
-  printf("\n(g->build_rewrite) %d\n",(g->build_rewrite));
+  wr_printf("\n(g->build_rewrite) %d\n",(g->build_rewrite));
 #endif
   if (isvar(x) && (g->build_subst || g->build_rename))  x=VARVAL_F(x,(g->varbanks));
   if (!isdatarec(x)) {
@@ -280,7 +280,7 @@ gint wr_build_calc_term(glb* g, gint x) {
         ++(g->stat_internlimit_discarded_cl); 
         (g->alloc_err)=3;      
 #ifdef PRINT_LIMITS         
-        printf("limiterr in wr_build_calc_term for renamed var nrs\n");                    
+        wr_printf("limiterr in wr_build_calc_term for renamed var nrs\n");                    
 #endif        
         return WG_ILLEGAL;          
       }  
@@ -409,9 +409,9 @@ gint wr_build_calc_term_copyground(glb* g, gint x) {
 #endif  
 
 #ifdef DEBUG
-  printf("\nwr_build_calc_term_copyground called, g->build_buffer ptr is %lx \n", (unsigned long int)g->build_buffer); 
+  wr_printf("\nwr_build_calc_term_copyground called, g->build_buffer ptr is %lx \n", (unsigned long int)g->build_buffer); 
   wr_print_term(g,x);
-  printf("\n");
+  wr_printf("\n");
 #endif
   if (isvar(x) && (g->build_subst || g->build_rename))  x=VARVAL_F(x,(g->varbanks));
   if (!isdatarec(x)) {
@@ -425,7 +425,7 @@ gint wr_build_calc_term_copyground(glb* g, gint x) {
         ++(g->stat_internlimit_discarded_cl); 
         (g->alloc_err)=3;      
 #ifdef PRINT_LIMITS         
-        printf("limiterr in wr_build_calc_term for renamed var nrs\n");                    
+        wr_printf("limiterr in wr_build_calc_term for renamed var nrs\n");                    
 #endif        
         return WG_ILLEGAL;          
       }  
@@ -554,9 +554,9 @@ gint wr_build_calc_term_replace(glb* g, gint x, int replpos, gint replterm, int*
   int incpath=1;
 
 #ifdef DEBUG
-  printf("\nwr_build_calc_term_replace called, g->build_buffer ptr is %lx \n", (unsigned long int)g->build_buffer); 
+  wr_printf("\nwr_build_calc_term_replace called, g->build_buffer ptr is %lx \n", (unsigned long int)g->build_buffer); 
   wr_print_term(g,x);
-  printf("\n");
+  wr_printf("\n");
 #endif 
   if (*path==replpos) {         
     //printf("\n*path==replpos case\n"); 
@@ -584,7 +584,7 @@ gint wr_build_calc_term_replace(glb* g, gint x, int replpos, gint replterm, int*
         ++(g->stat_internlimit_discarded_cl); 
         (g->alloc_err)=3;      
 #ifdef PRINT_LIMITS         
-        printf("limiterr in wr_build_calc_term_replace for renamed var nrs\n");                    
+        wr_printf("limiterr in wr_build_calc_term_replace for renamed var nrs\n");                    
 #endif        
         return WG_ILLEGAL;          
       }  
@@ -684,11 +684,11 @@ gint wr_build_calc_term_replace(glb* g, gint x, int replpos, gint replterm, int*
       res=encode_record(db,yptr);
     }    
 #ifdef DEBUG
-    printf("\nwr_build_calc_term_replace returning newatom\n ");  
-    if (res==ACONST_FALSE) printf("ACONST_FALSE");
-    else if (res==ACONST_TRUE) printf("ACONST_TRUE");
+    wr_printf("\nwr_build_calc_term_replace returning newatom\n ");  
+    if (res==ACONST_FALSE) wr_printf("ACONST_FALSE");
+    else if (res==ACONST_TRUE) wr_printf("ACONST_TRUE");
     else wr_print_term(g,res);   
-    printf("\n");
+    wr_printf("\n");
 #endif
     return res;
   }   
@@ -730,9 +730,9 @@ int wr_equality_atom(glb* g, gint atom) {
   char *str;
   tptr=rotp(g,atom);
 #ifdef DEBUG
-  printf("wr_wr_is_equal_atom called with rec\n");
+  wr_printf("wr_wr_is_equal_atom called with rec\n");
   wg_print_record(g->db,tptr);
-  printf("\n");
+  wr_printf("\n");
 #endif
   fun=tptr[RECORD_HEADER_GINTS+(g->unify_funpos)];
   if (wg_get_encoded_type(g->db,fun)==WG_URITYPE) {    
@@ -758,15 +758,15 @@ int wr_computable_termptr(glb* g, gptr tptr) {
   char *str;
 
 #ifdef DEBUG  
-  printf("wr_computable_termptr called with rec\n");
+  wr_printf("wr_computable_termptr called with rec\n");
   wg_print_record(g->db,tptr);
-  printf("\n");
+  wr_printf("\n");
 #endif
   fun=tptr[RECORD_HEADER_GINTS+(g->unify_funpos)];
 #ifdef DEBUG
-  printf("cp1 fun %d type %d :\n",fun,wg_get_encoded_type(g->db,fun));
+  wr_printf("cp1 fun %d type %d :\n",fun,wg_get_encoded_type(g->db,fun));
   wg_debug_print_value(g->db,fun);
-  printf("\n");
+  wr_printf("\n");
 #endif
   if (wg_get_encoded_type(g->db,fun)==WG_URITYPE) {    
     str = wg_decode_uri(g->db,fun);

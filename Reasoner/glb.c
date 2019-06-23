@@ -63,14 +63,14 @@ glb* wr_glb_new_full(void* db) {
   if (g==NULL) return NULL;
   tmp=wr_glb_init_shared_complex(g); // creates and fills in shared tables, substructures, etc
   if (tmp) {
-    printf("\nerror: cannot init shared complex datastructures\n");
+    wr_printf("\nerror: cannot init shared complex datastructures\n");
     wr_glb_free_shared_complex(g);
     sys_free(g);
     return NULL; 
   }  
   tmp=wr_glb_init_local_complex(g); // creates and fills in local tables, substructures, etc
   if (tmp) {
-    printf("\nerror: cannot init local complex datastructures\n");
+    wr_printf("\nerror: cannot init local complex datastructures\n");
     wr_glb_free_shared_complex(g);
     wr_glb_free_local_complex(g);
     sys_free(g);
@@ -174,6 +174,7 @@ int wr_glb_init_simple(glb* g) {
   (g->use_rewrite_terms_strat)=1; // general strategy
   (g->have_rewrite_terms)=0; // do we actually have rewrite terms
   
+  (g->max_proofs)=1;
   (g->store_history)=1;
   //(g->cl_maxdepth)=1000000;
   //(g->cl_limitkept)=1;
@@ -481,6 +482,7 @@ int wr_glb_init_local_complex(glb* g) {
   (g->cut_clvec)=NULL;
   (g->rewrite_clvec)=NULL;
   (g->hyper_queue)=NULL;
+  (g->answers)=NULL;
   (g->tmp_litinf_vec)=NULL; 
   (g->tmp_hardnessinf_vec)=NULL;
   (g->tmp_resolvability_vec)=NULL;
@@ -535,6 +537,9 @@ int wr_glb_init_local_complex(glb* g) {
   (g->hyper_queue)=wr_cvec_new(g,NROF_HYPER_QUEUE_ELS);
   (g->hyper_queue)[1]=3; // next free pos in the queue (initially for empty queue 3)
   (g->hyper_queue)[2]=3; // next pos to pick for given (initially for empty queue 3)
+
+  (g->answers)=wr_cvec_new(g,INITIAL_ANSWERS_LEN);
+  (g->answers)[1]=2; // next free pos in the queue (initially for empty queue 2)
     
   (g->tmp_litinf_vec)=wr_vec_new(g,MAX_CLAUSE_LEN); // used by subsumption
   (g->tmp_hardnessinf_vec)=wr_vec_new(g,MAX_CLAUSE_LEN); // used for resolvability
@@ -638,6 +643,7 @@ int wr_glb_free_shared_complex(glb* g) {
 int wr_glb_free_local_complex(glb* g) {  
   wr_vec_free(g,g->queue_termbuf);
   wr_vec_free(g,g->hyper_termbuf);
+  wr_vec_free(g,g->answers);
   wr_vec_free(g,g->active_termbuf);  
   wr_vec_free(g,g->cut_clvec); 
   wr_vec_free(g,g->rewrite_clvec);
@@ -655,6 +661,9 @@ int wr_glb_free_local_complex(glb* g) {
   wr_vec_free(g,g->tmp_clinfo);
   wr_vec_free(g,g->tmp_varinfo);
 
+  wr_vec_free(g,g->hyper_queue);
+  wr_vec_free(g,g->answers);
+
 
   wr_str_free(g,(g->parse_skolem_prefix));
   (g->parse_skolem_prefix)=NULL;
@@ -667,49 +676,54 @@ int wr_glb_free_local_complex(glb* g) {
 }  
 
 void wr_print_glb_memarea(glb* g, gptr p) {
-  printf("\nmemarea for %x: ",(int)(gint)p);
+  wr_printf("\nmemarea for %x: ",(int)(gint)p);
   if (!p) {
-    printf("NULL\n");
+    wr_printf("NULL\n");
     return;
   }
   if ( p>=(g->given_termbuf)+2 &&
        p<=(g->given_termbuf)+((g->given_termbuf)[1]) ) {
-    printf("given_termbuf\n");
+    wr_printf("given_termbuf\n");
     return;
   }
   if ( p>=(g->derived_termbuf)+2 &&
        p<=(g->derived_termbuf)+((g->derived_termbuf)[1]) ) {
-    printf("derived_termbuf\n");
+    wr_printf("derived_termbuf\n");
     return;
   }
   if ( p>=(g->simplified_termbuf)+2 &&
        p<=(g->simplified_termbuf)+((g->simplified_termbuf)[1]) ) {
-    printf("simplified_termbuf\n");
+    wr_printf("simplified_termbuf\n");
     return;
   }
   if ( p>=(g->queue_termbuf)+2 &&
        p<=(g->queue_termbuf)+((g->queue_termbuf)[1]) ) {
-    printf("queue_termbuf\n");
+    wr_printf("queue_termbuf\n");
     return;
   }
   if ( p>=(g->hyper_termbuf)+2 &&
        p<=(g->hyper_termbuf)+((g->hyper_termbuf)[1]) ) {
-    printf("hyper_termbuf\n");
+    wr_printf("hyper_termbuf\n");
+    return;
+  }
+  if ( p>=(g->answers)+2 &&
+       p<=(g->answers)+((g->answers)[1]) ) {
+    wr_printf("answers\n");
     return;
   }
   if ( p>=(g->active_termbuf)+2 &&
        p<=(g->active_termbuf)+((g->active_termbuf)[1]) ) {
-    printf("active_termbuf\n");
+    wr_printf("active_termbuf\n");
     return;
   }    
   /*
   if ( p>=(g->cut_clvec)+2 &&
        p<=(g->cut_clvec)+((g->cut_clvec)[1]) ) {
-    printf("cut_clvec\n");
+    wr_printf("cut_clvec\n");
     return;
   }
   */
-  printf("unknown\n");
+  wr_printf("unknown\n");
 }
 
 void wr_check_cl_memarea(glb* g, gptr xptr) {
@@ -717,21 +731,21 @@ void wr_check_cl_memarea(glb* g, gptr xptr) {
   int ruleflag,xlen,i,xatomnr;
   gint tmp=0;
 
-  printf("\nwr_check_cl_memarea for ptr %x is ",(int)(gint)xptr);
+  wr_printf("\nwr_check_cl_memarea for ptr %x is ",(int)(gint)xptr);
   if (!xptr) {
-    printf("NULL\n");
+    wr_printf("NULL\n");
     return;
   }
   if (isdatarec(rpto(g,tmp))) {   
-    printf("record in termarea ");
+    wr_printf("record in termarea ");
     wr_print_glb_memarea(g,xptr);
     wr_print_record(g,xptr);
-    printf("\n");
+    wr_printf("\n");
   } else {
-    printf(" atomic \n");
+    wr_printf(" atomic \n");
     return;
   }  
-  printf("with atoms:\n");
+  wr_printf("with atoms:\n");
   ruleflag=wg_rec_is_rule_clause(db,xptr);  
   if (!ruleflag) {
     xlen=get_record_len(xptr);
