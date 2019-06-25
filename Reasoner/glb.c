@@ -136,7 +136,7 @@ int wr_glb_init_simple(glb* g) {
   
   /* strategy selection */    
   
-  (g->required_answer_nr)=4;
+  (g->required_answer_nr)=2;
   (g->pick_given_queue_ratio)=4;         // this is used for all queues to diff btw priority and simple
   (g->pick_given_queue_ratio_counter)=0; // this is not used for queues
   (g->next_pick_given_queue_block_nr)=0;
@@ -572,7 +572,7 @@ int wr_glb_init_local_complex(glb* g) {
 int wr_glb_free(glb* g) {
 
   // first free subitems
-
+ 
   wr_glb_free_shared_complex(g);
   wr_glb_free_local_complex(g);  
   wr_glb_free_shared_simple(g);    
@@ -646,7 +646,6 @@ int wr_glb_free_shared_complex(glb* g) {
 int wr_glb_free_local_complex(glb* g) {  
   wr_vec_free(g,g->queue_termbuf);
   wr_vec_free(g,g->hyper_termbuf);
-  wr_vec_free(g,g->answers);
   wr_vec_free(g,g->active_termbuf);  
   wr_vec_free(g,g->cut_clvec); 
   wr_vec_free(g,g->rewrite_clvec);
@@ -663,10 +662,8 @@ int wr_glb_free_local_complex(glb* g) {
   wr_vec_free(g,(g->tmp_sort_vec));
   wr_vec_free(g,g->tmp_clinfo);
   wr_vec_free(g,g->tmp_varinfo);
-
   wr_vec_free(g,g->hyper_queue);
   wr_vec_free(g,g->answers);
-
 
   wr_str_free(g,(g->parse_skolem_prefix));
   (g->parse_skolem_prefix)=NULL;

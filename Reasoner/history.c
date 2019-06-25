@@ -1039,7 +1039,7 @@ int wr_show_result(glb* g, gint history) {
     if (g->print_json) {
       bpos+=snprintf(buf+bpos,blen-bpos,"\n]}\n]\n"); // end one answer/proof struct
     } else {
-      bpos+=snprintf(buf+bpos,blen-bpos,"%s","\n\n");
+      bpos+=snprintf(buf+bpos,blen-bpos,"%s","\n");
     }  
   
     wg_free_mpool(db,mpool);
