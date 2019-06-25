@@ -214,6 +214,7 @@ typedef struct {
   
   /* strategy selection */
   
+  int required_answer_nr;
   int pick_given_queue_ratio;
   int pick_given_queue_ratio_counter;
   int next_pick_given_queue_block_nr;
@@ -267,9 +268,11 @@ typedef struct {
   /*  printout configuration */
   
   int print_flag;
+  int print_json;
+  int print_clauses_json;
   int print_level_flag;
   int print_clause_history;
-  int print_history_extra;
+  int print_history_extra;  
   
   int parser_print_level;
   int print_initial_parser_result;

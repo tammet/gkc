@@ -316,8 +316,8 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active, cvec resol
               wr_printf("\nqueue ended\n");
     #endif             
               if (g->proof_found || g->alloc_err) {
-                wr_clear_varstack(g,g->varstack);          
-                return;          
+                wr_clear_varstack(g,g->varstack);  
+                if (wr_enough_answers(g) || g->alloc_err) return;                
               }  
             }
     #ifdef DEBUG
@@ -418,8 +418,8 @@ void wr_factor(glb* g, gptr cl, gptr cl_as_active) {
 #endif           
           wr_process_factor_result(g,xcl,len,i,xatom,j,yatom,cl_as_active);                      
           if (g->proof_found || g->alloc_err) {
-            wr_clear_varstack(g,g->varstack);          
-            return;          
+            wr_clear_varstack(g,g->varstack); 
+            if (wr_enough_answers(g) || g->alloc_err) return;                      
           }  
         }      
         wr_clear_varstack(g,g->varstack);             
@@ -749,8 +749,8 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active, cvec re
                 wr_printf("\nqueue ended\n");
       #endif             
                 if (g->proof_found || g->alloc_err) {
-                  wr_clear_varstack(g,g->varstack);          
-                  return;          
+                  wr_clear_varstack(g,g->varstack);    
+                  if (wr_enough_answers(g) || g->alloc_err) return;          
                 }  
               } else {
                 if (g->print_litterm_selection) {                
@@ -1098,8 +1098,8 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
   #endif        
         */     
         if (g->proof_found || g->alloc_err) {
-          wr_clear_varstack(g,g->varstack);          
-          return 1; // return 1 ????
+          wr_clear_varstack(g,g->varstack);
+          if (wr_enough_answers(g) || g->alloc_err) return 1;   // return 1 ????
         }        
       }
 
@@ -1182,8 +1182,8 @@ void wr_resolve_equality_reflexive(glb* g, gptr cl, gptr cl_as_active) {
 #endif           
         wr_process_factor_result(g,xcl,len,i,xatom,-1,0,cl_as_active);                      
         if (g->proof_found || g->alloc_err) {
-          wr_clear_varstack(g,g->varstack);          
-          return;          
+          wr_clear_varstack(g,g->varstack);  
+          if (wr_enough_answers(g) || g->alloc_err) return;          
         }  
       }      
       wr_clear_varstack(g,g->varstack);             

@@ -50,12 +50,13 @@ void wr_print_term_otter(glb* g, gint rec,int printlevel);
 void wr_print_simpleterm_otter(glb* g, gint enc,int printlevel);
 void wg_nice_print_var(void* db, gint i);
 
+int wr_strprint_clause(glb* g, gptr rec, char** buf, int *len, int pos);
 int wr_strprint_clause_otter(glb* g, gptr rec, int printlevel, char** buf, int *len, int pos);
 int wr_strprint_rule_clause_otter(glb* g, gint* rec,int printlevel, char** buf, int *len, int pos);
 int wr_strprint_fact_clause_otter(glb* g, gint* rec, int printlevel, char** buf, int *len, int pos);
-int wr_strprint_atom_otter(glb* g, gint rec, int printlevel,char** buf, int *len, int pos);
+int wr_strprint_atom_otter(glb* g, gint rec, int printlevel,char** buf, int *len, int pos, int isneg);
 int wr_strprint_term_otter(glb* g, gint rec,int printlevel, char** buf, int *len, int pos);
-int wr_strprint_simpleterm_otter(glb* g, gint enc,int printlevel, char** buf, int *len, int pos);
+int wr_strprint_simpleterm_otter(glb* g, gint enc,int printlevel, char** buf, int *len, int pos, int isneg);
 int wg_nice_strprint_var(glb* g, gint i, char** buf, int *len, int pos);
 
 #endif

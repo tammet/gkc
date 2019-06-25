@@ -215,7 +215,8 @@ int wr_genloop(glb* g) {
 #ifdef DEBUG
         wr_printf("\nproof found, returning 0\n");
 #endif         
-        return 0;
+        if (wr_enough_answers(g)) { return 0; }
+        else { continue; }
       }
       // otherwise the candidate was subsumed or otherwise useless
       continue; 
@@ -305,21 +306,21 @@ int wr_genloop(glb* g) {
     if (g->use_equality) {
       wr_resolve_equality_reflexive(g,given_cl,given_cl_as_active); 
     }      
-    if (g->proof_found) return 0;
+    if ((g->proof_found) && wr_enough_answers(g)) return 0;
     if (g->alloc_err) return -1;  
     
     // do all resolutions with the given clause
     // normal case: active loop is done inside the wr_resolve_binary_all_active    
     wr_resolve_binary_all_active(g,given_cl,given_cl_as_active,(g->tmp_resolvability_vec)); 
-    if (g->proof_found) return 0;
+    if ((g->proof_found) && wr_enough_answers(g)) return 0;
     if (g->alloc_err) return -1;    
     
     if (g->use_equality) {
       wr_paramodulate_from_all_active(g,given_cl,given_cl_as_active,(g->tmp_resolvability_vec));    
-      if (g->proof_found) return 0;
+      if ((g->proof_found) && wr_enough_answers(g)) return 0;
       if (g->alloc_err) return -1;          
       wr_paramodulate_into_all_active(g,given_cl,given_cl_as_active,(g->tmp_resolvability_vec));    
-      if (g->proof_found) return 0;
+      if ((g->proof_found) && wr_enough_answers(g)) return 0;
       if (g->alloc_err) return -1;       
     }
     

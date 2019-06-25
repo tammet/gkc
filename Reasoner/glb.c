@@ -136,6 +136,7 @@ int wr_glb_init_simple(glb* g) {
   
   /* strategy selection */    
   
+  (g->required_answer_nr)=4;
   (g->pick_given_queue_ratio)=4;         // this is used for all queues to diff btw priority and simple
   (g->pick_given_queue_ratio_counter)=0; // this is not used for queues
   (g->next_pick_given_queue_block_nr)=0;
@@ -182,6 +183,8 @@ int wr_glb_init_simple(glb* g) {
   /*  printout configuration */
   
   (g->print_flag)=1; // if 0: no printout: rmain sets other flags accordingly
+  (g->print_json)=0; // if 1: non-log output is json
+  (g->print_clauses_json)=0; // if 1: clauses are printed as json lists
   (g->print_level_flag)=10; // rmain uses this to set other flags accordingly 
                            // -1: use default, 0: none, 10: normal, 20: medium, 30: detailed
   (g->print_clause_history)=0; // 1 does not work well: prints double while deriving, ok for parsing res

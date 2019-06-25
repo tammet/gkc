@@ -109,7 +109,7 @@ body: functionform		{ $$ = MKWGPAIR(DBPARM,MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,"no
     | functionform ';' body	{ $$ = MKWGPAIR(DBPARM,MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,"and"), MKWGPAIR(DBPARM,$1, $3)), MKWGNIL); }
     ;
 
-
+/*
 body: functionform	{ $$ = MKWGPAIR(DBPARM,$1, MKWGNIL); }
     | orlist		{ $$ = $1; }
     | andlist		{ $$ = $1; }
@@ -124,7 +124,7 @@ andlist: 			{ $$ = MKWGNIL; }
       | functionform ';' andlist	{ $$ = MKWGPAIR(DBPARM,$1, $3); }
       | functionform ';' orlist		{ $$ = MKWGPAIR(DBPARM,$1, $3); }
       ;
-
+*/
 
 fact: atomargs '.' { $$ = $1; }
     ;
@@ -135,10 +135,11 @@ atomargs: TATOM '(' arguments ')' { $$ = MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,$1), 
 rule: TATOM '(' arguments ')' IS body	{$$ = MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,$1), MKWGPAIR(DBPARM,$3, MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,":-"), $6))); }
     ;
 
+/*
 arguments: argument			{ $$ = MKWGPAIR(DBPARM,$1, MKWGNIL); }
 	 | argument ',' arguments	{ $$ = MKWGPAIR(DBPARM,$1, $3); }
 	 ;
-
+*/
 
 body: terms '.'	{ $$ = $1; }
     ;

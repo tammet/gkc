@@ -159,6 +159,14 @@ char* wr_print_one_history
         (glb* g, void* mpool, gint history, gptr cl, char* clns, int maxclnr, void **assoc);
 void wr_print_clause_name_history(glb* g, gint history);
 
+int wr_show_result(glb* g, gint history);
+int wr_strprint_flat_history(glb* g, void* mpool, char** buf, int* blen, int bpos,
+                             int maxclnr, void **assoc);
+int wr_strprint_one_history
+        (glb* g, void* mpool, char** buf, int* blen, int bpos, 
+         gint history, gptr cl, char* clns, int maxclnr, void **assoc);
+int wr_strprint_history_extra(glb* g, char** buf, int* blen, int bpos, gint history);
+
 void wr_set_history_record_field(glb* g, gptr rec, int pos, gint val);
 gint wr_get_history_record_field(glb* g, gptr rec, int pos);
 gptr wr_create_raw_history_record(glb* g, gint length, gptr buffer);
@@ -166,5 +174,7 @@ gptr wr_create_raw_history_record(glb* g, gint length, gptr buffer);
 gint wr_decode_priority(glb* g, gint encpriority);
 
 int wr_register_answer(glb* g, gptr cl, gint history);
+int wr_enough_answers(glb* g);
+int wr_have_answers(glb* g);
 
 #endif

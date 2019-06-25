@@ -189,6 +189,7 @@ void wr_process_resolve_result
     if (rpos==0) {
       g->proof_found=1;    
       g->proof_history=wr_build_resolve_history(g,xcl_as_active,ycl,cutpos1,cutpos2,g->cut_clvec); 
+      wr_register_answer(g,NULL,g->proof_history);
       return;
     } 
   }
@@ -406,6 +407,7 @@ void wr_process_factor_result
     if (rpos==0) {
       g->proof_found=1; 
       g->proof_history=wr_build_factorial_history(g,xcl_as_active,x,y,g->cut_clvec);    
+      wr_register_answer(g,NULL,g->proof_history);
       return;
     } 
   }
@@ -431,7 +433,7 @@ void wr_process_factor_result
   //wr_print_clause(g,res);
   tmp=wr_cl_derived_is_answer(g,res);
   if (tmp>0) {
-    wr_register_answer(g,NULL,history);
+    wr_register_answer(g,res,history);
     //wr_printf("\n\nfound pure answer: ");
     //wr_print_clause(g,res);
     g->proof_found=1;

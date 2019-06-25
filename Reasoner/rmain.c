@@ -390,7 +390,11 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
         wr_printf("\n\nProof found.\n"); 
         wr_show_history(g,g->proof_history);
       } else if (res==1) {
-        wr_printf("\n\nSearch finished without proof, result code %d.\n",res); 
+        if (wr_have_answers(g)) {
+          wr_show_history(g,g->proof_history);
+        } else {
+          wr_printf("\n\nSearch finished without proof, result code %d.\n",res); 
+        }  
       } else if (res==2 && (g->print_runs)) {
         wr_printf("\n\nSearch terminated without proof.\n");        
       } else if (res==-1) {
@@ -404,7 +408,11 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
         printf("\n\nProof found.\n"); 
         wr_show_history(g,g->proof_history);
       } else if (res==1) {
-        printf("\n\nSearch finished without proof, result code %d.\n",res); 
+        if (wr_have_answers(g)) {
+          wr_show_history(g,g->proof_history);
+        } else {
+          wr_printf("\n\nSearch finished without proof, result code %d.\n",res); 
+        }         
       } else if (res==2 && (g->print_runs)) {
         printf("\n\nSearch terminated without proof.\n");        
       } else if (res==-1) {
