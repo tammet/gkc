@@ -170,6 +170,7 @@ int wr_strprint_history_extra(glb* g, char** buf, int* blen, int bpos, gint hist
 void wr_set_history_record_field(glb* g, gptr rec, int pos, gint val);
 gint wr_get_history_record_field(glb* g, gptr rec, int pos);
 gptr wr_create_raw_history_record(glb* g, gint length, gptr buffer);
+gptr wr_copy_raw_history_record(glb* g, gptr history, gptr buffer);
 
 gint wr_decode_priority(glb* g, gint encpriority);
 

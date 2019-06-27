@@ -173,7 +173,8 @@ int wr_genloop(glb* g) {
 
     if (!picked_given_cl_cand && !(g->stat_given_candidates)) {
        if ((g->print_flag) && (g->print_runs)) wr_printf("No candidate clauses found.\n");
-       return 2; // code for no candidates at all.
+       if (wr_have_answers(g)) return 0;
+       else return 2; // code for no candidates at all.
     }
     // given_kept_flag will now indicate whether to add to active list or not
     if (g->print_initial_given_cl) {    
@@ -324,7 +325,13 @@ int wr_genloop(glb* g) {
       if (g->alloc_err) return -1;       
     }
     
-  } 
+  }
+  // loop ended: either nothing to do or timeout
+  if (wr_have_answers(g)) {
+    return 0;
+  } else {
+    return 1;
+  }
 }  
 
 

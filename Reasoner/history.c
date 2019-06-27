@@ -513,8 +513,7 @@ void wr_show_history(glb* g, gint history) {
 
   wr_show_result(g,history);
   return;
-
-  //printf("\nansw 0 %ld 1 %ld 2 %ld\n",(g->answers)[0],(g->answers)[1],(g->answers)[2]); 
+ 
   if (((g->answers)[1])>2 && (gptr)((g->answers)[2])!=NULL) {
     printf("\nanswer: ");
     ans=(gptr)((g->answers)[2]);
@@ -949,14 +948,8 @@ int wr_show_result(glb* g, gint history) {
   int clnr=1;
   char namebuf[20];
   gptr ans;
-  //gint anshistory;
-  //printstr histstr;
   char* buf;
   int ansnr, blen, bpos;
-
-  //if (!(g->store_history)) return;
-
-  //printf("\nansw 0 %ld 1 %ld 2 %ld\n",(g->answers)[0],(g->answers)[1],(g->answers)[2]); 
 
   // create buf for printing
 
@@ -968,16 +961,24 @@ int wr_show_result(glb* g, gint history) {
     return -1;
   }   
 
-
+  if (!wr_str_guarantee_space(g,&buf,&blen,bpos+100)) return -1;
   if (((g->answers)[1])<=2) {
     // no results
+    if (g->print_json) {
+      bpos+=snprintf(buf+bpos,blen-bpos,"\n{\"result\": \"unknown\"}\n");
+    } else {
+      bpos+=snprintf(buf+bpos,blen-bpos,"\nresult: unknown\n");
+    }  
     return 0;
-  }
-  if (!wr_str_guarantee_space(g,&buf,&blen,bpos+100)) return -1;
+  } 
+  // here we have some results
   if (g->print_json) {
+    bpos+=snprintf(buf+bpos,blen-bpos,"\n{\"result\": \"proof found\",\n");
     bpos+=snprintf(buf+bpos,blen-bpos,"\n{\"answers\": [\n");
   } else {
-    bpos+=snprintf(buf+bpos,blen-bpos,"\nanswers:\n");
+    if ((g->print_level_flag)>1) bpos+=snprintf(buf+bpos,blen-bpos,"\n");
+    bpos+=snprintf(buf+bpos,blen-bpos,"\nresult: proof found\n");
+    bpos+=snprintf(buf+bpos,blen-bpos,"\nanswers:");
   }  
   for(ansnr=2; ansnr<((g->answers)[1]); ansnr+=2) {
     // loop over all proofs 
@@ -997,7 +998,7 @@ int wr_show_result(glb* g, gint history) {
         if (!wr_str_guarantee_space(g,&buf,&blen,bpos+100)) return -1;
         bpos+=snprintf(buf+bpos,blen-bpos,"},");
       } else {
-        bpos+=snprintf(buf+bpos,blen-bpos,"answer: ");
+        bpos+=snprintf(buf+bpos,blen-bpos,"\nanswer: ");
         ans=(gptr)((g->answers)[ansnr]);
         bpos=wr_strprint_clause(g,ans,&buf,&blen,bpos);
         if (bpos<0) return bpos;
@@ -1006,6 +1007,7 @@ int wr_show_result(glb* g, gint history) {
     // second, print proof
     if (!(g->store_history)) continue;
     history=(g->answers)[ansnr+1];
+    //printf("\nansnr %d history %ld\n",ansnr,history);
      
     // create mpool 
     mpool=wg_create_mpool(db,1000000);
@@ -1038,24 +1040,17 @@ int wr_show_result(glb* g, gint history) {
     if (!wr_str_guarantee_space(g,&buf,&blen,bpos+10)) return -1;
     if (g->print_json) {
       bpos+=snprintf(buf+bpos,blen-bpos,"\n]}\n]\n"); // end one answer/proof struct
-    } else {
-      bpos+=snprintf(buf+bpos,blen-bpos,"%s","\n");
-    }  
-  
-    wg_free_mpool(db,mpool);
-    if (g->print_json) {
-      //bpos+=snprintf(buf+bpos,blen-bpos,"\n}");
-      //printf("\nproof\n%s\n",buf);
-    } else {
-      //printf("\nproof\n%s\n",buf);
-    }    
+    } 
+
+    wg_free_mpool(db,mpool); 
   }
   if (g->print_json) {
     bpos+=snprintf(buf+bpos,blen-bpos,"]}\n"); // end all answers
+    bpos+=snprintf(buf+bpos,blen-bpos,"}\n");
   } else {
     bpos+=snprintf(buf+bpos,blen-bpos,"\n");
   }  
-  printf("\nresult:\n%s\n",buf);
+  printf("%s",buf);
   
   return bpos;
 }
@@ -1501,26 +1496,41 @@ gint wr_get_history_record_field(glb* g, gptr rec, int pos) {
   return rec[RECORD_HEADER_GINTS+pos];
 }
 
+gptr wr_copy_raw_history_record(glb* g, gptr history, gptr buffer) {
+  gptr rec;
+  int length,i;
+
+  if (history==NULL) return NULL;
+  length=wg_get_record_len(g->db,history);
+  if (buffer==NULL) {
+    rec=wg_create_raw_record(g->db,length); 
+    if (rec==NULL) return NULL;  
+    for(i=0;i<length+RECORD_HEADER_GINTS;i++) rec[i]=history[i];
+  } else {
+    rec=wr_alloc_from_cvec(g,buffer,length+RECORD_HEADER_GINTS);
+    if (rec==NULL) return NULL;
+    for(i=0;i<length+RECORD_HEADER_GINTS;i++) rec[i]=history[i];
+  }     
+  return rec;
+}
+
 /* =============== answer and proof registration ================= */
 
 
 int wr_register_answer(glb* g, gptr cl, gint history) {
+  void *db=g->db;
   gint count;
   cvec answers;
-
-  printf("\n registering answer ");
-  wr_print_clause(g,cl);
-  printf("\n");
+  gptr hcopy;
 
   if (!(g->store_history)) return 0;
   answers=(g->answers);
   count=(g->answers)[1];
-
-  printf("\n count %d \n",count);
-
+  hcopy=wr_copy_raw_history_record(g,wg_decode_record(db,history),g->queue_termbuf);
+  if (hcopy==NULL) return -1;
   (g->answers)=wr_cvec_store(g,answers,count,(gint)cl);
   if (!(g->answers)) return -1;
-  (g->answers)=wr_cvec_store(g,answers,count+1,history);
+  (g->answers)=wr_cvec_store(g,answers,count+1,wg_encode_record(db,hcopy));
   if (!(g->answers)) return -1;
   return (((g->answers)[1])-2)/2;
 }
@@ -1528,7 +1538,7 @@ int wr_register_answer(glb* g, gptr cl, gint history) {
 int wr_enough_answers(glb* g) {
   if (!(g->store_history)) return 1;
   if (!(g->answers)) return 1;
-  printf("\n answer count %ld\n",((((g->answers)[1])-2)/2));
+  //printf("\n answer count %ld\n",((((g->answers)[1])-2)/2));
   if (((((g->answers)[1])-2)/2)>=(g->required_answer_nr)) {   
     return 1;
   } else {
@@ -1540,7 +1550,8 @@ int wr_enough_answers(glb* g) {
 int wr_have_answers(glb* g) {
   if (!(g->store_history)) return (g->proof_found);
   if (!(g->answers)) return (g->proof_found);
-  printf("\n answer count %ld\n",((((g->answers)[1])-2)/2));
+  if (g->proof_found) return 1;
+  //printf("\n answer count %ld\n",((((g->answers)[1])-2)/2));
   if (((((g->answers)[1])-2)/2)>=1) {   
     return 1;
   } else {    

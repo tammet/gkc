@@ -217,7 +217,7 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
     else if ((g->print_level_flag)<=50) wr_set_detailed_printout(g);    
     else wr_set_detailed_plus_printout(g);
 
-    if (g->print_runs) {      
+    if ((g->print_flag) && (g->print_runs)) {      
       if (guidetext!=NULL) {   
         wr_printf("\n**** run %d starts with strategy\n",iter+1); 
         wr_printf("%s\n",guidetext);
@@ -376,51 +376,32 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
     //wr_show_in_stats(g);
 
     //wr_print_clpick_queues(g,(g->clpick_queues));
-
-    wr_print_strat_flags(g);
+    
+    if ((g->print_flag) && (g->print_runs)) wr_print_strat_flags(g);
 
     res=wr_genloop(g);
     
     //printf("\nwr_genloop exited, showing database details\n");
     //wr_show_database_details(g,NULL,"local g");
-    
+    //printf("\n res is %d\n",res);
+    if (res==0) {
+      //wr_printf("\n\nProof found.\n"); 
+      wr_show_result(g,g->proof_history);
+    } else if (res==1) {
+      if (wr_have_answers(g)) {
+        wr_show_result(g,g->proof_history);
+      } else {
+        wr_printf("\n\nSearch finished without proof, result code %d.\n",res); 
+      }  
+    } else if (res==2 && (g->print_runs)) {
+      wr_printf("\n\nSearch terminated without proof.\n");        
+    } else if (res==-1) {
+      wr_printf("\n\nSearch cancelled: memory overflow.\n");
+    } else if (res<0) {
+      wr_printf("\n\nSearch cancelled, error code %d.\n",res);
+    }      
+    if (g->print_flag) wr_show_stats(g,1);
 
-    if (g->print_flag) { 
-      if (res==0) {
-        wr_printf("\n\nProof found.\n"); 
-        wr_show_history(g,g->proof_history);
-      } else if (res==1) {
-        if (wr_have_answers(g)) {
-          wr_show_history(g,g->proof_history);
-        } else {
-          wr_printf("\n\nSearch finished without proof, result code %d.\n",res); 
-        }  
-      } else if (res==2 && (g->print_runs)) {
-        wr_printf("\n\nSearch terminated without proof.\n");        
-      } else if (res==-1) {
-        wr_printf("\n\nSearch cancelled: memory overflow.\n");
-      } else if (res<0) {
-        wr_printf("\n\nSearch cancelled, error code %d.\n",res);
-      }      
-      wr_show_stats(g,1);     
-    } else {
-      if (res==0) {
-        printf("\n\nProof found.\n"); 
-        wr_show_history(g,g->proof_history);
-      } else if (res==1) {
-        if (wr_have_answers(g)) {
-          wr_show_history(g,g->proof_history);
-        } else {
-          wr_printf("\n\nSearch finished without proof, result code %d.\n",res); 
-        }         
-      } else if (res==2 && (g->print_runs)) {
-        printf("\n\nSearch terminated without proof.\n");        
-      } else if (res==-1) {
-        printf("\n\nSearch cancelled: memory overflow.\n");
-      } else if (res<0) {
-        printf("\n\nSearch cancelled, error code %d.\n",res);
-      }
-    }   
     if (res==0) {
       // proof found 
       if (exit_on_proof) {
@@ -428,7 +409,7 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
         wr_printf("\nexiting\n");
         show_cur_time();  
 #endif              
-        exit(0);
+        return(0);
       }
 #ifdef SHOWTIME       
       wr_printf("\nto call wr_glb_free\n");

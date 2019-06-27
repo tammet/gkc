@@ -173,10 +173,17 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr) {
     if (!strcmp(key,"print")) {
       //printf("print %d\n", json_valueint(elem));
       (g->print_flag)=json_valueint(elem);
+    } else if (!strcmp(key,"print_json")) {
+      //printf("print_level %d\n", json_valueint(elem));
+      (g->print_json)=json_valueint(elem);      
     } else if (!strcmp(key,"print_level")) {
       //printf("print_level %d\n", json_valueint(elem));
       (g->print_level_flag)=json_valueint(elem);
-    }     
+
+    } else if (!strcmp(key,"max_answers")) {
+      //printf("print_level %d\n", json_valueint(elem));
+      (g->required_answer_nr)=json_valueint(elem);
+    }   
 
     else if (!strcmp(key,"max_seconds")) {
       //printf("\nmax_run_seconds %d\n", json_valueint(elem));
