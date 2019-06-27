@@ -400,7 +400,7 @@ union yyalloc
 /* YYNNTS -- Number of nonterminals.  */
 #define YYNNTS  12
 /* YYNRULES -- Number of rules.  */
-#define YYNRULES  54
+#define YYNRULES  53
 /* YYNSTATES -- Number of states.  */
 #define YYNSTATES  96
 
@@ -453,9 +453,9 @@ static const yytype_uint16 yyrline[] =
        0,    83,    83,    84,    89,    92,    93,    97,   101,   102,
      107,   108,   109,   110,   111,   112,   119,   126,   127,   128,
      129,   130,   131,   132,   133,   134,   135,   139,   140,   143,
-     144,   148,   149,   160,   178,   190,   208,   219,   230,   241,
-     259,   270,   280,   281,   287,   288,   293,   294,   295,   296,
-     297,   298,   299,   300,   301
+     148,   149,   160,   178,   190,   208,   219,   230,   241,   259,
+     270,   280,   281,   287,   288,   293,   294,   295,   296,   297,
+     298,   299,   300,   301
 };
 #endif
 
@@ -517,16 +517,16 @@ static const yytype_int16 yypact[] =
      means the default is an error.  */
 static const yytype_uint8 yydefact[] =
 {
-      31,    46,    47,    48,    49,    50,    53,    52,    54,    51,
-       0,     0,     0,     0,    31,    31,    31,    31,     0,     5,
-      31,     4,     0,    29,     8,    26,     9,    10,    31,    31,
-      31,    31,    21,    42,    22,    43,    29,    44,     0,    25,
-      29,     0,     0,     1,     6,     7,    31,    31,    31,    31,
-      31,    31,    31,    31,    31,    31,    31,    31,    31,    31,
-       0,     0,     0,     0,    31,    13,    23,    31,    24,    16,
-      17,    19,    18,    20,    36,    38,    39,    37,    35,    33,
-      32,    34,    45,    11,     0,    15,    14,     0,     0,    34,
-      28,    12,    31,    31,    40,    41
+      30,    45,    46,    47,    48,    49,    52,    51,    53,    50,
+       0,     0,     0,     0,    30,    30,    30,    30,     0,     5,
+      30,     4,     0,    29,     8,    26,     9,    10,    30,    30,
+      30,    30,    21,    41,    22,    42,    29,    43,     0,    25,
+      29,     0,     0,     1,     6,     7,    30,    30,    30,    30,
+      30,    30,    30,    30,    30,    30,    30,    30,    30,    30,
+       0,     0,     0,     0,    30,    13,    23,    30,    24,    16,
+      17,    19,    18,    20,    35,    37,    38,    36,    34,    32,
+      31,    33,    44,    11,     0,    15,    14,     0,     0,    33,
+      28,    12,    30,    30,    39,    40
 };
 
   /* YYPGOTO[NTERM-NUM].  */
@@ -628,9 +628,9 @@ static const yytype_uint8 yyr1[] =
        0,    38,    39,    39,    40,    41,    41,    42,    43,    43,
       44,    44,    44,    44,    44,    44,    44,    44,    44,    44,
       44,    44,    44,    44,    44,    44,    44,    45,    45,    46,
-      46,    47,    47,    47,    47,    47,    47,    47,    47,    47,
-      47,    47,    47,    47,    48,    48,    49,    49,    49,    49,
-      49,    49,    49,    49,    49
+      47,    47,    47,    47,    47,    47,    47,    47,    47,    47,
+      47,    47,    47,    48,    48,    49,    49,    49,    49,    49,
+      49,    49,    49,    49
 };
 
   /* YYR2[YYN] -- Number of symbols on the right hand side of rule YYN.  */
@@ -639,9 +639,9 @@ static const yytype_uint8 yyr2[] =
        0,     2,     0,     1,     1,     1,     2,     2,     1,     1,
        1,     3,     4,     3,     4,     4,     3,     3,     3,     3,
        3,     2,     2,     3,     3,     2,     1,     1,     3,     1,
-       1,     0,     3,     3,     3,     3,     3,     3,     3,     3,
-       6,     6,     2,     2,     1,     3,     1,     1,     1,     1,
-       1,     1,     1,     1,     1
+       0,     3,     3,     3,     3,     3,     3,     3,     3,     6,
+       6,     2,     2,     1,     3,     1,     1,     1,     1,     1,
+       1,     1,     1,     1
 };
 
 
@@ -1501,13 +1501,7 @@ yyreduce:
 #line 1502 "Parser/dbotter.tab.c" /* yacc.c:1646  */
     break;
 
-  case 30:
-#line 144 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = (yyvsp[0]); }
-#line 1508 "Parser/dbotter.tab.c" /* yacc.c:1646  */
-    break;
-
-  case 32:
+  case 31:
 #line 149 "Parser/dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(
                                           PP,
@@ -1519,10 +1513,10 @@ yyreduce:
                                               PP,
                                               (yyvsp[0]),
                                               MKWGNIL))); }
-#line 1523 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 1517 "Parser/dbotter.tab.c" /* yacc.c:1646  */
     break;
 
-  case 33:
+  case 32:
 #line 160 "Parser/dbotter.y" /* yacc.c:1646  */
     { (yyval) = 
                                       MKWGPAIR(
@@ -1541,10 +1535,10 @@ yyreduce:
                                                 (yyvsp[0]),
                                                 MKWGNIL))),
                                           MKWGNIL)); }
-#line 1545 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 1539 "Parser/dbotter.tab.c" /* yacc.c:1646  */
     break;
 
-  case 34:
+  case 33:
 #line 178 "Parser/dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(
                                           PP,
@@ -1556,10 +1550,10 @@ yyreduce:
                                               PP,
                                               (yyvsp[0]),
                                               MKWGNIL))); }
-#line 1560 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 1554 "Parser/dbotter.tab.c" /* yacc.c:1646  */
     break;
 
-  case 35:
+  case 34:
 #line 190 "Parser/dbotter.y" /* yacc.c:1646  */
     { (yyval) = 
                                       MKWGPAIR(
@@ -1578,10 +1572,10 @@ yyreduce:
                                                 (yyvsp[0]),
                                                 MKWGNIL))),
                                           MKWGNIL)); }
-#line 1582 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 1576 "Parser/dbotter.tab.c" /* yacc.c:1646  */
     break;
 
-  case 36:
+  case 35:
 #line 208 "Parser/dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(
                                           PP,
@@ -1593,10 +1587,10 @@ yyreduce:
                                               PP,
                                               (yyvsp[0]),
                                               MKWGNIL))); }
-#line 1597 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 1591 "Parser/dbotter.tab.c" /* yacc.c:1646  */
     break;
 
-  case 37:
+  case 36:
 #line 219 "Parser/dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(
                                           PP,
@@ -1608,10 +1602,10 @@ yyreduce:
                                               PP,
                                               (yyvsp[-2]),
                                               MKWGNIL))); }
-#line 1612 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 1606 "Parser/dbotter.tab.c" /* yacc.c:1646  */
     break;
 
-  case 38:
+  case 37:
 #line 230 "Parser/dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(
                                           PP,
@@ -1623,10 +1617,10 @@ yyreduce:
                                               PP,
                                               (yyvsp[0]),
                                               MKWGNIL))); }
-#line 1627 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 1621 "Parser/dbotter.tab.c" /* yacc.c:1646  */
     break;
 
-  case 39:
+  case 38:
 #line 241 "Parser/dbotter.y" /* yacc.c:1646  */
     { (yyval) =
                                       MKWGPAIR(
@@ -1645,10 +1639,10 @@ yyreduce:
                                                 (yyvsp[0]),
                                                 MKWGNIL))),
                                           MKWGNIL) ); }
-#line 1649 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 1643 "Parser/dbotter.tab.c" /* yacc.c:1646  */
     break;
 
-  case 40:
+  case 39:
 #line 259 "Parser/dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(
                                                    PP,
@@ -1660,10 +1654,10 @@ yyreduce:
                                                        PP,
                                                        (yyvsp[0]),
                                                        MKWGNIL))); }
-#line 1664 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 1658 "Parser/dbotter.tab.c" /* yacc.c:1646  */
     break;
 
-  case 41:
+  case 40:
 #line 270 "Parser/dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(
                                                    PP,
@@ -1675,89 +1669,89 @@ yyreduce:
                                                        PP,
                                                        (yyvsp[0]),
                                                        MKWGNIL))); }
+#line 1673 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 41:
+#line 280 "Parser/dbotter.y" /* yacc.c:1646  */
+    { (yyval) = MKWGPAIR(PP,MKWGCONST(PP,"not"),MKWGPAIR(PP,(yyvsp[0]),MKWGNIL)); }
 #line 1679 "Parser/dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 42:
-#line 280 "Parser/dbotter.y" /* yacc.c:1646  */
+#line 281 "Parser/dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(PP,MKWGCONST(PP,"not"),MKWGPAIR(PP,(yyvsp[0]),MKWGNIL)); }
 #line 1685 "Parser/dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 43:
-#line 281 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(PP,MKWGCONST(PP,"not"),MKWGPAIR(PP,(yyvsp[0]),MKWGNIL)); }
+#line 287 "Parser/dbotter.y" /* yacc.c:1646  */
+    { (yyval) = MKWGPAIR(PP,(yyvsp[0]),MKWGNIL); }
 #line 1691 "Parser/dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 44:
-#line 287 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(PP,(yyvsp[0]),MKWGNIL); }
+#line 288 "Parser/dbotter.y" /* yacc.c:1646  */
+    { (yyval) = MKWGPAIR(PP,(yyvsp[-2]),(yyvsp[0])); }
 #line 1697 "Parser/dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 45:
-#line 288 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(PP,(yyvsp[-2]),(yyvsp[0])); }
+#line 293 "Parser/dbotter.y" /* yacc.c:1646  */
+    { (yyval) = MKWGINT(PP,(yyvsp[0])); }
 #line 1703 "Parser/dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 46:
-#line 293 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGINT(PP,(yyvsp[0])); }
+#line 294 "Parser/dbotter.y" /* yacc.c:1646  */
+    { (yyval) = MKWGFLOAT(PP,(yyvsp[0])); }
 #line 1709 "Parser/dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 47:
-#line 294 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGFLOAT(PP,(yyvsp[0])); }
+#line 295 "Parser/dbotter.y" /* yacc.c:1646  */
+    { (yyval) = MKWGDATE(PP,(yyvsp[0])); }
 #line 1715 "Parser/dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 48:
-#line 295 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGDATE(PP,(yyvsp[0])); }
+#line 296 "Parser/dbotter.y" /* yacc.c:1646  */
+    { (yyval) = MKWGTIME(PP,(yyvsp[0])); }
 #line 1721 "Parser/dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 49:
-#line 296 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGTIME(PP,(yyvsp[0])); }
+#line 297 "Parser/dbotter.y" /* yacc.c:1646  */
+    { (yyval) = MKWGSTRING(PP,(yyvsp[0])); }
 #line 1727 "Parser/dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 50:
-#line 297 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGSTRING(PP,(yyvsp[0])); }
+#line 298 "Parser/dbotter.y" /* yacc.c:1646  */
+    { (yyval) = MKWGVAR(PP,(yyvsp[0])); }
 #line 1733 "Parser/dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 51:
-#line 298 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGVAR(PP,(yyvsp[0])); }
+#line 299 "Parser/dbotter.y" /* yacc.c:1646  */
+    { (yyval) = MKWGURI(PP,(yyvsp[0])); }
 #line 1739 "Parser/dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 52:
-#line 299 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGURI(PP,(yyvsp[0])); }
+#line 300 "Parser/dbotter.y" /* yacc.c:1646  */
+    { (yyval) = MKWGCONST(PP,(yyvsp[0])); }
 #line 1745 "Parser/dbotter.tab.c" /* yacc.c:1646  */
     break;
 
   case 53:
-#line 300 "Parser/dbotter.y" /* yacc.c:1646  */
+#line 301 "Parser/dbotter.y" /* yacc.c:1646  */
     { (yyval) = MKWGCONST(PP,(yyvsp[0])); }
 #line 1751 "Parser/dbotter.tab.c" /* yacc.c:1646  */
     break;
 
-  case 54:
-#line 301 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGCONST(PP,(yyvsp[0])); }
-#line 1757 "Parser/dbotter.tab.c" /* yacc.c:1646  */
-    break;
 
-
-#line 1761 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 1755 "Parser/dbotter.tab.c" /* yacc.c:1646  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires

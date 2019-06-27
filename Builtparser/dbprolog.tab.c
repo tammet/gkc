@@ -379,16 +379,16 @@ union yyalloc
 /* YYFINAL -- State number of the termination state.  */
 #define YYFINAL  14
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   82
+#define YYLAST   78
 
 /* YYNTOKENS -- Number of terminals.  */
 #define YYNTOKENS  17
 /* YYNNTS -- Number of nonterminals.  */
-#define YYNNTS  15
+#define YYNNTS  13
 /* YYNRULES -- Number of rules.  */
-#define YYNRULES  43
+#define YYNRULES  32
 /* YYNSTATES -- Number of states.  */
-#define YYNSTATES  78
+#define YYNSTATES  72
 
 /* YYTRANSLATE[YYX] -- Symbol number corresponding to YYX as returned
    by yylex, with out-of-bounds checking.  */
@@ -437,9 +437,8 @@ static const yytype_uint8 yyrline[] =
 {
        0,    74,    74,    77,    78,    81,    82,    85,    88,    89,
       90,    93,    94,    97,    98,    99,   100,   101,   104,   107,
-     108,   109,   113,   114,   115,   118,   119,   120,   123,   124,
-     125,   129,   132,   135,   138,   139,   143,   146,   147,   148,
-     151,   152,   153,   154
+     108,   109,   129,   132,   135,   144,   147,   148,   149,   152,
+     153,   154,   155
 };
 #endif
 
@@ -451,8 +450,7 @@ static const char *const yytname[] =
   "$end", "error", "$undefined", "IS", "TATOM", "TFLOAT", "TINT", "NOT",
   "VAR", "FAIL", "'.'", "'('", "')'", "'~'", "','", "';'", "'!'",
   "$accept", "input", "clauselist", "clause", "fact", "functionform",
-  "arguments", "argument", "rule", "body", "orlist", "andlist", "atomargs",
-  "terms", "term", YY_NULLPTR
+  "arguments", "argument", "rule", "body", "atomargs", "terms", "term", YY_NULLPTR
 };
 #endif
 
@@ -480,14 +478,14 @@ static const yytype_uint16 yytoknum[] =
      STATE-NUM.  */
 static const yytype_int8 yypact[] =
 {
-      19,    -6,    21,    23,    51,   -41,    19,   -41,    40,   -41,
-      52,    31,    50,    53,   -41,   -41,    15,   -41,   -41,    54,
-     -41,   -41,   -41,   -41,    55,    49,    31,    31,    57,     3,
-     -41,    39,    56,   -41,   -41,   -41,    59,    41,    31,    67,
-      31,    60,    61,     4,    17,    15,    15,   -41,   -41,    17,
-      17,    62,    15,   -41,   -41,   -41,    57,    63,    64,    66,
-      68,    69,   -41,   -41,   -41,   -41,   -41,   -41,   -41,   -41,
-     -41,   -41,   -41,   -41,     4,   -41,    70,   -41
+      19,    -6,    21,    25,    56,   -41,    19,   -41,    24,   -41,
+      48,    33,    46,    49,   -41,   -41,    17,   -41,   -41,    50,
+     -41,   -41,   -41,   -41,    51,    45,    33,    33,    53,     3,
+     -41,    34,    52,   -41,    55,    37,    33,    63,    33,    57,
+      58,     4,    15,    17,    17,   -41,   -41,    15,    15,    59,
+      17,   -41,   -41,   -41,    53,    60,    61,    64,    65,    62,
+     -41,   -41,   -41,   -41,   -41,   -41,   -41,   -41,     4,   -41,
+      66,   -41
 };
 
   /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
@@ -496,27 +494,27 @@ static const yytype_int8 yypact[] =
 static const yytype_uint8 yydefact[] =
 {
        3,     0,     0,     0,     0,     2,     3,     5,     0,     6,
-       0,     0,     0,     0,     1,     4,    25,     7,    31,    14,
+       0,     0,     0,     0,     1,     4,     0,     7,    22,    14,
       16,    15,    17,    13,     0,    11,     0,     0,     0,     0,
-      43,    19,     0,    23,    24,    42,     0,    37,     0,     8,
-       0,     0,     0,     0,     0,    25,    25,    18,    36,     0,
-       0,     0,    25,    12,     9,    10,    14,     0,     0,     0,
-       0,     0,    20,    23,    24,    21,    23,    24,    38,    39,
-       8,    33,     8,    40,     0,    41,     0,    32
+      32,    19,     0,    31,     0,    26,     0,     8,     0,     0,
+       0,     0,     0,     0,     0,    18,    25,     0,     0,     0,
+       0,    12,     9,    10,    14,     0,     0,     0,     0,     0,
+      20,    21,    27,    28,     8,    24,     8,    29,     0,    30,
+       0,    23
 };
 
   /* YYPGOTO[NTERM-NUM].  */
 static const yytype_int8 yypgoto[] =
 {
-     -41,   -41,    65,   -41,   -41,     0,   -25,   -41,   -41,    -5,
-     -16,    12,    42,    10,   -40
+     -41,   -41,    71,   -41,   -41,     0,   -23,   -41,   -41,    -8,
+      47,     7,   -40
 };
 
   /* YYDEFGOTO[NTERM-NUM].  */
 static const yytype_int8 yydefgoto[] =
 {
       -1,     4,     5,     6,     7,    23,    24,    25,     9,    32,
-      33,    34,    35,    36,    37
+      33,    34,    35
 };
 
   /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
@@ -524,28 +522,26 @@ static const yytype_int8 yydefgoto[] =
      number is the opposite.  If YYTABLE_NINF, syntax error.  */
 static const yytype_uint8 yytable[] =
 {
-       8,    41,    42,    58,    61,    11,     8,    12,    56,    20,
-      21,    29,    22,    51,    44,    53,    31,     3,    57,    28,
-      30,    59,    29,     1,    60,    12,     2,    13,     3,    63,
-      66,    30,     3,    30,    58,    19,    20,    21,     2,    22,
-      62,    65,    10,    16,     3,    31,    31,    71,    10,    76,
-      17,    14,    31,    45,    46,    49,    50,    64,    67,    68,
-      69,    26,    18,    40,    27,    38,    47,    39,    43,    48,
-      52,    15,    54,    55,    70,    72,    73,    74,     0,    44,
-       0,    75,    77
+       8,    56,    59,    39,    40,    11,     8,    12,    54,    20,
+      21,    29,    22,    49,    42,    51,    31,     3,    55,    57,
+      30,    28,    58,     1,    29,    12,     2,    16,    56,    13,
+       3,    30,     3,    30,    17,    60,    61,    19,    20,    21,
+       2,    22,    65,    31,    31,    70,     3,    10,    43,    44,
+      31,    47,    48,    10,    62,    63,    14,    26,    18,    38,
+      27,    36,    45,    37,    41,    46,    50,     0,     0,    52,
+      53,    64,    66,    67,    69,    68,    42,    15,    71
 };
 
 static const yytype_int8 yycheck[] =
 {
-       0,    26,    27,    43,    44,    11,     6,     4,     4,     5,
-       6,     7,     8,    38,    11,    40,    16,    13,    43,     4,
-      16,     4,     7,     4,     7,     4,     7,     4,    13,    45,
-      46,    16,    13,    16,    74,     4,     5,     6,     7,     8,
-      45,    46,     0,     3,    13,    45,    46,    52,     6,    74,
-      10,     0,    52,    14,    15,    14,    15,    45,    46,    49,
-      50,    11,    10,    14,    11,    11,    10,    12,    11,    10,
-       3,     6,    12,    12,    12,    12,    12,    11,    -1,    11,
-      -1,    12,    12
+       0,    41,    42,    26,    27,    11,     6,     4,     4,     5,
+       6,     7,     8,    36,    11,    38,    16,    13,    41,     4,
+      16,     4,     7,     4,     7,     4,     7,     3,    68,     4,
+      13,    16,    13,    16,    10,    43,    44,     4,     5,     6,
+       7,     8,    50,    43,    44,    68,    13,     0,    14,    15,
+      50,    14,    15,     6,    47,    48,     0,    11,    10,    14,
+      11,    11,    10,    12,    11,    10,     3,    -1,    -1,    12,
+      12,    12,    12,    12,    12,    11,    11,     6,    12
 };
 
   /* YYSTOS[STATE-NUM] -- The (internal number of the) accessing
@@ -553,13 +549,13 @@ static const yytype_int8 yycheck[] =
 static const yytype_uint8 yystos[] =
 {
        0,     4,     7,    13,    18,    19,    20,    21,    22,    25,
-      29,    11,     4,     4,     0,    19,     3,    10,    10,     4,
+      27,    11,     4,     4,     0,    19,     3,    10,    10,     4,
        5,     6,     8,    22,    23,    24,    11,    11,     4,     7,
-      16,    22,    26,    27,    28,    29,    30,    31,    11,    12,
-      14,    23,    23,    11,    11,    14,    15,    10,    10,    14,
-      15,    23,     3,    23,    12,    12,     4,    23,    31,     4,
-       7,    31,    26,    27,    28,    26,    27,    28,    30,    30,
-      12,    26,    12,    12,    11,    12,    23,    12
+      16,    22,    26,    27,    28,    29,    11,    12,    14,    23,
+      23,    11,    11,    14,    15,    10,    10,    14,    15,    23,
+       3,    23,    12,    12,     4,    23,    29,     4,     7,    29,
+      26,    26,    28,    28,    12,    26,    12,    12,    11,    12,
+      23,    12
 };
 
   /* YYR1[YYN] -- Symbol number of symbol that rule YYN derives.  */
@@ -567,9 +563,8 @@ static const yytype_uint8 yyr1[] =
 {
        0,    17,    18,    19,    19,    20,    20,    21,    22,    22,
       22,    23,    23,    24,    24,    24,    24,    24,    25,    26,
-      26,    26,    26,    26,    26,    27,    27,    27,    28,    28,
-      28,    21,    29,    25,    23,    23,    26,    30,    30,    30,
-      31,    31,    31,    31
+      26,    26,    21,    27,    25,    26,    28,    28,    28,    29,
+      29,    29,    29
 };
 
   /* YYR2[YYN] -- Number of symbols on the right hand side of rule YYN.  */
@@ -577,9 +572,8 @@ static const yytype_uint8 yyr2[] =
 {
        0,     2,     1,     0,     2,     1,     1,     2,     4,     5,
        5,     1,     3,     1,     1,     1,     1,     1,     4,     1,
-       3,     3,     1,     1,     1,     0,     3,     3,     0,     3,
-       3,     2,     4,     6,     1,     3,     2,     1,     3,     3,
-       4,     4,     1,     1
+       3,     3,     2,     4,     6,     2,     1,     3,     3,     4,
+       4,     1,     1
 };
 
 
@@ -1266,257 +1260,191 @@ yyreduce:
         case 2:
 #line 74 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,(yyvsp[0]),MKWGNIL); }
-#line 1270 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
+#line 1264 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 3:
 #line 77 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGNIL; }
-#line 1276 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
+#line 1270 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 4:
 #line 78 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,(yyvsp[-1]), (yyvsp[0])); }
-#line 1282 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
+#line 1276 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 5:
 #line 81 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = (yyvsp[0]); }
-#line 1288 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
+#line 1282 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 6:
 #line 82 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = (yyvsp[0]); }
-#line 1294 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
+#line 1288 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 7:
 #line 85 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,(yyvsp[-1]), MKWGNIL); }
-#line 1300 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
+#line 1294 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 8:
 #line 88 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,(yyvsp[-3])), (yyvsp[-1])); }
-#line 1306 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
+#line 1300 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 9:
 #line 89 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,"not"), MKWGPAIR(DBPARM,MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,(yyvsp[-3])), (yyvsp[-1])), MKWGNIL)); }
-#line 1312 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
+#line 1306 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 10:
 #line 90 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,"~"), MKWGPAIR(DBPARM,MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,(yyvsp[-3])), (yyvsp[-1])), MKWGNIL)); }
-#line 1318 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
+#line 1312 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 11:
 #line 93 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,(yyvsp[0]), MKWGNIL); }
-#line 1324 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
+#line 1318 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 12:
 #line 94 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,(yyvsp[-2]), (yyvsp[0])); }
-#line 1330 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
+#line 1324 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 13:
 #line 97 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = (yyvsp[0]); }
-#line 1336 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
+#line 1330 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 14:
 #line 98 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGSTRING(DBPARM,(yyvsp[0])); }
-#line 1342 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
+#line 1336 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 15:
 #line 99 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGINT(DBPARM,(yyvsp[0])); }
-#line 1348 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
+#line 1342 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 16:
 #line 100 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGSTRING(DBPARM,(yyvsp[0])); }
-#line 1354 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
+#line 1348 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 17:
 #line 101 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGSTRING(DBPARM,(yyvsp[0])); }
-#line 1360 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
+#line 1354 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 18:
 #line 104 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,(yyvsp[-3]), (yyvsp[-1])); }
-#line 1366 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
+#line 1360 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 19:
 #line 107 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,"not"), MKWGPAIR(DBPARM,(yyvsp[0]), MKWGNIL)), MKWGNIL); }
-#line 1372 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
+#line 1366 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 20:
 #line 108 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,"not"), MKWGPAIR(DBPARM,(yyvsp[-2]), MKWGNIL)), (yyvsp[0])); }
-#line 1378 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
+#line 1372 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 21:
 #line 109 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,"and"), MKWGPAIR(DBPARM,(yyvsp[-2]), (yyvsp[0]))), MKWGNIL); }
-#line 1384 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
+#line 1378 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 22:
-#line 113 "Parser/dbprolog.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(DBPARM,(yyvsp[0]), MKWGNIL); }
-#line 1390 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
+#line 129 "Parser/dbprolog.y" /* yacc.c:1646  */
+    { (yyval) = (yyvsp[-1]); }
+#line 1384 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 23:
-#line 114 "Parser/dbprolog.y" /* yacc.c:1646  */
-    { (yyval) = (yyvsp[0]); }
-#line 1396 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
+#line 132 "Parser/dbprolog.y" /* yacc.c:1646  */
+    { (yyval) = MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,(yyvsp[-3])), MKWGPAIR(DBPARM,(yyvsp[-1]), MKWGNIL)); }
+#line 1390 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 24:
-#line 115 "Parser/dbprolog.y" /* yacc.c:1646  */
-    { (yyval) = (yyvsp[0]); }
-#line 1402 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
+#line 135 "Parser/dbprolog.y" /* yacc.c:1646  */
+    {(yyval) = MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,(yyvsp[-5])), MKWGPAIR(DBPARM,(yyvsp[-3]), MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,":-"), (yyvsp[0])))); }
+#line 1396 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 25:
-#line 118 "Parser/dbprolog.y" /* yacc.c:1646  */
-    { (yyval) = MKWGNIL; }
-#line 1408 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
+#line 144 "Parser/dbprolog.y" /* yacc.c:1646  */
+    { (yyval) = (yyvsp[-1]); }
+#line 1402 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 26:
-#line 119 "Parser/dbprolog.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(DBPARM,(yyvsp[-2]), (yyvsp[0])); }
-#line 1414 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
+#line 147 "Parser/dbprolog.y" /* yacc.c:1646  */
+    { (yyval) = (yyvsp[0]); }
+#line 1408 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 27:
-#line 120 "Parser/dbprolog.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(DBPARM,(yyvsp[-2]), (yyvsp[0])); }
-#line 1420 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
+#line 148 "Parser/dbprolog.y" /* yacc.c:1646  */
+    { (yyval) = MKWGPAIR(DBPARM,MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,"and"), MKWGPAIR(DBPARM,(yyvsp[-2]), (yyvsp[0]))), MKWGNIL); }
+#line 1414 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 28:
-#line 123 "Parser/dbprolog.y" /* yacc.c:1646  */
-    { (yyval) = MKWGNIL; }
-#line 1426 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
+#line 149 "Parser/dbprolog.y" /* yacc.c:1646  */
+    { (yyval) = MKWGPAIR(DBPARM,MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,"or"), MKWGPAIR(DBPARM,(yyvsp[-2]), (yyvsp[0]))), MKWGNIL); }
+#line 1420 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 29:
-#line 124 "Parser/dbprolog.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(DBPARM,(yyvsp[-2]), (yyvsp[0])); }
-#line 1432 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
+#line 152 "Parser/dbprolog.y" /* yacc.c:1646  */
+    { (yyval) = MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,(yyvsp[-3])), MKWGPAIR(DBPARM,(yyvsp[-1]), MKWGNIL)); }
+#line 1426 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 30:
-#line 125 "Parser/dbprolog.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(DBPARM,(yyvsp[-2]), (yyvsp[0])); }
-#line 1438 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
+#line 153 "Parser/dbprolog.y" /* yacc.c:1646  */
+    { (yyval) = MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,"not"), (yyvsp[-1])); }
+#line 1432 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 31:
-#line 129 "Parser/dbprolog.y" /* yacc.c:1646  */
-    { (yyval) = (yyvsp[-1]); }
-#line 1444 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
+#line 154 "Parser/dbprolog.y" /* yacc.c:1646  */
+    { (yyval) = (yyvsp[0]); }
+#line 1438 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
   case 32:
-#line 132 "Parser/dbprolog.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,(yyvsp[-3])), MKWGPAIR(DBPARM,(yyvsp[-1]), MKWGNIL)); }
-#line 1450 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
-    break;
-
-  case 33:
-#line 135 "Parser/dbprolog.y" /* yacc.c:1646  */
-    {(yyval) = MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,(yyvsp[-5])), MKWGPAIR(DBPARM,(yyvsp[-3]), MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,":-"), (yyvsp[0])))); }
-#line 1456 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
-    break;
-
-  case 34:
-#line 138 "Parser/dbprolog.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(DBPARM,(yyvsp[0]), MKWGNIL); }
-#line 1462 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
-    break;
-
-  case 35:
-#line 139 "Parser/dbprolog.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(DBPARM,(yyvsp[-2]), (yyvsp[0])); }
-#line 1468 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
-    break;
-
-  case 36:
-#line 143 "Parser/dbprolog.y" /* yacc.c:1646  */
-    { (yyval) = (yyvsp[-1]); }
-#line 1474 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
-    break;
-
-  case 37:
-#line 146 "Parser/dbprolog.y" /* yacc.c:1646  */
-    { (yyval) = (yyvsp[0]); }
-#line 1480 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
-    break;
-
-  case 38:
-#line 147 "Parser/dbprolog.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(DBPARM,MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,"and"), MKWGPAIR(DBPARM,(yyvsp[-2]), (yyvsp[0]))), MKWGNIL); }
-#line 1486 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
-    break;
-
-  case 39:
-#line 148 "Parser/dbprolog.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(DBPARM,MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,"or"), MKWGPAIR(DBPARM,(yyvsp[-2]), (yyvsp[0]))), MKWGNIL); }
-#line 1492 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
-    break;
-
-  case 40:
-#line 151 "Parser/dbprolog.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,(yyvsp[-3])), MKWGPAIR(DBPARM,(yyvsp[-1]), MKWGNIL)); }
-#line 1498 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
-    break;
-
-  case 41:
-#line 152 "Parser/dbprolog.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,"not"), (yyvsp[-1])); }
-#line 1504 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
-    break;
-
-  case 42:
-#line 153 "Parser/dbprolog.y" /* yacc.c:1646  */
-    { (yyval) = (yyvsp[0]); }
-#line 1510 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
-    break;
-
-  case 43:
-#line 154 "Parser/dbprolog.y" /* yacc.c:1646  */
+#line 155 "Parser/dbprolog.y" /* yacc.c:1646  */
     { (yyval) = MKWGPAIR(DBPARM,MKWGSTRING(DBPARM,"cut"), MKWGNIL); }
-#line 1516 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
+#line 1444 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
     break;
 
 
-#line 1520 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
+#line 1448 "Parser/dbprolog.tab.c" /* yacc.c:1646  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -1744,6 +1672,6 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 158 "Parser/dbprolog.y" /* yacc.c:1906  */
+#line 159 "Parser/dbprolog.y" /* yacc.c:1906  */
 
 
