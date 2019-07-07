@@ -118,6 +118,9 @@ int wr_genloop(glb* g) {
   
   (g->stat_given_candidates)=0;
   (g->stat_given_used)=0;
+
+  wr_make_prop_file(g);
+
   for(;;) {     
     //printf("\n %d %d %d %d\n",(g->queryfocus_strat), (g->res_shortarglen_limit),(g->negpref_strat),(g->pospref_strat));
     // first check time

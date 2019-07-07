@@ -93,6 +93,12 @@
 #define MALLOC_HASHNODES // if defined, use malloc for hashnodes, else alloc from g->hash_nodes
 //#undef MALLOC_HASHNODES
 
+// prop
+
+#define NROF_PROP_VARVALS_ELS 1000000
+#define NROF_PROP_CLAUSES_ELS 1000000
+#define DEFAULT_PROP_FILE_NAME "gkc_prop_tmp.txt"
+
 
 /* ======== Structures ========== */
 
@@ -146,6 +152,21 @@ typedef struct {
 #ifndef MALLOC_HASHNODES  
   cvec hash_nodes;      /**< area for allocating hash nodes from **/
 #endif
+
+  /* prop reasoning stuff */
+
+  gint prop_counter; // set to the next prop integer to take: max prop var + 1
+  int use_prop_constant; // normally set to 0: else 1 to use prop const for all vars
+  gint prop_constant; // the constant to replace all vars for instantiation iff use_prop_constant!=0
+
+  veco prop_hash_atoms; // hash struct for keeping ints corresponding to grounded atoms 
+  cveco prop_varvals; // array for assigned prop values (0 unknown, 1 true, -1 false)
+  cveco prop_groundings; // array or atom / term pairs for all prop vars
+  cveco prop_clauses; // array for all prop clauses worth keeping
+  cveco prop_varval_clauses; // array for clauses for all assigned prop values, at same indexes
+
+  char* prop_file_name; // file name to dump prop vars to
+
   /* == local data block === */
        
   gint proof_found;
@@ -165,7 +186,7 @@ typedef struct {
   //vec tmp1_cl_vec;
   //vec tmp2_cl_vec;
   
-  vec tmp_litinf_vec;  // used by subsumption  
+  vec tmp_litinf_vec;  // used by subsumption and by prop instantiation
   vec tmp_hardnessinf_vec; // used by hardness calc
   vec tmp_resolvability_vec; // used for resolvability of literals
   vec tmp_sort_vec; // used for sorting the initial clause list
@@ -264,7 +285,7 @@ typedef struct {
   
   int max_proofs;
   int store_history;
-  
+
   /*  printout configuration */
   
   int print_flag;
@@ -377,6 +398,7 @@ typedef struct {
   int stat_lit_hash_computed;
   int stat_lit_hash_match_found;
   int stat_lit_hash_match_miss;
+  int stat_prop_hash_match_miss;
   int stat_lit_hash_cut_ok;  
   int stat_lit_hash_subsume_ok;
   int stat_atom_hash_added;

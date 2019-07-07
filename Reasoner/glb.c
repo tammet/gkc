@@ -179,6 +179,12 @@ int wr_glb_init_simple(glb* g) {
   (g->store_history)=1;
   //(g->cl_maxdepth)=1000000;
   //(g->cl_limitkept)=1;
+
+  // prop
+
+  (g->use_prop_constant)=0;
+  (g->prop_constant)=encode_smallint(1);
+  (g->prop_counter)=2; 
   
   /*  printout configuration */
   
@@ -290,6 +296,7 @@ int wr_glb_init_simple(glb* g) {
   (g->stat_lit_hash_computed)=0;
   (g->stat_lit_hash_match_found)=0;
   (g->stat_lit_hash_match_miss)=0;
+  (g->stat_prop_hash_match_miss)=0;
   (g->stat_lit_hash_cut_ok)=0;    
   (g->stat_lit_hash_subsume_ok)=0;  
 
@@ -413,6 +420,13 @@ int wr_glb_init_shared_complex(glb* g) {
   (g->hash_nodes)=(gint)NULL;
 #endif
 
+  // prop
+
+  (g->prop_hash_atoms)=(gint)NULL; 
+  (g->prop_varvals)=(gint)NULL;
+  (g->prop_clauses)=(gint)NULL;
+  (g->prop_varval_clauses)=(gint)NULL;
+
   // then create space 
   
   (g->clbuilt)=rpto(g,wr_cvec_new(g,NROF_DYNALLOCINITIAL_ELS));  
@@ -457,6 +471,14 @@ int wr_glb_init_shared_complex(glb* g) {
 
   //(g->hash_nodes)=rpto(g,wr_vec_new(g,NROF_CLTERM_HASHNODESVEC_ELS));
   
+  // prop
+
+  (g->prop_hash_atoms)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS)); 
+  (g->prop_varvals)=rpto(g,wr_cvec_new_zero(g,NROF_PROP_VARVALS_ELS));
+  (g->prop_groundings)=rpto(g,wr_cvec_new_zero(g,2*NROF_PROP_VARVALS_ELS));
+  (g->prop_clauses)=rpto(g,wr_cvec_new(g,NROF_PROP_CLAUSES_ELS));
+  (g->prop_varval_clauses)=rpto(g,wr_cvec_new_zero(g,NROF_PROP_VARVALS_ELS));
+
   if (g->alloc_err) {
     return 1;
   }  
@@ -490,6 +512,7 @@ int wr_glb_init_local_complex(glb* g) {
   (g->tmp_hardnessinf_vec)=NULL;
   (g->tmp_resolvability_vec)=NULL;
   (g->tmp_sort_vec)=NULL;
+  (g->prop_file_name)=NULL;
   
   // then create space
   
@@ -559,6 +582,9 @@ int wr_glb_init_local_complex(glb* g) {
   //(g->pick_given_queue_ratio)=4;
   //(g->pick_given_queue_ratio_counter)=0;
   
+  (g->prop_file_name)=wr_str_new(g,100);
+  strncpy((g->prop_file_name),DEFAULT_PROP_FILE_NAME,99);
+ 
   if ((g->alloc_err)==1) {
     return 1;
   }   
@@ -636,6 +662,14 @@ int wr_glb_free_shared_complex(glb* g) {
   wr_clterm_hashlist_free(g,rotp(g,g->hash_eq_terms));
   wr_clterm_hashlist_free(g,rotp(g,g->hash_rewrite_terms));
   
+  // prop
+   
+  wr_free_prop_termhash(g,rotp(g,g->prop_hash_atoms)); 
+  wr_vec_free(g,rotp(g,g->prop_varvals));
+  wr_vec_free(g,rotp(g,g->prop_groundings));
+  wr_free_prop_clauses(g,rotp(g,g->prop_clauses));
+  wr_vec_free(g,rotp(g,g->prop_varval_clauses));
+ 
   return 0;
 }  
 
@@ -671,6 +705,9 @@ int wr_glb_free_local_complex(glb* g) {
   (g->parse_newpred_prefix)=NULL;
   wr_str_free(g,(g->parse_errmsg));
   (g->parse_errmsg)=NULL;
+
+  wr_str_free(g,(g->prop_file_name));
+  (g->prop_file_name)=NULL;
 
   return 0;
 }  

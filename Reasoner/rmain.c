@@ -379,7 +379,11 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
     
     if ((g->print_flag) && (g->print_runs)) wr_print_strat_flags(g);
 
-    res=wr_genloop(g);
+    if (!(g->proof_found) || !(wr_enough_answers(g))) {
+      res=wr_genloop(g);
+    } else {
+      res=0;
+    }
     
     //printf("\nwr_genloop exited, showing database details\n");
     //wr_show_database_details(g,NULL,"local g");
@@ -495,7 +499,7 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
   gcell *cellptr2; 
   gint cell2,lastcell;
   int n=0;
-  int size,depth,length;
+  int size,depth,length,tmp;
   int vecflag=0; // set to 1 if clauses sorted into vector
 
   //printf("\n ** wr_init_active_passive_lists_from_one called ** \n");
@@ -633,6 +637,10 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
         wr_print_clause(g,rec);          
 #endif
         wr_push_cl_clpick_queues(g,(g->clpick_queues),rec,weight); // -1 means we do not know weight
+        tmp=wr_cl_create_propinst(g,rec);
+        if (tmp==2) {
+          return rules_found+facts_found;   
+        }
       } 
 
     } else if (wg_rec_is_fact_clause(db,rec)) {
@@ -689,6 +697,10 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
         wr_print_clause(g,rec);          
 #endif        
         wr_push_cl_clpick_queues(g,(g->clpick_queues),rec,weight); // -1 means we do not know weight
+        tmp=wr_cl_create_propinst(g,rec);
+        if (tmp==2) {
+          return rules_found+facts_found;   
+        }
       }
       
     }  else {

@@ -99,6 +99,8 @@ where
 #define WR_HISTORY_TAG_EQUALITY_REFLEXIVE 4
 #define WR_HISTORY_TAG_SIMPLIFY 5
 #define WR_HISTORY_TAG_PROPAGATE 6
+#define WR_HISTORY_TAG_PROPINST 7
+#define WR_HISTORY_TAG_INSTGEN 8
 
 #define WR_HISTORY_TAG_SHIFT 20
 #define WR_HISTORY_EXTRA_SHIFT 16
@@ -127,6 +129,7 @@ gint wr_build_resolve_history(glb* g, gptr cl1, gptr cl2, int pos1, int pos2, gp
 
 gint wr_build_propagate_history(glb* g, gptr cl1, gptr cl2, int pos1, int pos2);
 gint wr_build_factorial_history(glb* g, gptr cl, int pos1, int pos2, gptr cut_clvec);
+gint wr_build_propinst_history(glb* g, gptr cl1, gint term, gptr cut_clvec);
 gint wr_build_para_history(glb* g, gptr cl1, gptr cl2, int pos1, int pos2, gptr cut_clvec,
                            gint path, int leftflag, int fromflag);
 gint wr_build_simplify_history(glb* g, gptr cl, gptr cut_clvec, gptr rewrite_clvec);          
@@ -136,6 +139,7 @@ gint wr_calc_history_priority2(glb* g, gptr cl1, gptr cl2);
 gint wr_encode_history_resolve(glb* g, int pos1, int pos2);
 gint wr_encode_history_propagate(glb* g, int pos1, int pos2);
 gint wr_encode_history_factorial(glb* g, int pos1, int pos2);
+gint wr_encode_history_propinst(glb* g);
 gint wr_encode_history_equality_reflexive(glb* g, int pos1);
 gint wr_encode_history_para(glb* g, int pos1, int pos2, int leftflag);
 gint wr_encode_history_simplify(glb* g);

@@ -312,6 +312,37 @@ gint wr_build_factorial_history(glb* g, gptr cl1, int pos1, int pos2, gptr cut_c
   }  
 }
 
+
+gint wr_build_propinst_history(glb* g, gptr cl1, gint term, gptr cut_clvec) {
+  void* db=g->db;
+  gptr rec;
+  gint tag;
+  int i,cutn=0;
+  int datalen=HISTORY_PREFIX_LEN+3;
+
+  if (g->store_history) {
+    if (cut_clvec) {
+      for(cutn=1; cutn<(int)(cut_clvec[0]) && (gptr)(cut_clvec[cutn])!=NULL; cutn++) {}  
+      cutn=cutn-1;      
+    }
+    rec=wr_create_raw_history_record(g,datalen+cutn,g->build_buffer);
+    if (rec==NULL) return wg_encode_null(db,NULL);
+    //tag=wr_encode_history_factorial(g,pos1,pos2);
+    tag=wr_encode_history_propinst(g);   
+    wr_set_history_record_field(g,rec,HISTORY_DERIVATION_TAG_POS,tag);
+    wr_set_history_record_field(g,rec,HISTORY_PARENT1_POS,wg_encode_record(db,cl1));
+    wr_set_history_record_field(g,rec,HISTORY_PARENT2_POS,term);
+    wr_set_history_record_field(g,rec,HISTORY_PRIORITY_POS,wr_calc_history_priority2(g,cl1,NULL));
+    for(i=0; i<cutn; i++) {
+      wr_set_history_record_field(g,rec,datalen+i,wg_encode_record(db,(gptr)(cut_clvec[i+1])));
+    }
+    wr_set_history_record_derived_order(g,rec);
+    return wg_encode_record(db,rec);     
+  } else {
+    return wg_encode_int(g->db,1);
+  }  
+}
+
 gint wr_build_para_history(glb* g, gptr cl1, gptr cl2, int pos1, int pos2, gptr cut_clvec,
                           gint path, int leftflag, int fromflag) {  
   void* db=g->db;
@@ -449,6 +480,13 @@ gint wr_encode_history_factorial(glb* g, int pos1, int pos2) {
   return wg_encode_int(g->db,n);
 }
 
+gint wr_encode_history_propinst(glb* g) {
+  int n;
+ 
+  n=WR_HISTORY_TAG_PROPINST<<WR_HISTORY_TAG_SHIFT;    
+  return wg_encode_int(g->db,n);
+}
+
 
 gint wr_encode_history_equality_reflexive(glb* g, int pos1) {
   int n1,n;
@@ -557,8 +595,13 @@ gptr wr_flatten_history(glb* g, void* mpool, gint history, gptr cl, int depth, i
   int len, tmp1, i, start;
    
   // get history type and components
-  
-  //printf("\nflatten called depth %d\n",depth);
+  /* 
+  printf("\nflatten called depth %d\n",depth);  
+  wr_print_clause(g,cl);
+  printf("\n");
+  wg_print_record(g->db,cl);
+  printf("\n");
+  */
   if (!history) return NULL;
   len=wg_get_record_len(db,otp(db,history));   
   head=wr_get_history_record_field(db,otp(db,history),HISTORY_DERIVATION_TAG_POS);
@@ -572,11 +615,16 @@ gptr wr_flatten_history(glb* g, void* mpool, gint history, gptr cl, int depth, i
   //printf("\n wr_flatten_history got tag %d\n",tag);
   if (tag==WR_HISTORY_TAG_RESOLVE || tag==WR_HISTORY_TAG_FACTORIAL ||
       tag==WR_HISTORY_TAG_PARA || tag==WR_HISTORY_TAG_EQUALITY_REFLEXIVE || 
-      tag==WR_HISTORY_TAG_SIMPLIFY || tag==WR_HISTORY_TAG_PROPAGATE) {
+      tag==WR_HISTORY_TAG_SIMPLIFY || tag==WR_HISTORY_TAG_PROPAGATE || 
+      tag==WR_HISTORY_TAG_PROPINST) {
     if (tag==WR_HISTORY_TAG_PARA) start=HISTORY_PARA_PARENT1_POS;
     else start=HISTORY_PARENT1_POS;    
     for(i=start;i<len;i++) {
       //printf("\nflatten i %d depth %d\n",i,depth);
+      if (tag==WR_HISTORY_TAG_PROPINST && i==HISTORY_PARENT2_POS) {
+        // instantiation term, not a clause
+        continue;
+      }
       cl1=wr_get_history_record_field(g,otp(db,history),i);      
       h1=wr_get_history(g,otp(db,cl1));
       if (wg_get_assoc(db,(void *)cl1,*assoc)) {
@@ -584,6 +632,11 @@ gptr wr_flatten_history(glb* g, void* mpool, gint history, gptr cl, int depth, i
         continue;
       }  
       wr_flatten_history(g,mpool,h1,otp(db,cl1),depth+1,clnr,assoc);
+      /* 
+      printf("\n flattening adding cl nr %d\n",*clnr);
+      wr_print_clause(g,rotp(g,cl1));
+      printf("\n");
+      */
       tmp1=wr_flatten_history_addcl(g,mpool,cl1,clnr,assoc);
       if (!tmp1) return NULL;         
     }   
@@ -746,6 +799,32 @@ char* wr_print_one_history
       } else {
        wr_printf("%s",namebuf1);
       }    
+      if (i<len-1) wr_printf(", ");
+    }    
+    if (g->print_history_extra) wr_print_history_extra(g,history);
+    else {
+      wr_printf("] ");  
+    } if (!cl) {
+      wr_printf("false");
+    } else wr_print_clause(g,cl);  
+   
+   } else if (tag==WR_HISTORY_TAG_PROPINST) {
+    wr_printf("\n %s:%s [propinst, ",clns,orderbuf);
+    for(i=HISTORY_PARENT1_POS;i<len;i++) {
+      cl1=wr_get_history_record_field(g,otp(db,history),i);
+      if (i==HISTORY_PARENT2_POS) {
+        // instantiation term
+        wr_print_term(g,cl1);
+      } else {
+        tmp1=wg_get_assoc(db,(void *)cl1,*assoc);
+        num=(int)(gint)(wg_nth(db,tmp1,2));
+        snprintf(namebuf1,19,"%d",num);
+        if (i==1+HISTORY_DERIVATION_TAG_POS) {
+          wr_printf("%s.%d.%d",namebuf1,pos1,pos2);       
+        } else {
+        wr_printf("%s",namebuf1);
+        }    
+      }  
       if (i<len-1) wr_printf(", ");
     }    
     if (g->print_history_extra) wr_print_history_extra(g,history);
@@ -1106,7 +1185,14 @@ int wr_strprint_one_history
 #ifdef SHOW_HISTORY_ORDER  
   int o1,o2;
 #endif
-
+  /* 
+  printf("\nprinting one history for clns %s\n",clns);
+  wr_print_clause(g,cl);
+  printf("\n");
+  head=wr_get_history_record_field(db,otp(db,history),HISTORY_DERIVATION_TAG_POS);
+  htype=wg_get_encoded_type(db,head);
+  printf("\nhead %ld htype %d and WG_INTTYPE %d\n",head,htype,WG_INTTYPE);
+  */
   namebuf1[0]=(char)0;  
   if (!wr_str_guarantee_space(g,buf,blen,bpos+100)) return -1;
   //if (g->print_json) {
@@ -1129,7 +1215,7 @@ int wr_strprint_one_history
 #else
   orderbuf[0]=(char)0;      
 #endif  
-  len=wg_get_record_len(db,otp(db,history)); 
+  len=wg_get_record_len(db,otp(db,history));  
   if (len==HISTORY_PREFIX_LEN) {
     // input clause
     if (g->print_json) {
@@ -1258,6 +1344,45 @@ int wr_strprint_one_history
        bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"%s",namebuf1);
       }    
       if (i<len-1) bpos+=snprintf((*buf)+bpos,(*blen)-bpos,", ");
+    }    
+    if (!wr_str_guarantee_space(g,buf,blen,bpos+100)) return -1;
+    if (g->print_history_extra) {
+      bpos=wr_strprint_history_extra(g,buf,blen,bpos,history);
+      if (bpos<0) return bpos;
+    } else {
+      bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"] ");  
+    } 
+    bpos=wr_strprint_clause(g,cl,buf,blen,bpos);        
+    if (bpos<0) return bpos;
+
+   } else if (tag==WR_HISTORY_TAG_PROPINST) {
+    //printf("\n prop clause in history for clns %s: \n",clns);    
+    //wr_print_clause(g,cl);
+    //printf("\n");
+    if (!wr_str_guarantee_space(g,buf,blen,bpos+100)) return -1;
+    if (g->print_json) {
+      bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\n[%s,%s [\"inst\", ",clns,orderbuf);       
+    } else {
+      bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\n %s:%s [inst, ",clns,orderbuf); 
+    }      
+    for(i=HISTORY_PARENT1_POS;i<len;i++) {
+      cl1=wr_get_history_record_field(g,otp(db,history),i);      
+      if (i==HISTORY_PARENT2_POS) {
+        // instantiation term       
+        bpos=wr_strprint_term_otter(g,cl1,(g->print_clause_detaillevel),buf,blen,bpos);               
+        if (bpos<0) return bpos;
+      } else {
+        tmp1=wg_get_assoc(db,(void *)cl1,*assoc);
+        num=(int)(gint)(wg_nth(db,tmp1,2));
+        snprintf(namebuf1,19,"%d",num);
+        if (!wr_str_guarantee_space(g,buf,blen,bpos+100+strlen(namebuf1))) return -1;
+        if (g->print_json) {
+          bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"%s",namebuf1);          
+        } else {
+          bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"%s",namebuf1);
+        }               
+      } 
+      if (i<len-1) { bpos+=snprintf((*buf)+bpos,(*blen)-bpos,", "); }
     }    
     if (!wr_str_guarantee_space(g,buf,blen,bpos+100)) return -1;
     if (g->print_history_extra) {

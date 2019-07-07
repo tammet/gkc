@@ -416,7 +416,11 @@ gint wr_term_basehash(glb* g, gint enc) {
       hash=int_hash(enc);
       break;
     case WG_VARTYPE:
-      hash=int_hash(decode_var(enc));
+      if (g->use_prop_constant) {
+        hash=wr_term_basehash(g,(g->prop_constant));  
+      } else {
+        hash=int_hash(decode_var(enc));
+      }  
       //hash=int_hash(0);
       break;
     case WG_ANONCONSTTYPE:     

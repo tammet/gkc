@@ -34,6 +34,9 @@
 #include "../Reasoner/types.h"
 #include "../Reasoner/mem.h"
 #include "../Reasoner/glb.h"
+#include "../Reasoner/prop.h"
+
+#define UNUSEDVAR(x) (void)(x);
 
 void wr_print_clause(glb* g, gptr rec);
 void wr_print_halfbuilt_clause(glb* g, gptr rptr, int rpos);
@@ -45,6 +48,7 @@ void wr_print_db_otter(glb* g,int printlevel);
 void wr_print_clause_otter(glb* g, gint* rec,int printlevel);
 void wr_print_rule_clause_otter(glb* g, gint* rec,int printlevel);
 void wr_print_fact_clause_otter(glb* g, gint* rec,int printlevel);
+void wr_print_prop_clause_otter(glb* g, gint* rec,int printlevel);
 void wr_print_atom_otter(glb* g, gint rec,int printlevel);
 void wr_print_term_otter(glb* g, gint rec,int printlevel);
 void wr_print_simpleterm_otter(glb* g, gint enc,int printlevel);
@@ -54,6 +58,7 @@ int wr_strprint_clause(glb* g, gptr rec, char** buf, int *len, int pos);
 int wr_strprint_clause_otter(glb* g, gptr rec, int printlevel, char** buf, int *len, int pos);
 int wr_strprint_rule_clause_otter(glb* g, gint* rec,int printlevel, char** buf, int *len, int pos);
 int wr_strprint_fact_clause_otter(glb* g, gint* rec, int printlevel, char** buf, int *len, int pos);
+int wr_strprint_prop_clause_otter(glb* g, gint* rec,int printlevel, char** buf, int *len, int pos);
 int wr_strprint_atom_otter(glb* g, gint rec, int printlevel,char** buf, int *len, int pos, int isneg);
 int wr_strprint_term_otter(glb* g, gint rec,int printlevel, char** buf, int *len, int pos);
 int wr_strprint_simpleterm_otter(glb* g, gint enc,int printlevel, char** buf, int *len, int pos, int isneg);

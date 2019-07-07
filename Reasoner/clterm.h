@@ -70,6 +70,7 @@
 
 #define RECORD_META_RULE_CLAUSE  (1<<3) // should be notdata as well
 #define RECORD_META_FACT_CLAUSE  (1<<4) // should be notdata as well
+#define RECORD_META_PROP_CLAUSE  (1<<8) // should be notdata as well
 #define RECORD_META_ATOM (1<<5)      // should be notdata as well
 #define RECORD_META_TERM (1<<6)      // should be notdata as well
 #define RECORD_META_BLOCKED (1<<7)   // should be notdata as well
@@ -166,6 +167,8 @@ where we use 29 bits:
 
 #define wg_rec_is_rule_clause(db,rec) (*((gint*)(rec)+RECORD_META_POS) & RECORD_META_RULE_CLAUSE)
 #define wg_rec_is_fact_clause(db,rec) (*((gint*)(rec)+RECORD_META_POS) & RECORD_META_FACT_CLAUSE)
+#define wg_rec_is_prop_clause(db,rec) (*((gint*)(rec)+RECORD_META_POS) & RECORD_META_PROP_CLAUSE)
+
 #define wg_rec_is_atom_rec(db,rec) (*((gint*)(rec)+RECORD_META_POS) & RECORD_META_ATOM)
 #define wg_rec_is_term_rec(db,rec) (*((gint*)(rec)+RECORD_META_POS) & RECORD_META_TERM)
 #define wg_rec_is_blocked_clause(db,rec) (*((gint*)(rec)+RECORD_META_POS) & RECORD_META_BLOCKED)
@@ -183,6 +186,23 @@ where we use 29 bits:
 #define wg_count_clause_atoms(db,clause) ((get_record_len((clause))-CLAUSE_EXTRAHEADERLEN)/LIT_WIDTH)
 
 #define wr_term_unify_startpos(g) (RECORD_HEADER_GINTS+((g)->unify_firstuseterm))  
+
+// prop macros
+
+#define PROP_CL_VARSTART RECORD_HEADER_GINTS+CLAUSE_EXTRAHEADERLEN
+
+#define PROP_LIT_WIDTH 1 // no meta gint for now
+//#define PROP_LIT_META_POS 0 // no meta for now
+#define PROP_LIT_ATOM_POS 0
+
+//#define wg_get_prop_clause_atom_meta(db,rec,litnr) get_field((rec), (CLAUSE_EXTRAHEADERLEN+((litnr)*PROP_LIT_WIDTH)+PROP_LIT_META_POS))
+//#define wg_set_prop_clause_atom_meta(db,rec,litnr,meta) set_field((rec), (CLAUSE_EXTRAHEADERLEN+((litnr)*PROP_LIT_WIDTH)+PROP_LIT_META_POS),(meta))
+
+#define wg_get_prop_clause_atom(db,rec,litnr) get_field((rec), (CLAUSE_EXTRAHEADERLEN+((litnr)*PROP_LIT_WIDTH)+PROP_LIT_ATOM_POS))
+#define wg_set_prop_clause_atom(db,rec,litnr,atom) set_field((rec), (CLAUSE_EXTRAHEADERLEN+((litnr)*PROP_LIT_WIDTH)+PROP_LIT_ATOM_POS), (atom))
+
+#define wg_count_prop_clause_atoms(db,clause) ((get_record_len((clause))-CLAUSE_EXTRAHEADERLEN)/PROP_LIT_WIDTH)
+
 
 /* ==== Protos ==== */
 

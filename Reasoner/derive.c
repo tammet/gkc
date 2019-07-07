@@ -304,7 +304,9 @@ void wr_process_resolve_result
 #ifdef DEBUG
     wr_print_atomhash(g,rotp(g,(g->hash_atom_occurrences)));
 #endif
-    wr_push_cl_clpick_queues(g,(g->clpick_queues),res,weight);    
+    wr_push_cl_clpick_queues(g,(g->clpick_queues),res,weight);
+    tmp=wr_cl_create_propinst(g,res);
+    if (tmp==2) {  return;  }
   }    
 }  
 
@@ -459,7 +461,9 @@ void wr_process_factor_result
   (g->avg_kept_weight)=avg;
   resmeta=wr_calc_clause_meta(g,res,cl_metablock);
   wr_add_cl_to_unithash(g,res,resmeta);
-  wr_push_cl_clpick_queues(g,(g->clpick_queues),res,weight);       
+  wr_push_cl_clpick_queues(g,(g->clpick_queues),res,weight);   
+  tmp=wr_cl_create_propinst(g,res);    
+  if (tmp==2) {  return;  }
 }  
 
 /*
@@ -727,8 +731,9 @@ void wr_process_paramodulate_result
   (g->avg_kept_weight)=avg;
   resmeta=wr_calc_clause_meta(g,res,cl_metablock);
   wr_add_cl_to_unithash(g,res,resmeta);
-  wr_push_cl_clpick_queues(g,(g->clpick_queues),res,weight);     
-
+  wr_push_cl_clpick_queues(g,(g->clpick_queues),res,weight); 
+  tmp=wr_cl_create_propinst(g,res);    
+  if (tmp==2) {  return;  }
 }  
 
 /* -----------

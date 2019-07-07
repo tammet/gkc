@@ -272,7 +272,31 @@ cvec wr_cvec_new(glb* g,int len) {
   //memset(res+CVEC_START,0,(len-CVEC_START));  
   return res;
 }
- 
+
+
+cvec wr_cvec_new_zero(glb* g,int len) {
+  vec res;
+  //int i;
+  
+  //res = (vec) wr_malloc(g,((len+1)*sizeof(gint))+OVER_MALLOC_BYTES);   
+  res = (vec) wr_calloc(g,(len+1)+1,sizeof(gint));
+  if (res==NULL) {
+    (g->alloc_err)=1;    
+    wr_alloc_err2int(g,"Cannot allocate memory for a cvec with length",len);
+    return NULL;
+  }  
+  // set correct alignment for res
+  //!!!! alignment creates problem when freeing!
+  /* 
+  i=VEC_ALIGNMENT_BYTES-(((gint)res)%VEC_ALIGNMENT_BYTES);
+  if (i==VEC_ALIGNMENT_BYTES) i=0;  
+  res=(gptr)((char*)res+i);
+  */
+  res[0]=(gint)len;
+  res[1]=(gint)CVEC_START;
+  //for (i=VEC_START; i<=len; i++) res[i]=0;    
+  return res;
+}
 
 /** Free the passed vec.
 *

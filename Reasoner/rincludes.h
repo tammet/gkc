@@ -67,6 +67,7 @@
 #include "init.h"
 #include "analyze.h"
 #include "chains.h"
+#include "prop.h"
 #include "../cjson/cjson.h"
 #include "../Db/dbutil.h"
 #include "../Printer/dbotterprint.h"

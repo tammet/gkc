@@ -90,6 +90,7 @@ vec wr_vec_new(glb* g, int len);
 vec wr_vec_new_zero(glb* g,int len);
 void wr_vec_zero(vec v);
 cvec wr_cvec_new(glb* g,int len);
+cvec wr_cvec_new_zero(glb* g,int len);
 void wr_vec_free(glb* g, vec v);
 void wr_vecstr_free(glb* g, vec v);
 void wr_vecvecstr_free(glb* g, vec v);
