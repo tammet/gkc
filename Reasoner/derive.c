@@ -167,7 +167,7 @@ void wr_process_resolve_result
     wr_printf("\nc pre-cut derived by mp: ");
     wr_print_halfbuilt_clause(g,rptr,rpos);
   }
-  tmp=wr_derived_cl_cut_and_subsume(g,rptr,rpos);
+  tmp=wr_derived_cl_cut_and_subsume(g,rptr,rpos,NULL);
   if (tmp<0) {
     // clause was subsumed
 #ifdef DEBUG      
@@ -311,6 +311,213 @@ void wr_process_resolve_result
 }  
 
 
+void wr_process_instgen_result
+      (glb* g, gint xatom, gptr xcl, gint yatom, gptr ycl, gptr xcl_as_active, int usexcl) {
+  int isrule,atomnr;
+  int rlen;
+  int tmp;
+  gptr cl;
+  gint atom;
+  gptr rptr;
+  int rpos,cutpos1=0,cutpos2=0;
+  gptr res;  
+  gint resmeta,history, hash;
+  int ruleflag;
+  gint initial_queue_termbuf_next=0;
+  int weight;
+  double avg;
+  gint cl_metablock[CLMETABLOCK_ELS];
+  int size,depth,length; 
+  gint clhash;
+  
+#ifdef DEBUG
+  wr_printf("\n+++ wr_process_instgen_result called\n");
+  wr_print_clause(g,xcl); wr_printf(" : ");wr_print_term(g,xatom);
+  wr_printf("\n");
+  wr_print_clause(g,ycl);  wr_printf(" : ");wr_print_term(g,yatom);
+  wr_printf("\n");
+  wr_print_vardata(g);  
+#endif    
+  if (usexcl) {
+    cl=xcl;
+    atom=xatom;    
+  } else {
+    cl=ycl;
+    atom=yatom;
+  }  
+  if (wr_ground_term(g,atom)) return;
+  ++(g->stat_derived_cl);
+  ++(g->stat_instgen_derived_cl); 
+  // get basic info about clauses
+  isrule=wg_rec_is_rule_clause(db,cl); 
+  if (isrule) atomnr=wg_count_clause_atoms(db,cl);
+  else atomnr=1; 
+  // reserve sufficient space in derived_termbuf for simple sequential store of atoms:
+  // no top-level meta kept
+  rlen=(atomnr)*LIT_WIDTH;  
+  (g->derived_termbuf)[1]=2; // init termbuf
+  rptr=wr_alloc_from_cvec(g,g->derived_termbuf,rlen); 
+  if (rptr==NULL) {
+    ++(g->stat_internlimit_discarded_cl);
+    wr_alloc_err(g,"could not alloc first buffer in wr_process_instgen_result ");
+    return; // could not alloc memory, could not store clause
+  }  
+  //printf("xisrule %d yisrule %d xatomnr %d yatomnr %d rlen %d\n",
+  //        xisrule,yisrule,xatomnr,yatomnr,rlen);
+  // set up var rename params
+  wr_process_resolve_result_setupsubst(g);  
+  // store all ready-built atoms sequentially, excluding duplicates
+  // and looking for tautology: only for rule clauses needed    
+  rpos=0;
+  tmp=wr_process_instgen_result_aux(g,cl,atom,atomnr,rptr,&rpos,&cutpos1,-1,0);
+  if (!tmp) {
+    wr_process_resolve_result_cleanupsubst(g);       
+    return; 
+  }
+  wr_process_resolve_result_cleanupsubst(g);  
+  if (rpos==0) {
+    g->proof_found=1;   
+    if (usexcl) g->proof_history=wr_build_instgen_history(g,xcl_as_active,ycl,cutpos1,cutpos2,NULL);
+    else g->proof_history=wr_build_instgen_history(g,ycl,xcl_as_active,cutpos2,cutpos1,NULL);
+    wr_register_answer(g,NULL,g->proof_history);
+    return;
+  } 
+
+  // check subsumption and cutoff
+  
+  if (g->print_derived_precut_cl) {
+    wr_printf("\nc pre-cut derived by instgen: ");
+    wr_print_halfbuilt_clause(g,rptr,rpos);
+  }
+  tmp=wr_derived_cl_cut_and_subsume(g,rptr,rpos,&clhash);
+  
+  /* 
+  printf("\nhalfbuilt clause:\n");
+  wr_print_halfbuilt_clause(g,rptr,rpos);
+  printf("\n");
+  */
+
+  if (tmp<0) {
+    // clause was subsumed
+#ifdef DEBUG      
+    wr_printf("\nwr_process_instgen_result was subsumed with new subsumer\n");
+#endif    
+    if (g->print_derived_subsumed_cl) {
+      wr_printf("\n- subsumed derived by instgen ");
+      wr_print_halfbuilt_clause(g,rptr,rpos);
+    }
+    return;    
+  } else if (tmp>0) {
+    // there were cuts
+    if (g->print_derived_precut_cl) {
+      wr_printf("\nc post-cut derived by instgen ");
+      wr_print_halfbuilt_clause(g,rptr,rpos);
+    }
+    wr_process_resolve_result_remove_cuts(g,rptr,&rpos,tmp);
+    (g->stat_derived_cut)++;
+    if (rpos==0) {
+      g->proof_found=1;   
+      if (usexcl) g->proof_history=wr_build_instgen_history(g,xcl_as_active,ycl,cutpos1,cutpos2,g->cut_clvec);
+      else g->proof_history=wr_build_instgen_history(g,ycl,xcl_as_active,cutpos2,cutpos1,g->cut_clvec); 
+      wr_register_answer(g,NULL,g->proof_history);
+      return;
+    } 
+  }
+
+
+  // now we have stored all subst-into and renamed metas/atoms into rptr: build clause  
+
+  //printf("filled meta/atom new vec, rpos %d\n",rpos);          
+
+  // check whether should be stored as a ruleclause or not
+  ruleflag=wr_process_resolve_result_isrulecl(g,rptr,rpos);  
+  // create new record
+ 
+  wr_process_resolve_result_setupquecopy(g); // use g->queue_termbuf as g->build_buffer
+  initial_queue_termbuf_next=CVEC_NEXT(g->build_buffer); // to be restored if not actually used    
+  
+  if (usexcl) history=wr_build_instgen_history(g,xcl_as_active,ycl,cutpos1,cutpos2,g->cut_clvec);
+  else history=wr_build_instgen_history(g,ycl,xcl_as_active,cutpos2,cutpos1,g->cut_clvec); 
+  res=wr_derived_build_cl_from_initial_cl(g,rptr,rpos,ruleflag,history);
+  if (!history || !res) {
+    // allocation failed
+    return;
+  }  
+  wr_sort_cl(g,res); // note that sorting here is not done for resolution results
+
+  // now the resulting clause is fully built
+  /*
+  if (g->print_derived_cl) {
+    wr_printf("\n+ derived by mp: ");
+    wr_print_clause(g,res);
+  }  
+  */
+  // check if result contains only ans predicates
+  
+  //printf("\n checking for pure answer clause\n");
+  //wr_print_clause(g,res);
+  tmp=wr_cl_derived_is_answer(g,res);
+  if (tmp>0) {
+    wr_register_answer(g,res,history);
+    //wr_printf("\n\nfound pure answer: ");
+    //wr_print_clause(g,res);
+    g->proof_found=1;   
+    g->proof_history=history;    
+    return;
+  }
+
+  // start storing to queues and hashes
+
+  if (1) {           
+    // ordinary case (not partial hyperres): resulting clause is finished
+    if (g->print_derived_cl) {
+      wr_printf("\n+ derived by instgen: ");
+      wr_print_clause(g,res);    
+    }  
+    weight=wr_calc_clause_weight(g,res,&size,&depth,&length);
+    avg=(g->avg_kept_weight);       
+    //printf(" weight %d average %f count %d \n",weight,(g->avg_kept_weight),(g->stat_kept_cl));
+    if (0) { //!wr_derived_weight_check(g,avg,weight,size,depth,length,xatomnr,yatomnr)) {
+      (g->stat_weight_discarded_cl)++;
+      CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
+      if (g->print_derived_cl) wr_printf("\nw discarded overweight");
+      return;
+    }
+    ++(g->stat_kept_cl);
+    avg+=(weight-avg)/((g->stat_kept_cl)+1);
+    (g->avg_kept_weight)=avg;
+    resmeta=wr_calc_clause_meta(g,res,cl_metablock);
+    hash=wr_add_cl_to_unithash(g,res,resmeta); 
+  
+    if (hash<0) { // length is 2 or bigger
+    //if (!(wg_rec_is_fact_clause(db,cl)) && wg_count_clause_atoms(db,cl)>1) {
+      // nonunit clause: add to clause hash
+      wr_push_prop_clausehash(g,rotp(g,g->prop_hash_clauses),clhash,res);
+    }
+
+    if (g->propagate) {
+      if (hash>=0)  {
+        // unit, propagate
+        wr_propagate_unit(g,res,resmeta,hash,xcl_as_active);
+        if (g->proof_found || g->alloc_err) {
+          //wr_clear_varstack(g,g->varstack);          
+          return;          
+        }  
+      } else {  
+        // nonunit, store occurrences
+        wr_store_atom_occurrences(g,res);
+      }  
+    }  
+#ifdef DEBUG
+    wr_print_atomhash(g,rotp(g,(g->hash_atom_occurrences)));
+#endif
+    wr_push_cl_clpick_queues(g,(g->clpick_queues),res,weight);
+    tmp=wr_cl_create_propinst(g,res);
+    if (tmp==2) {  return;  }
+  }    
+}  
+
+
 /* 
 
   Process factorization and equality reflexive resolution result 
@@ -387,7 +594,7 @@ void wr_process_factor_result
     wr_printf("\nc pre-cut derived by merge: ");
     wr_print_halfbuilt_clause(g,rptr,rpos);
   }
-  tmp=wr_derived_cl_cut_and_subsume(g,rptr,rpos);
+  tmp=wr_derived_cl_cut_and_subsume(g,rptr,rpos,NULL);
   if (tmp<0) {
     // clause was subsumed
 #ifdef DEBUG    
@@ -595,7 +802,7 @@ void wr_process_paramodulate_result
     }
     wr_print_halfbuilt_clause(g,rptr,rpos);
   }
-  tmp=wr_derived_cl_cut_and_subsume(g,rptr,rpos);
+  tmp=wr_derived_cl_cut_and_subsume(g,rptr,rpos,NULL);
   if (tmp<0) {
     // clause was subsumed
 #ifdef DEBUG      
@@ -854,6 +1061,113 @@ int wr_process_resolve_result_aux
   return 1; // 1 means clause is still ok. 0 return means: drop clause 
 }  
 
+
+int wr_process_instgen_result_aux
+      (glb* g, gptr cl, gint cutatom, int atomnr, gptr rptr, int* rpos, int* cutpos, 
+       gint replpath, gint replterm){
+  void *db=g->db;
+  int i,j;
+  int ruleflag,posfoundflag;
+  gint meta,atom,newatom,rmeta;
+  int repllitnr=-1,replpos;
+  int termpath;
+
+#ifdef DEBUG
+  wr_printf("\nwr_process_instgen_result_aux called on atomnr %d with clause and term:\n",atomnr);
+  wr_print_clause(g,cl);
+  wr_print_term(g,cutatom);
+  wr_printf("\n and atomnr %d *rpos %d *cutpos %d replpath %d and replterm:\n",atomnr,*rpos,*cutpos,replpath);
+  wr_print_term(g,replterm);
+#endif        
+  (g->tmp3)++;
+  ruleflag=wg_rec_is_rule_clause(db,cl);      
+  if (replpath>=0) {
+    repllitnr=wr_decode_para_termpath_litnr(g,replpath);  
+    *cutpos=repllitnr;
+  }  
+  for(i=0;i<atomnr;i++) {
+    if (!ruleflag) {
+      meta=4; // dummy!!!
+      atom=encode_record(db,cl);
+    } else {
+      meta=wg_get_rule_clause_atom_meta(db,cl,i);
+      atom=wg_get_rule_clause_atom(db,cl,i);
+    }  
+    // subst into xatom 
+    if (i==repllitnr) {
+      replpos=wr_decode_para_termpath_pos(g,replpath);
+      termpath=0;
+      newatom=wr_build_calc_term_replace(g,atom,replpos,replterm,&termpath);
+    } else {
+      newatom=wr_build_calc_term(g,atom);
+    }  
+    if (!meta) {
+      // check that no meta is actual 0: we will mark cutoff literals with meta being actual 0
+      wr_printf("\n!! unexpected error: atom meta in wr_process_instgen_result_aux is 0\n ");
+      return 0;     
+    }  
+#ifdef DEBUG
+    wr_printf("\nwr_process_instgen_result_aux loop i %d built meta %d and term\n",i,(int)meta);    
+    wr_print_term(g,newatom);          
+#endif
+    if (newatom==WG_ILLEGAL) {
+      ++(g->stat_internlimit_discarded_cl);
+      //wr_alloc_err(g,"could not build subst newatom in wr_process_resolve_result ");
+      return 0; // could not alloc memory, could not store clause
+    }  
+    if (newatom==ACONST_TRUE) {
+      if (wg_atom_meta_is_neg(db,meta)) continue;
+      else return 0;
+    } 
+    if (newatom==ACONST_FALSE) {
+      if (wg_atom_meta_is_neg(db,meta)) return 0;
+      else continue;      
+    }      
+    posfoundflag=0;
+
+    // check if xatom present somewhere earlier      
+    for(j=0;j < *rpos;j++){
+#ifdef DEBUG          
+          wr_printf("\nlooking for equal term at pos j %d for newatom: ",j);
+          wr_print_term(g,newatom);
+          wr_printf(" and atom at pos j %d: ",j);
+          wr_print_term(g,rptr[(j*LIT_WIDTH)+LIT_ATOM_POS]);
+          wr_printf("\n");
+#endif       
+      (g->tmp1)++;
+      if (wr_equal_term(g,newatom,rptr[(j*LIT_WIDTH)+LIT_ATOM_POS],1)) {        
+        rmeta=rptr[(j*LIT_WIDTH)+LIT_META_POS];
+        if (!litmeta_negpolarities(meta,rmeta)) {
+          //same sign, drop lit
+          posfoundflag=1;          
+#ifdef DEBUG          
+          wr_printf("\nequals found:\n");
+          wr_print_term(g,newatom);
+          wr_printf("\n");
+          wr_print_term(g,rptr[(j*LIT_WIDTH)+LIT_ATOM_POS]);
+          wr_printf("\n");
+#endif          
+          break;                                
+        } else {
+#ifdef DEBUG           
+          wr_printf("\nin wr_process_resolve_result_aux return 0\n");
+#endif           
+          // negative sign, tautology, drop clause          
+          (g->stat_tautologies_discarded)++;
+          return 0;
+        }            
+      }         
+    }
+    if (!posfoundflag) {  
+      // store lit
+      rptr[((*rpos)*LIT_WIDTH)+LIT_META_POS]=meta;
+      rptr[((*rpos)*LIT_WIDTH)+LIT_ATOM_POS]=newatom;
+      ++(*rpos);      
+    }       
+  }     
+  
+  return 1; // 1 means clause is still ok. 0 return means: drop clause 
+}  
 
 
 void wr_process_resolve_result_remove_cuts(glb* g, gptr rptr, int* rpos, int cuts) {

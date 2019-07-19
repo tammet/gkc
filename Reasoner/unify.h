@@ -55,6 +55,7 @@ gint wr_unify_term(glb* g, gint x, gint y, int uniquestrflag);
 gint wr_unify_term_aux(glb* g, gint x, gint y, int uniquestrflag);
 
 gint wr_match_term_aux(glb* g, gint x, gint y, int uniquestrflag);
+gint wr_eqmodvars_term_aux(glb* g, gint x, gint y, int uniquestrflag);
 gint wr_match_term(glb* g, gint x, gint y, int uniquestrflag);
 
 gint wr_equal_term1(glb* g, gint x, gint y, int uniquestrflag);
@@ -63,6 +64,7 @@ gint wr_equal_term3(glb* g, gint x, gint y, int uniquestrflag);
 gint wr_equal_term4(glb* g, gint x, gint y, int uniquestrflag);
 
 gint wr_equal_term(glb* g, gint x, gint y, int uniquestrflag);
+gint wr_equal_mod_vars_term(glb* g, gint x, gint y, int uniquestrflag);
 gint wr_equal_term_macroaux(glb* g, gint x, gint y, int uniquestrflag);
 int wr_equal_ptr_primitives(glb* g, gint a, gint b, int uniquestrflag);
 
@@ -70,6 +72,7 @@ gint wr_varval(gint x, gptr vb);
 void wr_setvar(gint x, gint y, gptr vb, gptr vstk, gint* vc);
 
 void wr_clear_varstack(glb* g,vec vs);
+int wr_proper_substitution(glb* g,vec vs);
 void wr_clear_varstack_topslice(glb* g, vec vs, int y);
 void wr_clear_all_varbanks(glb* g);
 

@@ -91,7 +91,7 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
   //void* tmp_db;
   int res=1;
   int default_print_level=10;
-  int iter,guideres=0,tmp;
+  int iter,guideres=0,tmp,propres;
   char* guidebuf=NULL;
   cJSON *guide=NULL;
   int clause_count=0;
@@ -381,10 +381,21 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
 
     if (!(g->proof_found) || !(wr_enough_answers(g))) {
       res=wr_genloop(g);
+      //printf("\ngenloop ended\n");
+      //printf("\n prop_hash_clauses:\n");  
+      //wr_print_prop_clausehash(g,rotp(g,g->prop_hash_clauses));  
+
+      if (res!=0  && res>0 && !(res==1 && wr_have_answers(g))) {
+        propres=wr_prop_solve_current(g);
+        if (propres==2) {
+          res=0;
+        } 
+      }
     } else {
       res=0;
     }
     
+
     //printf("\nwr_genloop exited, showing database details\n");
     //wr_show_database_details(g,NULL,"local g");
     //printf("\n res is %d\n",res);
@@ -940,6 +951,8 @@ void wr_show_stats(glb* g, int show_local_complex) {
   //printf("stat_derived_cl: %d\n",g->stat_derived_cl);
   wr_printf("stat_binres_derived_cl:   %d\n",g->stat_binres_derived_cl);
   wr_printf("stat_binres_derived_cl_h: %d\n",g->stat_derived_partial_hyper_cl);
+  wr_printf("stat_instgen_derived_cl:   %d\n",g->stat_instgen_derived_cl);
+  wr_printf("stat_prop_inst_derived_cl:   %d\n",g->stat_prop_inst_derived_cl);
   wr_printf("stat_propagated_derived_cl: %d\n",g->stat_propagated_derived_cl);
   wr_printf("stat_factor_derived_cl: %d\n",g->stat_factor_derived_cl);
   wr_printf("stat_para_derived_cl: %d\n",g->stat_para_derived_cl);

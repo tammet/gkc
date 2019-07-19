@@ -226,4 +226,6 @@ int wr_blocked_clause(glb* g, gptr clause);
 void wr_mark_clause_blocked(glb* g, gptr clause);
 void wr_clear_clause_blocked(glb* g, gptr clause);
 
+int wr_ground_term(glb* g, gint x);
+
 #endif

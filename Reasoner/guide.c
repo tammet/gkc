@@ -222,6 +222,12 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr) {
     } else if (!strcmp(key,"query_preference")) {
       //printf("query_preference %d\n", json_valueint(elem));
       (g->cl_pick_queue_strategy)=json_valueint(elem);
+    } else if (!strcmp(key,"instgen")) {
+      //printf("query_preference %d\n", json_valueint(elem));
+      (g->instgen_strat)=json_valueint(elem);  
+    } else if (!strcmp(key,"propgen")) {
+      //printf("query_preference %d\n", json_valueint(elem));
+      (g->propgen_strat)=json_valueint(elem);  
     } else if (!strcmp(key,"strategy")) {    
       wr_parse_guide_strategy(g,elem);
     } 

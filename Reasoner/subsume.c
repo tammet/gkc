@@ -41,7 +41,7 @@ extern "C" {
  
 
 //#define DEBUG  
-#undef DEBUG
+//#undef DEBUG
 
 //#define BACKDEBUG  
 #undef BACKDEBUG
@@ -401,6 +401,14 @@ int wr_clmetablock_can_subsume(glb* g, gptr genblock, gptr specblock) {
       ((sel & (255<<CLMETABLOCK_LENGTH_SHIFT))<255) &&
       ((gel & (255<<CLMETABLOCK_NEGLENGTH_SHIFT)) != 
        (sel & (255<<CLMETABLOCK_NEGLENGTH_SHIFT)) )) return 0;     
+  if ((g->instgen_strat) && 
+      ((gel & (255<<CLMETABLOCK_LENGTH_SHIFT)) == 
+       (sel & (255<<CLMETABLOCK_LENGTH_SHIFT)) ) &&
+      ((sel & (255<<CLMETABLOCK_LENGTH_SHIFT)) < (255<<CLMETABLOCK_LENGTH_SHIFT)) &&
+      ((gel!=sel) || (genblock[CLMETABLOCK_SIZES_POS]!=specblock[CLMETABLOCK_SIZES_POS]) ||
+       (genblock[CLMETABLOCK_PREF1BITS_POS]!=specblock[CLMETABLOCK_PREF1BITS_POS]) ||
+       (genblock[CLMETABLOCK_PREF2BITS_POS]!=specblock[CLMETABLOCK_PREF2BITS_POS]) ))
+    return 0; // only shorter or exactly equal may subsume for instgen
   gel=genblock[CLMETABLOCK_SIZES_POS];
   sel=specblock[CLMETABLOCK_SIZES_POS];
   if (gel>sel) return 0;
@@ -482,13 +490,14 @@ int wr_active_subsumed_lit(glb* g, gint atom, int negflag) {
 
 */
 
-int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos) {
+int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
 
   int i,tmp;
   gint hash,xatom,xatommeta;
   gptr xatomptr;
   cvec bucket;
-  int cuts=0;
+  int cuts=0, oldcuts;
+  gint clhash;
 
 #ifdef DEBUG
   wr_printf("\nwr_derived_cl_cut_and_subsume is called \n");
@@ -496,16 +505,18 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos) {
 
   (g->stat_forwardsubs_attempted)++;
   (g->cut_clvec)[1]=(gint)NULL;
+  clhash=0;  
   for(i=0;i<rpos;i++) { 
     tmp=i*LIT_WIDTH;
     xatom=rptr[tmp+LIT_ATOM_POS];
     xatommeta=rptr[tmp+LIT_META_POS];   
+    oldcuts=cuts;
 #ifdef DEBUG     
     wr_printf("\n i %d xatom %d xatommeta %d atom:\n",i,xatom,xatommeta);
     wr_print_term(g,xatom);    
 #endif    
     xatomptr=rotp(g,xatom);
-    hash=wr_lit_hash(g,xatom); 
+    hash=wr_lit_hash(g,xatom);    
 #ifdef DEBUG    
     wr_printf("\ncalculated hash %d \n",hash);
 #endif    
@@ -658,7 +669,25 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos) {
         }
       }  
     } 
+    if (clhashptr!=NULL && (oldcuts==cuts)) {
+      // no cut during this iteration
+      clhash+=hash;
+      if (wg_atom_meta_is_neg(db,xatommeta)) clhash+=10;      
+      //if (wg_atom_meta_is_neg(db,xatommeta)) hash+=10;
+      //clhash = hash + (clhash << 6) + (clhash << 16) - clhash;
+      if (clhash<0) clhash=0-clhash;
+      clhash=(gint)(0+(clhash%(NROF_CLTERM_HASHVEC_ELS-2)));
+      if (clhash<0) clhash=0-clhash;
+    }     
     //blt=wr_build_calc_term(g,rptr[tmp+LIT_ATOM_POS]);       
+  }
+  if (clhashptr!=NULL) {
+    *clhashptr=clhash;
+    //printf("\nabout to call wr_find_prop_clausehash with clhash %d and rpos %d\n",clhash,rpos);
+    if (wr_find_prop_clausehash(g,rotp(g,g->prop_hash_clauses),rptr,rpos,clhash)) {
+      //printf("\nwr_find_prop_clausehash returned 1\n");
+      return -1;
+    }
   }
 #ifdef DEBUG  
   wr_printf("\n! wr_derived_cl_cut_and_subsume is returning %d \n",cuts);
@@ -809,6 +838,9 @@ int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucke
 */   
   
 /*
+  cl1 is gcl, cl2 is scl: 
+  test if cl1 subsumes cl2
+
   Each gcl literal must match a different scl literal.
 
 
@@ -855,7 +887,7 @@ gint wr_subsume_cl(glb* g, gptr cl1, gptr cl2, int uniquestrflag) {
     if (!wg_rec_is_rule_clause(db,cl2)) {
 #ifdef DEBUG  
        wr_printf("both clauses are facts \n");
-#endif            
+#endif                 
       ++(g->stat_clsubs_unit_attempted);      
       if (wr_equal_term(g,encode_record(db,cl1),encode_record(db,cl2),uniquestrflag))
         return 1;
@@ -864,6 +896,7 @@ gint wr_subsume_cl(glb* g, gptr cl1, gptr cl2, int uniquestrflag) {
     } else {
       // fact clause subsuming a rule clause
       cllen2=wg_count_clause_atoms(db,cl2);
+      if ((g->instgen_strat) && cllen2<2) return 0; // only shorter may subsume for instgen
       lit1=encode_record(db,cl1);      
       ++(g->stat_clsubs_unit_attempted);
       for(i2=0;i2<cllen2;i2++) {
@@ -880,9 +913,10 @@ gint wr_subsume_cl(glb* g, gptr cl1, gptr cl2, int uniquestrflag) {
   
   if (!wg_rec_is_rule_clause(db,cl2)) {
     // unit rule clause subsuming a unit fact clause case
+    if (g->instgen_strat) return 0; // only shorter may subsume for instgen
     ++(g->stat_clsubs_unit_attempted);    
     cllen2=1;
-    if (cllen1>1) return 0;
+    if (cllen1>1) return 0;    
     meta1=wg_get_rule_clause_atom_meta(db,cl1,0);
     if (wg_atom_meta_is_neg(d,meta1)) return 0;
     lit1=wg_get_rule_clause_atom(db,cl1,0);    
@@ -896,7 +930,7 @@ gint wr_subsume_cl(glb* g, gptr cl1, gptr cl2, int uniquestrflag) {
     cllen2=wg_count_clause_atoms(db,cl2); 
   }    
   // now both clauses are rule clauses   
-
+  
 #ifdef DEBUG  
   wr_printf("cllen1 %d cllen2 %d\n",cllen1,cllen2);
 #endif   
@@ -905,7 +939,7 @@ gint wr_subsume_cl(glb* g, gptr cl1, gptr cl2, int uniquestrflag) {
 #ifdef DEBUG  
     wr_printf("unit clause subsumption case \n");
 #endif        
-    //++(g->stat_clsubs_unit_attempted);    // ?? why double??
+    //++(g->stat_clsubs_unit_attempted);    // ?? why double??   
     ++(g->stat_clsubs_unit_attempted);
     meta1=wg_get_rule_clause_atom_meta(db,cl1,0);
     lit1=wg_get_rule_clause_atom(db,cl1,0);
@@ -923,7 +957,11 @@ gint wr_subsume_cl(glb* g, gptr cl1, gptr cl2, int uniquestrflag) {
           return 0;
         } else if (!litmeta_negpolarities(meta1,meta2) && wr_matchable_lit_meta(g,meta1,meta2)) {  
           lit2=wg_get_rule_clause_atom(db,cl2,i2);
-          mres=wr_match_term(g,lit1,lit2,uniquestrflag);                     
+          if ((g->instgen_strat) && cllen2==1) {
+            mres=wr_equal_mod_vars_term(g,lit1,lit2,uniquestrflag);
+          } else {  
+            mres=wr_match_term(g,lit1,lit2,uniquestrflag);                     
+          }  
           if (vc_tmp!=*((g->varstack)+1)) wr_clear_varstack(g,g->varstack);
           if (mres) return 1;
         }                    
@@ -937,6 +975,14 @@ gint wr_subsume_cl(glb* g, gptr cl1, gptr cl2, int uniquestrflag) {
 #ifdef DEBUG  
   wr_printf("general subsumption case \n");
 #endif  
+  /* 
+  if ((g->instgen_strat) && cllen1==cllen2) {
+    CP0;
+    mres=wr_equal_instgen_clauses(g,cl1,cl2);
+    printf("\nmres %d\n",mres);
+    return mres;
+  }  
+  */
   g->tmp_unify_vc=(g->varstack)+1;  // var counter for varstack   
   // clear lit information vector (0 pos holds vec len)
   for(i2=1;i2<=cllen2;i2++) (g->tmp_litinf_vec)=wr_vec_store(g,g->tmp_litinf_vec,i2,0);
@@ -1029,8 +1075,11 @@ gint wr_subsume_cl_aux(glb* g,gptr cl1vec, gptr cl2vec,
 #ifdef DEBUG      
           wr_printf("\n ok polarities and matchable lit meta\n");
 #endif             
-          vc_tmp=*(g->tmp_unify_vc); // store current value of varstack pointer ????????
-          if (wr_match_term_aux(g,lit1,lit2,uniquestrflag)) {
+          vc_tmp=*(g->tmp_unify_vc); // store current value of varstack pointer ????????    
+          if (((g->instgen_strat) && cllen1==cllen2) ?
+               wr_eqmodvars_term_aux(g,lit1,lit2,uniquestrflag) :
+               wr_match_term_aux(g,lit1,lit2,uniquestrflag) ) {
+          //if (wr_match_term_aux(g,lit1,lit2,uniquestrflag)) { // not instgen case
 #ifdef DEBUG      
             wr_printf("\n wr_match_term_aux returned 1\n");
 #endif                

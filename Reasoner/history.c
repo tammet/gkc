@@ -135,6 +135,40 @@ gint wr_build_resolve_history(glb* g, gptr cl1, gptr cl2, int pos1, int pos2, gp
   }  
 }
 
+
+gint wr_build_instgen_history(glb* g, gptr cl1, gptr cl2, int pos1, int pos2, gptr cut_clvec) {  
+  void* db=g->db;
+  gptr rec;
+  gint tag;
+  int i,cutn=0;  
+  int datalen=HISTORY_PREFIX_LEN+3;
+
+  if (g->store_history) {
+    if (cut_clvec) {
+      for(cutn=1; cutn<(int)(cut_clvec[0]) && (gptr)(cut_clvec[cutn])!=NULL; cutn++) {}  
+      cutn=cutn-1;      
+    }
+    // cutn is now the nr of cut literals
+
+    rec=wr_create_raw_history_record(g,datalen+cutn,g->build_buffer);
+    if (rec==NULL) return wg_encode_null(db,NULL);
+
+    tag=wr_encode_history_instgen(g,pos1,pos2);
+    wr_set_history_record_field(g,rec,HISTORY_DERIVATION_TAG_POS,tag);
+    wr_set_history_record_field(g,rec,HISTORY_PARENT1_POS,wg_encode_record(db,cl1));
+    wr_set_history_record_field(g,rec,HISTORY_PARENT2_POS,wg_encode_record(db,cl2));
+    wr_set_history_record_field(g,rec,HISTORY_PRIORITY_POS,wr_calc_history_priority2(g,cl1,cl2)); 
+    for(i=0; i<cutn; i++) {
+      wr_set_history_record_field(g,rec,datalen+i,wg_encode_record(db,(gptr)(cut_clvec[i+1])));
+    }      
+    wr_set_history_record_derived_order(g,rec);
+    return wg_encode_record(db,rec); 
+    //return wg_encode_int(g->db,g->stat_built_cl); 
+  } else {
+    return wg_encode_int(g->db,1);
+  }  
+}
+
 // input priority stores original markup / role
 
 // just encode int, WR_HISTORY_USED_BIT_POS is 0 to indicate "not given yet"
@@ -343,6 +377,29 @@ gint wr_build_propinst_history(glb* g, gptr cl1, gint term, gptr cut_clvec) {
   }  
 }
 
+
+gint wr_build_extprop_history(glb* g) {  
+  void* db=g->db;
+  gptr rec; 
+  gint tag;
+  int datalen=HISTORY_PREFIX_LEN;
+  gint encpriority;
+  //gint encname;
+
+  if (g->store_history) {
+    rec=wr_create_raw_history_record(g,datalen+1,g->build_buffer);
+    if (rec==NULL) return wg_encode_null(db,NULL);
+    tag=wr_encode_history_extprop(g);
+    wr_set_history_record_field(g,rec,HISTORY_DERIVATION_TAG_POS,tag);
+    encpriority=wr_encode_priority(g,0);    
+    wr_set_history_record_field(g,rec,HISTORY_PRIORITY_POS,encpriority);         
+    wr_set_history_record_derived_order(g,rec);
+    return wg_encode_record(db,rec); 
+  } else {
+    return wg_encode_int(g->db,1);
+  }  
+}
+
 gint wr_build_para_history(glb* g, gptr cl1, gptr cl2, int pos1, int pos2, gptr cut_clvec,
                           gint path, int leftflag, int fromflag) {  
   void* db=g->db;
@@ -457,6 +514,17 @@ gint wr_encode_history_resolve(glb* g, int pos1, int pos2) {
   return wg_encode_int(g->db,n);
 }
 
+gint wr_encode_history_instgen(glb* g, int pos1, int pos2) {
+  int n1,n2,n;
+
+  n1=pos1;
+  if (n1>255) n1=255;
+  n2=pos2;
+  if (n2>255) n2=255;
+  n=WR_HISTORY_TAG_INSTGEN<<WR_HISTORY_TAG_SHIFT | n1<<WR_HISTORY_POS1_SHIFT | n2;    
+  return wg_encode_int(g->db,n);
+}
+
 gint wr_encode_history_propagate(glb* g, int pos1, int pos2) {
   int n1,n2,n;
 
@@ -484,6 +552,13 @@ gint wr_encode_history_propinst(glb* g) {
   int n;
  
   n=WR_HISTORY_TAG_PROPINST<<WR_HISTORY_TAG_SHIFT;    
+  return wg_encode_int(g->db,n);
+}
+
+gint wr_encode_history_extprop(glb* g) {
+  int n;
+ 
+  n=WR_HISTORY_TAG_EXTPROP<<WR_HISTORY_TAG_SHIFT;    
   return wg_encode_int(g->db,n);
 }
 
@@ -547,7 +622,6 @@ void wr_show_history(glb* g, gint history) {
   //gint anshistory;
 
   //if (!(g->store_history)) return;
-
 
   wr_show_result(g,history);
   return;
@@ -616,7 +690,7 @@ gptr wr_flatten_history(glb* g, void* mpool, gint history, gptr cl, int depth, i
   if (tag==WR_HISTORY_TAG_RESOLVE || tag==WR_HISTORY_TAG_FACTORIAL ||
       tag==WR_HISTORY_TAG_PARA || tag==WR_HISTORY_TAG_EQUALITY_REFLEXIVE || 
       tag==WR_HISTORY_TAG_SIMPLIFY || tag==WR_HISTORY_TAG_PROPAGATE || 
-      tag==WR_HISTORY_TAG_PROPINST) {
+      tag==WR_HISTORY_TAG_PROPINST || tag==WR_HISTORY_TAG_INSTGEN) {
     if (tag==WR_HISTORY_TAG_PARA) start=HISTORY_PARA_PARENT1_POS;
     else start=HISTORY_PARENT1_POS;    
     for(i=start;i<len;i++) {
@@ -751,9 +825,12 @@ char* wr_print_one_history
   pos1=wr_get_history_pos1(g,dechead);
   pos2=wr_get_history_pos2(g,dechead);
   //printf("\n dechead %d tag %d pos1 %d pos2 %d \n",dechead,tag,pos1,pos2);
-  if (tag==WR_HISTORY_TAG_RESOLVE || tag==WR_HISTORY_TAG_PROPAGATE) {
+  if (tag==WR_HISTORY_TAG_RESOLVE || tag==WR_HISTORY_TAG_PROPAGATE 
+     || tag==WR_HISTORY_TAG_INSTGEN) {
     if (tag==WR_HISTORY_TAG_RESOLVE) {
       wr_printf("\n %s:%s [mp, ",clns,orderbuf);
+    } else if (tag==WR_HISTORY_TAG_INSTGEN) {
+      wr_printf("\n %s:%s [instgen, ",clns,orderbuf);
     } else {
       wr_printf("\n %s:%s [fmp, ",clns,orderbuf);
     }
@@ -1057,14 +1134,18 @@ int wr_show_result(glb* g, gint history) {
   } else {
     if ((g->print_level_flag)>1) bpos+=snprintf(buf+bpos,blen-bpos,"\n");
     bpos+=snprintf(buf+bpos,blen-bpos,"\nresult: proof found\n");
-    bpos+=snprintf(buf+bpos,blen-bpos,"\nanswers:");
+    if ((g->required_answer_nr)<2) {
+      //bpos+=snprintf(buf+bpos,blen-bpos,"\nproof:");
+    } else {
+      bpos+=snprintf(buf+bpos,blen-bpos,"\nanswers and proofs:");
+    }  
   }  
   for(ansnr=2; ansnr<((g->answers)[1]); ansnr+=2) {
     // loop over all proofs 
     if (g->print_json) {
       bpos+=snprintf(buf+bpos,blen-bpos,"[\n");
     } else {
-      bpos+=snprintf(buf+bpos,blen-bpos,"\n");
+      //bpos+=snprintf(buf+bpos,blen-bpos,"\n");
     }
     // first check if answer present    
     if ((gptr)((g->answers)[ansnr])!=NULL) {
@@ -1077,7 +1158,7 @@ int wr_show_result(glb* g, gint history) {
         if (!wr_str_guarantee_space(g,&buf,&blen,bpos+100)) return -1;
         bpos+=snprintf(buf+bpos,blen-bpos,"},");
       } else {
-        bpos+=snprintf(buf+bpos,blen-bpos,"\nanswer: ");
+        bpos+=snprintf(buf+bpos,blen-bpos,"\n\nanswer: ");
         ans=(gptr)((g->answers)[ansnr]);
         bpos=wr_strprint_clause(g,ans,&buf,&blen,bpos);
         if (bpos<0) return bpos;
@@ -1104,6 +1185,10 @@ int wr_show_result(glb* g, gint history) {
       wr_flatten_history(g,mpool,history,NULL,0,&clnr,&assoc);
     }  
     assoc=wg_reverselist(db,mpool,assoc); 
+    if (!(g->print_json)) {
+      if (!wr_str_guarantee_space(g,&buf,&blen,bpos+100)) return -1;
+      bpos+=snprintf(buf+bpos,blen-bpos,"\nproof:\n");
+    } 
     bpos=wr_strprint_flat_history(g,mpool,&buf,&blen,bpos,clnr,&assoc);
     if (bpos<0) return bpos;
 
@@ -1257,13 +1342,20 @@ int wr_strprint_one_history
   pos2=wr_get_history_pos2(g,dechead);
   //printf("\n dechead %d tag %d pos1 %d pos2 %d \n",dechead,tag,pos1,pos2);
   if (!wr_str_guarantee_space(g,buf,blen,bpos+100)) return -1;
-  if (tag==WR_HISTORY_TAG_RESOLVE || tag==WR_HISTORY_TAG_PROPAGATE) {
+  if (tag==WR_HISTORY_TAG_RESOLVE || tag==WR_HISTORY_TAG_PROPAGATE
+      || tag==WR_HISTORY_TAG_INSTGEN) {
     if (tag==WR_HISTORY_TAG_RESOLVE) {
       if (g->print_json) {
         bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\n[%s,%s [\"mp\", ",clns,orderbuf); 
       } else {
         bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\n %s:%s [mp, ",clns,orderbuf);
       }
+    } else if (tag==WR_HISTORY_TAG_INSTGEN) {
+      if (g->print_json) {
+        bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\n[%s,%s [\"instgen\", ",clns,orderbuf); 
+      } else {
+        bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\n %s:%s [instgen, ",clns,orderbuf);
+      }      
     } else {
       if (g->print_json) {
         bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\n[%s,%s [\"fmp\", ",clns,orderbuf); 
@@ -1392,6 +1484,15 @@ int wr_strprint_one_history
       bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"] ");  
     } 
     bpos=wr_strprint_clause(g,cl,buf,blen,bpos);        
+    if (bpos<0) return bpos;
+
+    } else if (tag==WR_HISTORY_TAG_EXTPROP) {    
+    if (!wr_str_guarantee_space(g,buf,blen,bpos+100)) return -1;
+    if (g->print_json) {
+      bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\n[%s,%s [\"extprop\"], 0]",clns,orderbuf);       
+    } else {
+      bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\n %s:%s [extprop] false.",clns,orderbuf); 
+    }                  
     if (bpos<0) return bpos;
 
    } else if (tag==WR_HISTORY_TAG_EQUALITY_REFLEXIVE) {

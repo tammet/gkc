@@ -42,6 +42,8 @@
 
 void wr_process_resolve_result
       (glb* g, gint xatom, gptr xcl, gint yatom, gptr ycl, gptr xcl_as_active);
+void wr_process_instgen_result
+      (glb* g, gint xatom, gptr xcl, gint yatom, gptr ycl, gptr xcl_as_active, int usexcl);      
 void wr_process_factor_result
       (glb* g, gptr xcl, int len, int x, gint xatom, int y, gint yatom, gptr xcl_as_active);
 void wr_process_paramodulate_result
@@ -51,6 +53,9 @@ void wr_process_paramodulate_result
 int wr_process_resolve_result_aux
       (glb* g, gptr cl, gint cutatom, int atomnr, gptr rptr, int* rpos, int* cutpos,
        gint replpath, gint replterm);
+int wr_process_instgen_result_aux
+      (glb* g, gptr cl, gint cutatom, int atomnr, gptr rptr, int* rpos, int* cutpos, 
+       gint replpath, gint replterm);      
 void wr_process_resolve_result_remove_cuts(glb* g, gptr rptr, int* rpos, int cuts);
 gptr wr_derived_build_cl_from_initial_cl(glb* g, gptr rptr, int rpos, int ruleflag, gint history);
 

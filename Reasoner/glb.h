@@ -97,8 +97,14 @@
 
 #define NROF_PROP_VARVALS_ELS 1000000
 #define NROF_PROP_CLAUSES_ELS 1000000
-#define DEFAULT_PROP_FILE_NAME "gkc_prop_tmp.txt"
 
+// /opt/lingeling/lingeling --verbose=-1 -T 1 /opt/lingeling/tst2.txt > out.txt
+// s UNSATISFIABLE
+// s SATSIFIABLE
+
+#define DEFAULT_PROP_SOLVER_NAME "/opt/lingeling/lingeling"
+#define DEFAULT_PROP_FILE_NAME "/tmp/gkc_prop_inXXXXXX"
+#define DEFAULT_PROP_SOLVER_OUTFILE_NAME "/tmp/gkc_prop_outXXXXXX"
 
 /* ======== Structures ========== */
 
@@ -160,12 +166,15 @@ typedef struct {
   gint prop_constant; // the constant to replace all vars for instantiation iff use_prop_constant!=0
 
   veco prop_hash_atoms; // hash struct for keeping ints corresponding to grounded atoms 
+  veco prop_hash_clauses; // hash struct for keeping all derived clauses for equal-clause subsumption
   cveco prop_varvals; // array for assigned prop values (0 unknown, 1 true, -1 false)
   cveco prop_groundings; // array or atom / term pairs for all prop vars
   cveco prop_clauses; // array for all prop clauses worth keeping
   cveco prop_varval_clauses; // array for clauses for all assigned prop values, at same indexes
 
   char* prop_file_name; // file name to dump prop vars to
+  char* prop_solver_name; // solver name to call
+  char* prop_solver_outfile_name; // file name for solver to store the redil
 
   /* == local data block === */
        
@@ -274,6 +283,8 @@ typedef struct {
   int hardnesspref_strat;     // clause ordering for resolvability of literals
   int res_shortarglen_limit; // max non-ans len of the shortest res argument (generalization of unit)
   int posunitpara_strat;
+  int instgen_strat;
+  int propgen_strat;
   int back_subsume;
   int propagate;
   int use_equality_strat; // general strategy
@@ -354,6 +365,8 @@ typedef struct {
   int stat_derived_cl;
   int stat_derived_partial_hyper_cl;
   int stat_binres_derived_cl;
+  int stat_instgen_derived_cl;
+  int stat_prop_inst_derived_cl;
   int stat_propagated_derived_cl;
   int stat_factor_derived_cl;
   int stat_para_derived_cl;

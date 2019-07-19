@@ -282,6 +282,32 @@ void wr_clear_clause_blocked(glb* g, gptr clause) {
 
 }
 
+/* *********** instgen funs ************* */
+
+int wr_ground_term(glb* g, gint x) {
+  void* db;
+  gptr xptr;
+  int start,end,i;
+
+#ifdef DEBUG  
+  wr_printf("wr_ground_term called with x %d type %d\n",x,wg_get_encoded_type(g->db,x));
+#endif  
+  if (!isdatarec(x)) {
+    if (isvar(x)) return 0;
+    else return 1;        
+  }   
+  // now we have a datarec
+  db=g->db;
+  xptr=decode_record(db,x);
+  start=wr_term_unify_startpos(g);
+  end=wr_term_unify_endpos(g,xptr);
+  for(i=start;i<end;i++) {
+    if (!wr_ground_term(g,xptr[i])) return 0;  
+  }   
+  return 1;
+}
+
+
 #ifdef __cplusplus
 }
 #endif

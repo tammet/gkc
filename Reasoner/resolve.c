@@ -293,9 +293,8 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active, cvec resol
             wr_printf(" in ycl ");
             wr_print_clause(g,ycl);
             wr_print_vardata(g);
-    #endif          
-            
-            ures=wr_unify_term(g,xatom,yatom,1); // uniquestrflag=1
+    #endif                     
+            ures=wr_unify_term(g,xatom,yatom,1); // uniquestrflag=1            
     #ifdef DEBUG        
             wr_printf("unification check res: %d\n",ures);
     #endif        
@@ -304,20 +303,36 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active, cvec resol
     #ifdef DEBUG         
               wr_printf("\nin wr_resolve_binary_all_active to call wr_process_resolve_result\n");
     #endif           
-              wr_process_resolve_result(g,xatom,xcl,yatom,ycl,cl_as_active); 
-    #ifdef DEBUG           
-              wr_printf("\nin wr_resolve_binary_all_active after wr_process_resolve_result\n");
-              wr_printf("\nxatom\n");
-              wr_print_term(g,xatom);
-              wr_printf("\nyatom\n");
-              wr_print_term(g,yatom);
-              wr_printf("!!!!! wr_resolve_binary_all_active after  wr_process_resolve_result queue is\n");
-              wr_show_clqueue(g);
-              wr_printf("\nqueue ended\n");
-    #endif             
-              if (g->proof_found || g->alloc_err) {
-                wr_clear_varstack(g,g->varstack);  
-                if (wr_enough_answers(g) || g->alloc_err) return;                
+              if (1) { //(!(g->instgen_strat)) {
+                  wr_process_resolve_result(g,xatom,xcl,yatom,ycl,cl_as_active); 
+              
+      #ifdef DEBUG           
+                wr_printf("\nin wr_resolve_binary_all_active after wr_process_resolve_result\n");
+                wr_printf("\nxatom\n");
+                wr_print_term(g,xatom);
+                wr_printf("\nyatom\n");
+                wr_print_term(g,yatom);
+                wr_printf("!!!!! wr_resolve_binary_all_active after  wr_process_resolve_result queue is\n");
+                wr_show_clqueue(g);
+                wr_printf("\nqueue ended\n");
+      #endif             
+                if (g->proof_found || g->alloc_err) {
+                  wr_clear_varstack(g,g->varstack);  
+                  if (wr_enough_answers(g) || g->alloc_err) return;                
+                } 
+              }
+
+              if ((g->instgen_strat) && wr_proper_substitution(g,g->varstack)) {
+                wr_process_instgen_result(g,xatom,xcl,yatom,ycl,cl_as_active,1);
+                if (g->proof_found || g->alloc_err) {
+                  wr_clear_varstack(g,g->varstack);  
+                  if (wr_enough_answers(g) || g->alloc_err) return;                
+                } 
+                wr_process_instgen_result(g,xatom,xcl,yatom,ycl,cl_as_active,0);
+                if (g->proof_found || g->alloc_err) {
+                  wr_clear_varstack(g,g->varstack);  
+                  if (wr_enough_answers(g) || g->alloc_err) return;                
+                } 
               }  
             }
     #ifdef DEBUG

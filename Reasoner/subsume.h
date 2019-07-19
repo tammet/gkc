@@ -39,7 +39,7 @@ int wr_given_cl_backsubsume(glb* g, gptr given_cl, gptr given_cl_metablock);
 int wr_clmetablock_can_subsume(glb* g, gptr genblock, gptr specblock);
 int wr_active_subsumed_lit(glb* g, gint atom, int negflag);
 int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucket, int subsflag);
-int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos);
+int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos,  gptr clhashptr);
 
 gint wr_subsume_cl(glb* g, gptr cl1, gptr cl2, int uniquestrflag);
 gint wr_subsume_cl_aux(glb* g,gptr cl1vec, gptr cl2vec, 

@@ -345,6 +345,80 @@ gint wr_match_term_aux(glb* g, gint x, gint y, int uniquestrflag) {
 } 
 
 
+gint wr_eqmodvars_term_aux(glb* g, gint x, gint y, int uniquestrflag) {  
+  gptr db;
+  gint xval,encx,ency;
+  gptr xptr,yptr;
+  int xlen,ylen,uselen,ilimit,i;
+  gint eqencx; // used by WR_EQUAL_TERM macro
+
+#ifdef DEBUG
+  wr_printf("wr_match_term_aux called with x %d ",x);
+  wr_print_term(g,x);
+  wr_printf(" and y %d ",y);
+  wr_print_term(g,y);
+  wr_printf("\n");
+#endif  
+
+  UNUSED(eqencx);  
+  // check x var case immediately
+  if (isvar(x)) {
+    xval=VARVAL_DIRECT(x,(g->varbanks)); 
+    if (xval==UNASSIGNED) {
+      if (!isvar(y)) return 0;
+      // previously unassigned var: assign now and return
+      SETVAR(x,y,g->varbanks,g->varstack,g->tmp_unify_vc);
+      return 1;     	
+    } else {      
+      // xval must now be equal to y, else match fails
+      if (WR_EQUAL_TERM(g,xval,y,uniquestrflag)) return 1;       
+      return 0;
+    }    
+  }
+  // now x is not var
+  if (!isdatarec(x)) {
+    if (WR_EQUAL_TERM(g,x,y,uniquestrflag)) return 1;  
+  } 
+  if (!isdatarec(y)) return 0; // x is datarec but y is not    
+  // now x and y are different datarecs
+  if (1) {  
+    db=g->db;
+    xptr=decode_record(db,x);
+    yptr=decode_record(db,y);
+    xlen=get_record_len(xptr);
+    ylen=get_record_len(yptr);
+    if (g->unify_samelen) {
+      if (xlen!=ylen) return 0;
+#ifdef USE_TERM_META       
+      encx=*(xptr+(RECORD_HEADER_GINTS+TERM_META_POS));
+      ency=*(yptr+(RECORD_HEADER_GINTS+TERM_META_POS));  
+      if (issmallint(encx) && issmallint(ency)) {
+        if (encx>ency) { return 0; } // term with bigger termmeta cannot subs one with smaller
+        if (decode_smallint(encx) & TERMMETA_GROUND_MASK) {
+          if (encx!=ency) { return 0; } // ground term can subs only ground with same size
+        }
+      }
+#endif      
+      uselen=xlen;      
+    } else {
+      if (xlen<=ylen) uselen=xlen;
+      else uselen=ylen;
+    } 
+    
+    if (g->unify_maxuseterms) {
+      if (((g->unify_maxuseterms)+(g->unify_firstuseterm))<uselen) 
+        uselen=(g->unify_firstuseterm)+(g->unify_maxuseterms);
+    }    
+    ilimit=RECORD_HEADER_GINTS+uselen;
+    for(i=RECORD_HEADER_GINTS+(g->unify_firstuseterm); i<ilimit; i++) {
+      encx=*(xptr+i);
+      ency=*(yptr+i);
+      if (!wr_match_term_aux(g,encx,ency,uniquestrflag)) return 0;
+    }           
+    return 1;        
+  }        
+} 
+
 /* ----------------------------------------------------------
 
     Equality check
@@ -663,6 +737,87 @@ gint wr_equal_term(glb* g, gint x, gint y, int uniquestrflag) {
 }  
 
 
+gint wr_equal_mod_vars_term(glb* g, gint x, gint y, int uniquestrflag) {  
+  gptr db;
+  gint encx,ency;
+  gptr xptr,yptr;
+  int xlen,ylen,uselen,i,ilimit;
+  gint eqencx; // used by the WR_EQUAL_TERM macro 
+  gint v1, v2;   
+#ifdef DEBUG
+  wr_printf("wr_equal_mod_vars_term called with x %d and y %d\n",x,y);
+#endif   
+ 
+  UNUSED(eqencx);
+  // first check if immediately same: return 1 if yes 
+  if (x==y)  return 1;
+  // handle var cases 
+  db=g->db;
+  if (isvar(x) && isvar(y)) {
+    v1=wg_decode_var(db,x);
+    v2=wg_decode_var(db,y);
+    if ((v1 % 1000) != (v2 % 1000)) return 0;
+    else return 1;
+  }
+  // handle immediate check cases: for these bit suffixes x is equal to y iff x==y   
+  encx=(x&NORMALPTRMASK);
+  if ((encx==LONGSTRBITS && uniquestrflag) || encx==SMALLINTBITS || encx==NORMALPTRMASK) return 0; 
+  // immediate value: must be unequal since x==y checked before
+  if (!isptr(x) || !isptr(y)) return 0;
+  // here both x and y are ptr types
+  // quick type check: last two bits
+  if (((x)&NONPTRBITS)!=((y)&NONPTRBITS)) return 0;  
+  // if one is datarec, the other must be as well
+  if (!isdatarec(x)) {
+    if (isdatarec(y)) return 0;
+    // neither x nor y are datarecs
+    // need to check pointed values
+    if (wr_equal_ptr_primitives(g,x,y,uniquestrflag)) return 1;
+    else return 0;          
+  } else {
+    if (!isdatarec(y)) return 0;
+    // both x and y are datarecs     
+    xptr=decode_record(db,x);
+    yptr=decode_record(db,y);
+    xlen=get_record_len(xptr);
+    ylen=get_record_len(yptr);
+    if (g->unify_samelen) {
+      if (xlen!=ylen) return 0;
+#ifdef USE_TERM_META                  
+      encx=*(xptr+(RECORD_HEADER_GINTS+TERM_META_POS));
+      ency=*(yptr+(RECORD_HEADER_GINTS+TERM_META_POS));  
+      if (issmallint(encx) && issmallint(ency)) {        
+        if (encx!=ency) {                  
+          //printf("\n!!! meta-inequal:\n");
+          //wr_print_term(g,x);
+          //printf("\n");
+          //wr_print_term(g,y);
+          //printf("\n");
+
+          return 0;
+        }  
+      }       
+#endif      
+      uselen=xlen;      
+    } else {
+      if (xlen<=ylen) uselen=xlen;
+      else uselen=ylen;
+    }     
+    if (g->unify_maxuseterms) {
+      if (((g->unify_maxuseterms)+(g->unify_firstuseterm))<uselen) 
+        uselen=(g->unify_firstuseterm)+(g->unify_maxuseterms);
+    }    
+    ilimit=RECORD_HEADER_GINTS+uselen;
+    for(i=RECORD_HEADER_GINTS+(g->unify_firstuseterm); i<ilimit; i++) {
+      encx=*(xptr+i);
+      ency=*(yptr+i);
+      if (!wr_equal_mod_vars_term(g,encx,ency,uniquestrflag)) return 0;
+      //if (!WR_EQUAL_TERM(g,encx,ency,uniquestrflag)) return 0;
+    }           
+    return 1;        
+  }        
+}  
+
 
 /** Plain term equality check partial version ONLY called by WR_EQUAL_TERM macro
 *
@@ -848,6 +1003,36 @@ void wr_clear_varstack(glb* g,vec vs) {
   }  
   vs[1]=2;  
 }  
+
+/**
+   for instgen only:
+
+   check if some var has a non-var value
+
+   varstack structure:
+   0: vector len
+   1: next free pos on stack (2 for empty stack)
+   2...N: pointer of the varbank cell corresponding to set var value
+
+
+*/
+
+int wr_proper_substitution(glb* g,vec vs) {
+  gptr x;
+  gptr maxpt;
+  gint maxnr;
+    
+  x=vs;
+  ++x;
+  maxnr= *x;  
+  if (maxnr>2) {    
+    maxpt=vs+maxnr;    
+    for(++x; x<maxpt; ++x) {       
+      if (!(isvar(*((gptr)(*x))))) return 1;           
+    }  
+  }  
+  return 0;  
+} 
 
 /** used in subsumption for clearing a part of varstack
 

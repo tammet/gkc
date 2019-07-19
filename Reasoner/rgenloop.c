@@ -91,6 +91,7 @@ int wr_genloop(glb* g) {
   //int i;
   //gptr cl;
   //gint clmeta; 
+  //int propres;
   gint given_cl_metablock[CLMETABLOCK_ELS];
   clock_t curclock;
   float run_seconds,total_seconds,fullness; // passed_ratio
@@ -119,8 +120,11 @@ int wr_genloop(glb* g) {
   (g->stat_given_candidates)=0;
   (g->stat_given_used)=0;
 
-  wr_make_prop_file(g);
-
+  //wr_make_prop_file(g);
+  //propres=wr_prop_solve_current(g);
+  //if (propres==2) {
+  //    return 0;
+  //} 
   for(;;) {     
     //printf("\n %d %d %d %d\n",(g->queryfocus_strat), (g->res_shortarglen_limit),(g->negpref_strat),(g->pospref_strat));
     // first check time
@@ -134,9 +138,10 @@ int wr_genloop(glb* g) {
     //wr_printf("\n run_seconds %f (g->max_run_seconds) %d g->passed_ratio %f\n",
     //  (float)run_seconds,(g->max_run_seconds),g->passed_ratio);
     // change strategy for endgame
-
-    
-    if (((g->passed_ratio)>0.85) &&  (g->res_shortarglen_limit)!=1) {
+      
+    if ((g->instgen_strat) &&  (int)((g->queue_termbuf)[0])<(int)((g->queue_termbuf)[1]+1000000)) {
+       return 1;
+    } else if (((g->passed_ratio)>0.85) &&  (g->res_shortarglen_limit)!=1) {
       if (g->print_given_interval_trace) {
         wr_printf("\npassed time ratio %.2f\n",g->passed_ratio);
       }
@@ -265,7 +270,10 @@ int wr_genloop(glb* g) {
 #ifdef RECORD_HISTORY_ORDER
     wr_set_history_record_given_order(g,
       rotp(g,wr_get_history(g,given_cl)));  
-#endif    
+#endif   
+
+    //if ((g->stat_given_used)>119) exit(0);
+
     if (g->print_final_given_cl) {
       wr_printf("\n*** given %d: ",(g->stat_given_used));
       wr_print_clause(g,given_cl);   
@@ -302,7 +310,9 @@ int wr_genloop(glb* g) {
     }    
 
     // do factorizations with the given clause
-    wr_factor(g,given_cl,given_cl_as_active);
+    if (1) { //(!(g->instgen_strat))  {
+      wr_factor(g,given_cl,given_cl_as_active);
+    }  
     if (g->alloc_err) return -1;
     // resolve with equality reflexive atom X=X
 
@@ -332,8 +342,8 @@ int wr_genloop(glb* g) {
   // loop ended: either nothing to do or timeout
   if (wr_have_answers(g)) {
     return 0;
-  } else {
-    return 1;
+  } else {    
+    return 1;      
   }
 }  
 

@@ -170,6 +170,8 @@ int wr_glb_init_simple(glb* g) {
   (g->use_equality_strat)=1; // general strategy
   (g->use_equality)=1; // current principle
   (g->posunitpara_strat)=0; // only paramodulate from unit equalities
+  (g->instgen_strat)=0;
+  (g->propgen_strat)=1;
   (g->use_comp_funs_strat)=1;
   (g->use_comp_funs)=1;
   (g->use_rewrite_terms_strat)=1; // general strategy
@@ -250,6 +252,8 @@ int wr_glb_init_simple(glb* g) {
   (g->stat_derived_cl)=0;
   (g->stat_derived_partial_hyper_cl)=0;
   (g->stat_binres_derived_cl)=0;
+  (g->stat_instgen_derived_cl)=0;
+  (g->stat_prop_inst_derived_cl)=0;
   (g->stat_propagated_derived_cl)=0;
   (g->stat_factor_derived_cl)=0;
   (g->stat_para_derived_cl)=0;
@@ -423,6 +427,7 @@ int wr_glb_init_shared_complex(glb* g) {
   // prop
 
   (g->prop_hash_atoms)=(gint)NULL; 
+  (g->prop_hash_clauses)=(gint)NULL;
   (g->prop_varvals)=(gint)NULL;
   (g->prop_clauses)=(gint)NULL;
   (g->prop_varval_clauses)=(gint)NULL;
@@ -474,6 +479,7 @@ int wr_glb_init_shared_complex(glb* g) {
   // prop
 
   (g->prop_hash_atoms)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS)); 
+  (g->prop_hash_clauses)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS));
   (g->prop_varvals)=rpto(g,wr_cvec_new_zero(g,NROF_PROP_VARVALS_ELS));
   (g->prop_groundings)=rpto(g,wr_cvec_new_zero(g,2*NROF_PROP_VARVALS_ELS));
   (g->prop_clauses)=rpto(g,wr_cvec_new(g,NROF_PROP_CLAUSES_ELS));
@@ -512,7 +518,9 @@ int wr_glb_init_local_complex(glb* g) {
   (g->tmp_hardnessinf_vec)=NULL;
   (g->tmp_resolvability_vec)=NULL;
   (g->tmp_sort_vec)=NULL;
-  (g->prop_file_name)=NULL;
+  (g->prop_file_name)=NULL;  
+  (g->prop_solver_name)=NULL;
+  (g->prop_solver_outfile_name)=NULL;
   
   // then create space
   
@@ -585,6 +593,12 @@ int wr_glb_init_local_complex(glb* g) {
   (g->prop_file_name)=wr_str_new(g,100);
   strncpy((g->prop_file_name),DEFAULT_PROP_FILE_NAME,99);
  
+  (g->prop_solver_name)=wr_str_new(g,100);
+  strncpy((g->prop_solver_name),DEFAULT_PROP_SOLVER_NAME,99);
+
+  (g->prop_solver_outfile_name)=wr_str_new(g,100);
+  strncpy((g->prop_solver_outfile_name),DEFAULT_PROP_SOLVER_OUTFILE_NAME,99);
+
   if ((g->alloc_err)==1) {
     return 1;
   }   
@@ -665,6 +679,7 @@ int wr_glb_free_shared_complex(glb* g) {
   // prop
    
   wr_free_prop_termhash(g,rotp(g,g->prop_hash_atoms)); 
+  wr_free_prop_termhash(g,rotp(g,g->prop_hash_clauses));
   wr_vec_free(g,rotp(g,g->prop_varvals));
   wr_vec_free(g,rotp(g,g->prop_groundings));
   wr_free_prop_clauses(g,rotp(g,g->prop_clauses));
@@ -708,6 +723,10 @@ int wr_glb_free_local_complex(glb* g) {
 
   wr_str_free(g,(g->prop_file_name));
   (g->prop_file_name)=NULL;
+  wr_str_free(g,(g->prop_solver_name));
+  (g->prop_solver_name)=NULL;
+  wr_str_free(g,(g->prop_solver_outfile_name));
+  (g->prop_solver_outfile_name)=NULL;
 
   return 0;
 }  
