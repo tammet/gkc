@@ -41,7 +41,7 @@ extern "C" {
  
 
 //#define DEBUG  
-#undef DEBUG
+//#undef DEBUG
 
   
 /* ====== Private headers and defs ======== */
@@ -125,7 +125,7 @@ void wr_propagate_unit(glb* g, gptr cl, gint clmeta, gint hash, gptr cl_as_activ
       }  
     }
   }  
-  if (blockvec==NULL) {
+  if (1) { //} (blockvec==NULL) {
     // no clauses in the suitable clvec
 #ifdef DEBUG    
     wr_printf("\n no clauses in blockvec\n");
@@ -166,9 +166,11 @@ void wr_resolve_propagated_clause(glb* g, gint atom, gptr cl, gptr cutcl, int ne
   int len;      
   gint xmeta; 
   gint xatom;
+  int foundflag=0;
 
   
   UNUSED(db);
+  UNUSED(foundflag);
 #ifdef DEBUG
   wr_printf("\n!!! wr_resolve_propagated_clause called for clauses \n");
   wr_print_clause(g,cl);
@@ -183,21 +185,31 @@ void wr_resolve_propagated_clause(glb* g, gint atom, gptr cl, gptr cutcl, int ne
   // loop over literals to find the atom to be cut
   for(i=0; i<len; i++) {   
     xmeta=wg_get_rule_clause_atom_meta(db,cutcl,i);   
-    xatom=wg_get_rule_clause_atom(db,cutcl,i);        
+    xatom=wg_get_rule_clause_atom(db,cutcl,i);       
+    /* 
+    printf("\natom and xatom:\n");
+    wr_print_term(g,atom);
+    printf("\n");
+    wr_print_term(g,xatom);
+    printf("\n");
+    */
     if (wr_equal_term(g,atom,xatom,1) &&
         ((negflag && !wg_atom_meta_is_neg(db,xmeta)) ||
          (!negflag && wg_atom_meta_is_neg(db,xmeta)) )) {
       // found the right atom
+      foundflag=1;
       wr_process_propagated_result(g,atom,cl,xatom,cutcl,cl_as_active,i);
-           if (g->proof_found || g->alloc_err) {
+      if (g->proof_found || g->alloc_err) {
         //wr_clear_varstack(g,g->varstack);          
         return;          
       }
       break;
     }  
   }
-#ifdef DEBUG  
-  wr_printf("\n something wrong: atom not found in wr_resolve_propagated_clause\n");
+#ifdef DEBUG 
+  if (!foundflag) {
+    wr_printf("\n something wrong: atom not found in wr_resolve_propagated_clause\n");
+  }
 #endif  
 }     
 
@@ -269,13 +281,18 @@ void wr_process_propagated_result
   // check if result contains only ans predicates  
   tmp=wr_cl_derived_is_answer(g,res);
   if (tmp>0) {
-    wr_printf("\n\nfound pure answer: ");
-    wr_print_clause(g,res);
+    wr_register_answer(g,res,history);
+    //wr_printf("\n\nfound pure answer: ");
+    //wr_print_clause(g,res);
     g->proof_found=1;   
     g->proof_history=history;    
     return;
-  }
+  } 
   // resulting clause is finished
+
+  //wr_printf("\n+ derived by fmp: ");
+  //wr_print_clause(g,res);    
+
   if (g->print_derived_cl) {
     wr_printf("\n+ derived by fmp: ");
     wr_print_clause(g,res);    
@@ -289,7 +306,7 @@ void wr_process_propagated_result
     if (g->print_derived_cl) wr_printf("\nw discarded overweight");
     return;
   }
-  wr_mark_clause_blocked(g,ycl); // mark long parent blocked
+  //wr_mark_clause_blocked(g,ycl); // mark long parent blocked
   ++(g->stat_kept_cl);
   avg+=(weight-avg)/((g->stat_kept_cl)+1);
   (g->avg_kept_weight)=avg;
@@ -297,14 +314,19 @@ void wr_process_propagated_result
   hash=wr_add_cl_to_unithash(g,res,resmeta);  
   if (hash>=0)  {
     // unit, propagate
-    // wr_propagate_unit(g,res,resmeta,hash,res); //// !!!!!
+    wr_propagate_unit(g,res,resmeta,hash,xcl_as_active);
+    if (g->proof_found || g->alloc_err) {
+      //wr_clear_varstack(g,g->varstack);          
+      return;          
+    }  
   } else {  
     // nonunit, store occurrences
-    // wr_store_atom_occurrences(g,res); // !!!!!!
+    wr_store_atom_occurrences(g,res);
   }  
 #ifdef DEBUG
   //wr_print_atomhash(g,rotp(g,(g->hash_atom_occurrences)));
 #endif
+  wr_push_cl_clpick_queues(g,(g->clpick_queues),res,weight);
   wr_push_priorqueue(g,rotp(g,g->clpickpriorqueue),res,weight);
   //printf("pushed, to print g->clpickpriorqueue\n");
   //wr_print_priorqueue(g,rotp(g,g->clpickpriorqueue));  
@@ -358,6 +380,10 @@ int wr_store_atom_occurrences(glb* g, gptr cl) {
 #ifdef DEBUG
   wr_printf("\nwr_store_atom_occurrences returns with count %d ",count);
 #endif  
+
+  //printf("\nhash_atom_occurrences\n");
+  //wr_print_atomhash(g,rotp(g,(g->hash_atom_occurrences)));
+
   return count; 
 }  
 

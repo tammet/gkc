@@ -166,12 +166,12 @@ int wr_glb_init_simple(glb* g) {
   (g->hardnesspref_strat)=0;
   (g->res_shortarglen_limit)=0; // max non-ans len of the shortest res argument (generalization of unit)
   (g->back_subsume)=0; // 1 does not work any more
-  (g->propagate)=0;    // 1 does not work any more
+  (g->propagate)=0;    // 1 does not work any more ??
   (g->use_equality_strat)=1; // general strategy
   (g->use_equality)=1; // current principle
   (g->posunitpara_strat)=0; // only paramodulate from unit equalities
   (g->instgen_strat)=0;
-  (g->propgen_strat)=1;
+  (g->propgen_strat)=0;
   (g->use_comp_funs_strat)=1;
   (g->use_comp_funs)=1;
   (g->use_rewrite_terms_strat)=1; // general strategy
@@ -352,6 +352,8 @@ int wr_glb_init_simple(glb* g) {
   (g->in_neg_goal_count)=0;
   (g->in_pos_goal_count)=0;
   (g->in_posunit_goal_count)=0;
+  (g->in_max_const_ucount)=0;
+  (g->in_max_occ_const)=0;
 
   (g->sin_clause_count)=0;
   (g->sin_rule_clause_count)=0;
@@ -385,6 +387,9 @@ int wr_glb_init_simple(glb* g) {
   (g->sin_neg_goal_count)=0;
   (g->sin_pos_goal_count)=0;
   (g->sin_posunit_goal_count)=0;
+  (g->sin_max_const_ucount)=0;
+  (g->sin_max_occ_const)=0;
+
 
   (g->avg_kept_weight)=0;
   (g->passed_ratio)=0;
@@ -478,12 +483,14 @@ int wr_glb_init_shared_complex(glb* g) {
   
   // prop
 
-  (g->prop_hash_atoms)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS)); 
-  (g->prop_hash_clauses)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS));
-  (g->prop_varvals)=rpto(g,wr_cvec_new_zero(g,NROF_PROP_VARVALS_ELS));
-  (g->prop_groundings)=rpto(g,wr_cvec_new_zero(g,2*NROF_PROP_VARVALS_ELS));
-  (g->prop_clauses)=rpto(g,wr_cvec_new(g,NROF_PROP_CLAUSES_ELS));
-  (g->prop_varval_clauses)=rpto(g,wr_cvec_new_zero(g,NROF_PROP_VARVALS_ELS));
+  if ((g->instgen_strat) || (g->propgen_strat)) {
+    (g->prop_hash_atoms)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS)); 
+    (g->prop_hash_clauses)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS));
+    (g->prop_varvals)=rpto(g,wr_cvec_new_zero(g,NROF_PROP_VARVALS_ELS));
+    (g->prop_groundings)=rpto(g,wr_cvec_new_zero(g,2*NROF_PROP_VARVALS_ELS));
+    (g->prop_clauses)=rpto(g,wr_cvec_new(g,NROF_PROP_CLAUSES_ELS));
+    (g->prop_varval_clauses)=rpto(g,wr_cvec_new_zero(g,NROF_PROP_VARVALS_ELS));
+  }
 
   if (g->alloc_err) {
     return 1;
@@ -667,7 +674,7 @@ int wr_glb_free_shared_complex(glb* g) {
   wr_free_termhash(g,rotp(g,g->hash_pos_active_groundunits));
   wr_free_termhash(g,rotp(g,g->hash_neg_active_groundunits));
 
-  wr_free_termhash(g,rotp(g,g->hash_atom_occurrences));
+  wr_free_atomhash(g,rotp(g,g->hash_atom_occurrences));
 
   wr_clterm_hashlist_free(g,rotp(g,g->hash_neg_atoms));    
   wr_clterm_hashlist_free(g,rotp(g,g->hash_pos_atoms)); 
@@ -677,13 +684,14 @@ int wr_glb_free_shared_complex(glb* g) {
   wr_clterm_hashlist_free(g,rotp(g,g->hash_rewrite_terms));
   
   // prop
-   
-  wr_free_prop_termhash(g,rotp(g,g->prop_hash_atoms)); 
-  wr_free_prop_termhash(g,rotp(g,g->prop_hash_clauses));
-  wr_vec_free(g,rotp(g,g->prop_varvals));
-  wr_vec_free(g,rotp(g,g->prop_groundings));
-  wr_free_prop_clauses(g,rotp(g,g->prop_clauses));
-  wr_vec_free(g,rotp(g,g->prop_varval_clauses));
+  if ((g->instgen_strat) || (g->propgen_strat)) {
+    wr_free_prop_termhash(g,rotp(g,g->prop_hash_atoms)); 
+    wr_free_prop_termhash(g,rotp(g,g->prop_hash_clauses));
+    wr_vec_free(g,rotp(g,g->prop_varvals));
+    wr_vec_free(g,rotp(g,g->prop_groundings));
+    wr_free_prop_clauses(g,rotp(g,g->prop_clauses));
+    wr_vec_free(g,rotp(g,g->prop_varval_clauses));
+  }  
  
   return 0;
 }  

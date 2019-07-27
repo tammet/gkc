@@ -39,7 +39,7 @@ extern "C" {
 
 
 //#define DEBUG
-#undef DEBUG  
+//#undef DEBUG  
 
 
 /* ====== Private headers ======== */
@@ -160,7 +160,7 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
       poseq++;
       uniteq++;
     } 
-    tmp=wr_analyze_term(g,pto(db,cl),0,&size,&maxdepth,1,haveextdb);
+    tmp=wr_analyze_term(g,pto(db,cl),0,&size,&maxdepth,1,haveextdb,0);
   } else if (wg_rec_is_rule_clause(db,cl)) {   
     ruleflag=1;
     len=wg_count_clause_atoms(db, cl);
@@ -180,7 +180,7 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
         }  
       } 
       tmp=wr_analyze_term(g,atom,0,
-            &size,&maxdepth,!wg_atom_meta_is_neg(db,meta),haveextdb);
+            &size,&maxdepth,!wg_atom_meta_is_neg(db,meta),haveextdb,0);
       if (!tmp) {
         // something wrong with the atom
         wr_printf("\nError: found an incorrectly encoded clause\n");
@@ -254,7 +254,7 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
 
 
 int wr_analyze_term(glb* g, gint x, 
-      int depth, int* size, int* maxdepth, int polarity, int haveextdb) {
+      int depth, int* size, int* maxdepth, int polarity, int haveextdb, int argpos) {
   void* db;
   gptr xptr;
   int i, start, end;  
@@ -262,8 +262,8 @@ int wr_analyze_term(glb* g, gint x,
   gint ucount, ucountpos, ucountneg;
 
 #ifdef DEBUG
-  wr_printf("wr_analyze_term called with x %d type %d depth %d size %d maxdepth %d\n",
-         x,wg_get_encoded_type(g->db,x),depth,*size,*maxdepth);
+  wr_printf("wr_analyze_term called with x %d type %d depth %d size %d maxdepth %d argpos %d\n",
+         x,wg_get_encoded_type(g->db,x),depth,*size,*maxdepth,argpos);
   wr_print_term(g,x);
   wr_printf("\n");
 #endif
@@ -292,6 +292,18 @@ int wr_analyze_term(glb* g, gint x,
         ucount=ucountpos << URI_COUNT_POSCOUNT_SHIFT;        
         ucount=ucount | ucountneg;
         wg_set_uri_count(db,x,ucount);
+        // finding the most used constant
+        if (argpos!=0) {
+          if ((ucountpos+ucountneg)>(g->in_max_const_ucount)) {
+            (g->in_max_const_ucount)=(ucountpos+ucountneg);
+            (g->in_max_occ_const)=x;
+#ifdef DEBUG                
+            wr_printf("\nmax occ const occs %d : ",(g->in_max_const_ucount));
+            wr_printf(" %s \n", wg_decode_unistr(db,(g->in_max_occ_const),WG_URITYPE));
+#endif             
+          }
+        }
+
       }
       
       return 10;
@@ -316,7 +328,7 @@ int wr_analyze_term(glb* g, gint x,
   if (depth>(*maxdepth)) *maxdepth=depth;
   for(i=start;i<end;i++) {
     if (!xptr[i]) return 0; // should not have 0 in args
-    w=w+wr_analyze_term(g,xptr[i],depth,size,maxdepth,polarity,haveextdb);      
+    w=w+wr_analyze_term(g,xptr[i],depth,size,maxdepth,polarity,haveextdb,i-start);      
   }   
   return 1;
 }  
@@ -380,7 +392,7 @@ query preference handling:
 
 char* make_auto_guide(glb* g, glb* kb_g) { 
   char *buf=NULL,*pref; 
-  int i,j,pos,iterations=3,secs;
+  int i,j,pos,iterations=4,secs;
   int eq,depth,length,size,smallratio,bigratio;
   int qp1ok=1, qp2ok=1, qp3ok=1; // query preference strats default ok
   int tmp;
@@ -437,7 +449,12 @@ char* make_auto_guide(glb* g, glb* kb_g) {
   }
   pos+=sprintf(buf+pos,"\"runs\":[\n");
   
-  secs=1;
+  if ((g->sin_clause_count)>500000) {
+    // very large
+    secs=10;
+  } else {
+    secs=1;
+  }
   depth=2;
   length=(g->sin_min_length);
   size=3;
@@ -448,7 +465,6 @@ char* make_auto_guide(glb* g, glb* kb_g) {
     // start of a block
     if ((g->sin_clause_count)>500000) {
       // very large    
-      secs=secs*10;
       if (qp1ok) {
         pos+=sprintf(buf+pos,
         "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1},\n",secs);
@@ -602,6 +618,10 @@ char* make_auto_guide(glb* g, glb* kb_g) {
         "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 3},\n",secs);          
       }
       // unit mod
+      if (1) {
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 0},\n",secs);
+      }
       if (qp1ok) {
         pos+=sprintf(buf+pos,
         "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 1},\n",secs);
@@ -615,6 +635,8 @@ char* make_auto_guide(glb* g, glb* kb_g) {
         "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 3},\n",secs);
       }
       // positive pref mod
+      pos+=sprintf(buf+pos,
+      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"positive_pref\"], \"query_preference\": 0},\n",secs);
       pos+=sprintf(buf+pos,
       "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"positive_pref\"], \"query_preference\": 1},\n",secs);      
       if (qp2ok) {
@@ -750,6 +772,8 @@ char* make_auto_guide(glb* g, glb* kb_g) {
       }
       // query block with pos order
       pos+=sprintf(buf+pos,
+      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"positive_pref\"], \"query_preference\": 0},\n",secs);
+      pos+=sprintf(buf+pos,
       "{\"max_seconds\": %d, \"strategy\":[\"query_focus\", \"positive_pref\"], \"query_preference\": 1},\n",secs);
       if (qp2ok) {
         pos+=sprintf(buf+pos,
@@ -847,6 +871,8 @@ char* make_auto_guide(glb* g, glb* kb_g) {
           "{\"max_seconds\": %d, \"strategy\":[\"hyper\"], \"query_preference\": 0},\n",secs);
           pos+=sprintf(buf+pos,
           "{\"max_seconds\": %d, \"strategy\":[\"hyper\"], \"query_preference\": 1},\n",secs);
+          pos+=sprintf(buf+pos,
+          "{\"max_seconds\": %d, \"strategy\":[\"positive_pref\"], \"query_preference\": 0},\n",secs);     
         }       
       }
       // reverse clause list order block
@@ -981,6 +1007,10 @@ void make_sum_input_stats(glb* g, glb* kb_g) {
   (g->sin_neg_goal_count)=(g->in_neg_goal_count);
   (g->sin_pos_goal_count)=(g->in_pos_goal_count);
   (g->sin_posunit_goal_count)=(g->in_posunit_goal_count);
+  if ((g->in_max_const_ucount)>(g->sin_max_const_ucount)) {
+    (g->sin_max_const_ucount)=(g->in_max_const_ucount);
+    (g->sin_max_occ_const)=(g->in_max_occ_const);
+  } 
 
   if (kb_g) {
     (g->sin_clause_count)+=(kb_g->in_clause_count);
@@ -1035,6 +1065,12 @@ void make_sum_input_stats(glb* g, glb* kb_g) {
     (g->sin_neg_goal_count)+=(kb_g->in_neg_goal_count);
     (g->sin_pos_goal_count)+=(kb_g->in_pos_goal_count);
     (g->sin_posunit_goal_count)+=(kb_g->in_posunit_goal_count);
+
+  
+    if ((kb_g->in_max_const_ucount)>(g->sin_max_const_ucount)) {
+      (g->sin_max_const_ucount)=(kb_g->in_max_const_ucount);
+      (g->sin_max_occ_const)=(kb_g->in_max_occ_const);
+    }    
   }
 }
 
@@ -1072,6 +1108,8 @@ void wr_copy_sin_stats(glb* fromg, glb* tog) {
   (tog->in_neg_goal_count)=(fromg->in_neg_goal_count);
   (tog->in_pos_goal_count)=(fromg->in_pos_goal_count);
   (tog->in_posunit_goal_count)=(fromg->in_posunit_goal_count);
+  (tog->in_max_const_ucount)=(fromg->in_max_const_ucount);
+  (tog->in_max_occ_const)=(fromg->in_max_occ_const); 
 }
 
 // ==================== show stats ====================
@@ -1114,6 +1152,10 @@ void wr_show_in_stats(glb* g) {
   wr_printf("in_neg_goal_count:     %13d\n",g->in_neg_goal_count);
   wr_printf("in_pos_goal_count:     %13d\n",g->in_pos_goal_count);
   wr_printf("in_posunit_goal_count: %13d\n",g->in_posunit_goal_count);
+  wr_printf("in_max_const_ucount:   %13d\n",g->in_max_const_ucount);
+  if (g->in_max_occ_const) {
+    wr_printf("in_max_occ_const: %s \n", wg_decode_unistr(g->db,(g->in_max_occ_const),WG_URITYPE));
+  }
 }
 
 void wr_show_in_summed_stats(glb* g) {
@@ -1154,6 +1196,10 @@ void wr_show_in_summed_stats(glb* g) {
   wr_printf("in_neg_goal_count:     %13d\n",g->sin_neg_goal_count);
   wr_printf("in_pos_goal_count:     %13d\n",g->sin_pos_goal_count);
   wr_printf("in_posunit_goal_count: %13d\n",g->sin_posunit_goal_count);
+  wr_printf("in_max_const_ucount:   %13d\n",g->sin_max_const_ucount);
+  if (g->sin_max_occ_const) {
+    wr_printf("in_max_occ_const: %s \n", wg_decode_unistr(g->db,(g->sin_max_occ_const),WG_URITYPE));
+  }
 }
 
 #ifdef __cplusplus

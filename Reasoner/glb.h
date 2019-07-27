@@ -54,7 +54,7 @@
 #define NROF_HYPER_TERMBUF_ELS    10000000                              
 #define NROF_ACTIVE_TERMBUF_ELS   50000000 
 #else
-#define NROF_QUEUE_TERMBUF_ELS   100000000
+#define NROF_QUEUE_TERMBUF_ELS   200000000
 #define NROF_HYPER_TERMBUF_ELS   100000000
 #define NROF_ACTIVE_TERMBUF_ELS  100000000
 #endif
@@ -466,6 +466,8 @@ typedef struct {
   int in_neg_goal_count;
   int in_pos_goal_count;
   int in_posunit_goal_count;
+  int in_max_const_ucount;
+  gint in_max_occ_const;
 
   int sin_clause_count;
   int sin_rule_clause_count;
@@ -499,6 +501,8 @@ typedef struct {
   int sin_neg_goal_count;
   int sin_pos_goal_count;
   int sin_posunit_goal_count;
+  int sin_max_const_ucount;
+  gint sin_max_occ_const;
 
   /* run averages and measures */
   

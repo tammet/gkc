@@ -66,6 +66,7 @@ void show_cur_time(void);
 #define SHOW_MEM_STATS
 #define SHOW_HASH_CUT_STATS
 
+#define SUBSFLAG_CLAUSE_COUNT_LIMIT 10000 // no subs with active clauses if more active clauses
   
 /* ======= Private protos ================ */
 
@@ -385,7 +386,8 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
       //printf("\n prop_hash_clauses:\n");  
       //wr_print_prop_clausehash(g,rotp(g,g->prop_hash_clauses));  
 
-      if (res!=0  && res>0 && !(res==1 && wr_have_answers(g))) {
+      if (res>0 && !(res==1 && wr_have_answers(g)) &&
+          ((g->instgen_strat) || (g->propgen_strat))) {
         propres=wr_prop_solve_current(g);
         if (propres==2) {
           res=0;
@@ -510,13 +512,17 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
   gcell *cellptr2; 
   gint cell2,lastcell;
   int n=0;
-  int size,depth,length,tmp;
+  int size,depth,length,tmp,subsflag;
   int vecflag=0; // set to 1 if clauses sorted into vector
 
   //printf("\n ** wr_init_active_passive_lists_from_one called ** \n");
   (g->proof_found)=0;
   wr_clear_all_varbanks(g); 
   wr_process_given_cl_setupsubst(g,g->given_termbuf,1,1); 
+
+  //wr_show_in_summed_stats(g);
+  //printf("\ng->in_clause_count %d g->sin_clause_count %d\n",
+  //       g->in_clause_count,g->sin_clause_count);
 
   // Reverse the order
     
@@ -621,8 +627,11 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
           continue;
         };
         wr_sort_cl(g,given_cl);      
+        if ((g->sin_clause_count) > SUBSFLAG_CLAUSE_COUNT_LIMIT) subsflag=0;
+        else subsflag=1;
         given_cl_as_active=wr_add_given_cl_active_list
-                             (g,given_cl,given_cl_metablock,0,g->active_termbuf,(g->tmp_resolvability_vec));                           
+                             (g,given_cl,given_cl_metablock,subsflag,
+                              g->active_termbuf,(g->tmp_resolvability_vec));                           
         if (given_cl_as_active==NULL) {
           //if (g->alloc_err) return -1;
           cell=cellptr->cdr;
@@ -635,10 +644,10 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
           if (wr_cl_is_goal(g, rec)) weight=1;
           else if (wr_cl_is_assumption(g, rec)) weight=2;
           //else weight=-1;
-          else weight=-1; //wr_calc_clause_weight(g,rec,&size,&depth,&length);
-          //else weight=wr_calc_clause_weight(g,rec,&size,&depth,&length);
+          //else weight=-1; //wr_calc_clause_weight(g,rec,&size,&depth,&length);
+          else weight=wr_calc_clause_weight(g,rec,&size,&depth,&length);
         }
-        weight=-1;
+        //weight=-1;
 #ifdef SHOW_ADDED
         wr_printf("\nadding rulecl used weight %ld real weight %ld assumptionflag %d goalflag %d\n",
           weight,
@@ -682,8 +691,10 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
           cell=cellptr->cdr;    
           continue;
         }
+        subsflag=1;
         given_cl_as_active=wr_add_given_cl_active_list
-                            (g,given_cl,given_cl_metablock,1,g->active_termbuf,(g->tmp_resolvability_vec));                        
+                            (g,given_cl,given_cl_metablock,subsflag,
+                            g->active_termbuf,(g->tmp_resolvability_vec));                        
         if (given_cl_as_active==NULL) {
           if (g->alloc_err) return -1;
         }    
@@ -695,10 +706,10 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
           else if (wr_cl_is_assumption(g, rec)) weight=2;
           //else weight=-1;
           //else weight=-1; //wr_calc_clause_weight(g,rec,&size,&depth,&length);
-          else weight=-1; //wr_calc_clause_weight(g,rec,&size,&depth,&length);
-          //else weight=wr_calc_clause_weight(g,rec,&size,&depth,&length);
+          //else weight=-1; //wr_calc_clause_weight(g,rec,&size,&depth,&length);
+          else weight=wr_calc_clause_weight(g,rec,&size,&depth,&length);
         }        
-        weight=-1;
+        //weight=-1;
 #ifdef SHOW_ADDED
         wr_printf("\nadding factcl used weight %ld real weight %ld assumptionflag %d goalflag %d\n",
           weight,

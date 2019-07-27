@@ -419,6 +419,7 @@ int wr_cl_store_para_terms(glb* g, gptr cl, cvec resolvability) {
   ruleflag=wg_rec_is_rule_clause(db,cl);
   if (ruleflag) len = wg_count_clause_atoms(db, cl);
   else len=1;
+  //if ((g->hyperres_strat) && !wr_hyperres_satellite_cl(g,cl)) return;
 #ifdef DEBUG
   wr_printf("ruleflag %d len %d poscount %d negcount %d posok %d negok %d\n",
           ruleflag,len,poscount,negcount,posok,negok);
@@ -809,12 +810,24 @@ int wr_push_cl_hyper_queue(glb* g, cvec queue, gptr cl, int weight) {
   gint clo;
   cvec newqueue;
   
+  //printf("\n push to hyperqueue\n");
   clo=rpto(g,cl);
   newqueue=wr_cvec_push(g,queue,clo);  
   if (newqueue==NULL) return 0;
   if (queue!=newqueue) {
     (g->hyper_queue)=newqueue;
   }
+  /* 
+  printf("\n after push queue[0] %ld\n",queue[0]);
+  printf("\n after push queue[1] %ld\n",queue[1]);
+  printf("\n after push queue[2] %ld\n",queue[2]); 
+  int i;
+  for(i=3;i<newqueue[1];i++) {
+    printf("\n hyperqueue %d ",i);
+    wr_print_clause(g,rotp(g,newqueue[i]));
+    printf("\n");
+  }
+  */
   return 1;
 }
 
@@ -1279,6 +1292,11 @@ gptr wr_pick_from_hyper_queue(glb* g, gptr queue, gptr given_cl_metablock)  {
 
   if (!queue) return NULL;
   pos=queue[2];
+  /* 
+  printf("\n before pick queue[0] %ld\n",queue[0]);
+  printf("\n before pick queue[1] %ld\n",queue[1]);
+  printf("\n before pick queue[2] %ld\n",queue[2]);
+  */
   if (queue[1]<=3 || pos>=queue[1]) return NULL;
   // now there is something to pick
   res=queue[pos];
@@ -1290,6 +1308,11 @@ gptr wr_pick_from_hyper_queue(glb* g, gptr queue, gptr given_cl_metablock)  {
   } else {
     queue[2]=pos;
   }
+  /*
+  printf("\n after pick queue[0] %ld\n",queue[0]);
+  printf("\n after pick queue[1] %ld\n",queue[1]);
+  printf("\n after pick queue[2] %ld\n",queue[2]);
+  */
   return rotp(g,res);
 }
   

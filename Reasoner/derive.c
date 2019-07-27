@@ -1495,19 +1495,22 @@ int wr_hyperres_satellite_cl(glb* g,gptr cl) {
   if (cl==NULL) return 0;
   if (!wg_rec_is_rule_clause(g->db,cl)) {
     // fact clause (hence always positive)
-    if (g->negpref_strat) return 1;
-    else return 0;    
+    //if (g->negpref_strat) return 1;
+    //else return 0;    
+    return 1;
   } else {
     // rule clause: check if contains only non-preferred
     len=wg_count_clause_atoms(g->db,cl);
     for(i=0;i<len;i++) {
       meta=wg_get_rule_clause_atom_meta(g->db,cl,i);
       if (wg_atom_meta_is_neg(g->db,meta)) {
-        if (g->negpref_strat) return 0;
+        //if (g->negpref_strat) return 0;
+        return 0;
       } else {
-        if (g->pospref_strat) return 0;  
+        //if (g->pospref_strat) return 0;  
       }        
     }
+    //printf("\n wr_hyperres_satellite_cl returns 1\n");
     return 1;    
   }      
 } 
@@ -1526,9 +1529,11 @@ int wr_hyperres_satellite_tmpres(glb* g,gptr tmpres, int respos) {
   for(i=0;i<respos;i++) {
     tmeta=tmpres[(i*LIT_WIDTH)+LIT_META_POS];
     if (wg_atom_meta_is_neg(g->db,tmeta)) {
-      if (g->negpref_strat) return 0;
+      //if (g->negpref_strat) return 0;
+      return 0;
     } else {
-      if (g->pospref_strat) return 0;  
+      //if (g->pospref_strat) return 0;  
+      //return 1;
     }        
   }
   return 1;    

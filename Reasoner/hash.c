@@ -990,6 +990,7 @@ void wr_free_offset_termhash(glb* g, gint* hasharr) {
   wr_free(g,hasharr);
 }
 
+
 /*
 
 print a termhash

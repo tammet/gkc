@@ -48,7 +48,7 @@
 int wr_analyze_clause_list(glb* g, void* db, void* child_db);
 int wr_analyze_clause(glb* g, gptr cl, int haveextdb);
 int wr_analyze_term(glb* g, gint x, 
-      int depth, int* size, int* maxdepth, int polarity, int haveextdb);
+      int depth, int* size, int* maxdepth, int polarity, int haveextdb, int argpos);
 
 char* make_auto_guide(glb* g, glb* kb_g);
 void make_sum_input_stats(glb* g, glb* kb_g);

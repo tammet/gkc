@@ -49,7 +49,8 @@ void* wr_clausify_skolemize(glb* g, void* mpool, void* frm, void* vars, int* var
 void* wr_clausify_append_vars
         (glb* g, void* mpool, void* assoc, void* varlist, int allflag, int *varnr);
 void wr_clausify_replace_vars(glb* g, void* mpool, void* assoc, void* term);
-void* wr_clausify_distribute(glb* g, void* mpool, void* frm, void **defs);
+void* wr_clausify_distribute(glb* g, void* mpool, void* frm, void **defs, int indef);
+int wr_clausify_dist_complexity(glb* g, void* term, int reverses);
 int wr_clausify_isliteral(glb* g, void* frm);
 int wr_clausify_collect_vars(glb* g, void* term, gptr* vars, int *count, int max);
 void* wr_clausify_makedef(glb* g, void* mpool, void* frm, void **defs); 

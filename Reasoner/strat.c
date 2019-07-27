@@ -274,7 +274,7 @@ int wr_initial_select_active_cl(glb* g, gptr cl) {
 
 */
 
-int wr_calc_clause_resolvability(glb* g, gptr cl, int allowall) {
+int wr_calc_clause_resolvability(glb* g, gptr cl, int allowall, int hyperpartial) {
   void* db=g->db;
   int atomnr,i, polarity, hardness; 
   int max_hardness=MIN_HARDNESS;   
@@ -304,11 +304,40 @@ int wr_calc_clause_resolvability(glb* g, gptr cl, int allowall) {
     return 1;
   }
 
-  // from here cannot be knuthbendix
+  if (!allowall && (g->hyperres_strat)) {
+    // initially set all literals as allowed
+    for(i=0; i<atomnr; i++) {
+      (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,1);
+    }  
+    // count pos and neg
+    poscount=0;    
+    anscount=0;
+    for(i=0; i<atomnr; i++) {          
+      meta=wg_get_rule_clause_atom_meta(db,cl,i);
+      atom=wg_get_rule_clause_atom(db,cl,i);
+      if (wr_answer_lit(g,atom)) anscount++;       
+      else if (wg_atom_meta_is_neg(db,meta)) negcount++; 
+      else poscount++;           
+    }
+    // if not hyperpartial and some negative, make positive ones prohibited
+    if (negcount && !hyperpartial) {
+      for(i=0; i<atomnr; i++) {          
+        meta=wg_get_rule_clause_atom_meta(db,cl,i);            
+        if (!wg_atom_meta_is_neg(db,meta)) {
+          // prohibit pos atoms since there are some negative ones
+          (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);        
+        }
+      }
+      return 1;
+    }
+    // here either all pos or hyperpartial: use hardness in the next part          
+  }  
+
+  // from here cannot be knuthbendix or hyper with some negative literals
   // count neg and pos and hardnesses for polarityorder and queryfocus
 
   if (!allowall && 
-       ( (g->negpref_strat) || (g->pospref_strat) || 
+       ( (g->negpref_strat) || (g->pospref_strat) || (g->hyperres_strat) ||
          (g->queryfocus_strat) || (g->hardnesspref_strat))) {  
     // count pos and neg
     for(i=0; i<atomnr; i++) {          
@@ -318,6 +347,27 @@ int wr_calc_clause_resolvability(glb* g, gptr cl, int allowall) {
       else if (wg_atom_meta_is_neg(db,meta)) negcount++; 
       else poscount++;           
     }  
+
+    // hyperres start: does everything for neg-containing non-partial
+    if (g->hyperres_strat) {
+      // initially set all literals as allowed
+      for(i=0; i<atomnr; i++) {
+        (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,1);
+      }        
+      // if not hyperpartial and some negative, make positive ones prohibited
+      if (negcount && !hyperpartial) {
+        for(i=0; i<atomnr; i++) {          
+          meta=wg_get_rule_clause_atom_meta(db,cl,i);            
+          if (!wg_atom_meta_is_neg(db,meta)) {
+            // prohibit pos atoms since there are some negative ones
+            (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);        
+          }
+        }
+        return 1;
+      }
+      // here either all pos or hyperpartial: use hardness in the next part          
+    }  
+
     // calc hardnesses 
     for(i=0; i<atomnr; i++) {          
       meta=wg_get_rule_clause_atom_meta(db,cl,i);
@@ -327,8 +377,9 @@ int wr_calc_clause_resolvability(glb* g, gptr cl, int allowall) {
       if (wg_atom_meta_is_neg(db,meta)) {
         // negative lit
         polarity=0;        
-        if ((g->negpref_strat) || (g->queryfocus_strat) || (g->hardnesspref_strat)) {
-          // for negative literals only needed for negpref
+        if ((g->negpref_strat) || (g->queryfocus_strat) || (g->hardnesspref_strat) ||
+            (g->hyperres_strat)) {
+          // for negative literals only needed for negpref and hyper
           hardness=wr_calc_atom_hardness(g,polarity,atom);
           (g->tmp_hardnessinf_vec)=wr_vec_store(g,g->tmp_hardnessinf_vec,i+1,hardness);            
           if (hardness>max_neg_hardness) max_neg_hardness=hardness;
@@ -354,14 +405,14 @@ int wr_calc_clause_resolvability(glb* g, gptr cl, int allowall) {
     }    
   }
 
-  if (!allowall && (g->negpref_strat) && negcount==0) {
+  if (!allowall && negcount==0 && ((g->negpref_strat) || (g->hyperres_strat))) {
     // pure positive for neg order:
     // use a separate knuthbendix resolvability marker procedure
     tmp=wr_calc_clause_knuthbendix_resolvability(g,cl,(g->varbanks));
     if (!tmp) return 0; // error case
     return 1;
   }
-  if (!allowall && (g->pospref_strat) && poscount==0) {
+  if (!allowall && poscount==0 && (g->pospref_strat)) {
     // pure negative for pos order:
     // use a separate knuthbendix resolvability marker procedure
     tmp=wr_calc_clause_knuthbendix_resolvability(g,cl,(g->varbanks));
@@ -476,7 +527,22 @@ int wr_calc_clause_resolvability(glb* g, gptr cl, int allowall) {
           } else {
             (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
           }    
-        }   
+        }  
+      } else if ((g->hyperres_strat) &&  hyperpartial && negcount) {
+        // here we assume some negative present
+        // use just hardness for negative, prohibit positive
+        if (!wg_atom_meta_is_neg(db,meta)) {
+          (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
+        } else if (((g->tmp_hardnessinf_vec)[i+1])<max_neg_hardness) {
+          (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);      
+        } else {
+          if (!allowedflag) {
+            (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,1);
+            allowedflag=1;   
+          } else {
+            (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
+          }    
+        }                          
       } else if (g->hardnesspref_strat) {
         // use just hardness
         if (((g->tmp_hardnessinf_vec)[i+1])<max_hardness) {
@@ -1117,7 +1183,8 @@ static int wr_order_eqterms_lex_order(glb* g, gint x, gint y, gptr vb) {
 }        
 
 static int wr_order_eqterms_const_lex_smaller(glb* g, gint x, gint y) {
-  if (x<y) return 1;
+  //if (x<y) return 1;
+  if (x>y) return 1;
   else return 0; 
 }
 
@@ -1145,7 +1212,7 @@ int wr_calc_clause_knuthbendix_resolvability(glb* g, gptr cl, gptr vb) {
   int atomnr,i,j,lexorder,res;
   gint xatom,xw;
   gint yatom,yw;
-  cvec xvarlist,yvarlist;  
+  cvec xvarlist,yvarlist;    
 
   atomnr=wr_calc_clause_size_countedvarlist(g,cl,vb);
   if (atomnr<=0) return 0; // error case
@@ -1163,7 +1230,7 @@ int wr_calc_clause_knuthbendix_resolvability(glb* g, gptr cl, gptr vb) {
   for(i=0; i<atomnr; i++) {          
     //xmeta=wg_get_rule_clause_atom_meta(db,cl,i);
     xatom=wg_get_rule_clause_atom(db,cl,i);
-    xw=(g->tmp_clinfo)[(i*2)+2];
+    xw=(g->tmp_clinfo)[(i*2)+2];   
     if (xw<0) { // marked as ans lit by countedvarlist calc
       (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
       continue; 
@@ -1174,7 +1241,7 @@ int wr_calc_clause_knuthbendix_resolvability(glb* g, gptr cl, gptr vb) {
       if (!(g->tmp_resolvability_vec)[j+1]) {
         // j atom is already marked nonresolvable: no point in comparing
         continue;
-      }
+      }      
       yatom=wg_get_rule_clause_atom(db,cl,j);
       yw=(g->tmp_clinfo)[(j*2)+2]; 
       if (yw<0) { // marked as ans lit by countedvarlist calc

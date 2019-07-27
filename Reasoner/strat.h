@@ -55,7 +55,7 @@ int wr_count_cl_nonans_atoms(glb* g, gptr cl);
    
 int wr_initial_select_active_cl(glb* g, gptr cl);
 
-int wr_calc_clause_resolvability(glb* g, gptr cl, int allowall);
+int wr_calc_clause_resolvability(glb* g, gptr cl, int allowall, int hyperpartial);
 void wr_print_clause_resolvability(glb* g, gptr cl);
 void wr_print_clause_hardnesses(glb* g, gptr cl);
 

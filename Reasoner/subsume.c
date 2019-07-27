@@ -186,9 +186,18 @@ int wr_given_cl_subsumed(glb* g, gptr given_cl, gptr given_cl_metablock) {
             wr_printf("\n");
             
   #endif       
+            //wr_printf("\ngeneral iactive %d :",iactive);    
+            //wr_print_clause(g,rotp(g,(actptr[iactive+CLMETABLOCK_CL_POS])));
+            //wr_printf("\n");
+            //wr_printf("\n specific given_cl:");    
+            //wr_print_clause(g,given_cl);
+            //wr_printf("\n");
+            //wr_print_record(g,given_cl);   
+
           (g->stat_clsubs_top_meta_attempted)++;
           if (!wr_clmetablock_can_subsume(g,actptr+iactive,given_cl_metablock)) {
             (g->stat_clsubs_top_meta_failed)++;
+            //wr_printf("\n meta-detected cannot subsume \n");  
   #ifdef DEBUG          
             wr_printf("\n meta-detected cannot subsume \n");            
             wr_print_clause(g,rotp(g,(actptr[iactive+CLMETABLOCK_CL_POS])));
@@ -199,6 +208,7 @@ int wr_given_cl_subsumed(glb* g, gptr given_cl, gptr given_cl_metablock) {
                   
             continue;
           }
+          //wr_printf("\n meta-detected CAN subsume \n");
   #ifdef DEBUG        
           wr_printf("\n meta-detected CAN subsume \n");          
           wr_print_clause(g,rotp(g,(actptr[iactive+CLMETABLOCK_CL_POS])));

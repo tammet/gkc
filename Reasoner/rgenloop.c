@@ -65,7 +65,7 @@ extern "C" {
 //#undef DEBUG
 
 //#define DEBUGHASH
-#undef DEBUGHASH
+//#undef DEBUGHASH
 
 #define QUIET
 //#undef QUIET
@@ -95,7 +95,8 @@ int wr_genloop(glb* g) {
   gint given_cl_metablock[CLMETABLOCK_ELS];
   clock_t curclock;
   float run_seconds,total_seconds,fullness; // passed_ratio
-  
+  int given_from_hyperqueue_flag;
+
 #ifndef USE_RES_TERMS  
   gint ipassive;
   gint iactive;
@@ -170,12 +171,15 @@ int wr_genloop(glb* g) {
       return -1;
     }         
     //wr_show_clactive(g);
-    //picked_given_cl_cand=wr_pick_given_cl(g,given_cl_metablock);   
+    //picked_given_cl_cand=wr_pick_given_cl(g,given_cl_metablock); 
+    given_from_hyperqueue_flag=0;  
     picked_given_cl_cand=wr_pick_from_hyper_queue(g,(g->hyper_queue),given_cl_metablock);  
     if (picked_given_cl_cand==NULL) {
+      //printf("\ncandidate NOT from hyper_queue:\n");
       picked_given_cl_cand=wr_pick_from_clpick_queues(g,rotp(g,g->clpick_queues),given_cl_metablock);
     } else {
       //printf("\ncandidate from hyper_queue:\n");
+      given_from_hyperqueue_flag=1;
       (g->stat_given_candidates_hyper)++;
     }
 
@@ -292,18 +296,34 @@ int wr_genloop(glb* g) {
     // optionally do backsubsumption
     if (g->back_subsume) wr_given_cl_backsubsume(g,given_cl,given_cl_metablock);
     // calculate resolvability: (g->tmp_resolvability_vec)
-    wr_calc_clause_resolvability(g,given_cl,0);
+    if (given_from_hyperqueue_flag) {
+      wr_calc_clause_resolvability(g,given_cl,0,1);
+    } else {
+      wr_calc_clause_resolvability(g,given_cl,0,0);
+    }  
     if (g->print_initial_given_cl) {
       wr_print_clause_resolvability(g,given_cl);
     }  
     //wr_print_clause_hardnesses(g,given_cl); 
 
-    // add to active list
-    given_cl_as_active=wr_add_given_cl_active_list(g,given_cl,given_cl_metablock,1,
-      g->active_termbuf,(g->tmp_resolvability_vec));
-
+    
+    if (given_from_hyperqueue_flag) {
+      // make an active clause from partial hyper
+      //printf("\n from hyperqueue\n");
+      wr_process_given_cl_setupsubst(g,g->active_termbuf,2,0); 
+      given_cl_as_active=wr_build_calc_cl(g,given_cl);      
+      wr_process_given_cl_cleanupsubst(g); 
+      if (given_cl_as_active==NULL) {
+        if (g->alloc_err) return -1;
+        continue; 
+      }        
+    } else {
+      // add to active list
+      //printf("\n from normal queue\n");
+      given_cl_as_active=wr_add_given_cl_active_list(g,given_cl,given_cl_metablock,1,
+                                    g->active_termbuf,(g->tmp_resolvability_vec));
     //printf("\nmetablock3 %d %d %d %d \n",*given_cl_metablock,*(given_cl_metablock+1),*(given_cl_metablock+2),*(given_cl_metablock+3));
-
+    }
     if (given_cl_as_active==NULL) {
       if (g->alloc_err) return -1;
       continue; 
@@ -536,24 +556,34 @@ int wr_add_cl_to_active_unithash(glb* g, gptr cl) {
   gint clmeta;
   gptr xatom;
   gint hash;  
-  int ruleflag=1;
+  int ruleflag;
 
   db=g->db;   
   UNUSED(db);
-  len=wg_count_clause_atoms(db,cl);
+ 
+  ruleflag=wg_rec_is_rule_clause(db,cl);
+  if (ruleflag) len = wg_count_clause_atoms(db, cl);
+  else len=1;
 #ifdef DEBUGHASH
   wr_printf("\nwr_add_cl_to_active_unithash:\n");
   wr_print_clause(g,cl);
-  wr_printf("\nlen %d wg_rec_is_rule_clause %d\n",len,wg_rec_is_rule_clause(db,cl));
+  wr_printf("\nlen %d ruleflag %d\n",len,ruleflag);
 #endif
   if (len==1) { 
-    if (wg_rec_is_rule_clause(db,cl)) {
+    if (ruleflag) {
       xatom=rotp(g,wg_get_rule_clause_atom(db,cl,0));        
       clmeta=wg_get_rule_clause_atom_meta(db,cl,0);
+/* 
+#ifdef DEBUGHASH
+      printf("\nNB! NB! len==1, is rule clause, meta: %ld, is ground: %d\n",
+        clmeta,wg_atom_meta_is_ground(db,clmeta));
+#endif      
+*/
       if (!wg_atom_meta_is_ground(db,clmeta)) return 0;
     } else {
-      xatom=cl;      
-      ruleflag=0;
+      // not a rule clause
+      xatom=cl; 
+      //xatom=encode_record(db,cl);           
     }   
     hash=wr_lit_hash(g,rpto(g,xatom));
     //printf("\nhash for storing is %d\n",(int)hash);
@@ -565,7 +595,8 @@ int wr_add_cl_to_active_unithash(glb* g, gptr cl) {
       //printf("\npos\n");
       wr_push_termhash(g,rotp(g,g->hash_pos_active_groundunits),hash,xatom,cl); 
       //wr_print_termhash(g,rotp(g,g->hash_pos_groundunits));
-    }      
+    }    
+/*
 #ifdef DEBUGHASH    
     wr_printf("\ng->hash_neg_active_groundunits after adding:");      
     wr_print_termhash(g,rotp(g,g->hash_neg_active_groundunits));
@@ -574,6 +605,7 @@ int wr_add_cl_to_active_unithash(glb* g, gptr cl) {
     wr_print_termhash(g,rotp(g,g->hash_pos_active_groundunits));   
     //wr_clterm_hashlist_print(g,rotp(g,g->hash_pos_groundunits));
 #endif
+*/
     return 1;
   }
   return 0;

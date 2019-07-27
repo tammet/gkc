@@ -50,6 +50,8 @@ extern "C" {
 
 #define STORE_TERMMETA
 
+#define PENALIZE_DEFS
+
 /* ====== Private headers ======== */
   
 static void wr_inssort_cl(glb* g, gptr cl, int len);  
@@ -100,7 +102,7 @@ int  oldremove_wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, i
     *length=1;
     xatom=encode_datarec_offset(pto(db,xptr));
     if (wr_answer_lit(g,xatom)) w=1; // !! special answer-lit weight
-    else w=wr_calc_term_weight(g,xatom,0,size,depth);    
+    else w=wr_calc_term_weight(g,xatom,0,size,depth,0);    
     //return w;        
   } else {        
     w=0;
@@ -112,7 +114,7 @@ int  oldremove_wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, i
       if (wr_answer_lit(g,xatom)) w=w+1;
       else {
         atomdepth=0;
-        w=w+wr_calc_term_weight(g,xatom,0,size,&atomdepth);   
+        w=w+wr_calc_term_weight(g,xatom,0,size,&atomdepth,i);   
         (*length)++;
         if (atomdepth > (*depth)) *depth=atomdepth;
       }  
@@ -135,11 +137,14 @@ int  wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length
   void* db;
   int ruleflag;       
   gint xatomnr; 
-  gint xatom;  
+  gint xatom=0;  
   int i;
   int w;
   int atomdepth;
   int vc_tmp;
+  int eqtermorder,atomlen;
+  gint a,b; //,atype,btype;
+  gptr tptr;
 
 #ifdef DEBUG  
   wr_printf("wr_calc_clause_weight called for:\n"); 
@@ -155,10 +160,11 @@ int  wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length
   vc_tmp=*(g->tmp_unify_vc);
 #endif
   if (!ruleflag) {
+    xatomnr=1;
     *length=1;
     xatom=encode_datarec_offset(pto(db,xptr));
     if (wr_answer_lit(g,xatom)) w=1; // !! special answer-lit weight
-    else w=wr_calc_term_weight(g,xatom,0,size,depth);            
+    else w=wr_calc_term_weight(g,xatom,0,size,depth,0);            
   } else {        
     w=0;
     // loop over clause elems
@@ -169,7 +175,7 @@ int  wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length
       if (wr_answer_lit(g,xatom)) w=w+1;
       else {
         atomdepth=0;
-        w=w+wr_calc_term_weight(g,xatom,0,size,&atomdepth);   
+        w=w+wr_calc_term_weight(g,xatom,0,size,&atomdepth,0);   
         (*length)++;
         if (atomdepth > (*depth)) *depth=atomdepth;
       }  
@@ -180,6 +186,33 @@ int  wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length
     wr_clear_varstack_topslice(g,g->varstack,vc_tmp);
   }  
 #endif  
+  // now check if rewrite rule
+  if (xatomnr==1 &&
+      (g->use_equality) && (g->use_rewrite_terms_strat) && 
+      wr_equality_atom(g,xatom) &&
+      ruleflag && 
+      ! wg_atom_meta_is_neg(db,wg_get_rule_clause_atom_meta(db,xptr,0)) ) {
+    tptr=rotp(g,xatom);
+    atomlen=get_record_len(tptr);
+    if (atomlen>=(g->unify_firstuseterm)+3) {
+      // take equality args (two):
+      a=tptr[RECORD_HEADER_GINTS+(g->unify_funarg1pos)];
+      b=tptr[RECORD_HEADER_GINTS+(g->unify_funarg2pos)];     
+      //atype=wg_get_encoded_type(db,a);
+      //btype=wg_get_encoded_type(db,b);
+      eqtermorder=wr_order_eqterms(g,a,b,NULL);
+      // 1: a bigger than b (prohibits b)
+      // 2: b bigger than a (prohibits a)
+      if (((eqtermorder==1) && wg_get_encoded_type(db,a)!=WG_VARTYPE) || 
+          ((eqtermorder==2) && wg_get_encoded_type(db,b)!=WG_VARTYPE) ) {
+        // rewrite rule  
+        //printf("\nfound rewrite rule\n");
+        //wr_print_clause(g,xptr);
+        w=(int)((float)w/2.0);
+      }
+    }
+  }      
+
   w=w+(((*length)-1)*(g->cl_length_penalty))+(((*depth)-1)*(g->cl_depth_penalty));
 #ifdef DEBUG  
   wr_printf("\nwr_calc_clause_weight returns weight %d and size %d depth %d length %d\n",
@@ -188,20 +221,39 @@ int  wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length
   return w;
 } 
 
-int wr_calc_term_weight(glb* g, gint x, int depth, int* size, int* maxdepth) {
+int wr_calc_term_weight(glb* g, gint x, int depth, int* size, int* maxdepth, int pos) {
   void* db;
   gptr xptr;
   int i, start, end;  
   int w;
+#ifdef PENALIZE_DEFS
+  char* str;
+#endif  
 
 #ifdef DEBUG    
-  wr_printf("wr_calc_term_weight called with x %d type %d depth %d size %d maxdepth %d\n",
-       x,wg_get_encoded_type(g->db,x),depth,*size,*maxdepth);
+  wr_printf("wr_calc_term_weight called with x %d type %d depth %d size %d maxdepth %d pos %d\n",
+       x,wg_get_encoded_type(g->db,x),depth,*size,*maxdepth,pos);
 #endif
   if (!isdatarec(x)) {
     // now we have a simple value  
     (*size)++;
-    if (!isvar(x)) return 10;
+    if (!isvar(x)) {
+#ifdef PENALIZE_DEFS
+      //db=g->db;
+      //if (wg_get_encoded_type(db,x)==WG_URITYPE) {   
+      if (!pos && depth<2 && islongstr(x)) {
+        str = wg_decode_uri(g->db,x);    
+        if (str[0]=='$' && str[1]=='d' && str[2]=='f') {
+          return 50;
+        } else {
+          return 10;
+        }  
+      } else return 10;  
+#else
+      return 10;
+#endif               
+  }  
+
     // here x is a var
 #ifdef WEIGHT_VARS    
     if (VARVAL_DIRECT(x,(g->varbanks))==UNASSIGNED) {
@@ -226,7 +278,7 @@ int wr_calc_term_weight(glb* g, gint x, int depth, int* size, int* maxdepth) {
   depth++;
   if (depth>(*maxdepth)) *maxdepth=depth;
   for(i=start;i<end;i++) {
-    w=w+wr_calc_term_weight(g,xptr[i],depth,size,maxdepth);      
+    w=w+wr_calc_term_weight(g,xptr[i],depth,size,maxdepth,i-start);      
   }   
   return w;
 }  
@@ -606,6 +658,10 @@ void wr_print_cl_literals_meta(glb* g, gptr cl) {
 
    wr_printf("\nmetas for clause with \n");
    wr_print_clause(g,cl);
+   if (!wg_rec_is_rule_clause(g->db,cl)) {
+     wr_printf("\n not a rule clause");
+     return;
+   }
    len=wg_count_clause_atoms(db,cl);
 
    for(i=0; i<len; i++) {

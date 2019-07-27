@@ -200,7 +200,7 @@ int gkc_main(int argc, char **argv) {
   //printf("\ncmdstr %s cmdfileslen %d\n",cmdstr,cmdfileslen);
 
   if (mbsize==0) {
-    shmsize = 1000000000; // 1G
+    shmsize = 5000000000; // 5 mb default for large csr
     shmsize2 = shmsize;
   } else {
     shmsize=(gint)mbsize*(gint)1000000; // mbsize given on cmdline is in megabytes
