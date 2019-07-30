@@ -38,7 +38,7 @@ extern "C" {
 /* ====== Private defs =========== */
 
 //#define DEBUG
-#undef DEBUG  
+//#undef DEBUG  
 
 //#define QPICKEDDEBUG // minimal info on where cl was chosen from
 //#define QADDDEBUG // queue creation and adding debug
@@ -308,7 +308,7 @@ int wr_cl_store_res_terms(glb* g, gptr cl, cvec resolvability) {
   int negflag; // 1 if negative
   //int termflag; // 1 if complex atom  
   gint hash=0;
-  vec hashvec;
+  vec hashvec, hashvec_unit;
   int tmp;
   int preflen;
   gint prefhashes[ATOM_PREFHASH_MAXLEN+1];
@@ -325,8 +325,8 @@ int wr_cl_store_res_terms(glb* g, gptr cl, cvec resolvability) {
   else len=1;
  
 #ifdef DEBUG
-  wr_printf("ruleflag %d len %d posok %d negok %d\n",
-          ruleflag,len,posok,negok);
+  wr_printf("ruleflag %d len %d \n",
+          ruleflag,len);
 #endif  
   // loop over literals
   for(i=0; i<len; i++) {  
@@ -353,6 +353,10 @@ int wr_cl_store_res_terms(glb* g, gptr cl, cvec resolvability) {
 #endif
       if (negflag) hashvec=rotp(g,g->hash_neg_atoms);
       else hashvec=rotp(g,g->hash_pos_atoms);
+      if (0) { // (g->use_strong_unit_cutoff) {
+        if (negflag) hashvec_unit=rotp(g,g->hash_neg_units);
+        else hashvec_unit=rotp(g,g->hash_pos_units);        
+      } 
 #ifdef XDEBUG 
       wr_printf("before adding to hash negflag: %d hash: %d\n",negflag,(int)hash);
 #endif     
@@ -372,13 +376,27 @@ int wr_cl_store_res_terms(glb* g, gptr cl, cvec resolvability) {
         if (tmp) {
           wr_sys_exiterr2int(g,"adding term to hashlist in cl_store_res_terms, code ",tmp);
           return 1;        
-        }  
+        } 
+        // add to unit hash if unit and strong strat set
+        if (0) { // (len==1 && (g->use_strong_unit_cutoff)) {          
+          tmp=wr_clterm_add_hashlist(g,hashvec_unit,hash,atom,cl);         
+          if (tmp) {
+            wr_sys_exiterr2int(g,"adding term to hashlist_unit in cl_store_res_terms, code ",tmp);
+            return 1;        
+          }
+        }         
       }  
 #ifdef DEBUGHASH    
       wr_printf("\nhash_pos_atoms after adding:");      
       wr_clterm_hashlist_print(g,rotp(g,g->hash_pos_atoms));
       wr_printf("\nhash_neg_atoms after adding:");      
-      wr_clterm_hashlist_print(g,rotp(g,g->hash_neg_atoms));  
+      wr_clterm_hashlist_print(g,rotp(g,g->hash_neg_atoms)); 
+      if (0) { // (g->use_strong_unit_cutoff) {          
+        wr_printf("\nhash_pos_units after adding:");      
+        wr_clterm_hashlist_print(g,rotp(g,g->hash_pos_units));
+        wr_printf("\nhash_neg_units after adding:");      
+        wr_clterm_hashlist_print(g,rotp(g,g->hash_neg_units));
+      }    
 #endif      
     }  
   }     
@@ -387,6 +405,103 @@ int wr_cl_store_res_terms(glb* g, gptr cl, cvec resolvability) {
 #endif      
   return 0;
 }
+
+
+int wr_cl_store_res_units(glb* g, gptr cl) {    
+  void* db=g->db;
+  int i,j;
+  int len;      
+  int ruleflag; // 0 if not rule
+  gint meta;
+  gint atom;  
+  int negflag; // 1 if negative
+  //int termflag; // 1 if complex atom  
+  gint hash=0;
+  vec hashvec_unit;
+  int tmp;
+  int preflen;
+  gint prefhashes[ATOM_PREFHASH_MAXLEN+1];
+  
+#ifdef DEBUG
+  wr_printf("cl_store_res_units called on cl: "); 
+  wr_print_clause(g,cl);
+#endif  
+
+  // get clause data for input clause
+       
+  ruleflag=wg_rec_is_rule_clause(db,cl);
+  if (ruleflag) len = wg_count_clause_atoms(db, cl);
+  else len=1;
+  if (len!=1) return 0;
+ 
+#ifdef DEBUG
+  wr_printf("ruleflag %d len %d \n",
+          ruleflag,len);
+#endif  
+  // loop over literals
+  for(i=0; i<len; i++) {  
+    negflag=0;
+    if (!ruleflag) {
+      atom=encode_record(db,cl);      
+    } else {       
+      meta=wg_get_rule_clause_atom_meta(db,cl,i);
+      if (wg_atom_meta_is_neg(db,meta)) negflag=1;              
+      atom=wg_get_rule_clause_atom(db,cl,i);
+      if (wg_get_encoded_type(db,atom)!=WG_RECORDTYPE) continue;   
+    }
+    if (1) {
+#ifdef XDEBUG 
+      wr_printf("adding to hash g->hash_pos_units or g->hash_neg_units in wr_cl_store_res_units\n");
+#endif       
+#ifdef DEBUGHASH               
+      wr_printf("\nhash_pos_units before adding:");      
+      wr_clterm_hashlist_print(g,rotp(g,g->hash_pos_units));
+      wr_printf("\nhash_neg_units before adding:");      
+      wr_clterm_hashlist_print(g,rotp(g,g->hash_neg_units));          
+#endif 
+#ifdef SIMPLE_ACTIVE_SEARCH_HASH
+      hash=wr_atom_funhash(g,atom);
+      preflen=1;
+#else
+      preflen=wr_atom_calc_prefhashes(g,atom,prefhashes);        
+#endif
+      if (negflag) hashvec_unit=rotp(g,g->hash_neg_units);
+      else hashvec_unit=rotp(g,g->hash_pos_units);              
+#ifdef XDEBUG 
+      wr_printf("before adding to hash negflag: %d hash: %d\n",negflag,(int)hash);
+#endif     
+      for(j=0;j<preflen;j++) {
+#ifdef SIMPLE_ACTIVE_SEARCH_HASH
+#else        
+        hash=WR_HASH_NORM(WR_HASH_ADD(preflen-1,prefhashes[j]),NROF_CLTERM_HASHVEC_ELS);
+#endif    
+        //printf("\n storing preflen %d j %d prefhashes[j] %d hash %d \n",preflen,j,prefhashes[j],hash);    
+#ifdef DEBUG        
+        wr_printf("\n storing preflen %d j %d prefhashes[j] %d hash %d \n",preflen,j,prefhashes[j],hash);
+#endif        
+        tmp=wr_clterm_add_hashlist(g,hashvec_unit,hash,atom,cl);  
+#ifdef XDEBUG 
+        wr_printf("adding to hash ended with %d\n",tmp);
+#endif       
+        if (tmp) {
+          wr_sys_exiterr2int(g,"adding term to hashlist in cl_store_res_units, code ",tmp);
+          return 1;        
+        }          
+      }  
+#ifdef DEBUGHASH               
+      wr_printf("\nhash_pos_units after adding:");      
+      wr_clterm_hashlist_print(g,rotp(g,g->hash_pos_units));
+      wr_printf("\nhash_neg_units after adding:");      
+      wr_clterm_hashlist_print(g,rotp(g,g->hash_neg_units));          
+#endif      
+    }  
+  }     
+#ifdef DEBUG
+  wr_printf("cl_store_res_units finished\n"); 
+#endif      
+  return 0;
+}
+
 
 /*
    store all these for the clause cl:
@@ -419,10 +534,10 @@ int wr_cl_store_para_terms(glb* g, gptr cl, cvec resolvability) {
   ruleflag=wg_rec_is_rule_clause(db,cl);
   if (ruleflag) len = wg_count_clause_atoms(db, cl);
   else len=1;
-  //if ((g->hyperres_strat) && !wr_hyperres_satellite_cl(g,cl)) return;
+  if ((g->hyperres_strat) && !(g->relaxed_hyperres_strat) && !wr_hyperres_satellite_cl(g,cl)) return 0;
 #ifdef DEBUG
-  wr_printf("ruleflag %d len %d poscount %d negcount %d posok %d negok %d\n",
-          ruleflag,len,poscount,negcount,posok,negok);
+  wr_printf("ruleflag %d len %d \n",
+          ruleflag,len);
 #endif  
   // loop over literals
   for(i=0; i<len; i++) {  
@@ -563,6 +678,7 @@ int wr_cl_store_term_rewriter(glb* g, gptr cl, gint term, int termtype, int litn
     wr_sys_exiterr2int(g,"adding term to hashlist in  wr_cl_store_term_rewriter, code ",tmp);
     return 1;        
   }  
+  (g->stat_made_rewriters)++;
   if (g->print_derived_cl) {
     wr_printf("\n+ rewriter kept lf %d: ",leftflag);
     wr_print_clause(g,cl);

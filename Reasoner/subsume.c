@@ -45,6 +45,8 @@ extern "C" {
 
 //#define BACKDEBUG  
 #undef BACKDEBUG
+
+//#define SCUTDEBUG
   
 /* ====== Private headers and defs ======== */
 
@@ -603,7 +605,7 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
           (g->stat_lit_hash_cut_ok)++;   
           //return 0;
         }
-      }  
+      }
 
     } else {
 #ifdef DEBUG      
@@ -839,6 +841,226 @@ int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucke
   return 0;  
 }
 
+
+
+
+/*
+
+  return -1 if subsumed
+  return 0 if no subsumption, no cuts
+  return a nr of cuts (more than 0) if any cuts
+
+*/
+
+int wr_derived_cl_strong_cut(glb* g, gptr rptr, int rpos, int prevcuts) {
+
+  int i,tmp;
+  gint xatom,xatommeta;
+  int cuts=0;
+  //gint clhash;
+  gptr cutter;
+  int storecount,nongroundcount;
+
+
+#ifdef DEBUG
+  wr_printf("\nwr_derived_cl_strong_cut is called \n");
+#endif          
+  storecount=0;        
+  nongroundcount=0;
+  for(i=0; i < rpos; i++) { 
+    tmp=i*LIT_WIDTH;    
+    xatommeta=rptr[tmp+LIT_META_POS];    
+    if (xatommeta!=0) storecount++;    
+  }
+  // now storecount is the length uncut
+  if (storecount>1) {
+    // here check whether there are more than one non-ground
+    for(i=0; i < rpos; i++) { 
+      tmp=i*LIT_WIDTH;    
+      xatommeta=rptr[tmp+LIT_META_POS];    
+      if (!xatommeta) continue;    
+      xatom=rptr[tmp+LIT_ATOM_POS];
+      if (wr_term_has_vars(g,xatom)) {
+        nongroundcount++;
+      }   
+      //printf("\n pos %d nongroundcount %d ",i,nongroundcount);
+      //wr_print_term(g,xatom);
+      //printf("\n");
+      if (nongroundcount>1) break;
+    }
+  }
+
+  /* 
+    clause length 1: full cutoff, no var checking
+    clause contains a single non-ground: full cutoff, no var checking
+    clause contains several non-ground: use atom-to-atom subsumption, not unification
+
+   */
+
+#ifdef DEBUG     
+    wr_printf("\n storecount %d \n",storecount);    
+#endif   
+
+  for(i=0;i<rpos;i++) { 
+    tmp=i*LIT_WIDTH;    
+    xatommeta=rptr[tmp+LIT_META_POS];   
+    if (xatommeta==0) continue;
+    xatom=rptr[tmp+LIT_ATOM_POS];
+    //oldcuts=cuts;
+#ifdef SCUTDEBUG     
+    wr_printf("\n i %d xatom %d xatommeta %d atom:\n",i,xatom,xatommeta);
+    wr_print_term(g,xatom);    
+#endif       
+    if (wg_atom_meta_is_neg(db,xatommeta)) {
+#ifdef SCUTDEBUG      
+      wr_printf("\nneg\n");
+#endif                
+      cutter=strongly_cut_atom(g,xatom,rotp(g,g->hash_pos_units),(nongroundcount>1));
+      if (cutter!=NULL) {         
+#ifdef SCUTDEBUG        
+        wr_printf("\ncutoff as neg!\n"); 
+        wr_print_term(g,xatom);
+        wr_printf("\n cutter:\n");
+        wr_print_clause(g,cutter);        
+#endif
+        cuts++;
+        rptr[tmp+LIT_META_POS]=0; // mark cutoff lit metas as 0
+        if ((g->cut_clvec)[0]>prevcuts+cuts+1) {
+          (g->cut_clvec)[prevcuts+cuts]=(gint)cutter;
+          (g->cut_clvec)[prevcuts+cuts+1]=(gint)NULL;
+        }  
+        (g->stat_lit_strong_cut_ok)++; 
+      }      
+    } else {
+#ifdef SCUTDEBUG      
+      wr_printf("\npos\n");
+#endif 
+      cutter=strongly_cut_atom(g,xatom,rotp(g,g->hash_neg_units),(nongroundcount>1));
+      if (cutter!=NULL) {              
+#ifdef SCUTDEBUG        
+        wr_printf("\ncutoff  as pos!\n"); 
+        wr_print_term(g,xatom);
+        wr_printf("\n bucket:\n");
+        wr_print_clause(g,cutter);    
+#endif        
+        cuts++;
+        rptr[tmp+LIT_META_POS]=0; // mark cutoff lit metas as 0
+        if ((g->cut_clvec)[0]>prevcuts+cuts+1) {
+          (g->cut_clvec)[prevcuts+cuts]=(gint)cutter;
+          (g->cut_clvec)[prevcuts+cuts+1]=(gint)NULL;
+        }  
+        (g->stat_lit_strong_cut_ok)++;       
+      }
+    }     
+  }
+ 
+#ifdef SCUTDEBUG  
+  wr_printf("\n! wr_derived_cl_strong_cut is returning %d \n",cuts);
+#endif  
+  return cuts;  
+}
+
+gptr strongly_cut_atom(glb* g, gint xatom, vec hashvec, int usematch) {
+  void* db=g->db;
+  gint hash;
+  int hlen;
+  gint node;
+  gint yatom=0;
+  gptr ycl;
+  int ures;
+  int preflen, plen;
+  gint prefhashes[ATOM_PREFHASH_MAXLEN+1];
+
+  preflen=wr_atom_calc_prefhashes(g,xatom,prefhashes);
+  for(plen=0;plen<ATOM_PREFHASH_MAXLEN;plen++) {   
+    if (preflen==1) {      
+      hash=WR_HASH_NORM(WR_HASH_ADD(plen,prefhashes[0]),NROF_CLTERM_HASHVEC_ELS);
+    } else if (preflen==2) {      
+      if (plen==0) // hash=prefhashes[0]+plen;
+        hash=WR_HASH_NORM(WR_HASH_ADD(plen,prefhashes[0]),NROF_CLTERM_HASHVEC_ELS);
+      else // hash=prefhashes[1]+plen;
+        hash=WR_HASH_NORM(WR_HASH_ADD(plen,prefhashes[1]),NROF_CLTERM_HASHVEC_ELS);
+    } else {      
+      hash=WR_HASH_NORM(WR_HASH_ADD(plen,prefhashes[plen]),NROF_CLTERM_HASHVEC_ELS);
+    }                     
+#ifdef SCUTDEBUG
+    wr_printf("\n looking for hash %ld for plen %d preflen %d\n",hash,plen,preflen);
+#endif
+
+    //wr_clterm_hashlist_print(g,hashvec);       
+    hlen=wr_clterm_hashlist_len(g,hashvec,hash);
+    if (hlen==0) {
+#ifdef SCUTDEBUG        
+      wr_printf("no matching atoms in hash\n");
+#endif        
+      continue;
+    }     
+    node=wr_clterm_hashlist_start(g,hashvec,hash);
+    if (!node)  {
+      wr_sys_exiterr(g,"apparently wrong hash given to wr_clterm_hashlist_start");
+      return NULL;
+    }      
+    while(node!=0) {    
+      yatom=(otp(db,node))[CLTERM_HASHNODE_TERM_POS];
+      
+      /*
+      wr_printf("after while(node!=0): \n");
+      wr_printf("ycl: \n");
+      wr_print_clause(g,ycl);                   
+      wr_printf("xcl: \n");
+      wr_print_clause(g,xcl);
+      wr_printf("xatom: \n");
+      wr_print_clause(g,xatom);
+      */            
+#ifdef SCUTDEBUG        
+      wr_printf("\nxatom ");
+      wr_print_term(g,xatom);     
+      wr_printf("\nyatom ");
+      wr_print_term(g,yatom);      
+      printf("\n");
+      wr_print_vardata(g);
+#endif    
+      if (usematch) {
+        ures=wr_match_term(g,yatom,xatom,1);
+      } else {
+        ures=wr_unify_term(g,xatom,yatom,1); // uniquestrflag=1            
+      }  
+#ifdef SCUTDEBUG        
+      wr_printf("unification check res: %d\n",ures);
+#endif        
+      if (ures) {        
+        ycl=otp(db,(otp(db,node))[CLTERM_HASHNODE_CL_POS]);
+#ifdef SCUTDEBUG                   
+        wr_printf("\nin wr_resolve_binary_all_active after wr_process_resolve_result\n");
+        wr_printf("\nxatom\n");
+        wr_print_term(g,xatom);
+        wr_printf("\nyatom\n");
+        wr_print_term(g,yatom);
+        wr_printf(" in ycl ");
+        wr_print_clause(g,ycl);
+        wr_printf("\n!!!!! wr_resolve_binary_all_active after wr_process_resolve_result queue is\n");
+        wr_show_clqueue(g);
+        wr_printf("\nqueue ended\n");
+#endif             
+        return ycl;                
+      }
+#ifdef SCUTDEBUG
+      wr_printf("wr_resolve_binary_all_active before wr_clear_varstack queue is\n");
+      wr_show_clqueue(g);
+      wr_printf("\nqueue ended\n");
+#endif         
+      wr_clear_varstack(g,g->varstack);              
+      //wr_print_vardata(g);      
+      // get next node;
+      node=wr_clterm_hashlist_next(g,hashvec,node);               
+    } /* over one single hash vector */
+#ifdef SCUTDEBUG      
+    wr_printf("\nexiting node loop\n");      
+#endif      
+  } /* over different preflens of the given atom */
+  
+  return NULL;
+}
 
 /* ------------------------------------------------------ 
 

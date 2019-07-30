@@ -106,6 +106,8 @@
 #define DEFAULT_PROP_FILE_NAME "/tmp/gkc_prop_inXXXXXX"
 #define DEFAULT_PROP_SOLVER_OUTFILE_NAME "/tmp/gkc_prop_outXXXXXX"
 
+#define MAX_FILENAME_LEN 80
+
 /* ======== Structures ========== */
 
 /** glb contains global values for requests.
@@ -123,6 +125,7 @@ typedef struct {
   gint db_offset;       /**< offset of the db ptr */
   gint inkb;            /**< 1 if g struct is inside shared kb, 0 otherwise */
   void* kb_g;            /**< if external shared mem kb_db is present, then the g ptr inside kb_db, else NULL */ 
+  char* filename;       /**< input filename */
 
   /* === shared data block === */
   
@@ -151,10 +154,13 @@ typedef struct {
   //veco clweightqueue;
   veco hash_neg_atoms;  /**< hash structure for all negative literals in active clauses inside all clauses  */
   veco hash_pos_atoms;  /**< hash structure for all positive literals in active clauses inside all clauses  */
-  veco hash_units;      /**< hash structure for: initialized, but not really used */
+  veco hash_neg_units;  /**< hash structure for all negative literals in unit active clauses  */
+  veco hash_pos_units;  /**< hash structure for all positive literals in unit active clauses  */
+  //veco hash_units;      /**< hash structure for: initialized, but not really used */
   veco hash_para_terms; /**< hash structure for paramodulating from: terms here will be unified with newly given eq clauses */
   veco hash_eq_terms;   /**< hash structure for paramodulation into: equality args here will be unified with given clause subterms */
   veco hash_rewrite_terms; /**< hash structure for left sides of rewrite rules (oriented equalities) */
+ 
 #ifndef MALLOC_HASHNODES  
   cvec hash_nodes;      /**< area for allocating hash nodes from **/
 #endif
@@ -275,7 +281,8 @@ typedef struct {
   int reverse_clauselist_strat; // initially reverse clause list, do not sort (only for non-query)
   int queryfocus_strat;
   int queryfocusneg_strat;
-  int hyperres_strat;  
+  int hyperres_strat;
+  int relaxed_hyperres_strat;
   int weightorder_strat;          // clause ordering for resolvability of literals
   int negpref_strat;          // clause ordering for resolvability of literals
   int pospref_strat;          // clause ordering for resolvability of literals
@@ -293,7 +300,8 @@ typedef struct {
   int use_comp_funs; // current principle
   int use_rewrite_terms_strat; // general strategy
   int have_rewrite_terms; // observation  
-  
+  int use_strong_unit_cutoff; 
+
   int max_proofs;
   int store_history;
 
@@ -371,6 +379,7 @@ typedef struct {
   int stat_factor_derived_cl;
   int stat_para_derived_cl;
   int stat_kept_cl;
+  int stat_made_rewriters;
   
   int stat_hyperres_partial_cl;
   int stat_tautologies_discarded;
@@ -413,6 +422,7 @@ typedef struct {
   int stat_lit_hash_match_miss;
   int stat_prop_hash_match_miss;
   int stat_lit_hash_cut_ok;  
+  int stat_lit_strong_cut_ok;
   int stat_lit_hash_subsume_ok;
   int stat_atom_hash_added;
   int stat_atom_hash_computed;

@@ -1498,7 +1498,7 @@ int wr_order_atoms_lex_order(glb* g, gint x, gint y, gptr vb) {
 }        
 
 int wr_order_atoms_const_lex_smaller(glb* g, gint x, gint y) {
-  if (x<y) return 1;
+  if (x>y) return 1;
   else return 0; 
 }
 

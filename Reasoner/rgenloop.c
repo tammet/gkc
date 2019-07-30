@@ -71,7 +71,7 @@ extern "C" {
 //#undef QUIET
 
 #define USE_RES_TERMS // loop over active clauses in wr_resolve_binary_all_active
-#define GIVEN_INTERVAL_TRACE 100 // interval at which minimal trace is printed
+#define GIVEN_INTERVAL_TRACE 1000 // interval at which minimal trace is printed
 
 /* ======= Private protos ================ */
 
@@ -144,18 +144,18 @@ int wr_genloop(glb* g) {
        return 1;
     } else if (((g->passed_ratio)>0.85) &&  (g->res_shortarglen_limit)!=1) {
       if (g->print_given_interval_trace) {
-        wr_printf("\npassed time ratio %.2f\n",g->passed_ratio);
+        wr_printf("\npassed time ratio %.2f",g->passed_ratio);
       }
       (g->res_shortarglen_limit)=1;
     } else if (((g->passed_ratio)>0.7) && 
                (!(g->res_shortarglen_limit) || (g->res_shortarglen_limit)>2) ) {
       if (g->print_given_interval_trace) {
-        wr_printf("\npassed time ratio %.2f\n",g->passed_ratio);      
+        wr_printf("\npassed time ratio %.2f",g->passed_ratio);      
       }
       (g->res_shortarglen_limit)=2;
     } else if (((g->passed_ratio)>0.5) &&  (g->pick_given_queue_ratio)!=100) {
       if (g->print_given_interval_trace) {
-        wr_printf("\npassed time ratio %.2f\n",g->passed_ratio);      
+        wr_printf("\npassed time ratio %.2f",g->passed_ratio);      
       }
       (g->pick_given_queue_ratio)=100;
     }
@@ -282,7 +282,7 @@ int wr_genloop(glb* g) {
       wr_printf("\n*** given %d: ",(g->stat_given_used));
       wr_print_clause(g,given_cl);   
     } else if (g->print_given_interval_trace) {
-      if ((g->stat_given_used)%GIVEN_INTERVAL_TRACE==0) {        
+      if ((g->stat_given_used)%GIVEN_INTERVAL_TRACE==0 && (g->stat_given_used)) {        
         wr_printf("\n%d given",(g->stat_given_used));
         if (((g->queue_termbuf)[1]-1) > 0) {
           fullness=((float)((g->queue_termbuf)[1]-1) / (float)((g->queue_termbuf)[0])); 
@@ -330,7 +330,7 @@ int wr_genloop(glb* g) {
     }    
 
     // do factorizations with the given clause
-    if (1) { //(!(g->instgen_strat))  {
+    if (!(g->hyperres_strat) || (g->relaxed_hyperres_strat) || wr_hyperres_satellite_cl(g,given_cl)) { //(!(g->instgen_strat))  {
       wr_factor(g,given_cl,given_cl_as_active);
     }  
     if (g->alloc_err) return -1;

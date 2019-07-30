@@ -64,6 +64,8 @@
 //#define DEBUG
 #undef DEBUG
 
+//#define IDEBUG
+
 /*
 #ifdef DEBUG
 #define DPRINTF(...) { printf(__VA_ARGS__); }
@@ -328,6 +330,7 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, in
   (g->print_generic_parser_result)=1;
 #endif        
   // set globals for parsing
+  (g->filename)=filename;
   (g->parse_is_included_file)=isincluded;
   (g->parse_skolem_prefix)=wr_str_new(g,100);
   strncpy((g->parse_skolem_prefix),DEFAULT_SKOLEM_PREFIX,99);
@@ -692,38 +695,67 @@ void* wr_process_tptp_import_clause(glb* g, void* mpool, void* cl) {
   FILE* fp;
   int bytes;
   char* axiomfolder="/opt/TPTP/";
+  char* envfolder=NULL;
+  char *lastslash = NULL;
+  //char *parent = NULL;
+  char* p1;
+  char* p2;
+  char* str2;
   //int tmp;
 
-#ifdef DEBUG
+#ifdef IDEBUG
   printf("\nwr_process_tptp_import_clause starts with\n");
   wg_mpool_print(db,cl); 
   printf("\n");
+  printf("\ng->filename is %s\n",g->filename);
 #endif
 
+  if (!(g->filename) || strlen(g->filename)<1) {
+    show_parse_error(db,"no filename given in wr_process_tptp_import_clause\n");
+    return NULL;
+  }
   pathatom=wg_nth(db,cl,1);
-#ifdef DEBUG
+  envfolder=getenv("TPTP");
+#ifdef IDEBUG
   printf("\npathatom\n");
   wg_mpool_print(db,pathatom); 
+  printf("\nenvfolder %s\n",envfolder);
+  //wg_mpool_print(db,envfolder);
   printf("\nwg_atomtype(db,pathatom) %d WG_URITYPE %d\n",wg_atomtype(db,pathatom),WG_URITYPE);
   printf("\n");
 #endif  
   if (wg_atomtype(db,pathatom)!=WG_URITYPE) return 0;  
   str=wg_atomstr1(db,pathatom); 
   if (str && str[0]=='#') str=str+1;
-#ifdef DEBUG
+  lastslash=strrchr(g->filename,'/');
+  if (lastslash!=NULL) {
+    bytes=strlen(str)+strlen(g->filename)+10;
+    str2=wg_alloc_mpool(db,mpool,bytes);
+    for(p1=(g->filename), p2=str2; p1<lastslash; p1++, p2++) {
+      *p2=*p1;
+    }
+    *p2=(char)0;    
+    strcat(str2,"/");
+    strcat(str2,str);    
+  } else {
+    str2=str;
+  }  
+#ifdef IDEBUG
   printf("\nstr %s\n",str);
+  printf("\nstr2 %s\n",str2);
 #endif
-  //printf("\nfirst import path str: %s\n",str);
-  fp=fopen(str,"r");
+  //printf("\nfirst import path str2: %s\n",str2);
+  fp=fopen(str2,"r");
   if (fp!=NULL) {
     // succeeded to open axiom file: use that
     fclose(fp);
-    filename=str;
+    filename=str2; 
   } else {
-    // failed to open axiom file: try axiom folder
+    if (envfolder) axiomfolder=envfolder;
+    // failed to open axiom file: try env or default axiom folder
     bytes=strlen(str)+strlen(axiomfolder)+10;
     filename=wg_alloc_mpool(db,mpool,bytes);
-#ifdef DEBUG
+#ifdef IDEBUG
     printf("\nalloced filename %s\n",filename);
 #endif    
     if (!filename) {
@@ -731,11 +763,12 @@ void* wr_process_tptp_import_clause(glb* g, void* mpool, void* cl) {
       return NULL;
     }
     strcpy(filename,axiomfolder);
+    if (envfolder) strcat(filename,"/");
     strcat(filename,str);
     //printf("\nsecond import path str: %s\n",filename);
   }
   //tmp=
-#ifdef DEBUG
+#ifdef IDEBUG
   printf("\nfilename %s\n",filename);
 #endif   
   wr_import_otter_file(g,filename,NULL,NULL,1);  

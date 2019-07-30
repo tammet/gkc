@@ -87,7 +87,7 @@ void wr_process_resolve_result
       (glb* g, gint xatom, gptr xcl, gint yatom, gptr ycl, gptr xcl_as_active) {
   int xisrule,yisrule,xatomnr,yatomnr;
   int rlen;
-  int tmp;
+  int tmp,tmp2;
   gptr rptr;
   int rpos,cutpos1=0,cutpos2=0;
   gptr res;  
@@ -178,6 +178,28 @@ void wr_process_resolve_result
       wr_print_halfbuilt_clause(g,rptr,rpos);
     }
     return;    
+  } else {
+    tmp2=0;
+    if ((g->use_strong_unit_cutoff) && rpos) {
+      tmp2=wr_derived_cl_strong_cut(g,rptr,rpos,tmp);
+    }
+    if (tmp>0 || tmp2>0) {
+      // there were cuts
+      if (g->print_derived_precut_cl) {
+        wr_printf("\nc post-cut derived by mp ");
+        wr_print_halfbuilt_clause(g,rptr,rpos);
+      }
+      wr_process_resolve_result_remove_cuts(g,rptr,&rpos,tmp+tmp2);
+      (g->stat_derived_cut)++;
+      if (rpos==0) {
+        g->proof_found=1;    
+        g->proof_history=wr_build_resolve_history(g,xcl_as_active,ycl,cutpos1,cutpos2,g->cut_clvec); 
+        wr_register_answer(g,NULL,g->proof_history);
+        return;
+      } 
+    }  
+  }
+  /* 
   } else if (tmp>0) {
     // there were cuts
     if (g->print_derived_precut_cl) {
@@ -192,8 +214,10 @@ void wr_process_resolve_result
       wr_register_answer(g,NULL,g->proof_history);
       return;
     } 
+  } else {
+    if (g->use_strong_unit_cutoff) wr_derived_cl_strong_cut(g,rptr,rpos); 
   }
-
+  */
 
   // now we have stored all subst-into and renamed metas/atoms into rptr: build clause  
 
@@ -255,14 +279,16 @@ void wr_process_resolve_result
       wr_print_clause(g,res);
     }
     weight=wr_calc_clause_weight(g,res,&size,&depth,&length);
-    avg=(g->avg_kept_weight);       
+    //avg=(g->avg_kept_weight);       
     //printf(" weight %d average %f count %d \n",weight,(g->avg_kept_weight),(g->stat_kept_cl));
+    /* 
     if (!wr_derived_weight_check(g,avg,weight,size,depth,length,0,0)) {
       (g->stat_weight_discarded_cl)++;
       CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
       if (g->print_derived_cl) wr_printf("\nw discarded overweight");
       return;
     }
+    */
     tmp=wr_push_cl_hyper_queue(g,(g->hyper_queue),res,weight);     
     if (!tmp) {
       wr_alloc_err(g,"could not store into hyper_queue in wr_process_resolve_result ");
@@ -304,6 +330,7 @@ void wr_process_resolve_result
 #ifdef DEBUG
     wr_print_atomhash(g,rotp(g,(g->hash_atom_occurrences)));
 #endif
+    if (g->use_strong_unit_cutoff) wr_cl_store_res_units(g,res);
     wr_push_cl_clpick_queues(g,(g->clpick_queues),res,weight);
     tmp=wr_cl_create_propinst(g,res);
     if (tmp==2) {  return;  }
@@ -511,6 +538,7 @@ void wr_process_instgen_result
 #ifdef DEBUG
     wr_print_atomhash(g,rotp(g,(g->hash_atom_occurrences)));
 #endif
+    if (g->use_strong_unit_cutoff) wr_cl_store_res_units(g,res);
     wr_push_cl_clpick_queues(g,(g->clpick_queues),res,weight);
     tmp=wr_cl_create_propinst(g,res);
     if (tmp==2) {  return;  }
@@ -530,7 +558,7 @@ void wr_process_factor_result
       (glb* g, gptr xcl, int len, int x, gint xatom, int y, gint yatom, gptr xcl_as_active) {
   //void* db;
   int rlen;
-  int tmp;
+  int tmp,tmp2;
   gptr rptr;
   int rpos, cutpos1=0;
   gptr res;
@@ -594,6 +622,7 @@ void wr_process_factor_result
     wr_printf("\nc pre-cut derived by merge: ");
     wr_print_halfbuilt_clause(g,rptr,rpos);
   }
+  /* 
   tmp=wr_derived_cl_cut_and_subsume(g,rptr,rpos,NULL);
   if (tmp<0) {
     // clause was subsumed
@@ -620,6 +649,43 @@ void wr_process_factor_result
       return;
     } 
   }
+  */
+
+  tmp=wr_derived_cl_cut_and_subsume(g,rptr,rpos,NULL);
+  if (tmp<0) {
+    // clause was subsumed
+#ifdef DEBUG      
+    wr_printf("\nwr_process_factor_result was subsumed with new subsumer\n");
+#endif    
+    if (g->print_derived_subsumed_cl) {
+      wr_printf("\n- subsumed derived by merge ");
+      wr_print_halfbuilt_clause(g,rptr,rpos);
+    }
+    return;    
+  } else {
+    tmp2=0;
+    if ((g->use_strong_unit_cutoff) && rpos) {
+      tmp2=wr_derived_cl_strong_cut(g,rptr,rpos,tmp);
+    }
+    if (tmp>0 || tmp2>0) {
+      // there were cuts
+      if (g->print_derived_precut_cl) {
+        wr_printf("\nc post-cut derived by merge ");
+        wr_print_halfbuilt_clause(g,rptr,rpos);
+      }
+      wr_process_resolve_result_remove_cuts(g,rptr,&rpos,tmp+tmp2);
+      (g->stat_derived_cut)++;
+      if (rpos==0) {
+        g->proof_found=1;    
+        g->proof_history=wr_build_factorial_history(g,xcl_as_active,x,y,g->cut_clvec);  
+        wr_register_answer(g,NULL,g->proof_history);
+        return;
+      } 
+    }  
+  }
+
+
+
 
   // now we have stored all subst-into and renamed metas/atoms into rptr: build clause  
   //printf("filled meta/atom new vec, rpos %d\n",rpos);          
@@ -650,27 +716,45 @@ void wr_process_factor_result
     return;
   }   
 
-  // resulting clause is finished
-  if (g->print_derived_cl) {
-    wr_printf("\n+ derived by merge: ");
-    wr_print_clause(g,res);    
+  if ((g->hyperres_strat) &&  !wr_hyperres_satellite_cl(g,res)) { 
+    // hyperresolution case: not a finished clause yet, must cut off some 
+    //printf("\nwr_process_resolve_result hyperres-strat and not satellite\n");
+    ++(g->stat_hyperres_partial_cl);
+    ++(g->stat_derived_partial_hyper_cl);
+    if (g->print_partial_derived_cl) {
+      wr_printf("\n+ partial derived by mp: ");
+      wr_print_clause(g,res);
+    }
+    weight=wr_calc_clause_weight(g,res,&size,&depth,&length);   
+    tmp=wr_push_cl_hyper_queue(g,(g->hyper_queue),res,weight);     
+    if (!tmp) {
+      wr_alloc_err(g,"could not store into hyper_queue in wr_process_resolve_result ");
+      return; // could not alloc memory, could not store clause
+    }
+  } else {
+    // resulting clause is finished
+    if (g->print_derived_cl) {
+      wr_printf("\n+ derived by merge: ");
+      wr_print_clause(g,res);    
+    }  
+    weight=wr_calc_clause_weight(g,res,&size,&depth,&length);
+    avg=(g->avg_kept_weight);  
+    if (!wr_derived_weight_check(g,avg,weight,size,depth,length,0,0)) {
+      (g->stat_weight_discarded_cl)++;
+      CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
+      if (g->print_derived_cl) wr_printf("\nw discarded overweight");
+      return;
+    }
+    ++(g->stat_kept_cl);
+    avg+=(weight-avg)/((g->stat_kept_cl)+1);
+    (g->avg_kept_weight)=avg;
+    resmeta=wr_calc_clause_meta(g,res,cl_metablock);
+    wr_add_cl_to_unithash(g,res,resmeta);
+    if (g->use_strong_unit_cutoff) wr_cl_store_res_units(g,res);
+    wr_push_cl_clpick_queues(g,(g->clpick_queues),res,weight);   
+    tmp=wr_cl_create_propinst(g,res);    
+    if (tmp==2) {  return;  }
   }  
-  weight=wr_calc_clause_weight(g,res,&size,&depth,&length);
-  avg=(g->avg_kept_weight);  
-  if (!wr_derived_weight_check(g,avg,weight,size,depth,length,0,0)) {
-    (g->stat_weight_discarded_cl)++;
-    CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
-    if (g->print_derived_cl) wr_printf("\nw discarded overweight");
-    return;
-  }
-  ++(g->stat_kept_cl);
-  avg+=(weight-avg)/((g->stat_kept_cl)+1);
-  (g->avg_kept_weight)=avg;
-  resmeta=wr_calc_clause_meta(g,res,cl_metablock);
-  wr_add_cl_to_unithash(g,res,resmeta);
-  wr_push_cl_clpick_queues(g,(g->clpick_queues),res,weight);   
-  tmp=wr_cl_create_propinst(g,res);    
-  if (tmp==2) {  return;  }
 }  
 
 /*
@@ -697,7 +781,7 @@ void wr_process_paramodulate_result
       gint aterm, gint bterm, gint path, int leftflag, int fromflag) {
   int xisrule,yisrule,xatomnr,yatomnr;
   int rlen;
-  int tmp;
+  int tmp,tmp2;
   gptr rptr;
   int rpos,cutpos1=0,cutpos2=0;
   gptr res;  
@@ -795,13 +879,27 @@ void wr_process_paramodulate_result
   // check subsumption and cutoff
   if (g->print_derived_precut_cl) {    
     wr_printf("\nc pre-cut derived by =: ");
+
+    //wr_printf("\n+++ wr_process_paramodulate_result called\n");
+    wr_printf("\nxcl and term:\n");
+    wr_print_clause(g,xcl); wr_printf(" : ");wr_print_term(g,xatom);
+    wr_printf("\nycl:\n");
+    wr_print_clause(g,ycl);  //printf(" : ");wr_print_term(g,yatom);
+    wr_printf("\naterm:");
+    wr_print_term(g,aterm);  wr_printf("\nbterm:");
+    wr_print_term(g,bterm);  wr_printf("\npath: %ld\n",path); 
+    wr_printf("\nleftflag: %d\n",leftflag); 
+    wr_print_vardata(g);
+
     if (fromflag) {
       wr_printf("from: ");
     } else {
       wr_printf("into: ");
     }
+    wr_printf("\nhalfbuilt res:\n");
     wr_print_halfbuilt_clause(g,rptr,rpos);
   }
+  /* 
   tmp=wr_derived_cl_cut_and_subsume(g,rptr,rpos,NULL);
   if (tmp<0) {
     // clause was subsumed
@@ -844,6 +942,59 @@ void wr_process_paramodulate_result
       return;
     } 
   }
+  */
+
+  // --
+  tmp=wr_derived_cl_cut_and_subsume(g,rptr,rpos,NULL);
+  if (tmp<0) {
+    // clause was subsumed
+#ifdef DEBUG      
+    wr_printf("\nwr_process_paramodulate_result was subsumed with new subsumer\n");
+#endif    
+    if (g->print_derived_subsumed_cl) {
+      wr_printf("\n- subsumed derived by = ");
+      if (fromflag) {
+        wr_printf("from: ");
+      } else {
+        wr_printf("into: ");
+      } wr_print_halfbuilt_clause(g,rptr,rpos);
+    } 
+    return;    
+  } else {
+    tmp2=0;
+    if ((g->use_strong_unit_cutoff) && rpos) {
+      tmp2=wr_derived_cl_strong_cut(g,rptr,rpos,tmp);
+    }
+    if (tmp>0 || tmp2>0) {
+      // there were cuts
+      if (g->print_derived_precut_cl) {
+        wr_printf("\nc post-cut derived by = ");
+        if (fromflag) {
+          wr_printf("from: ");
+        } else {
+          wr_printf("into: ");
+        } 
+        wr_print_halfbuilt_clause(g,rptr,rpos);
+      }
+      wr_process_resolve_result_remove_cuts(g,rptr,&rpos,tmp+tmp2);
+      (g->stat_derived_cut)++;
+      if (rpos==0) {
+        g->proof_found=1;  
+        if (fromflag) {
+          //printf("\n fromflag %d cutpos1 %d cutpos2 %d leftflag %d\n",fromflag,cutpos1,cutpos2,leftflag);
+          g->proof_history=wr_build_para_history(g,xcl_as_active,ycl,cutpos1,cutpos2,g->cut_clvec,path,leftflag,fromflag);
+        } else {
+          //printf("\n fromflag %d cutpos1 %d cutpos2 %d leftflag %d\n",fromflag,cutpos1,cutpos2,leftflag);
+          g->proof_history=wr_build_para_history(g,xcl,xcl_as_active,cutpos2,cutpos1,g->cut_clvec,path,leftflag,fromflag);  
+        }
+        wr_register_answer(g,NULL,g->proof_history);
+        //g->proof_history=wr_build_para_history(g,xcl_as_active,ycl,cutpos1,cutpos2,g->cut_clvec,path,leftflag,fromflag); 
+        return;
+      }
+    }  
+  }
+  // --
+  
 
 
   // now we have stored all subst-into and renamed metas/atoms into rptr: build clause  
@@ -913,34 +1064,52 @@ void wr_process_paramodulate_result
   }
 
   // start storing to queues and hashes
-    
-  //  resulting clause is finished
-  if (g->print_derived_cl) {
-    wr_printf("\n+ derived by = ");
-    if (fromflag) {
-      wr_printf("from: ");
-    } else {
-      wr_printf("into: ");
-    } 
-    wr_print_clause(g,res);
-  }    
-  weight=wr_calc_clause_weight(g,res,&size,&depth,&length);  
-  avg=(g->avg_kept_weight);  
-  //printf(" weight %d average %f count %d \n",weight,(g->avg_kept_weight),(g->stat_kept_cl));
-  if (!wr_derived_weight_check(g,avg,weight,size,depth,length,xatomnr,yatomnr)) {
-    (g->stat_weight_discarded_cl)++;
-    CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
-    if (g->print_derived_cl) wr_printf("\nw discarded overweight");
-    return;
-  }
-  ++(g->stat_kept_cl);
-  avg+=(weight-avg)/((g->stat_kept_cl)+1);
-  (g->avg_kept_weight)=avg;
-  resmeta=wr_calc_clause_meta(g,res,cl_metablock);
-  wr_add_cl_to_unithash(g,res,resmeta);
-  wr_push_cl_clpick_queues(g,(g->clpick_queues),res,weight); 
-  tmp=wr_cl_create_propinst(g,res);    
-  if (tmp==2) {  return;  }
+
+  if ((g->hyperres_strat) &&  !wr_hyperres_satellite_cl(g,res)) { 
+    // hyperresolution case: not a finished clause yet, must cut off some 
+    //printf("\nwr_process_resolve_result hyperres-strat and not satellite\n");
+    ++(g->stat_hyperres_partial_cl);
+    ++(g->stat_derived_partial_hyper_cl);
+    if (g->print_partial_derived_cl) {
+      wr_printf("\n+ partial derived by mp: ");
+      wr_print_clause(g,res);
+    }
+    weight=wr_calc_clause_weight(g,res,&size,&depth,&length);   
+    tmp=wr_push_cl_hyper_queue(g,(g->hyper_queue),res,weight);     
+    if (!tmp) {
+      wr_alloc_err(g,"could not store into hyper_queue in wr_process_resolve_result ");
+      return; // could not alloc memory, could not store clause
+    }
+  } else {
+    //  resulting clause is finished
+    if (g->print_derived_cl) {
+      wr_printf("\n+ derived by = ");
+      if (fromflag) {
+        wr_printf("from: ");
+      } else {
+        wr_printf("into: ");
+      } 
+      wr_print_clause(g,res);
+    }    
+    weight=wr_calc_clause_weight(g,res,&size,&depth,&length);  
+    avg=(g->avg_kept_weight);  
+    //printf(" weight %d average %f count %d \n",weight,(g->avg_kept_weight),(g->stat_kept_cl));
+    if (!wr_derived_weight_check(g,avg,weight,size,depth,length,xatomnr,yatomnr)) {
+      (g->stat_weight_discarded_cl)++;
+      CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
+      if (g->print_derived_cl) wr_printf("\nw discarded overweight");
+      return;
+    }
+    ++(g->stat_kept_cl);
+    avg+=(weight-avg)/((g->stat_kept_cl)+1);
+    (g->avg_kept_weight)=avg;
+    resmeta=wr_calc_clause_meta(g,res,cl_metablock);
+    wr_add_cl_to_unithash(g,res,resmeta);
+    if (g->use_strong_unit_cutoff) wr_cl_store_res_units(g,res);
+    wr_push_cl_clpick_queues(g,(g->clpick_queues),res,weight); 
+    tmp=wr_cl_create_propinst(g,res);    
+    if (tmp==2) {  return;  }
+  }  
 }  
 
 /* -----------
@@ -1396,7 +1565,7 @@ gint wr_add_cl_to_unithash(glb* g, gptr cl, gint clmeta) {
     } else {
       //printf("\npos\n");
       wr_push_termhash(g,rotp(g,g->hash_pos_groundunits),hash,xatom,cl); 
-      //wr_print_termhash(g,rotp(g,g->hash_pos_groundunits));
+      //wr_print_termhash(g,rotp(g,g->hash_pos_groundunits));      
     }      
 #ifdef DEBUGHASH    
     wr_printf("\ng->hash_neg_groundunits after adding:");      

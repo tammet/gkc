@@ -137,7 +137,7 @@ gint wr_rewrite_term(glb* g, gint x) {
         node=wr_clterm_hashlist_next(g,hashvec,node);
       } else {
         // term rewriter found  
-        (g->tmp_rewrites)++;          
+        (g->tmp_rewrites)++;                  
         // get right side of the rewrite rule
         path=wg_decode_int(db,nodeptr[CLTERM_HASHNODE_PATH_POS]); 
         if (wg_rec_is_rule_clause(db,ycl)) {

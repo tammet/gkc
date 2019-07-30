@@ -502,7 +502,7 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active, cvec re
   nonanslen=wr_count_cl_nonans_atoms(g,cl);
   // check if strategy allows to para from this clause
   if ((g->posunitpara_strat) && len!=1) return;
-  //if ((g->hyperres_strat) && !wr_hyperres_satellite_cl(g,cl)) return;
+  if ((g->hyperres_strat) && !(g->relaxed_hyperres_strat) && !wr_hyperres_satellite_cl(g,cl)) return;
   xcl=cl; 
 #ifdef DEBUG
   wr_printf("ruleflag %d len %d posok %d negok %d\n",
@@ -845,7 +845,7 @@ void wr_paramodulate_into_all_active(glb* g, gptr cl, gptr cl_as_active, cvec re
   ruleflag=wg_rec_is_rule_clause(db,cl);
   if (ruleflag) len = wg_count_clause_atoms(db, cl);
   else len=1;
-  //if ((g->hyperres_strat) && !wr_hyperres_satellite_cl(g,cl)) return;
+  if ((g->hyperres_strat) && !(g->relaxed_hyperres_strat) && !wr_hyperres_satellite_cl(g,cl)) return;
   nonanslen=wr_count_cl_nonans_atoms(g,cl);
   xcl=cl; 
 #ifdef DEBUG

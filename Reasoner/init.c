@@ -237,7 +237,7 @@ int wr_init_db_clause_indexes(glb* g, void* db) {
       facts_found++;
     }  
      // calculate resolvability: (g->tmp_resolvability_vec)
-    wr_calc_clause_resolvability(g,rec,1);
+    wr_calc_clause_resolvability(g,rec,1,0);
     wr_print_clause_resolvability(g,rec);  
     wr_print_clause_hardnesses(g,rec); 
 

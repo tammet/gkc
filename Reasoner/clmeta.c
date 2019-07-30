@@ -284,6 +284,26 @@ int wr_calc_term_weight(glb* g, gint x, int depth, int* size, int* maxdepth, int
 }  
 
 
+int wr_term_has_vars(glb* g, gint x) {
+  void* db;
+  gptr xptr;
+  int i, start, end;  
+
+  if (!isdatarec(x)) {
+    // now we have a simple value  
+    return isvar(x);
+  }     
+  // now we have a datarec
+  db=g->db;
+  xptr=decode_record(db,x);
+  start=wr_term_unify_startpos(g);
+  end=wr_term_unify_endpos(g,xptr);
+  for(i=start;i<end;i++) {
+    if (wr_term_has_vars(g,xptr[i])) return 1;         
+  }   
+  return 0;
+}  
+
 /* ============
 
  calc clause/atom/term metainfo: ground, weight, depth, hash, etc

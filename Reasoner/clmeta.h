@@ -109,6 +109,8 @@ gint wr_signed_lithash_to_bitmask(glb* g, int hash, int negflag);
 gint wr_lithash_to_bitmask(glb* g, int hash);
 gint wr_calc_term_meta(glb* g, gint x, int depth, int pos, term_metacalc* metaptr);
 
+int wr_term_has_vars(glb* g, gint x);
+
 void wr_print_cl_meta(glb* g, gint clmeta1);
 void wr_print_gint_hashmask(glb* g, gint mask);
 

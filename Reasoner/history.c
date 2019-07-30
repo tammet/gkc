@@ -1133,7 +1133,7 @@ int wr_show_result(glb* g, gint history) {
     bpos+=snprintf(buf+bpos,blen-bpos,"\n{\"answers\": [\n");
   } else {
     if ((g->print_level_flag)>1) bpos+=snprintf(buf+bpos,blen-bpos,"\n");
-    bpos+=snprintf(buf+bpos,blen-bpos,"\nresult: proof found\n");
+    bpos+=snprintf(buf+bpos,blen-bpos,"\nresult: proof found\n%% SZS status Theorem for %s.",g->filename);
     if ((g->required_answer_nr)<2) {
       //bpos+=snprintf(buf+bpos,blen-bpos,"\nproof:");
     } else {
@@ -1187,7 +1187,8 @@ int wr_show_result(glb* g, gint history) {
     assoc=wg_reverselist(db,mpool,assoc); 
     if (!(g->print_json)) {
       if (!wr_str_guarantee_space(g,&buf,&blen,bpos+100)) return -1;
-      bpos+=snprintf(buf+bpos,blen-bpos,"\nproof:\n");
+      bpos+=snprintf(buf+bpos,blen-bpos,
+        "\n%% SZS output start CNFRefutation for %s",g->filename);
     } 
     bpos=wr_strprint_flat_history(g,mpool,&buf,&blen,bpos,clnr,&assoc);
     if (bpos<0) return bpos;
@@ -1212,6 +1213,8 @@ int wr_show_result(glb* g, gint history) {
     bpos+=snprintf(buf+bpos,blen-bpos,"]}\n"); // end all answers
     bpos+=snprintf(buf+bpos,blen-bpos,"}\n");
   } else {
+    bpos+=snprintf(buf+bpos,blen-bpos,
+        "\n%% SZS output end CNFRefutation for %s",g->filename);
     bpos+=snprintf(buf+bpos,blen-bpos,"\n");
   }  
   printf("%s",buf);

@@ -188,6 +188,13 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr) {
     else if (!strcmp(key,"max_seconds")) {
       //printf("\nmax_run_seconds %d\n", json_valueint(elem));
       (g->max_run_seconds)=json_valueint(elem);
+
+      if ((g->max_run_seconds)<2) {
+        (g->use_strong_unit_cutoff)=1;
+      } else {
+        (g->use_strong_unit_cutoff)=0;
+      }
+
     } else if (!strcmp(key,"total_seconds")) {
       //printf("\nmax_seconds %d\n", json_valueint(elem));
       (g->max_seconds)=json_valueint(elem);
@@ -252,7 +259,8 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr) {
             runfound=1;
             tmp=wr_parse_guide_section(g,run,-1,outstr);
             //printf("\n wr_parse_guide_section: \n");
-            out=cJSON_Print(run);            
+            //out=cJSON_Print(run);            
+            out=cJSON_PrintUnformatted(run);
             *outstr=out;
             if (tmp<0) return -1;            
           } 

@@ -1047,7 +1047,7 @@ int wr_clausify_dist_complexity(glb* g, void* term, int reverses) {
 
 void* wr_clausify_makedef(glb* g, void* mpool, void* frm, void **defs) {
   void* db=g->db;
-  void *def, *negdef, *negfrm, *res1, *res2, *res2d;
+  void *def, *negdef, *negfrm, *res1, *res2; //, *res2d;
   void *logand, *logor; //, *logneg;
   int count,i,check;  
   void *fun, *term, *deflst, *tmp;
@@ -1455,7 +1455,7 @@ void* wr_flatten_logclause_or(glb* g,void* mpool, void* cl) {
       if (!res1 || !res2 || !res) 
       return show_clausify_warning(db,"could not create a pair in a flatten phase");
     } else if (truth1==1 || truth2==1) {
-      show_clausify_warning(db,"const true clause found in flatten phase");
+      //show_clausify_warning(db,"const true clause found in flatten phase");
       return wg_makelogtrue(db,mpool);
     } else if (truth1==-1) {
       res=wr_flatten_logclause_or(g,mpool,arg2);

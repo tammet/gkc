@@ -1141,10 +1141,10 @@ void wr_show_in_stats(glb* g) {
   wr_printf("in_max_size:   %13d\n",g->in_max_size);
   wr_printf("in_min_vars:   %13d\n",g->in_min_vars);
   wr_printf("in_max_vars:   %13d\n",g->in_max_vars);
-  wr_printf("in_average_length:     %f\n",g->in_average_length);
-  wr_printf("in_average_depth:      %f\n",g->in_average_depth);
-  wr_printf("in_predicate_count:    %13d\n",g->in_predicate_count);
-  wr_printf("in_funsymb_count:      %13d\n",g->in_funsymb_count);
+  //wr_printf("in_average_length:     %f\n",g->in_average_length);
+  //wr_printf("in_average_depth:      %f\n",g->in_average_depth);
+  //wr_printf("in_predicate_count:    %13d\n",g->in_predicate_count);
+  //wr_printf("in_funsymb_count:      %13d\n",g->in_funsymb_count);
   wr_printf("in_extaxiom_count:     %13d\n",g->in_extaxiom_count);
   wr_printf("in_axiom_count:        %13d\n",g->in_axiom_count);
   wr_printf("in_assumption_count:   %13d\n",g->in_assumption_count);
@@ -1152,10 +1152,10 @@ void wr_show_in_stats(glb* g) {
   wr_printf("in_neg_goal_count:     %13d\n",g->in_neg_goal_count);
   wr_printf("in_pos_goal_count:     %13d\n",g->in_pos_goal_count);
   wr_printf("in_posunit_goal_count: %13d\n",g->in_posunit_goal_count);
-  wr_printf("in_max_const_ucount:   %13d\n",g->in_max_const_ucount);
-  if (g->in_max_occ_const) {
-    wr_printf("in_max_occ_const: %s \n", wg_decode_unistr(g->db,(g->in_max_occ_const),WG_URITYPE));
-  }
+  //wr_printf("in_max_const_ucount:   %13d\n",g->in_max_const_ucount);
+  //if (g->in_max_occ_const) {
+  //  wr_printf("in_max_occ_const: %s \n", wg_decode_unistr(g->db,(g->in_max_occ_const),WG_URITYPE));
+  //}
 }
 
 void wr_show_in_summed_stats(glb* g) {
@@ -1185,10 +1185,10 @@ void wr_show_in_summed_stats(glb* g) {
   wr_printf("in_max_size:   %13d\n",g->sin_max_size);
   wr_printf("in_min_vars:   %13d\n",g->sin_min_vars);
   wr_printf("in_max_vars:   %13d\n",g->sin_max_vars);
-  wr_printf("in_average_length:     %f\n",g->sin_average_length);
-  wr_printf("in_average_depth:      %f\n",g->sin_average_depth);
-  wr_printf("in_predicate_count:    %13d\n",g->sin_predicate_count);
-  wr_printf("in_funsymb_count:      %13d\n",g->sin_funsymb_count);
+  //wr_printf("in_average_length:     %f\n",g->sin_average_length);
+  //wr_printf("in_average_depth:      %f\n",g->sin_average_depth);
+  //wr_printf("in_predicate_count:    %13d\n",g->sin_predicate_count);
+  //wr_printf("in_funsymb_count:      %13d\n",g->sin_funsymb_count);
   wr_printf("in_extaxiom_count:     %13d\n",g->sin_extaxiom_count);
   wr_printf("in_axiom_count:        %13d\n",g->sin_axiom_count);
   wr_printf("in_assumption_count:   %13d\n",g->sin_assumption_count);
@@ -1196,10 +1196,10 @@ void wr_show_in_summed_stats(glb* g) {
   wr_printf("in_neg_goal_count:     %13d\n",g->sin_neg_goal_count);
   wr_printf("in_pos_goal_count:     %13d\n",g->sin_pos_goal_count);
   wr_printf("in_posunit_goal_count: %13d\n",g->sin_posunit_goal_count);
-  wr_printf("in_max_const_ucount:   %13d\n",g->sin_max_const_ucount);
-  if (g->sin_max_occ_const) {
-    wr_printf("in_max_occ_const: %s \n", wg_decode_unistr(g->db,(g->sin_max_occ_const),WG_URITYPE));
-  }
+  //wr_printf("in_max_const_ucount:   %13d\n",g->sin_max_const_ucount);
+  //if (g->sin_max_occ_const) {
+  //  wr_printf("in_max_occ_const: %s \n", wg_decode_unistr(g->db,(g->sin_max_occ_const),WG_URITYPE));
+  //}
 }
 
 #ifdef __cplusplus

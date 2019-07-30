@@ -101,6 +101,7 @@ glb* wr_glb_new_simple(void* db) {
 
 int wr_glb_init_simple(glb* g) {
   //printf("\nwr_glb_init_simple called\n");
+  (g->filename)=NULL;
   (g->proof_found)=0; // becomes 1 if proof found
   (g->proof_answer)=NULL; // becomes a ptr to pure answer clause
   (g->proof_history)=wg_encode_null(g->db,NULL); // becomes a gint encoding of the constructed history
@@ -137,7 +138,7 @@ int wr_glb_init_simple(glb* g) {
   /* strategy selection */    
   
   (g->required_answer_nr)=1;
-  (g->pick_given_queue_ratio)=4;         // this is used for all queues to diff btw priority and simple
+  (g->pick_given_queue_ratio)=5;         // this is used for all queues to diff btw priority and simple
   (g->pick_given_queue_ratio_counter)=0; // this is not used for queues
   (g->next_pick_given_queue_block_nr)=0;
 
@@ -159,6 +160,7 @@ int wr_glb_init_simple(glb* g) {
   (g->queryfocusneg_strat)=0;  
 
   (g->hyperres_strat)=0;
+  (g->relaxed_hyperres_strat)=1;
   (g->weightorder_strat)=0;  
   (g->negpref_strat)=0;
   (g->pospref_strat)=0;
@@ -176,6 +178,7 @@ int wr_glb_init_simple(glb* g) {
   (g->use_comp_funs)=1;
   (g->use_rewrite_terms_strat)=1; // general strategy
   (g->have_rewrite_terms)=0; // do we actually have rewrite terms
+  (g->use_strong_unit_cutoff)=0; // if 1, then cut off also with unification, not just with hash equality
   
   (g->max_proofs)=1;
   (g->store_history)=1;
@@ -258,6 +261,7 @@ int wr_glb_init_simple(glb* g) {
   (g->stat_factor_derived_cl)=0;
   (g->stat_para_derived_cl)=0;
   (g->stat_kept_cl)=0;
+  (g->stat_made_rewriters)=0;
   (g->stat_tautologies_discarded)=0;
   (g->stat_hyperres_partial_cl)=0;
   (g->stat_weight_discarded_building)=0;
@@ -302,6 +306,7 @@ int wr_glb_init_simple(glb* g) {
   (g->stat_lit_hash_match_miss)=0;
   (g->stat_prop_hash_match_miss)=0;
   (g->stat_lit_hash_cut_ok)=0;    
+  (g->stat_lit_strong_cut_ok)=0;
   (g->stat_lit_hash_subsume_ok)=0;  
 
   (g->stat_atom_hash_added)=0;
@@ -421,7 +426,9 @@ int wr_glb_init_shared_complex(glb* g) {
   //(g->clweightqueue)=(gint)NULL;  
   (g->hash_neg_atoms)=(gint)NULL; 
   (g->hash_pos_atoms)=(gint)NULL; 
-  (g->hash_units)=(gint)NULL; 
+  (g->hash_neg_units)=(gint)NULL; 
+  (g->hash_pos_units)=(gint)NULL; 
+  //(g->hash_units)=(gint)NULL; 
   (g->hash_para_terms)=(gint)NULL; 
   (g->hash_eq_terms)=(gint)NULL; 
   (g->hash_rewrite_terms)=(gint)NULL;
@@ -470,8 +477,17 @@ int wr_glb_init_shared_complex(glb* g) {
   //wr_vec_zero(rotp(g,g->hash_neg_atoms));  
   (g->hash_pos_atoms)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS)); 
   //wr_vec_zero(rotp(g,g->hash_pos_atoms)); 
-  (g->hash_units)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS)); 
+
+  if (g->use_strong_unit_cutoff) {
+    (g->hash_neg_units)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS));
+    //wr_vec_zero(rotp(g,g->hash_neg_atoms));  
+    (g->hash_pos_units)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS)); 
+    //wr_vec_zero(rotp(g,g->hash_pos_atoms)); 
+  }
+ 
+  //(g->hash_units)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS)); 
   //wr_vec_zero(rotp(g,g->hash_units)); 
+ 
   (g->hash_para_terms)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS)); 
   //wr_vec_zero(rotp(g,g->hash_para_terms)); 
   (g->hash_eq_terms)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS)); 
@@ -509,6 +525,7 @@ int wr_glb_init_local_complex(glb* g) {
     
   // first NULL all vars
   
+  (g->filename)=NULL;
   (g->varbanks)=NULL;
   (g->varstack)=NULL;         
   (g->given_termbuf)=NULL;
@@ -529,8 +546,12 @@ int wr_glb_init_local_complex(glb* g) {
   (g->prop_solver_name)=NULL;
   (g->prop_solver_outfile_name)=NULL;
   
+
   // then create space
   
+ 
+  (g->filename)=wr_str_new(g,MAX_FILENAME_LEN);
+
   (g->varbanks)=wr_vec_new(g,NROF_VARBANKS*NROF_VARSINBANK);
   //(g->varbankrepl)=wr_vec_new(g,3*NROF_VARSINBANK);
   (g->varstack)=wr_cvec_new(g,NROF_VARBANKS*NROF_VARSINBANK); 
@@ -678,7 +699,11 @@ int wr_glb_free_shared_complex(glb* g) {
 
   wr_clterm_hashlist_free(g,rotp(g,g->hash_neg_atoms));    
   wr_clterm_hashlist_free(g,rotp(g,g->hash_pos_atoms)); 
-  wr_clterm_hashlist_free(g,rotp(g,g->hash_units));
+  if (g->use_strong_unit_cutoff) {
+    wr_clterm_hashlist_free(g,rotp(g,g->hash_neg_units));    
+    wr_clterm_hashlist_free(g,rotp(g,g->hash_pos_units)); 
+  }
+  //wr_clterm_hashlist_free(g,rotp(g,g->hash_units));
   wr_clterm_hashlist_free(g,rotp(g,g->hash_para_terms));
   wr_clterm_hashlist_free(g,rotp(g,g->hash_eq_terms));
   wr_clterm_hashlist_free(g,rotp(g,g->hash_rewrite_terms));
@@ -701,6 +726,8 @@ int wr_glb_free_shared_complex(glb* g) {
 */  
 
 int wr_glb_free_local_complex(glb* g) {  
+  wr_str_free(g,(g->filename));
+
   wr_vec_free(g,g->queue_termbuf);
   wr_vec_free(g,g->hyper_termbuf);
   wr_vec_free(g,g->active_termbuf);  
