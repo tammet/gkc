@@ -58,7 +58,7 @@
 
 
 #define WR_HASH_ADD(toadd,orig) ((toadd) + ((orig) << 6) + ((orig) << 16) - (orig))
-#define WR_HASH_NORM(tonorm,maxsize) (1+((abs(tonorm)) % ((maxsize)-2)))
+#define WR_HASH_NORM(tonorm,maxsize) (1+((abs((int)tonorm)) % ((maxsize)-2)))
 
 /* ==== Protos ==== */
 

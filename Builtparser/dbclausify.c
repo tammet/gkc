@@ -60,11 +60,14 @@ extern "C" {
 
 //#undef DEBUG
 //#define DEBUG
+//#define TDEBUG
 
 //static void* show_clausify_error(glb* g, char* format, ...);
 static void* show_clausify_warning(glb* g, char* format, ...);
 
 #define VARCOLLECT_SIZE 1000
+
+#define MAKEDEF_COMPLEXITY_THRESHOLD 10
 
 /* ======== Data ========================= */
 
@@ -85,7 +88,7 @@ void* wr_clausify_formula(glb* g, void* mpool, void* frm) {
   int varnr=0;
   void* op;
 
-#ifdef DEBUG   
+#ifdef TDEBUG   
   printf("wr_clausify_formula starting with frm\n");  
   wg_mpool_print(db,frm); 
   printf("\n");
@@ -111,26 +114,26 @@ void* wr_clausify_formula(glb* g, void* mpool, void* frm) {
   }
   // here we have a logical formula with head being connector
   res=wr_clausify_negpush(g,mpool,frm,1);
-#ifdef DEBUG  
+#ifdef TDEBUG  
   printf("\nwr_clausify_negpush ending with res\n");  
   wg_mpool_print(db,res); 
   printf("\n\n");
 #endif
   res=wr_clausify_miniscope(g,mpool,res);
-#ifdef DEBUG  
+#ifdef TDEBUG  
   printf("\nwr_clausify_miniscope ending with res\n");  
   wg_mpool_print(db,res); 
   printf("\n\n");
 #endif 
   //exit(0);
   res=wr_clausify_skolemize(g,mpool,res,NULL,&varnr);
-#ifdef DEBUG  
+#ifdef TDEBUG  
   printf("\nwr_clausify_skolemize ending with res and varnr %d sknr %d\n",varnr,g->parse_skolem_nr);  
   wg_mpool_print(db,res); 
   printf("\nstarting to distribute\n");
 #endif
-  res=wr_clausify_distribute(g,mpool,res,&defs);
-#ifdef DEBUG
+  res=wr_clausify_distribute(g,mpool,res,&defs,0);
+#ifdef TDEBUG
   printf("\nwr_clausify_formula ending with res\n");  
   wg_mpool_print(db,res); 
   printf("\n\n");
@@ -143,7 +146,7 @@ void* wr_clausify_formula(glb* g, void* mpool, void* frm) {
     res=wg_mklist3(db,mpool,op,res,defs);
     if (!op || !res) return show_clausify_warning(g,"cannot create a new list");
   }
-#ifdef DEBUG
+#ifdef TDEBUG
   printf("\nfinal res\n");  
   wg_mpool_print(db,res); 
   printf("\n\n");
@@ -794,13 +797,14 @@ void wr_clausify_replace_vars(glb* g, void* mpool, void* assoc, void* term) {
     (& (v a c)  (& (v b c) (v d c)))
 */
 
-void* wr_clausify_distribute(glb* g, void* mpool, void* frm, void **defs) {
+void* wr_clausify_distribute(glb* g, void* mpool, void* frm, void **defs, int indef) {
   void* db=g->db;
   void *res, *op, *logand, *logor;
   void *arg1, *arg2, *arg3, *arg4;
   void *res1, *res2, *res3, *res4, *res5, *res6, *res7, *res8; 
   void *def1=NULL, *def2=NULL;
-  int len, and1flag, and2flag;
+  int len, and1flag, and2flag, hardcount;
+
 #ifdef DEBUG
   printf("wr_clausify_distribute called on frm\n");  
   wg_mpool_print(db,frm); 
@@ -814,7 +818,7 @@ void* wr_clausify_distribute(glb* g, void* mpool, void* frm, void **defs) {
   len=wg_list_len(db,frm);
   if (wg_ispair(db,op) && len<2) {
     // pointless parenthesis around formula: lift up
-    return wr_clausify_distribute(g,mpool,op,defs);
+    return wr_clausify_distribute(g,mpool,op,defs,indef);
   }
   if (wg_ispair(db,op)) {
     // should not happen
@@ -832,18 +836,29 @@ void* wr_clausify_distribute(glb* g, void* mpool, void* frm, void **defs) {
     return show_clausify_warning(db,"wrong subformula length in a distr phase: %d",len);
   if (wg_islogand(db,op)) {
     // this should stay at the top level
-    res1=wr_clausify_distribute(g,mpool,wg_first(db,wg_rest(db,frm)),defs);
-    res2=wr_clausify_distribute(g,mpool,wg_first(db,wg_rest(db,wg_rest(db,frm))),defs);
+    res1=wr_clausify_distribute(g,mpool,wg_first(db,wg_rest(db,frm)),defs,indef);
+    res2=wr_clausify_distribute(g,mpool,wg_first(db,wg_rest(db,wg_rest(db,frm))),defs,indef);
     res=wg_mklist3(db,mpool,op,res1,res2);
     if (!res1 || !res2 || !res) return show_clausify_warning(db,"could not create a pair");
     return res;
   }
   if (wg_islogor(db,op)) {
+    //printf("wr_clausify_distribute  logor case on frm\n");  
+    //wg_mpool_print(db,frm); 
+    //printf("\n");
     and1flag=0;
     and2flag=0;
     // this should be distributed lower if & is found below
-    res1=wr_clausify_distribute(g,mpool,wg_first(db,wg_rest(db,frm)),defs);
-    res2=wr_clausify_distribute(g,mpool,wg_first(db,wg_rest(db,wg_rest(db,frm))),defs);
+    res1=wr_clausify_distribute(g,mpool,wg_first(db,wg_rest(db,frm)),defs,indef);
+    res2=wr_clausify_distribute(g,mpool,wg_first(db,wg_rest(db,wg_rest(db,frm))),defs,indef);    
+    /* 
+    printf("wr_clausify_distribute subres res1\n");  
+    wg_mpool_print(db,res1); 
+    printf("\n");
+    printf("wr_clausify_distribute subres res2\n");  
+    wg_mpool_print(db,res2); 
+    printf("\n");
+    */
     if (!res1 || !res2) return show_clausify_warning(db,"could not create a pair");
     // here res1 and res2 may contain & only at top layers
     if (wg_ispair(db,res1) && wg_islogand(db,wg_first(db,res1))) {
@@ -886,8 +901,8 @@ void* wr_clausify_distribute(glb* g, void* mpool, void* frm, void **defs) {
         res4=wg_mklist3(db,mpool,logor,arg2,arg3);  // (v b c)
         if (!res3 || !res4) return show_clausify_warning(db,"could not create a pair");
         // normalize newly created res5 and res6
-        res3=wr_clausify_distribute(g,mpool,res3,defs);
-        res4=wr_clausify_distribute(g,mpool,res4,defs);
+        res3=wr_clausify_distribute(g,mpool,res3,defs,indef);
+        res4=wr_clausify_distribute(g,mpool,res4,defs,indef);
         // build a final result
         res=wg_mklist3(db,mpool,logand,res3,res4); // (& (v a c) (v b c))
         if (!res3 || !res4 || !res) {
@@ -904,8 +919,27 @@ void* wr_clausify_distribute(glb* g, void* mpool, void* frm, void **defs) {
       arg3=wg_nth(db,res2,1); // c      
       arg4=wg_nth(db,res2,2); // d
       // create defs
-      if (g->parse_newpred_strat) {
+      hardcount=0;
+      //printf("\nCP0\n");
+      
+      if ((g->parse_newpred_strat) && !indef) {
+        hardcount+=wr_clausify_dist_complexity(g,arg1,0);
+        hardcount+=wr_clausify_dist_complexity(g,arg2,0);
+        hardcount+=wr_clausify_dist_complexity(g,arg3,0);
+        hardcount+=wr_clausify_dist_complexity(g,arg4,0);
+      }
+      
+      //printf("\nCP4\n");
+      //printf("\nwr_clausify_distribute case hardcount %d on frm\n", hardcount);  
+      //wg_mpool_print(db,frm); 
+      //printf("\n");
+
+      if ((g->parse_newpred_strat) && 
+          //(hardcount>=MAKEDEF_COMPLEXITY_THRESHOLD) ) {
+          (indef ||  (hardcount>=MAKEDEF_COMPLEXITY_THRESHOLD)) ) {
+          //!indef && (hardcount>=MAKEDEF_COMPLEXITY_THRESHOLD)) {
         // introduce new pred as definition
+        //printf("\nhardcount %d\n",hardcount);
         def1=wr_clausify_makedef(g,mpool,res1,defs);
         def2=wr_clausify_makedef(g,mpool,res2,defs);
         if (!def1 || !def2) {
@@ -920,10 +954,10 @@ void* wr_clausify_distribute(glb* g, void* mpool, void* frm, void **defs) {
         res5=wg_mklist3(db,mpool,logor,arg2,arg3);  // (v b c)
         res6=wg_mklist3(db,mpool,logor,arg2,arg4);  // (v b d)
         // normalize new v clauses
-        res3=wr_clausify_distribute(g,mpool,res3,defs);
-        res4=wr_clausify_distribute(g,mpool,res4,defs);
-        res5=wr_clausify_distribute(g,mpool,res5,defs);
-        res6=wr_clausify_distribute(g,mpool,res6,defs);
+        res3=wr_clausify_distribute(g,mpool,res3,defs,indef);
+        res4=wr_clausify_distribute(g,mpool,res4,defs,indef);
+        res5=wr_clausify_distribute(g,mpool,res5,defs,indef);
+        res6=wr_clausify_distribute(g,mpool,res6,defs,indef);
         // build a final result
         // (& (v a c) (& (v a d) (& (v b c) (v b d))))
         res7=wg_mklist3(db,mpool,logand,res5,res6);
@@ -959,9 +993,61 @@ int wr_clausify_isliteral(glb* g, void* frm) {
   return 0;
 }
 
+int wr_clausify_dist_complexity(glb* g, void* term, int reverses) {
+  void* db=g->db;
+  void *op;
+  int len,tmp1,tmp2;
+
+  //printf("wr_clausify_dist_complexity on term\n");  
+  //wg_mpool_print(db,term); 
+  //printf("\n");
+
+  if (!term) return 0;  
+  if (wg_isatom(db,term)) return 0;
+
+  //printf("\nCP0\n");
+
+  op=wg_first(db,term);
+  len=wg_list_len(db,term);
+  if (wg_ispair(db,op) && len<2) {
+    // pointless parenthesis around formula: lift up
+    return wr_clausify_dist_complexity(g,op,reverses);
+  }
+  if (wg_ispair(db,op)) {
+    // should not happen
+    return 0;
+  }
+  if (!wg_islogconnective(db,op)) {
+    // simple nonlogical term
+    return 0;
+  }
+  if (wg_islogneg(db,op)) {
+    // negation, we assume at the atom 
+    return 0;
+  }
+  if (len!=3) {
+    return 0;
+  }  
+  //printf("\nCP1\n");
+  if (wg_islogand(db,op)) { 
+    tmp1=wr_clausify_dist_complexity(g,wg_first(db,wg_rest(db,term)),reverses);
+    tmp2=wr_clausify_dist_complexity(g,wg_first(db,wg_rest(db,wg_rest(db,term))),reverses);
+    //printf("\n res %d\n",1+tmp1+tmp2);
+    return 1+tmp1+tmp2;    
+  }
+  if (wg_islogor(db,op)) {
+    tmp1=wr_clausify_dist_complexity(g,wg_first(db,wg_rest(db,term)),reverses);
+    tmp2=wr_clausify_dist_complexity(g,wg_first(db,wg_rest(db,wg_rest(db,term))),reverses);
+    //printf("\n res %d\n",1+tmp1+tmp2);
+    return 1+tmp1+tmp2;    
+  }
+  //printf("\n should not happen res\n");
+  return 0;
+}
+
 void* wr_clausify_makedef(glb* g, void* mpool, void* frm, void **defs) {
   void* db=g->db;
-  void *def, *negdef, *negfrm, *res1, *res2;
+  void *def, *negdef, *negfrm, *res1, *res2; //, *res2d;
   void *logand, *logor; //, *logneg;
   int count,i,check;  
   void *fun, *term, *deflst, *tmp;
@@ -1001,22 +1087,43 @@ void* wr_clausify_makedef(glb* g, void* mpool, void* frm, void **defs) {
   // res1: -def | (andarg1 & andarg2)
   res1=wg_mklist3(db,mpool,logor,negdef,frm); 
   if (!res1) return show_clausify_warning(db,"could not create elem wr_clausify_makedef");
-  res1=wr_clausify_distribute(g,mpool,res1,defs);
+
+  res1=wr_clausify_distribute(g,mpool,res1,defs,1);
+
   if (!res1) return show_clausify_warning(db,"could not subdist 1 in wr_clausify_makedef");
+  
   // res2: def | -andarg1 | -andarg2
   negfrm=wr_clausify_negpush(g,mpool,frm,0);
+  if (!negfrm) return show_clausify_warning(db,"could not create elem wr_clausify_makedef");
+  /* 
+  res2d=wr_clausify_distribute(g,mpool,negfrm,NULL,1);
+  if (!res2d) return show_clausify_warning(db,"could not create elem wr_clausify_makedef");
+  // res2: def | -andarg1 | -andarg2
+  res2=wg_mklist3(db,mpool,logor,def,res2d);
+  res2=wr_clausify_distribute(g,mpool,res2,defs,1);
+  */
+   
   // negfrm: neg pushed inside for:  -(andarg1 & andarg2)
   if (!negfrm) return show_clausify_warning(db,"could not create elem wr_clausify_makedef");
   // res2: def | -andarg1 | -andarg2
   res2=wg_mklist3(db,mpool,logor,def,negfrm);
   // res2: def | (neg pushed inside for:  -(andarg1 & andarg2))
   if (!res2) return show_clausify_warning(db,"could not create elem wr_clausify_makedef");
-  res2=wr_clausify_distribute(g,mpool,res2,defs);
+  /* 
+  printf("\nstarting to distr in makedef for\n");
+  wg_mpool_print(db,res2); 
+  printf("\n");
+  */
+  res2=wr_clausify_distribute(g,mpool,res2,defs,1);
+  /* 
+  printf("\nended distr in makedef for\n");
+  wg_mpool_print(db,res2); 
+  printf("\n");
+  */
   if (!res2) return show_clausify_warning(db,"could not subdist 2 in wr_clausify_makedef");
-
   deflst=wg_mklist3(db,mpool,logand,res1,res2);
-  //deflst=res1;
 
+  //deflst=res1;
   if (!deflst) return show_clausify_warning(db,"could not create elem wr_clausify_makedef");
   if (*defs==NULL) {
     *defs=deflst;
@@ -1348,7 +1455,7 @@ void* wr_flatten_logclause_or(glb* g,void* mpool, void* cl) {
       if (!res1 || !res2 || !res) 
       return show_clausify_warning(db,"could not create a pair in a flatten phase");
     } else if (truth1==1 || truth2==1) {
-      show_clausify_warning(db,"const true clause found in flatten phase");
+      //show_clausify_warning(db,"const true clause found in flatten phase");
       return wg_makelogtrue(db,mpool);
     } else if (truth1==-1) {
       res=wr_flatten_logclause_or(g,mpool,arg2);

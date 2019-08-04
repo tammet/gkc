@@ -707,7 +707,7 @@ void* wr_process_tptp_import_clause(glb* g, void* mpool, void* cl) {
   printf("\nwr_process_tptp_import_clause starts with\n");
   wg_mpool_print(db,cl); 
   printf("\n");
-  printf("\ng->filename is %s\n",g->filename);
+  printf("\nproblem filename is %s\n",g->filename);
 #endif
 
   if (!(g->filename) || strlen(g->filename)<1) {
@@ -717,12 +717,13 @@ void* wr_process_tptp_import_clause(glb* g, void* mpool, void* cl) {
   pathatom=wg_nth(db,cl,1);
   envfolder=getenv("TPTP");
 #ifdef IDEBUG
-  printf("\npathatom\n");
-  wg_mpool_print(db,pathatom); 
-  printf("\nenvfolder %s\n",envfolder);
+  //printf("\npathatom is\n");
+  //wg_mpool_print(db,pathatom); 
+  printf("\nTPTP env var value is %s\n",envfolder);
+  printf("\n$TPTP env var value is  %s\n",getenv("$TPTP"));
   //wg_mpool_print(db,envfolder);
-  printf("\nwg_atomtype(db,pathatom) %d WG_URITYPE %d\n",wg_atomtype(db,pathatom),WG_URITYPE);
-  printf("\n");
+  //printf("\nwg_atomtype(db,pathatom) %d WG_URITYPE %d\n",wg_atomtype(db,pathatom),WG_URITYPE);
+  //printf("\n");
 #endif  
   if (wg_atomtype(db,pathatom)!=WG_URITYPE) return 0;  
   str=wg_atomstr1(db,pathatom); 
@@ -741,8 +742,23 @@ void* wr_process_tptp_import_clause(glb* g, void* mpool, void* cl) {
     str2=str;
   }  
 #ifdef IDEBUG
-  printf("\nstr %s\n",str);
-  printf("\nstr2 %s\n",str2);
+  //printf("\nstr %s\n",str);
+  //printf("\nstr2 %s\n",str2);
+  fp=fopen(str,"r");
+  if (fp!=NULL) {
+    printf("\nfile %s found\n",str); 
+    fclose(fp);
+  } else {
+    printf("\nfile %s not found\n",str); 
+  }  
+  fp=fopen(str2,"r");
+  if (fp!=NULL) {
+    printf("\nfile %s found\n",str2); 
+    fclose(fp);
+  } else {
+    printf("\nfile %s not found\n",str2); 
+  }  
+  exit(0);
 #endif
   //printf("\nfirst import path str2: %s\n",str2);
   fp=fopen(str2,"r");

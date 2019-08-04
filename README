@@ -4,12 +4,10 @@ gkc
 GKC is a reasoning system for large knowledge bases.
 
 For compiled binaries for Linux and Windows, as well as 
-instructions for running gkc, see the latest release v0.1-delta.
-The logfiles of experimental runs along with the corresponding
-binaries are found in v.0.1-alpha:
+instructions for running gkc, see the latest release v0.4:
 
-* https://github.com/tammet/gkc/releases/tag/v0.1-delta
-* https://github.com/tammet/gkc/releases/tag/v0.1-alpha
+* https://github.com/tammet/gkc/releases/tag/v0.4
+* https://github.com/tammet/gkc/releases/tag/v0.4
 
 
 Compiling
@@ -42,19 +40,23 @@ community edition command-line tool cl.
 
 To compile with a simple makefile under Linux, do
 
-    make -f smakefile
+    make
 
+which uses `makefile`
 creating an executable `gkc` in the top folder.
-See the `smakefile` for optionally compiling without
+See the `makefile` for optionally compiling without
 `flex` and `bison`.
 
-To compile with autotools under Linux, do
+Compiling with autototools under Linux is not properly
+maintained. However, if this is fixed, then to compile with 
+autotools under Linux, rename `makefile`to something different and do
 
     ./Bootstrap
     ./configure
     make
 
-creating an executable `Main/gkc`
+which will first create `Makefile.am`
+and then use this to create an executable `Main/gkc`
 and optionally do
 
     sudo make install
@@ -132,6 +134,7 @@ The following is a list of available commands as output by `./gkc -help`:
     if omitted, 1000 used
 
 
+
 Experimental results
 --------------------
 
@@ -145,4 +148,4 @@ for the seven largest problems from the previous set.
 * The runs.txt strategy file was used for proof search as logged 
 in `gkc_v01_on_cascj9fof.tar.gz`
 * The query.txt strategy file was used for proof search logged 
-in `gkc_v01_on_large_opencyc.tar.gz`
+in `gkc_v01_on_large_opencyc.tar.gz`.
