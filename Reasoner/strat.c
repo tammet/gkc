@@ -681,18 +681,18 @@ int wr_calc_atom_hardness(glb* g, int polarity, gint atom) {
     // positive
     if (!hdata.atomnegocc) {
       hardness=100*hardness; 
-    } else hardness-=round(log10((double)hdata.atomnegocc));
+    } else hardness-=(int)(round(log10((double)hdata.atomnegocc)));
     if (!hdata.internnegocc) {
       //hardness+=5;
-    } else hardness-=round(log10((double)hdata.internnegocc)/(double)4);  
+    } else hardness-=(int)(round(log10((double)hdata.internnegocc)/(double)4));  
   } else {
     // negative
     if (!hdata.atomposocc) {
       hardness=100*hardness; 
-    } else hardness-=round(log10((double)hdata.atomposocc));
+    } else hardness-=(int)(round(log10((double)hdata.atomposocc)));
     if (!hdata.internposocc) {
       //hardness+=5;
-    } else hardness-=round(log10((double)hdata.internposocc)/(double)4);
+    } else hardness-=(int)(round(log10((double)hdata.internposocc)/(double)4));
   }
   /*
   wr_printf("\nresult hardness %d polarity %d maxdepth %d size %d newvars %d repvars %d\n",
