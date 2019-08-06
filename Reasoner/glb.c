@@ -167,6 +167,7 @@ int wr_glb_init_simple(glb* g) {
   (g->knuthbendixpref_strat)=0;
   (g->hardnesspref_strat)=0;
   (g->res_shortarglen_limit)=0; // max non-ans len of the shortest res argument (generalization of unit)
+  (g->res_arglen_limit)=0; // if non-zero, do not resolve upon longer clauses
   (g->back_subsume)=0; // 1 does not work any more
   (g->propagate)=0;    // 1 does not work any more ??
   (g->use_equality_strat)=1; // general strategy

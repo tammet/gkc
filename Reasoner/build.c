@@ -711,7 +711,7 @@ int wr_answer_lit(glb* g, gint atom) {
   fun=tptr[RECORD_HEADER_GINTS+(g->unify_funpos)];
   if (wg_get_encoded_type(g->db,fun)==WG_URITYPE) {    
     str = wg_decode_uri(g->db,fun);    
-    if (str[0]=='a' && str[1]=='n' && str[2]=='s' && str[3]=='\0' &&
+    if (str[0]=='$' && str[1]=='a' && str[2]=='n' && str[3]=='s' && str[4]=='\0' &&
         wg_decode_uri_prefix(g->db,fun)==NULL) return 1;
     else return 0;
   }  

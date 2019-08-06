@@ -275,7 +275,13 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active, cvec resol
             wr_printf("\n* active: ");
             wr_print_clause(g,ycl);    
             */
-            
+            if ((g->res_arglen_limit) && (wg_rec_is_rule_clause(db,ycl))) {
+              if (wr_count_cl_nonans_atoms(g,ycl) > (g->res_arglen_limit)) {
+                // cannot use: continue loop
+                node=wr_clterm_hashlist_next(g,hashvec,node);
+                continue;
+              }
+            }
             if ((g->res_shortarglen_limit) && (nonanslen>(g->res_shortarglen_limit))) {
               // must check that ycl is unit
               if (wr_count_cl_nonans_atoms(g,ycl) > (g->res_shortarglen_limit)) {
@@ -283,7 +289,7 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active, cvec resol
                 node=wr_clterm_hashlist_next(g,hashvec,node);
                 continue;
               }  
-            }
+            }            
             
     #ifdef DEBUG        
             wr_printf("\nxatom ");
@@ -701,6 +707,13 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active, cvec re
                 wr_print_clause(g,ycl); 
                 //printf("\n");
               }  
+              if ((g->res_arglen_limit) && (wg_rec_is_rule_clause(db,ycl))) {
+                if (wr_count_cl_nonans_atoms(g,ycl) > (g->res_arglen_limit)) {
+                  // cannot use: continue loop
+                  node=wr_clterm_hashlist_next(g,hashvec,node);
+                  continue;
+                }
+              }
               if ((g->res_shortarglen_limit) && (nonanslen>(g->res_shortarglen_limit))) {
                 // must check that ycl is unit
                 if (wr_count_cl_nonans_atoms(g,ycl) > (g->res_shortarglen_limit)) {
@@ -709,6 +722,7 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active, cvec re
                   continue;                   
                 }  
               }
+              
       #ifdef DEBUG        
               wr_printf("\neq term a ");
               wr_print_term(g,a);
@@ -1049,6 +1063,13 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
         wr_print_clause(g,ycl); 
         //printf("\n");
       }  
+      if ((g->res_arglen_limit) && (wg_rec_is_rule_clause(db,ycl))) {
+        if (wr_count_cl_nonans_atoms(g,ycl) > (g->res_arglen_limit)) {
+          // cannot use: continue loop
+          node=wr_clterm_hashlist_next(g,hashvec,node);
+          continue;
+        }
+      }
       if ((g->res_shortarglen_limit) && (nonanslen>(g->res_shortarglen_limit))) {
         // must check that ycl is unit
         if (wr_count_cl_nonans_atoms(g,ycl) > (g->res_shortarglen_limit)) {

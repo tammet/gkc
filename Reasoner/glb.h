@@ -100,7 +100,7 @@
 
 // /opt/lingeling/lingeling --verbose=-1 -T 1 /opt/lingeling/tst2.txt > out.txt
 // s UNSATISFIABLE
-// s SATSIFIABLE
+// s SATISFIABLE
 
 #define DEFAULT_PROP_SOLVER_NAME "/opt/lingeling/lingeling"
 #define DEFAULT_PROP_FILE_NAME "/tmp/gkc_prop_inXXXXXX"
@@ -289,6 +289,7 @@ typedef struct {
   int knuthbendixpref_strat;  // clause ordering for resolvability of literals
   int hardnesspref_strat;     // clause ordering for resolvability of literals
   int res_shortarglen_limit; // max non-ans len of the shortest res argument (generalization of unit)
+  int res_arglen_limit; // if non-zero, do not resolve upon longer clauses
   int posunitpara_strat;
   int instgen_strat;
   int propgen_strat;

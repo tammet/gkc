@@ -142,6 +142,11 @@ int wr_genloop(glb* g) {
       
     if ((g->instgen_strat) &&  (int)((g->queue_termbuf)[0])<(int)((g->queue_termbuf)[1]+1000000)) {
        return 1;
+    } else if (((g->passed_ratio)>0.95) && (g->max_run_seconds)>3 && (g->res_arglen_limit)!=1) {
+      if (g->print_given_interval_trace) {
+        wr_printf("\npassed time ratio %.2f",g->passed_ratio);
+      }
+      (g->res_arglen_limit)=1;           
     } else if (((g->passed_ratio)>0.85) &&  (g->res_shortarglen_limit)!=1) {
       if (g->print_given_interval_trace) {
         wr_printf("\npassed time ratio %.2f",g->passed_ratio);
@@ -198,6 +203,11 @@ int wr_genloop(glb* g) {
     }       
     if (picked_given_cl_cand==NULL) {
       return 1;
+    }
+    if ((g->res_arglen_limit) && (wg_rec_is_rule_clause(db,picked_given_cl_cand))) {
+      if (wr_count_cl_nonans_atoms(g,picked_given_cl_cand) > (g->res_arglen_limit)) {
+        continue;
+      }
     }
     (g->stat_given_candidates)++; //stats 
     /*
@@ -349,6 +359,9 @@ int wr_genloop(glb* g) {
     if ((g->proof_found) && wr_enough_answers(g)) return 0;
     if (g->alloc_err) return -1;    
     
+    if ((g->res_arglen_limit) && (g->res_arglen_limit)<2) {
+      continue;
+    }
     if (g->use_equality) {
       wr_paramodulate_from_all_active(g,given_cl,given_cl_as_active,(g->tmp_resolvability_vec));    
       if ((g->proof_found) && wr_enough_answers(g)) return 0;

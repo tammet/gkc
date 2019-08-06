@@ -1161,9 +1161,9 @@ static int wr_order_eqterms_lex_order(glb* g, gint x, gint y, gptr vb) {
   yptr=decode_record(db,y);
   xlen=get_record_len(xptr);
   ylen=get_record_len(yptr);
-  // let smaller-arity funs be lex-smaller
+  // let smaller-arity funs be lex-smaller 
   if (xlen<ylen) return 1;
-  else if (ylen<xlen) return 2;
+  else if (ylen<xlen) return 2; 
   // here the arities are same
   uselen=xlen;
   if (g->unify_maxuseterms) {

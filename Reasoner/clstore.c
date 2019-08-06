@@ -890,6 +890,24 @@ gint wr_create_clpick_queues(glb* g, int count) {
     queues[i+CLPICK_QUEUE_GIVEN_POS]=2; // 0 contains len and 1 contains next free,  first real is 2
     queues[i+CLPICK_PRIORQUEUE_RATIO]=(g->pick_given_queue_ratio); // 4 is normal
     queues[i+CLPICK_PRIORQUEUE_RATIO_COUNTER]=0;
+    // v41 testcode follows:
+    /*
+    if (i==1) {
+      // goalassumption
+      if (g->cl_pick_queue_strategy) queues[i+CLPICK_THIS_QUEUE_RATIO]=3; // 6
+      else queues[i+CLPICK_THIS_QUEUE_RATIO]=1;
+    } else if (i==11) {
+      // goal
+      if (g->cl_pick_queue_strategy) queues[i+CLPICK_THIS_QUEUE_RATIO]=3; // 4
+      else queues[i+CLPICK_THIS_QUEUE_RATIO]=1;  // 1
+    } else if (i==21) {
+      // assumption      
+      queues[i+CLPICK_THIS_QUEUE_RATIO]=2;  
+    } else {
+      queues[i+CLPICK_THIS_QUEUE_RATIO]=1;
+    }   
+    */   
+    // v40 code follows:    
     if (i==1) {
       // goalassumption
       if (g->cl_pick_queue_strategy) queues[i+CLPICK_THIS_QUEUE_RATIO]=6; // 6
@@ -903,7 +921,7 @@ gint wr_create_clpick_queues(glb* g, int count) {
       queues[i+CLPICK_THIS_QUEUE_RATIO]=1;  
     } else {
       queues[i+CLPICK_THIS_QUEUE_RATIO]=1;
-    }  
+    }      
     queues[i+CLPICK_THIS_QUEUE_RATIO_COUNTER]=0;   
     tmpvec=wr_cvec_new(g,NROF_DYNALLOCINITIAL_ELS);
     if (!tmpvec) return 0;
