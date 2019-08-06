@@ -110,35 +110,35 @@ The following is a list of available commands as output by `./gkc -help`:
     
     usage:
     basic proof search with a default strategy:
-    gkc <problem file>
+      gkc <problem file>
     proof search with a strategy selection file:
-    gkc -prove <problem file> <strategy file>
+      gkc -prove <problem file> <strategy file>
     parse and load a file into shared memory database:
-    gkc -readkb <axioms file>
+      gkc -readkb <axioms file>
     proof search using the shared memory database as prepared additional axioms:
-    gkc -provekb <problem file> <strategy file>
+      gkc -provekb <problem file> <strategy file>
     write the present shared memory database to a file for fast loading:
-    gkc -writekb <dump file>
+      gkc -writekb <dump file>
     load a shared memory database from a file:
-    gkc -loadkb <dump file>
+      gkc -loadkb <dump file>
     parse and load a file into shared memory database and write this to a file:
-    gkc -readwritekb <axioms file> <dump file>
+      gkc -readwritekb <axioms file> <dump file>
     delete the present shared memory database (not necessary for reading a new one):
-    gkc -deletekb
+      gkc -deletekb
     show gkc version:
-    gkc -version
+      gkc -version
 
     where:
-    <problem file> should be in TPTP FOF or CNF syntax or Otter CNF syntax
-    <strategy file> is an optional json file: see neg.txt, runs.txt in Examples
-    <axioms file> is like a <problem file> 
-    <dump file> stores the parsed and prepared database for fast loading 
+      <problem file> should be in TPTP FOF or CNF syntax or Otter CNF syntax
+      <strategy file> is an optional json file: see neg.txt, runs.txt in Examples
+      <axioms file> is like a <problem file> 
+      <dump file> stores the parsed and prepared database for fast loading 
 
     additional optional parameters:
-    -mbsize <megabytes to allocate>
-    if omitted, 1000 megabytes assumed
-    -mbnr <shared memory database nr>
-    if omitted, 1000 used
+      -mbsize <megabytes to allocate>
+        if omitted, 1000 megabytes assumed
+      -mbnr <shared memory database nr>
+        if omitted, 1000 used
 
 Input syntax
 ------------
