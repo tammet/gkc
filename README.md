@@ -96,8 +96,7 @@ where
 * `problem_file_name` is a problem file in TPTP syntax, possibly containing include commands like 
 `include('Axioms/CSR002+5.ax')`. The included files are searched either under the problem folder,
 from the folder indicated by the environment variable TPTP or a fixed
-path `/opt/TPTP/` . For this example the file `/opt/TPTP/Axioms/CSR002+5.ax` would be looked up. 
-The TPTP problems and axioms are not included in the gkc distribution: 
+path `/opt/TPTP/`.  The TPTP problems and axioms are not included in the gkc distribution: 
 for the TPTP syntax and problems, see <http://www.tptp.org/>
 * `strategy_file_name` is a json-syntax file for giving options and strategies to gkc. See and use the
 example files `unit.txt`, `neg.txt`, `runs.txt` in the `Examples` folder.
@@ -146,8 +145,8 @@ Input syntax
 
 GKC reads files in both the 
 
-* TPTP first order form (fof) syntax, see <http://www.tptp.org/TPTP/TR/TPTPTR.shtml>
-* Simple clause form syntax, see below.
+* TPTP first order form (fof) syntax, see Examples/steam.p and <http://www.tptp.org/TPTP/TR/TPTPTR.shtml>
+* Simple clause form syntax, see Examples/steam.txt and the description below.
 
 In both cases the percentage % symbol is a line comment.
 
@@ -170,9 +169,9 @@ The simple clause form syntax assumes clauses like
     -p(X,f(X)) | r(X,a).
 
 where - is a negation symbol, | is a logical or, variables
-start with an upper case character, functions/constants/predicates
-start with a lower case character and the clause ends with
-a period.
+start with an upper case character or a question mark ?, 
+functions/constants/predicates start with a lower case character 
+and the clause ends with a period.
 
 The special predicate = is assumed to stand for equality and the 
 predicate $ans for an answer-predicate.
@@ -189,7 +188,9 @@ different search strategies sequentially, with increasing
 time limits after each batch.
 
 The strategy file is a json file like the following example,
-indicating that one single strategy should be run:
+indicating that one single strategy should be run. For more
+examples, see query.txt, neg.txt, unit.txt, runs.txt in the Examples 
+folder.
 
         {
         "print_level": 15, 
@@ -251,7 +252,7 @@ The list "strategy": [...] contains the main search strategy indicators, either
 Other useful parameters:
 
 * "print": 0 or 1, where 0 prohibits almost all printing, default 1.
-* "print_level": integer determining the level of output: useful values are between 0 and 50.
+* "print_level": integer determining the level of output: useful values are between 0 and 50, default 10.
 * "print_json": 0 or 1, where 0 is default and 1 forces json output.
 * "max_size", "max_length", "max_depth", "max_weight" indicate limits on kept clauses, defaults are 0.
 * "equality" : 1 or 0, with 1 being default and 0 prohibiting equality handling.
