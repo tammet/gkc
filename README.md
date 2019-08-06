@@ -4,6 +4,14 @@ gkc
 GKC is a reasoning system for large knowledge bases, available at
 <https://github.com/tammet/gkc>
 
+It is used as a building block for developing specialized methods 
+and strategies for commonsense reasoning, including nonmonotonic reasoning,
+probabilistic reasoning and machine learning methods. 
+We consider natural language question answering systems as
+the main potential application these specialized methods.
+GKC itself does not contain these methods: ask the author
+for the systems built on top of GKC.
+
 For compiled binaries for Linux and Windows, as well as 
 instructions for running gkc, see the latest release,
 either v0.4 or newer:
@@ -268,6 +276,34 @@ Other useful parameters:
     * 3 stands for considering only the negative clauses from conjecture to be goals
 
 
+Architecture
+------------
+
+These standard inference rules have been implemented:
+
+* Binary resolution with optionally the set of support strategy, ordered resolution or unit restriction.
+* Hyperresolution.
+* Factorization.
+* Paramodulation and demodulation with the Knuth-Bendix ordering. 
+
+GKC does not currently implement any propositional inferences or instance generation.
+
+By default GKC uses multiple strategies run sequentially, with the time limit starting 
+at one second or more for each, increased 5 times once the whole batch has been perforfmed. 
+The strategy selection takes into consideration the basic properties of the problem,
+in particular its approximate size. There is no interplay between different strategies.
+
+We perform the selection of a given clause by using several queues in order to spread 
+the selection relatively uniformly over these categories of derived clauses and their 
+descendants: axioms, external axioms, assumptions and goals. 
+
+GKC is implemented in C. The data representation machinery is built upon a shared 
+memory graph database Whitedb, enabling it to solve multiple different queries in
+parallel processeses without a need to repeatedly parse or load the large
+parsed knowledge base from the disk.
+
+An interesting aspect of GKC is the pervasive use of hash indexes, 
+feature vectors and fingerprints, while no tree indexes are used. 
 
 
   
