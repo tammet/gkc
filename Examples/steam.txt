@@ -37,4 +37,4 @@ eats(?Snail,snail_food_of(?Snail))| -snail(?Snail).
 
 -animal(?Animal)| -animal(?Grain_eater)| -grain(?Grain)| 
    -eats(?Animal,?Grain_eater)| -eats(?Grain_eater,?Grain) | 
-   ans(?Animal,?Grain_eater,?Grain).
+   $ans(?Animal,?Grain_eater,?Grain).
