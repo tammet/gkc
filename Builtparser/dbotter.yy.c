@@ -2522,10 +2522,15 @@ void wg_yyottererror (parse_parm* parm, void* scanner, const char* msg) {
   int i;
   char *s;
   //printf("\n yyerror called with xx msg %s\n",msg);
+  /*
   if (linebuf!=NULL) {
     for(i=0;linebuf[i]!=0;i++) {
       if (linebuf[i]=='"') linebuf[i]='\'';
     }
+  }
+  */
+  for(i=0;linebuf[i]!=0;i++) {
+    if (linebuf[i]=='"') linebuf[i]='\'';
   }
   s=wg_yyotterget_text(scanner);
   if (s!=NULL) {
