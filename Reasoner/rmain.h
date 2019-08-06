@@ -34,8 +34,8 @@
 
 #include "glb.h" 
 
-int wg_run_reasoner(void *db, int argc, char **argv);
-int wg_import_otter_file(void *db, char* filename, int iskb);
+int wg_run_reasoner(void *db, int argc, char **argv, int informat);
+int wg_import_otter_file(void *db, char* filename, int iskb, int* informat);
 int wg_import_prolog_file(void *db, char* filename);
 glb* wg_init_reasoner(void *db, int argc, char **argv);
 int wr_init_active_passive_lists_from_one(glb* g, void* db, void* kb_db);

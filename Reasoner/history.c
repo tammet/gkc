@@ -1133,7 +1133,11 @@ int wr_show_result(glb* g, gint history) {
     bpos+=snprintf(buf+bpos,blen-bpos,"\n{\"answers\": [\n");
   } else {
     if ((g->print_level_flag)>1) bpos+=snprintf(buf+bpos,blen-bpos,"\n");
-    bpos+=snprintf(buf+bpos,blen-bpos,"\nresult: proof found\n%% SZS status Theorem for %s.",g->filename);
+    if (g->in_has_fof) {
+      bpos+=snprintf(buf+bpos,blen-bpos,"\nresult: proof found\n%% SZS status Theorem for %s.",g->filename);
+    } else {
+      bpos+=snprintf(buf+bpos,blen-bpos,"\nresult: proof found\n%% SZS status Unsatisfiable for %s.",g->filename);
+    }  
     if ((g->required_answer_nr)<2) {
       //bpos+=snprintf(buf+bpos,blen-bpos,"\nproof:");
     } else {

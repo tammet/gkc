@@ -343,6 +343,7 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, in
 
   tmp_comp_funs=(g->use_comp_funs);
   (g->use_comp_funs)=0;
+  (g->in_has_fof)=0;
   
   if (strasfile==NULL) {  
     // input from file
@@ -599,7 +600,7 @@ int wr_is_tptp_fof_clause(void* db, void* cl) {
   if (wg_isatom(db,cl)) return 0;
   fun=wg_first(db,cl);
   if (!wg_islog_uri(db,fun,"fof")) return 0;
-  if (wg_list_len(db,cl)!=4) return 0;
+  if (wg_list_len(db,cl)!=4) return 0;  
   return 1;
 }
 
@@ -646,6 +647,8 @@ void* wr_preprocess_tptp_fof_clause(glb* g, void* mpool, void* cl) {
   wg_mpool_print(db,cl); 
   printf("\n");
 #endif   
+  (g->in_has_fof)=1;
+  //printf("\n(g->in_has_fof) %d\n",(g->in_has_fof));
   cltype=wg_first(db,wg_rest(db,wg_rest(db,cl)));
   clpart=wg_first(db,wg_rest(db,wg_rest(db,wg_rest(db,cl))));
 #ifdef DEBUG

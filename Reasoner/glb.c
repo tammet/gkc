@@ -326,6 +326,8 @@ int wr_glb_init_simple(glb* g) {
   (g->tmp8)=0;
   (g->tmp9)=0;
 
+  (g->in_has_fof)=0;
+
   (g->in_clause_count)=0;
   (g->in_rule_clause_count)=0;
   (g->in_fact_clause_count)=0;

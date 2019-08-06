@@ -445,6 +445,8 @@ typedef struct {
 
   /* input clause set analysis */
 
+  int in_has_fof;   
+
   int in_clause_count;
   int in_rule_clause_count;
   int in_fact_clause_count;

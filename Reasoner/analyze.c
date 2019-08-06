@@ -985,7 +985,7 @@ char* make_auto_guide(glb* g, glb* kb_g) {
 
 void make_sum_input_stats(glb* g, glb* kb_g) {
   float s1,s2;
-
+ 
   (g->sin_clause_count)=(g->in_clause_count);
   (g->sin_rule_clause_count)=(g->in_rule_clause_count);
   (g->sin_fact_clause_count)=(g->in_fact_clause_count);
@@ -1024,6 +1024,9 @@ void make_sum_input_stats(glb* g, glb* kb_g) {
   } 
 
   if (kb_g) {
+
+    if (kb_g->in_has_fof) (g->in_has_fof)=1;
+
     (g->sin_clause_count)+=(kb_g->in_clause_count);
     (g->sin_rule_clause_count)+=(kb_g->in_rule_clause_count);
     (g->sin_fact_clause_count)+=(kb_g->in_fact_clause_count);
@@ -1086,6 +1089,8 @@ void make_sum_input_stats(glb* g, glb* kb_g) {
 }
 
 void wr_copy_sin_stats(glb* fromg, glb* tog) {
+
+  if (fromg->in_has_fof) (tog->in_has_fof)=1;
 
   (tog->sin_clause_count)=(fromg->in_clause_count);
   (tog->sin_rule_clause_count)=(fromg->in_rule_clause_count);

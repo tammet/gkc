@@ -169,6 +169,7 @@ int gkc_main(int argc, char **argv) {
   int cmdfileslen; // computed below
   int tmp;
   int retcode=0;
+  int informat=0; // 0 if not set, 1 if tptp fof
   //int islocaldb=0; // lreasoner sets to 1 to avoid detaching db at the end
 
   if (argc<2) {
@@ -236,7 +237,7 @@ int gkc_main(int argc, char **argv) {
       return(1);
     }
     //islocaldb=1;
-    err = wg_import_otter_file(shmptr,cmdfiles[1],0);   
+    err = wg_import_otter_file(shmptr,cmdfiles[1],0,&informat);   
     if(!err) {
       //printf("Data read from %s.\n",cmdfiles[1]);
     } else if(err<-1) {
@@ -251,7 +252,7 @@ int gkc_main(int argc, char **argv) {
 
     //wg_show_database(shmptr);
     //printf("about to call wg_run_reasoner\n");
-    err = wg_run_reasoner(shmptr,cmdfileslen,cmdfiles);
+    err = wg_run_reasoner(shmptr,cmdfileslen,cmdfiles,informat);
     //wg_show_database(shmptr);
     //if(!err);
       //printf("wg_run_reasoner finished ok.\n");
@@ -300,7 +301,7 @@ int gkc_main(int argc, char **argv) {
     printf("\nto wg_import_otter_file %s\n",cmdfiles[1]);
     gkc_show_cur_time();
 #endif      
-    err = wg_import_otter_file(shmptr,cmdfiles[1],1);
+    err = wg_import_otter_file(shmptr,cmdfiles[1],1,&informat);
 #ifdef SHOWTIME       
     printf("\nexited wg_import_otter_file\n");
     gkc_show_cur_time();
@@ -390,7 +391,7 @@ int gkc_main(int argc, char **argv) {
     printf("\nqrun1 to wg_import_otter_file from argv[i+1] %s\n",cmdfiles[1]);
     gkc_show_cur_time();
 #endif      
-    err = wg_import_otter_file(shmptrlocal,cmdfiles[1],0);
+    err = wg_import_otter_file(shmptrlocal,cmdfiles[1],0,&informat);
     if(!err) {
       //printf("Data read from %s.\n",cmdfiles[1]);
     } else if(err<-1) {
@@ -414,7 +415,7 @@ int gkc_main(int argc, char **argv) {
     wr_show_in_stats(xg);
     return(0);
     */
-    err = wg_run_reasoner(shmptrlocal,cmdfileslen,cmdfiles);
+    err = wg_run_reasoner(shmptrlocal,cmdfileslen,cmdfiles,informat);
     //if(!err);
       //printf("wg_run_reasoner finished ok.\n");
     //else
@@ -544,7 +545,7 @@ int gkc_main(int argc, char **argv) {
     printf("\nto wg_import_otter_file %s\n",cmdfiles[1]);
     gkc_show_cur_time();
 #endif      
-    err = wg_import_otter_file(shmptr,cmdfiles[1],1);
+    err = wg_import_otter_file(shmptr,cmdfiles[1],1,&informat);
 #ifdef SHOWTIME       
     printf("\nexited wg_import_otter_file\n");
     gkc_show_cur_time();

@@ -83,7 +83,7 @@ void show_cur_time(void);
 
 
   
-int wg_run_reasoner(void *db, int argc, char **argv) {
+int wg_run_reasoner(void *db, int argc, char **argv, int informat) {
   glb* g;    // our g (globals)
   glb* kb_g; // our copy of the g (globals) of the external shared db 
   glb* rglb=NULL; // ptr to g (globals) of the external shared db 
@@ -165,6 +165,7 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
   (analyze_g->varbanks)=wr_vec_new(analyze_g,NROF_VARBANKS*NROF_VARSINBANK);
   (analyze_g->varstack)=wr_cvec_new(analyze_g,NROF_VARBANKS*NROF_VARSINBANK); 
   (analyze_g->varstack)[1]=2; // first free elem  
+  (analyze_g->in_has_fof)=informat;
   tmp=wr_analyze_clause_list(analyze_g,db,child_db);
 
   if (!givenguide) {
@@ -459,7 +460,7 @@ int wg_run_reasoner(void *db, int argc, char **argv) {
 } 
 
 
-int wg_import_otter_file(void *db, char* filename, int iskb) {  
+int wg_import_otter_file(void *db, char* filename, int iskb, int* informat) {  
   glb* g;
   int res;
 
@@ -482,6 +483,7 @@ int wg_import_otter_file(void *db, char* filename, int iskb) {
       //wr_print_db_otter(g,(g->print_clause_detaillevel));
     }  
   } 
+  if (g->in_has_fof) *informat=1;
   sys_free(g); // no complex values given to glb elements
   //dprintf("wg_import_otterfile ends with res\n",res); 
   return res;  
