@@ -102,6 +102,7 @@ glb* wr_glb_new_simple(void* db) {
 int wr_glb_init_simple(glb* g) {
   //printf("\nwr_glb_init_simple called\n");
   (g->filename)=NULL;
+  (g->outfilename)=NULL;
   (g->proof_found)=0; // becomes 1 if proof found
   (g->proof_answer)=NULL; // becomes a ptr to pure answer clause
   (g->proof_history)=wg_encode_null(g->db,NULL); // becomes a gint encoding of the constructed history
@@ -529,6 +530,7 @@ int wr_glb_init_local_complex(glb* g) {
   // first NULL all vars
   
   (g->filename)=NULL;
+  (g->outfilename)=NULL;
   (g->varbanks)=NULL;
   (g->varstack)=NULL;         
   (g->given_termbuf)=NULL;
@@ -554,6 +556,7 @@ int wr_glb_init_local_complex(glb* g) {
   
  
   (g->filename)=wr_str_new(g,MAX_FILENAME_LEN);
+  //(g->outfilename)=wr_str_new(g,MAX_FILENAME_LEN);
 
   (g->varbanks)=wr_vec_new(g,NROF_VARBANKS*NROF_VARSINBANK);
   //(g->varbankrepl)=wr_vec_new(g,3*NROF_VARSINBANK);

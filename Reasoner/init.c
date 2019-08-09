@@ -238,9 +238,10 @@ int wr_init_db_clause_indexes(glb* g, void* db) {
     }  
      // calculate resolvability: (g->tmp_resolvability_vec)
     wr_calc_clause_resolvability(g,rec,1,0);
+#ifdef DEBUG     
     wr_print_clause_resolvability(g,rec);  
     wr_print_clause_hardnesses(g,rec); 
-
+#endif
     // start allocating from record area instead of g->build_buffer 
     given_cl=wr_add_given_cl_active_list(g,given_cl,given_cl_metablock,0,NULL,(g->tmp_resolvability_vec));
 #ifdef DEBUG 

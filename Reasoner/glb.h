@@ -126,6 +126,7 @@ typedef struct {
   gint inkb;            /**< 1 if g struct is inside shared kb, 0 otherwise */
   void* kb_g;            /**< if external shared mem kb_db is present, then the g ptr inside kb_db, else NULL */ 
   char* filename;       /**< input filename */
+  char* outfilename;       /**< output filename */
 
   /* === shared data block === */
   

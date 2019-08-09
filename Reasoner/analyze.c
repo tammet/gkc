@@ -397,12 +397,14 @@ char* make_auto_guide(glb* g, glb* kb_g) {
   int qp1ok=1, qp2ok=1, qp3ok=1; // query preference strats default ok
   int tmp;
 
-  if (kb_g) {
+  if (kb_g &&  !(g->outfilename)) {
     wr_printf("\nglobal stats:\n");
     wr_show_in_stats(kb_g);
   }   
   make_sum_input_stats(g,kb_g);
-  wr_show_in_summed_stats(g);
+  if (!(g->outfilename)) {
+    wr_show_in_summed_stats(g);
+  }  
   if ((g->sin_poseq_clause_count)+(g->sin_negeq_clause_count)) {
     // equality present
     eq=1;  
@@ -434,15 +436,13 @@ char* make_auto_guide(glb* g, glb* kb_g) {
   }
 
   buf=(char*)wr_malloc(g,10000);
-
   pref="{\n"
-    "\"print\":1,\n"
-    "\"print_level\": 15,\n"
-    "\"max_size\": 0,\n"
-    "\"max_depth\": 0,\n"
-    "\"max_length\": 0,\n"
-    "\"max_seconds\": 0,\n";
- 
+      "\"print\":1,\n"
+      "\"print_level\": 15,\n"
+      "\"max_size\": 0,\n"
+      "\"max_depth\": 0,\n"
+      "\"max_length\": 0,\n"
+      "\"max_seconds\": 0,\n";  
   pos=sprintf(buf,"%s",pref);
   if (!eq) {
     pos+=sprintf(buf+pos,"\"equality\":0,\n");
@@ -976,8 +976,9 @@ char* make_auto_guide(glb* g, glb* kb_g) {
 
   pos+=sprintf(buf+pos,"\n]}\n");
   
-  wr_printf("\nauto guide:\n-----------\n%s\n",buf);
-   
+  if (!(g->outfilename)) {
+    wr_printf("\nauto guide:\n-----------\n%s\n",buf);
+  }     
   //guide=wr_parse_guide_str(buf);
   //printf("Using default strategy.");
   return buf;
@@ -1216,6 +1217,109 @@ void wr_show_in_summed_stats(glb* g) {
   //if (g->sin_max_occ_const) {
   //  wr_printf("in_max_occ_const: %s \n", wg_decode_unistr(g->db,(g->sin_max_occ_const),WG_URITYPE));
   //}
+}
+
+
+// ============ LTB specific ==================
+
+
+void make_ltb_guide(glb* g, char** strats, int stratscount) { 
+  char *buf=NULL,*pref;   
+  int i,pos,secs,stratn;
+  
+  for(i=0;i<stratscount;i++) {
+    strats[i]=NULL;
+  }
+  stratn=0;
+  for(i=0;i<1;i++) {
+
+    // first batch, 3 sec total
+    secs=1;
+    buf=(char*)malloc(10000);  
+    pref="{\n"
+        "\"print_level\": 5,\n"; 
+    pos=sprintf(buf,"%s",pref);
+    pos+=sprintf(buf+pos,"\"runs\":[\n");
+    pos+=sprintf(buf+pos,
+      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1},\n",secs);
+    pos+=sprintf(buf+pos,
+      "{\"max_seconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 1},\n",secs);
+    pos+=sprintf(buf+pos,
+      "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1}\n",secs);    
+    pos+=sprintf(buf+pos,"]}\n");    
+    if (stratn<stratscount) strats[stratn++]=buf;
+
+    // second batch, 5 sec total, ends at 8 sec
+    secs=1;
+    buf=(char*)malloc(10000);  
+    pref="{\n"
+        "\"print_level\": 5,\n"; 
+    pos=sprintf(buf,"%s",pref);
+    pos+=sprintf(buf+pos,"\"runs\":[\n");
+    pos+=sprintf(buf+pos,
+      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2},\n",secs);
+    pos+=sprintf(buf+pos,
+      "{\"max_seconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 0},\n",secs);
+    pos+=sprintf(buf+pos,
+      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"positive_pref\"], \"query_preference\": 3},\n",secs);
+    pos+=sprintf(buf+pos,
+      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 1},\n",secs);  
+    pos+=sprintf(buf+pos,
+      "{\"max_seconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 2, \"equality\":0}\n",secs);
+    pos+=sprintf(buf+pos,"]}\n");    
+    if (stratn<stratscount) strats[stratn++]=buf;
+
+    // third batch, 15 sec total, ends at 23 sec
+    secs=5;
+    buf=(char*)malloc(10000);  
+    pref="{\n"
+        "\"print_level\": 5,\n"; 
+    pos=sprintf(buf,"%s",pref);
+    pos+=sprintf(buf+pos,"\"runs\":[\n");
+    pos+=sprintf(buf+pos,
+      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1},\n",secs);
+    pos+=sprintf(buf+pos,
+      "{\"max_seconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 2},\n",secs);
+    pos+=sprintf(buf+pos,
+      "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0}\n",secs);    
+    pos+=sprintf(buf+pos,"]}\n");
+    if (stratn<stratscount) strats[stratn++]=buf;
+
+    // fourth batch, 20 sec total, ends at 43 sec
+    secs=5;
+    buf=(char*)malloc(10000);  
+    pref="{\n"
+        "\"print_level\": 5,\n"; 
+    pos=sprintf(buf,"%s",pref);
+    pos+=sprintf(buf+pos,"\"runs\":[\n");
+    pos+=sprintf(buf+pos,
+      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2},\n",secs);
+    pos+=sprintf(buf+pos,
+      "{\"max_seconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 0, \"reverse_clauselist\": 1},\n",secs);
+    pos+=sprintf(buf+pos,
+      "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 2},\n",secs);    
+    pos+=sprintf(buf+pos,
+      "{\"max_seconds\": %d, \"strategy\":[\"hyper\"], \"query_preference\": 1}\n",secs);  
+    pos+=sprintf(buf+pos,"]}\n");
+    if (stratn<stratscount) strats[stratn++]=buf;
+
+    /*
+    // end of one block
+    if (i<iterations-1) {
+      pos+=sprintf(buf+pos,"\n");      
+    }
+    // limit mods
+    secs=secs*5;   
+    */
+  }
+  /*
+  for(i=0;i<stratscount;i++) {
+    if (strats[i]) {
+      printf("\n strat %d is \n%s\n",i,strats[i]);
+    }    
+  }
+  */
+  return;
 }
 
 #ifdef __cplusplus

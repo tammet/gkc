@@ -83,7 +83,7 @@ void show_cur_time(void);
 
 
   
-int wg_run_reasoner(void *db, int argc, char **argv, int informat) {
+int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfilename, char* guidestr) {
   glb* g;    // our g (globals)
   glb* kb_g; // our copy of the g (globals) of the external shared db 
   glb* rglb=NULL; // ptr to g (globals) of the external shared db 
@@ -114,13 +114,12 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat) {
     if (guidebuf!=NULL) free(guidebuf);
     return -1;
   }
-
   filename=argv[1];
 #ifdef SHOWTIME
   wr_printf("Guide parsed.\n");
   wr_printf("\ndb is %d \n",(int)((gint)db));
   show_cur_time();
-#endif 
+#endif
   // kb_db is set to parent db
   kb_db=db_get_kb_db(db);
   if (kb_db) {
@@ -147,9 +146,10 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat) {
     wr_printf("\n");
 #endif   
   } else {
+
     // just one single db 
 #ifdef DEBUG
-    wr_printf("\njust one single db \n");
+    printf("\njust one single db \n");
 #endif 
     //have_shared_kb=0;
     child_db=db;
@@ -166,14 +166,20 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat) {
   (analyze_g->varstack)=wr_cvec_new(analyze_g,NROF_VARBANKS*NROF_VARSINBANK); 
   (analyze_g->varstack)[1]=2; // first free elem  
   (analyze_g->in_has_fof)=informat;
+  if (outfilename) (analyze_g->outfilename)=outfilename;
   tmp=wr_analyze_clause_list(analyze_g,db,child_db);
 
   if (!givenguide) {
-    guidebuf=make_auto_guide(analyze_g,kb_g);
-    guide=wr_parse_guide_str(guidebuf); 
-    if (guide==NULL) {  return -1; } 
-    //if (guidebuf!=NULL) wr_free(g,(void*)guidebuf);
-    if (guidebuf!=NULL) { sys_free(guidebuf); guidebuf=NULL; }
+    if (guidestr!=NULL) {      
+      guide=wr_parse_guide_str(guidestr); 
+      if (guide==NULL) {  return -1; } 
+    } else {
+      guidebuf=make_auto_guide(analyze_g,kb_g);     
+      guide=wr_parse_guide_str(guidebuf); 
+      if (guide==NULL) {  return -1; } 
+      //if (guidebuf!=NULL) wr_free(g,(void*)guidebuf);
+      if (guidebuf!=NULL) { sys_free(guidebuf); guidebuf=NULL; }
+    }
   }
 
   for(iter=0; 1; iter++) { 
@@ -256,6 +262,7 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat) {
       return -1; 
     }   
     strncpy((g->filename),filename,MAX_FILENAME_LEN);
+    if (outfilename) (g->outfilename)=outfilename;    
 #ifdef SHOWTIME    
     wr_printf("\nto call wr_init_active_passive_lists_from_all\n");
     show_cur_time();
@@ -413,7 +420,9 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat) {
       if (wr_have_answers(g)) {
         wr_show_result(g,g->proof_history);
       } else {
-        wr_printf("\n\nSearch finished without proof, result code %d.\n",res); 
+        if ((g->print_level_flag)>5) {
+          wr_printf("\n\nSearch finished without proof, result code %d.\n",res); 
+        }  
       }  
     } else if (res==2 && (g->print_runs)) {
       wr_printf("\n\nSearch terminated without proof.\n");        

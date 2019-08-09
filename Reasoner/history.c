@@ -1106,6 +1106,7 @@ int wr_show_result(glb* g, gint history) {
   gptr ans;
   char* buf;
   int ansnr, blen, bpos;
+  FILE* outfile;
 
   // create buf for printing
 
@@ -1221,8 +1222,17 @@ int wr_show_result(glb* g, gint history) {
         "\n%% SZS output end CNFRefutation for %s",g->filename);
     bpos+=snprintf(buf+bpos,blen-bpos,"\n");
   }  
-  printf("%s",buf);
-  
+  if (g->outfilename) {
+    outfile=fopen(g->outfilename, "w");
+    if (!outfile) {
+      printf("{\"error\": \"cannot open outfile to print proof %s\"}\n",(g->outfilename));               
+    } else {
+      fprintf(outfile,"%s",buf);
+      fclose(outfile);
+    }  
+  } else {
+    printf("%s",buf);
+  }    
   return bpos;
 }
  

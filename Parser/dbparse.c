@@ -761,9 +761,8 @@ void* wr_process_tptp_import_clause(glb* g, void* mpool, void* cl) {
   } else {
     printf("\nfile %s not found\n",str2); 
   }  
-  exit(0);
 #endif
-  //printf("\nfirst import path str2: %s\n",str2);
+  //printf("\nfirst import path str2: %s\n",str2);  
   fp=fopen(str2,"r");
   if (fp!=NULL) {
     // succeeded to open axiom file: use that

@@ -57,4 +57,6 @@ void wr_copy_sin_stats(glb* fromg, glb* tog);
 void wr_show_in_stats(glb* g);
 void wr_show_in_summed_stats(glb* g);
 
+void make_ltb_guide(glb* g, char** strats, int stratscount);
+
 #endif
