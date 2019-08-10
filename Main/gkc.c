@@ -1196,7 +1196,7 @@ int gkc_ltb_main(int argc, char **argv) {
       wr_make_batch_prob_fullname(probname,probfullname,batchfilename);
       //printf("\nprobname |%s| outname |%s| probfullname |%s| outfullname |%s|\n",
       //    probname,outname,probfullname,outfullname);
-      printf("%% SZS status Started for %s\n",probname);  
+      printf("%% SZS status Started for %s\n",probfullname);  
       //shmptr=NULL;
       shmsize2=100000000;        
             
@@ -1210,17 +1210,17 @@ int gkc_ltb_main(int argc, char **argv) {
       shmptrlocal=wg_attach_local_database_with_kb(shmsize2,(void*)shmptr);
       if(!shmptrlocal) {
         //err_printf("failed to attach local database");
-        wr_output_batch_prob_failure(probname,outfullname,"Error");       
+        wr_output_batch_prob_failure(probfullname,outfullname,"Error");       
         continue;
       }
       err = wg_import_otter_file(shmptrlocal,probfullname,0,&informat);    
       if(!err) {
         //printf("Data read from %s.\n",cmdfiles[1]);
       } else if(err<-1) {  
-        wr_output_batch_prob_failure(probname,outfullname,"Error");     
+        wr_output_batch_prob_failure(probfullname,outfullname,"Error");     
         continue;
       } else {
-        wr_output_batch_prob_failure(probname,outfullname,"Error");     
+        wr_output_batch_prob_failure(probfullname,outfullname,"Error");     
         continue; 
       }     
       //wg_show_database(shmptrlocal);
@@ -1234,14 +1234,14 @@ int gkc_ltb_main(int argc, char **argv) {
       //wg_show_database(shmptr);
       if(!err) {
         //printf("wg_run_reasoner finished ok.\n");
-        printf("%% SZS status Theorem for %s\n",probname);
+        printf("%% SZS status Theorem for %s\n",probfullname);
         rows[i]=NULL;
         wg_delete_local_database(shmptrlocal);
-        printf("%% SZS status Ended for %s\n",probname);
+        printf("%% SZS status Ended for %s\n",probfullname);
         continue;
       } else {
         wg_delete_local_database(shmptrlocal);
-        wr_output_batch_prob_failure(probname,outfullname,"Timeout");     
+        wr_output_batch_prob_failure(probfullname,outfullname,"Timeout");     
         continue;
       }              
     } // iteration over all problems ended
@@ -1277,7 +1277,7 @@ void wr_make_batch_axiom_fullname(char* probname, char* probfullname, char* batc
       continue;
     }  
     probfullname[j++]='+';
-    probfullname[j]='1';   
+    probfullname[j++]='1';   
   }
   probfullname[j]=0;
 }
