@@ -127,8 +127,8 @@ void err_printf(char* s);
 void err_printf2(char* s1, char* s2);
 
 int gkc_ltb_main(int argc, char **argv);
-void wr_make_batch_axiom_fullname(char* probname, char* probfullname, char* batchname);
-void wr_make_batch_prob_fullname(char* probname, char* probfullname, char* batchname);
+void wr_make_batch_axiom_fullname(char* probname, char* probfullname, char* batchname, int formulation);
+void wr_make_batch_prob_fullname(char* probname, char* probfullname, char* batchname, int formulation);
 void wr_output_batch_prob_failure(char* probname, char* outfullname, char* failure);
 
 //#define SHOW_CONTENTS 1
@@ -1039,6 +1039,7 @@ int gkc_ltb_main(int argc, char **argv) {
   //int stratscount;
   char* stratstr;
   int iteration;
+  int formulation,maxiteration;
   //int cp;
   
 
@@ -1091,165 +1092,173 @@ int gkc_ltb_main(int argc, char **argv) {
   }
   printf("\n");
   */
+
+  for(formulation=1;formulation<3;formulation++) {
   // create a new local database for includes
 
-  shmsize = (gint)5000000000;      
-  //wg_delete_database("1000");
-  //shmptr=wg_attach_database("1000", shmsize);  
-  shmptr=wg_attach_local_database(shmsize);
-  if(!shmptr) {
-    err_printf("failed to attach to database");
-    exit(0);
-  }    
+    shmsize = (gint)5000000000;      
+    //wg_delete_database("1000");
+    //shmptr=wg_attach_database("1000", shmsize);  
+    shmptr=wg_attach_local_database(shmsize);
+    if(!shmptr) {
+      err_printf("failed to attach to database");
+      exit(0);
+    }    
 
-  // read includes
-   
-  isincluderow=0;
-  for(i=0;i<rowcount;i++) {
-    rowstr=rows[i];
-    if (!rowstr) continue;    
-    if (!strncmp("% SZS start BatchIncludes",rowstr, strlen("% SZS start BatchIncludes"))) {
-      isincluderow=1;  
-      continue;
-    }
-    if (!strncmp("% SZS end BatchIncludes",rowstr, strlen("% SZS end BatchIncludes"))) {
-      break;
-    }
-    if (isincluderow && strlen(rowstr)>1) {
-      printf("%s",rowstr);
-      // -- st         
-      wr_make_batch_axiom_fullname(rowstr,probfullname,batchfilename);
-      //printf("\nprobname |%s| probfullname |%s|\n",
-      //  rowstr,probfullname);
-      err = wg_import_otter_file(shmptr,probfullname,1,&informat);    
-      if(!err)
-        printf("Data parsed into the memory db.\n");
-      else if(err<-1)
-        err_printf("problem reading otter file, data may be partially"\
-          " imported");
-      else {
-        err_printf("reading failed");
-        wg_delete_local_database(shmptr);
-        return(1);
-      }
-      // -- ed
-    }  
-  }
-  tmp=init_shared_database(shmptr,NULL);
-  //shmptr=wg_attach_existing_database("1000");
-  //wr_show_database_details(NULL,shmptr,"shmptr");
-  if (tmp<0) {
-    err_printf("db creation failed");   
-    return(1);
-  }  
-  printf("Db ready.\n");
-  //wr_show_database_details(NULL,shmptr,"shmptr");
-
-
-  // includes are read, proceed to strategy and problems
-
-  // strategy
-  
-  make_ltb_guide(NULL,strats,10);
-
-  // problems
-
-  //printf("\nproblems:\n");
-
-  for(iteration=0;iteration<4;iteration++) {
-    // next run over all the problems
-    isproblemrow=0;
+    // read includes
+    
+    isincluderow=0;
     for(i=0;i<rowcount;i++) {
       rowstr=rows[i];
       if (!rowstr) continue;    
-      if (!strncmp("% SZS start BatchProblems",rowstr, strlen("% SZS start BatchProblems"))) {
-        isproblemrow=1;  
+      if (!strncmp("% SZS start BatchIncludes",rowstr, strlen("% SZS start BatchIncludes"))) {
+        isincluderow=1;  
         continue;
       }
-      if (!strncmp("% SZS end BatchProblems",rowstr, strlen("% SZS end BatchProblems"))) {
+      if (!strncmp("% SZS end BatchIncludes",rowstr, strlen("% SZS end BatchIncludes"))) {
         break;
       }
-      if (!isproblemrow || strlen(rowstr)<2) continue;      
-      //printf("problem %d %s",i,rowstr);
-      len=strlen(rowstr);
-      if (len>900) continue;
-      seppos=0;
-      for(j=0;j<len;j++) {
-        if (rowstr[j]==' ' && !seppos) {
-          seppos=j;
-          //break;
-        }        
-        if (rowstr[j]=='\r') rowstr[j]=0; 
-        if (rowstr[j]=='\n') rowstr[j]=0;      
-      }      
-      len=strlen(rowstr);
+      if (isincluderow && strlen(rowstr)>1 && rowstr[0]!='%') {
+        printf("%s",rowstr);
+        // -- st                 
+        wr_make_batch_axiom_fullname(rowstr,probfullname,batchfilename,formulation);
+        //printf("\nprobname |%s| probfullname |%s|\n",
+        //  rowstr,probfullname);
+        printf("\nreading %s\n",probfullname);
+        err = wg_import_otter_file(shmptr,probfullname,1,&informat);    
+        if(!err) {
+          printf("Data parsed into the memory db.\n");
+        } else if(err<-1) {
+          err_printf("problem reading otter file, data may be partially"\
+            " imported");
+        } else {
+          //err_printf("reading failed");
+          //wg_delete_local_database(shmptr);
+          //return(1);
+          continue;
+        }
+        // -- ed
+      }  
+    }
+    tmp=init_shared_database(shmptr,NULL);
+    //shmptr=wg_attach_existing_database("1000");
+    //wr_show_database_details(NULL,shmptr,"shmptr");
+    if (tmp<0) {
+      err_printf("db creation failed");   
+      return(1);
+    }  
+    printf("Db ready.\n");
+    //wr_show_database_details(NULL,shmptr,"shmptr");
 
-      if (!seppos) continue;
-      memcpy(probname,rowstr,seppos);
-      probname[seppos]=0;
-      memcpy(outname,rowstr+seppos+1,(len-seppos)-1);
-      outname[(len-seppos)-1]=0;    
-      *outfullname=0;
-      strcat(outfullname,outfoldername); 
-      strcat(outfullname,"/");
-      strcat(outfullname,outname);   
-      wr_make_batch_prob_fullname(probname,probfullname,batchfilename);
-      //printf("\nprobname |%s| outname |%s| probfullname |%s| outfullname |%s|\n",
-      //    probname,outname,probfullname,outfullname);
-      printf("%% SZS status Started for %s\n",probfullname);  
-      //shmptr=NULL;
-      shmsize2=100000000;        
-            
-  #ifdef SHOWTIME      
-      printf("\nto wg_attach_local_database_with_kb with shmptr %ld\n",
-        (unsigned long int)((gint)shmptr));
-      gkc_show_cur_time();
-  #endif      
-      //shmptrlocal=wg_attach_local_database_with_kb(shmsize2,(void*)shmptr);
-      //shmptrlocal=wg_attach_local_database(shmsize2);
-      shmptrlocal=wg_attach_local_database_with_kb(shmsize2,(void*)shmptr);
-      if(!shmptrlocal) {
-        //err_printf("failed to attach local database");
-        wr_output_batch_prob_failure(probfullname,outfullname,"Error");       
-        continue;
-      }
-      err = wg_import_otter_file(shmptrlocal,probfullname,0,&informat);    
-      if(!err) {
-        //printf("Data read from %s.\n",cmdfiles[1]);
-      } else if(err<-1) {  
-        wr_output_batch_prob_failure(probfullname,outfullname,"Error");     
-        continue;
-      } else {
-        wr_output_batch_prob_failure(probfullname,outfullname,"Error");     
-        continue; 
-      }     
-      //wg_show_database(shmptrlocal);
-      //wr_show_database_details(NULL,shmptrlocal,"shmptrlocal");
-      //printf("about to call wg_run_reasoner\n");
-      cmdfiles[1]=probfullname;
-      stratstr=strats[iteration];
-      //printf("\nto use strategy \n%s\n",stratstr);
-      err = wg_run_reasoner(shmptrlocal,2,cmdfiles,informat,outfullname,stratstr);
-      //err = wg_run_reasoner(shmptrlocal,2,cmdfiles,informat,NULL);
-      //wg_show_database(shmptr);
-      if(!err) {
-        //printf("wg_run_reasoner finished ok.\n");
-        printf("%% SZS status Theorem for %s\n",probfullname);
-        rows[i]=NULL;
-        wg_delete_local_database(shmptrlocal);
-        printf("%% SZS status Ended for %s\n",probfullname);
-        continue;
-      } else {
-        wg_delete_local_database(shmptrlocal);
-        wr_output_batch_prob_failure(probfullname,outfullname,"Timeout");     
-        continue;
-      }              
-    } // iteration over all problems ended
-  }  // iteration over all strategies ended
-  return(1);  
+
+    // includes are read, proceed to strategy and problems
+
+    // strategy
+    
+    make_ltb_guide(NULL,strats,10);
+
+    // problems
+
+    //printf("\nproblems:\n");
+
+    if (formulation==1) maxiteration=2;
+    else maxiteration=4;
+    for(iteration=0;iteration<maxiteration;iteration++) {
+      // next run over all the problems
+      isproblemrow=0;
+      for(i=0;i<rowcount;i++) {
+        rowstr=rows[i];
+        if (!rowstr) continue;    
+        if (!strncmp("% SZS start BatchProblems",rowstr, strlen("% SZS start BatchProblems"))) {
+          isproblemrow=1;  
+          continue;
+        }
+        if (!strncmp("% SZS end BatchProblems",rowstr, strlen("% SZS end BatchProblems"))) {
+          break;
+        }
+        if (!isproblemrow || strlen(rowstr)<2) continue;      
+        //printf("problem %d %s",i,rowstr);
+        len=strlen(rowstr);
+        if (len>900) continue;
+        seppos=0;
+        for(j=0;j<len;j++) {
+          if (rowstr[j]==' ' && !seppos) {
+            seppos=j;
+            //break;
+          }        
+          if (rowstr[j]=='\r') rowstr[j]=0; 
+          if (rowstr[j]=='\n') rowstr[j]=0;      
+        }      
+        len=strlen(rowstr);
+
+        if (!seppos) continue;
+        memcpy(probname,rowstr,seppos);
+        probname[seppos]=0;
+        memcpy(outname,rowstr+seppos+1,(len-seppos)-1);
+        outname[(len-seppos)-1]=0;    
+        *outfullname=0;
+        strcat(outfullname,outfoldername); 
+        strcat(outfullname,"/");
+        strcat(outfullname,outname);   
+        wr_make_batch_prob_fullname(probname,probfullname,batchfilename,formulation);
+        //printf("\nprobname |%s| outname |%s| probfullname |%s| outfullname |%s|\n",
+        //    probname,outname,probfullname,outfullname);
+        printf("%% SZS status Started for %s\n",probfullname);  
+        //shmptr=NULL;
+        shmsize2=100000000;        
+              
+    #ifdef SHOWTIME      
+        printf("\nto wg_attach_local_database_with_kb with shmptr %ld\n",
+          (unsigned long int)((gint)shmptr));
+        gkc_show_cur_time();
+    #endif      
+        //shmptrlocal=wg_attach_local_database_with_kb(shmsize2,(void*)shmptr);
+        //shmptrlocal=wg_attach_local_database(shmsize2);
+        shmptrlocal=wg_attach_local_database_with_kb(shmsize2,(void*)shmptr);
+        if(!shmptrlocal) {
+          //err_printf("failed to attach local database");
+          wr_output_batch_prob_failure(probfullname,outfullname,"Error");       
+          continue;
+        }
+        err = wg_import_otter_file(shmptrlocal,probfullname,0,&informat);    
+        if(!err) {
+          //printf("Data read from %s.\n",cmdfiles[1]);
+        } else if(err<-1) {  
+          wr_output_batch_prob_failure(probfullname,outfullname,"Error");     
+          continue;
+        } else {
+          wr_output_batch_prob_failure(probfullname,outfullname,"Error");     
+          continue; 
+        }     
+        //wg_show_database(shmptrlocal);
+        //wr_show_database_details(NULL,shmptrlocal,"shmptrlocal");
+        //printf("about to call wg_run_reasoner\n");
+        cmdfiles[1]=probfullname;
+        stratstr=strats[iteration];
+        //printf("\nto use strategy \n%s\n",stratstr);
+        err = wg_run_reasoner(shmptrlocal,2,cmdfiles,informat,outfullname,stratstr);
+        //err = wg_run_reasoner(shmptrlocal,2,cmdfiles,informat,NULL);
+        //wg_show_database(shmptr);
+        if(!err) {
+          //printf("wg_run_reasoner finished ok.\n");
+          printf("%% SZS status Theorem for %s\n",probfullname);
+          rows[i]=NULL;
+          wg_delete_local_database(shmptrlocal);
+          printf("%% SZS status Ended for %s\n",probfullname);
+          continue;
+        } else {
+          wg_delete_local_database(shmptrlocal);
+          wr_output_batch_prob_failure(probfullname,outfullname,"Timeout");     
+          continue;
+        }              
+      } // iteration over all problems ended
+    }  // iteration over all strategies ended
+    wg_delete_local_database(shmptr);
+  } // iteration over formulations ended   
+    return(1);  
 }
 
-void wr_make_batch_axiom_fullname(char* probname, char* probfullname, char* batchname) {
+void wr_make_batch_axiom_fullname(char* probname, char* probfullname, char* batchname, int formulation) {
   int i,j,len,tmp;
   char *lastslash = NULL;
   char *p;
@@ -1277,12 +1286,16 @@ void wr_make_batch_axiom_fullname(char* probname, char* probfullname, char* batc
       continue;
     }  
     probfullname[j++]='+';
-    probfullname[j++]='1';   
+    if(formulation==1) {
+      probfullname[j++]='1';
+    } else {
+      probfullname[j++]='2';
+    }    
   }
   probfullname[j]=0;
 }
 
-void wr_make_batch_prob_fullname(char* probname, char* probfullname, char* batchname) {
+void wr_make_batch_prob_fullname(char* probname, char* probfullname, char* batchname, int formulation) {
   int i,j,len;
   char *lastslash = NULL;
   char *p;
@@ -1303,7 +1316,11 @@ void wr_make_batch_prob_fullname(char* probname, char* probfullname, char* batch
       continue;
     }  
     probfullname[j++]='+';
-    probfullname[j++]='1';
+    if(formulation==1) {
+      probfullname[j++]='1';
+    } else {
+      probfullname[j++]='2';
+    }     
   }
   probfullname[j]=0;
 }
