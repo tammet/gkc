@@ -1162,7 +1162,7 @@ int gkc_ltb_main(int argc, char **argv) {
     //printf("\nproblems:\n");
 
     if (formulation==1) maxiteration=2;
-    else maxiteration=4;
+    else maxiteration=4; //4;
     for(iteration=0;iteration<maxiteration;iteration++) {
       // next run over all the problems
       isproblemrow=0;
@@ -1236,6 +1236,7 @@ int gkc_ltb_main(int argc, char **argv) {
         cmdfiles[1]=probfullname;
         stratstr=strats[iteration];
         //printf("\nto use strategy \n%s\n",stratstr);
+        //printf("\n outfullname |%s|\n",outfullname);
         err = wg_run_reasoner(shmptrlocal,2,cmdfiles,informat,outfullname,stratstr);
         //err = wg_run_reasoner(shmptrlocal,2,cmdfiles,informat,NULL);
         //wg_show_database(shmptr);

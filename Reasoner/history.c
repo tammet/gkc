@@ -1118,7 +1118,10 @@ int wr_show_result(glb* g, gint history) {
     return -1;
   }   
 
-  if (!wr_str_guarantee_space(g,&buf,&blen,bpos+100)) return -1;
+  if (!wr_str_guarantee_space(g,&buf,&blen,bpos+100)) {
+    if (buf) wr_free(g,buf);
+    return -1;
+  }  
   if (((g->answers)[1])<=2) {
     // no results
     if (g->print_json) {
@@ -1126,6 +1129,7 @@ int wr_show_result(glb* g, gint history) {
     } else {
       bpos+=snprintf(buf+bpos,blen-bpos,"\nresult: unknown\n");
     }  
+    if (buf) wr_free(g,buf);
     return 0;
   } 
   // here we have some results
@@ -1154,19 +1158,28 @@ int wr_show_result(glb* g, gint history) {
     }
     // first check if answer present    
     if ((gptr)((g->answers)[ansnr])!=NULL) {
-      if (!wr_str_guarantee_space(g,&buf,&blen,bpos+100)) return -1;
+      if (!wr_str_guarantee_space(g,&buf,&blen,bpos+100)) {
+        if (buf) wr_free(g,buf);
+        return -1;
+      }  
       if (g->print_json) {
         bpos+=snprintf(buf+bpos,blen-bpos,"{\"answer\": ");
         ans=(gptr)((g->answers)[ansnr]);
         bpos=wr_strprint_clause(g,ans,&buf,&blen,bpos);
         if (bpos<0) return bpos;
-        if (!wr_str_guarantee_space(g,&buf,&blen,bpos+100)) return -1;
+        if (!wr_str_guarantee_space(g,&buf,&blen,bpos+100)) {
+          if (buf) wr_free(g,buf);
+          return -1;
+        }  
         bpos+=snprintf(buf+bpos,blen-bpos,"},");
       } else {
         bpos+=snprintf(buf+bpos,blen-bpos,"\n\nanswer: ");
         ans=(gptr)((g->answers)[ansnr]);
         bpos=wr_strprint_clause(g,ans,&buf,&blen,bpos);
-        if (bpos<0) return bpos;
+        if (bpos<0) {
+          if (buf) wr_free(g,buf);
+          return bpos;
+        }  
       }       
     }
     // second, print proof
@@ -1176,7 +1189,10 @@ int wr_show_result(glb* g, gint history) {
      
     // create mpool 
     mpool=wg_create_mpool(db,1000000);
-    if (mpool==NULL) return -1;
+    if (mpool==NULL) {
+      if (buf) wr_free(g,buf);
+      return -1;
+    }  
     
     bpos+=snprintf(buf+bpos,blen-bpos,"\n");
     //if (!wr_hist_print(g,histstr,"\nproof:\n")) return -1;
@@ -1185,7 +1201,10 @@ int wr_show_result(glb* g, gint history) {
     htype=wg_get_encoded_type(db,history);  
     if (htype!=WG_RECORDTYPE) {
       bpos=wr_strprint_simpleterm_otter(g,history,1,&buf,&blen,bpos,0);
-      if (bpos<0) return bpos;
+      if (bpos<0) {
+        if (buf) wr_free(g,buf);
+        return bpos;
+      }  
     } else {
       wr_flatten_history(g,mpool,history,NULL,0,&clnr,&assoc);
     }  
@@ -1196,7 +1215,10 @@ int wr_show_result(glb* g, gint history) {
         "\n%% SZS output start CNFRefutation for %s",g->filename);
     } 
     bpos=wr_strprint_flat_history(g,mpool,&buf,&blen,bpos,clnr,&assoc);
-    if (bpos<0) return bpos;
+    if (bpos<0) {
+      if (buf) wr_free(g,buf);
+      return bpos;
+    }  
 
     // print last step
     snprintf(namebuf,19,"%d",clnr++);
@@ -1206,8 +1228,14 @@ int wr_show_result(glb* g, gint history) {
     } else {
       bpos=wr_strprint_one_history(g,mpool,&buf,&blen,bpos,history,NULL,namebuf,clnr-1,&assoc);
     }      
-    if (bpos<0) return bpos;
-    if (!wr_str_guarantee_space(g,&buf,&blen,bpos+10)) return -1;
+    if (bpos<0) {
+      if (buf) wr_free(g,buf);
+      return bpos;
+    }  
+    if (!wr_str_guarantee_space(g,&buf,&blen,bpos+10)) {
+      if (buf) wr_free(g,buf);
+      return -1;
+    }  
     if (g->print_json) {
       bpos+=snprintf(buf+bpos,blen-bpos,"\n]}\n]\n"); // end one answer/proof struct
     } 
@@ -1233,6 +1261,7 @@ int wr_show_result(glb* g, gint history) {
   } else {
     printf("%s",buf);
   }    
+  if (buf) wr_free(g,buf);
   return bpos;
 }
  

@@ -441,7 +441,12 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
         wr_printf("\nexiting\n");
         show_cur_time();  
 #endif              
-        return(0);
+        if (outfilename) {
+          wr_glb_free(g);
+          return(0);
+        } else {
+          return(0);
+        }  
       }
 #ifdef SHOWTIME       
       wr_printf("\nto call wr_glb_free\n");
