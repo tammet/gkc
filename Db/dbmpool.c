@@ -66,7 +66,7 @@ extern "C" {
 #define ATOMBITS 1    // memory pool convenience objects type bit for atoms (strings etc)
 
 #define MAX_MPOOL_BYTES 3000000000
-#define EXIT_ON_ERROR
+//#define EXIT_ON_ERROR
 
 
 /* ======= Private protos ================ */
@@ -193,13 +193,16 @@ void wg_free_mpool(void* db, mpool_header* mpool) {
   mpool_header* mpoolh;
 
   mpoolh=mpool;
+  if (!mpoolh) return;
   i=mpoolh->cur_subarea;
   for(;;i--) {
     //printf("\n i in loop %d",i);
     //printf("\n size %d",((mpoolh->subarea_table)[i]).size);
-    free(((mpoolh->subarea_table)[i]).area_start);
+    if (((mpoolh->subarea_table)[i]).area_start) {
+      free(((mpoolh->subarea_table)[i]).area_start);
+    }  
     if (i<=0) break;
-  }
+  }  
   free(mpoolh);
 }
 

@@ -312,13 +312,13 @@ void* wr_parse_injson_term(glb* g, cJSON* term) {
 int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, int isincluded) {
   void* db=g->db;
   parse_parm  pp;
-  char* fnamestr;  
-  FILE* fp;    
+  char* fnamestr=NULL;  
+  FILE* fp=NULL;    
   //char* buf; 
   int pres=1;
   void* preprocessed=NULL;
   void* pres2=NULL;
-  void *mpool;  
+  void *mpool=NULL;  
   int tmp_comp_funs;
   
 #ifdef DEBUG
@@ -348,7 +348,7 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, in
   if (strasfile==NULL) {  
     // input from file
     fnamestr=filename;
-    //if (fnamestr && fnamestr[0]=='#') fnamestr=fnamestr+1;
+    //if (fnamestr && fnamestr[0]=='#') fnamestr=fnamestr+1;    
 #ifdef DEBUG
     printf("\nreading from file %s\n",fnamestr);
 #endif       
@@ -378,6 +378,7 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, in
   }   
   mpool=wg_create_mpool(db,PARSER_MEMPOOL_SIZE); 
   pp.mpool=mpool;  
+  //printf("otter input:%s\n",(char*)pp.buf);
 #ifdef DEBUG  
   printf("otter input:%s\n",(char*)pp.buf);  
 #endif  
@@ -385,7 +386,7 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, in
   wg_yyotterset_extra(&pp, pp.yyscanner);
   pres=wg_yyotterparse(&pp, pp.yyscanner);   
   wg_yyotterlex_destroy(pp.yyscanner);     
-  //printf("\nwg_yyotterparse finished\n");
+  //printf("\nwg_yyotterparse finished\n");   
   DPRINTF("result: %d pp.result %s\n",pres,(char*)pp.result);  
   if (!pres && pp.result!=NULL) { 
     if ((g->print_initial_parser_result)>0) {
@@ -395,7 +396,8 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, in
     preprocessed=wr_preprocess_clauselist(g,mpool,clvec,pp.result,isincluded);
     //printf("\nwr_preprocess_clauselist finished\n");
     //preprocessed=wr_clausify_clauselist(g,mpool,clvec,pp.result);
-    pres2=wr_parse_clauselist(g,mpool,clvec,preprocessed);
+    if (!(g->parse_errflag))
+      pres2=wr_parse_clauselist(g,mpool,clvec,preprocessed); 
     //printf("\nwr_parse_clauselist finished\n");
   }
   //printf("\notterparse quitting.\n");
@@ -411,6 +413,7 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, in
   } 
   */ 
   wg_free_mpool(db,mpool);
+  if (fp) fclose(fp);
   (g->use_comp_funs)=tmp_comp_funs;
   if (pres || pres2==NULL) return 1;
   else return 0;  
@@ -491,6 +494,7 @@ void* wr_preprocess_clauselist
   // loop over clauses
   
   for(lpart=clauselist,clnr=0;wg_ispair(db,lpart);lpart=wg_rest(db,lpart),clnr++) {
+    if (g->parse_errflag) break;
     cl=wg_first(db,lpart);
 #ifdef DEBUG    
     printf("\nclause nr %d:",clnr);    
@@ -533,7 +537,10 @@ void* wr_preprocess_clauselist
 #endif      
       clrole=wg_nth(db,cl,2);
       resultclause=wr_preprocess_tptp_fof_clause(g,mpool,cl); 
-      resultclause=wg_mklist3(db,mpool,clname,clrole,resultclause);     
+      if (resultclause) {
+        resultclause=wg_mklist3(db,mpool,clname,clrole,resultclause);     
+      }  
+      if (g->parse_errflag) break;
     } else { 
       // otter clause  
 
@@ -561,6 +568,7 @@ void* wr_preprocess_clauselist
         resultclause=wg_mklist3(db,mpool,clname,clrole,resultclause);
       else
         resultclause=wg_mklist3(db,mpool,NULL,NULL,resultclause);  
+      if (g->parse_errflag) break;  
     }        
 #ifdef DEBUG
     printf("\nin wr_preprocess_clauselist resultclause:\n");
@@ -705,7 +713,7 @@ void* wr_process_tptp_import_clause(glb* g, void* mpool, void* cl) {
   char* p2;
   char* str2;
   //int tmp;
-
+ 
 #ifdef IDEBUG
   printf("\nwr_process_tptp_import_clause starts with\n");
   wg_mpool_print(db,cl); 
@@ -735,6 +743,7 @@ void* wr_process_tptp_import_clause(glb* g, void* mpool, void* cl) {
   if (lastslash!=NULL) {
     bytes=strlen(str)+strlen(g->filename)+10;
     str2=wg_alloc_mpool(db,mpool,bytes);
+    if (!str2) return NULL;
     for(p1=(g->filename), p2=str2; p1<lastslash; p1++, p2++) {
       *p2=*p1;
     }
@@ -831,6 +840,7 @@ void* wr_parse_clauselist(glb* g,void* mpool,cvec clvec,void* clauselist) {
   vardata=(char**)(wg_alloc_mpool(db,mpool,sizeof(char*)*VARDATALEN));
   if (vardata==NULL) {
     show_parse_error(db,"cannot allocate vardata in wg_parse_clauselist\n");
+    (g->parse_errflag)=1;
     return NULL;
   }  
   //vardata=(char**)(malloc(sizeof(char*)*VARDATALEN));
@@ -838,7 +848,8 @@ void* wr_parse_clauselist(glb* g,void* mpool,cvec clvec,void* clauselist) {
   propfun=wg_mkatom(db,mpool,WG_URITYPE,PROPVAR_PREDSYMB,NULL);
   // loop over clauses  
   for(lpart=clauselist,clnr=0;wg_ispair(db,lpart);lpart=wg_rest(db,lpart),clnr++) {
-    //if (clnr%10000==0) printf("clnr %d\n",clnr);
+    //if (clnr%10000==0) printf("clnr %d\n",clnr)
+    if (g->parse_errflag) break;
     clause=wg_first(db,lpart);  
     if (!wg_ispair(db,clause)) {
       name=NULL;
@@ -847,6 +858,7 @@ void* wr_parse_clauselist(glb* g,void* mpool,cvec clvec,void* clauselist) {
     } else {
       if (wg_list_len(db,clause)!=3) {
         show_parse_error(db,"clause in wg_parse_clauselist not a triple\n");
+        (g->parse_errflag)=1;
         return NULL;
       }
       name=wg_nth(db,clause,0);
@@ -876,6 +888,7 @@ void* wr_parse_clauselist(glb* g,void* mpool,cvec clvec,void* clauselist) {
       cell=alloc_listcell(db);
       if (!cell) {
         show_parse_error(db,"\nfailed to allocate a cell\n");
+        (g->parse_errflag)=1;
         return NULL;
       }  
       cellptr = (gcell *) offsettoptr(db, cell);
@@ -886,6 +899,7 @@ void* wr_parse_clauselist(glb* g,void* mpool,cvec clvec,void* clauselist) {
       resultlist=wg_mkpair(db,mpool,record,resultlist); // not really needed!!
       if (!resultlist) {
         show_parse_error(db,"\nfailed to add a clause to resultlist\n");
+        (g->parse_errflag)=1;
         return NULL;
       }
       // if clvec present, store record to clvec, given enough space
@@ -933,11 +947,11 @@ void* wr_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
 #endif      
     //return NULL;
   }  
-  
   // examine clause: find clause length and check if simple clause    
   issimple=1;
   litnr=0;
   for(clpart=cl;wg_ispair(db,clpart);clpart=wg_rest(db,clpart),litnr++) {
+    if (g->parse_errflag) return NULL;
     lit=wg_first(db,clpart); 
 #ifdef DEBUG      
     printf("\nlit: ");
@@ -978,6 +992,7 @@ void* wr_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
   }      
   // process one clause
   for(clpart=cl,litnr=0;wg_ispair(db,clpart);clpart=wg_rest(db,clpart),litnr++) {      
+    if (g->parse_errflag) return NULL;
     lit=wg_first(db,clpart);
 #ifdef DEBUG    
     printf("\nlit nr  %d:",litnr);    
@@ -1053,11 +1068,11 @@ void* wr_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
     DPRINTF("atom isneg %d: ",isneg);
     wg_mpool_print(db,atom);
 #endif      
-    
     // parse an atom in the clause
     atomres=wr_parse_atom(g,mpool,atom,isneg,issimple,vardata); 
     if (atomres==NULL) {
       show_parse_error(db,"problem converting an atom to record");
+      (g->parse_errflag)=1;
       //free(vardata);
       return NULL;        
     }
@@ -1077,7 +1092,7 @@ void* wr_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
       tmpres2=wg_encode_record(db,atomres);
       setres2=wr_set_rule_clause_atom(g,record,litnr,tmpres2);
       if (setres!=0 || setres2!=0) {
-        wg_delete_record(db,atomres);
+        // wg_delete_record(db,atomres); // might leak memory
         free(vardata);
         return NULL; 
       }   
@@ -1085,7 +1100,6 @@ void* wr_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
           
   } // end one clause processing loop
   // set history 
-
   if (name && wg_isatom(db,name) && wg_atomtype(db,name)==WG_URITYPE) {
     namestr=wg_atomstr1(db,name);
     if (!(namestr[0])) namestr=NULL;    
@@ -1154,13 +1168,13 @@ void* wr_parse_atom(glb* g,void* mpool,void* term, int isneg, int issimple, char
     else if (wg_atomtype(db,subterm)==WG_VARTYPE) vartcount++;
   }  
   // create data record
- 
   record=wr_create_atom(g,termnr); 
   if (((gint)record)==0) {
     return NULL;
   }  
   // fill data record and do recursive calls for subterms
   for(termpart=term,termnr=0;wg_ispair(db,termpart);termpart=wg_rest(db,termpart),termnr++) {
+    if (g->parse_errflag) return NULL;
     term=wg_first(db,termpart);
     
 #ifdef DEBUG    
@@ -1172,14 +1186,14 @@ void* wr_parse_atom(glb* g,void* mpool,void* term, int isneg, int issimple, char
       DPRINTF("term nr %d is primitive \n",termnr); 
       tmpres2=wr_parse_primitive(g,mpool,term,vardata,termnr);    
       if (!tmpres2 || tmpres2==WG_ILLEGAL) {
-        wg_delete_record(db,record);
+        //wg_delete_record(db,record); // might leak memory
         return NULL;
       }  
     } else {
       DPRINTF("term nr %d is nonprimitive \n",termnr);
       tmpres=wr_parse_term(g,mpool,term,vardata);
       if (tmpres==NULL) {
-        wg_delete_record(db,record);
+        // wg_delete_record(db,record); // might leak memory
         return NULL;
       }       
       tmpres2=wg_encode_record(db,tmpres);       
@@ -1187,7 +1201,7 @@ void* wr_parse_atom(glb* g,void* mpool,void* term, int isneg, int issimple, char
     if (!tmpres2 || tmpres2==WG_ILLEGAL) return NULL;        
     setres=wr_set_kb_atom_subterm(g,record,termnr,tmpres2);    
     if (setres!=0) {
-      wg_delete_record(db,record);
+      // wg_delete_record(db,record); // might leak memory
       return NULL; 
     }  
   }    
@@ -1218,7 +1232,6 @@ void* wr_parse_term(glb* g,void* mpool,void* term, char** vardata) {
 #endif
   
   // examine term
-  
   termnr=0;
   deeptcount=0;
   vartcount=0;
@@ -1227,7 +1240,6 @@ void* wr_parse_term(glb* g,void* mpool,void* term, char** vardata) {
     if (subterm!=NULL && wg_ispair(db,subterm)) deeptcount++;      
     else if (wg_atomtype(db,subterm)==WG_VARTYPE) vartcount++;
   }  
-  
   // create data record
   record=wr_create_term(g,termnr);   
   if (((gint)record)==0) {
@@ -1238,6 +1250,7 @@ void* wr_parse_term(glb* g,void* mpool,void* term, char** vardata) {
   // fill data record and do recursive calls for subterms
   
   for(termpart=term,termnr=0;wg_ispair(db,termpart);termpart=wg_rest(db,termpart),termnr++) {
+    if (g->parse_errflag) return NULL;
     term=wg_first(db,termpart);
 #ifdef DEBUG    
     //DPRINTF("\nterm nr  %d:",termnr);    
@@ -1248,14 +1261,14 @@ void* wr_parse_term(glb* g,void* mpool,void* term, char** vardata) {
       DPRINTF("term nr %d is primitive \n",termnr); 
       tmpres2=wr_parse_primitive(g,mpool,term,vardata,termnr);    
       if (tmpres2==WG_ILLEGAL) { 
-        wg_delete_record(db,record);
+        //wg_delete_record(db,record); // might leak memory !!
         return NULL;
       }  
     } else {     
       DPRINTF("term nr %d is nonprimitive \n",termnr);
       tmpres=wr_parse_term(g,mpool,term,vardata);
       if (tmpres==NULL) {
-        wg_delete_record(db,record);
+        //wg_delete_record(db,record); // might leak memory !!
         return NULL;
       } 
       tmpres2=wg_encode_record(db,tmpres);  
@@ -1264,7 +1277,7 @@ void* wr_parse_term(glb* g,void* mpool,void* term, char** vardata) {
     //setres=wr_set_term_subterm(g,record,termnr,tmpres2);
     setres=wr_set_kb_term_subterm(g,record,termnr,tmpres2);
     if (setres!=0) {
-      wg_delete_record(db,record);
+      //wg_delete_record(db,record); // might leak memory !!
       return NULL; 
     }  
   }    
@@ -1583,9 +1596,10 @@ static int show_parse_error(void* db, char* format, ...) {
   va_list args;
   va_start (args, format);
   printf("*** Parser error: ");
-  vprintf (format, args);
+  vprintf (format, args);  
   va_end (args);
-  exit(1);
+  printf("\n");
+  //exit(1);
   return -1;  
 }
 
@@ -1595,6 +1609,7 @@ static int show_parse_warning(void* db, char* format, ...) {
   printf("*** Parser warning: ");
   vprintf (format, args);
   va_end (args);
+  printf("\n");
   return -1;
 }
 

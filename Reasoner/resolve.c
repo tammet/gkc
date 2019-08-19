@@ -106,7 +106,7 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active, cvec resol
   wr_print_vardata(g);
 #endif  
   // get clause data for input clause
-       
+  
   ruleflag=wg_rec_is_rule_clause(db,cl);
   if (ruleflag) len = wg_count_clause_atoms(db, cl);
   else len=1;  
@@ -118,7 +118,7 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active, cvec resol
 #endif  
   // loop over literals
   resolvedliterals=0;
-  for(i=0; i<len; i++) {      
+  for(i=0; i<len; i++) {     
     if ((g->queryfocus_strat) && resolvedliterals) break;    
     negflag=0;
     if (!ruleflag) {
@@ -201,7 +201,7 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active, cvec resol
 #ifdef SIMPLE_ACTIVE_SEARCH_HASH
         for(plen=0;plen<1;plen++) {          
 #else        
-        for(plen=0;plen<ATOM_PREFHASH_MAXLEN;plen++) {   
+        for(plen=0;plen<ATOM_PREFHASH_MAXLEN;plen++) { 
           if (preflen==1) {
             //p(X,Z):
             //p with fullpreflen 1
@@ -232,7 +232,7 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active, cvec resol
           wr_printf("\n looking for hash %ld for plen %d preflen %d\n",hash,plen,preflen);
 #endif
 
-          //wr_clterm_hashlist_print(g,hashvec);       
+          //wr_clterm_hashlist_print(g,hashvec);     
           hlen=wr_clterm_hashlist_len(g,hashvec,hash);
           if (hlen==0) {
     #ifdef DEBUG        

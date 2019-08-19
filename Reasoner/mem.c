@@ -89,7 +89,7 @@ void wr_free(glb* g, void* p) {
   wr_printf("\nwr_free\n");
 #endif  
   if (g->inkb) wr_inkb_free(g,p);
-  else sys_free(p);
+  else { if(p) sys_free(p); };
   return;  
 }
 

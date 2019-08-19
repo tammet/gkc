@@ -1289,7 +1289,7 @@ void make_ltb_guide(glb* g, char** strats, int stratscount) {
     secs=5;
     buf=(char*)malloc(10000);  
     pref="{\n"
-        "\"print_level\": 5,\n"; 
+        "\"print_level\":  5,\n"; 
     pos=sprintf(buf,"%s",pref);
     pos+=sprintf(buf+pos,"\"runs\":[\n");
     pos+=sprintf(buf+pos,

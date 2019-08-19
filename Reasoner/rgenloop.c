@@ -187,7 +187,6 @@ int wr_genloop(glb* g) {
       given_from_hyperqueue_flag=1;
       (g->stat_given_candidates_hyper)++;
     }
-
     if (!picked_given_cl_cand && !(g->stat_given_candidates)) {
        if ((g->print_flag) && (g->print_runs)) wr_printf("No candidate clauses found.\n");
        if (wr_have_answers(g)) return 0;
@@ -246,7 +245,6 @@ int wr_genloop(glb* g) {
     }   
     wr_calc_clause_meta(g,given_cl_cand,given_cl_metablock);
     // -- check part 1 starts ---
-    
     if ((gint)given_cl_cand==ACONST_FALSE) {
       wr_printf("\nggiven_cl_cand is ACONST_FALSE\n");
       continue;
@@ -257,7 +255,6 @@ int wr_genloop(glb* g) {
     }
 
     // -- check part 1 ends ---
-
 
     if (wr_given_cl_subsumed(g,given_cl_cand,given_cl_metablock)) {
 #ifdef DEBUG
@@ -280,7 +277,6 @@ int wr_genloop(glb* g) {
       continue;
     }
     // -- check part 2 ends ---
-
 #ifdef RECORD_HISTORY_ORDER
     wr_set_history_record_given_order(g,
       rotp(g,wr_get_history(g,given_cl)));  
@@ -301,7 +297,6 @@ int wr_genloop(glb* g) {
       }
     }
     //if ((g->stat_given_used)>233) return; //223
-    
     //printf("\nmetablock2 %d %d %d %d \n",*given_cl_metablock,*(given_cl_metablock+1),*(given_cl_metablock+2),*(given_cl_metablock+3));
     // optionally do backsubsumption
     if (g->back_subsume) wr_given_cl_backsubsume(g,given_cl,given_cl_metablock);
@@ -316,7 +311,6 @@ int wr_genloop(glb* g) {
     }  
     //wr_print_clause_hardnesses(g,given_cl); 
 
-    
     if (given_from_hyperqueue_flag) {
       // make an active clause from partial hyper
       //printf("\n from hyperqueue\n");
@@ -338,7 +332,6 @@ int wr_genloop(glb* g) {
       if (g->alloc_err) return -1;
       continue; 
     }    
-
     // do factorizations with the given clause
     if (!(g->hyperres_strat) || (g->relaxed_hyperres_strat) || wr_hyperres_satellite_cl(g,given_cl)) { //(!(g->instgen_strat))  {
       wr_factor(g,given_cl,given_cl_as_active);
@@ -346,13 +339,12 @@ int wr_genloop(glb* g) {
     if (g->alloc_err) return -1;
     // resolve with equality reflexive atom X=X
 
-    
     if (g->use_equality) {
       wr_resolve_equality_reflexive(g,given_cl,given_cl_as_active); 
     }      
     if ((g->proof_found) && wr_enough_answers(g)) return 0;
     if (g->alloc_err) return -1;  
-    
+
     // do all resolutions with the given clause
     // normal case: active loop is done inside the wr_resolve_binary_all_active    
     wr_resolve_binary_all_active(g,given_cl,given_cl_as_active,(g->tmp_resolvability_vec)); 

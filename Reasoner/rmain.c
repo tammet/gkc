@@ -604,8 +604,9 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
     } 
     if (g->alloc_err) {
       wr_errprint("\nbuffer overflow, terminating\n");
-      wr_show_stats(g,1);      
-      exit(0);
+      //wr_show_stats(g,1);      
+      //exit(0);
+      return 0;
     }     
     
     //wr_print_clause(g,rec);

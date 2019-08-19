@@ -420,7 +420,7 @@ void* wg_attach_local_database(gint size) {
 #ifdef USE_REASONER
 
 void* wg_attach_local_database_with_kb(gint size, void* kb) {
-  void* shm;
+  void* shm=NULL;
 
   //printf("\nwg_attach_local_database_with_kb called\n");
 #ifdef USE_DATABASE_HANDLE

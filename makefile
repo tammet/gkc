@@ -18,6 +18,7 @@
 # - look at the result: less res.txt
 
 CC = gcc
+#CFLAGS = -O2 -Wall -g # -Wmissing-field-initializers 
 CFLAGS = -O2 -Wall -static # -Wmissing-field-initializers 
 #CFLAGS = -O2 -Wall -pg # -Wmissing-field-initializers 
 LIBS = -lm

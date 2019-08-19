@@ -625,13 +625,13 @@ int wr_glb_init_local_complex(glb* g) {
   //(g->pick_given_queue_ratio_counter)=0;
   
   (g->prop_file_name)=wr_str_new(g,100);
-  strncpy((g->prop_file_name),DEFAULT_PROP_FILE_NAME,99);
+  if (g->prop_file_name) strncpy((g->prop_file_name),DEFAULT_PROP_FILE_NAME,99);
  
   (g->prop_solver_name)=wr_str_new(g,100);
-  strncpy((g->prop_solver_name),DEFAULT_PROP_SOLVER_NAME,99);
+  if (g->prop_solver_name) strncpy((g->prop_solver_name),DEFAULT_PROP_SOLVER_NAME,99);
 
   (g->prop_solver_outfile_name)=wr_str_new(g,100);
-  strncpy((g->prop_solver_outfile_name),DEFAULT_PROP_SOLVER_OUTFILE_NAME,99);
+  if (g->prop_solver_outfile_name) strncpy((g->prop_solver_outfile_name),DEFAULT_PROP_SOLVER_OUTFILE_NAME,99);
 
   if ((g->alloc_err)==1) {
     return 1;

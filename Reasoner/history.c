@@ -635,7 +635,8 @@ void wr_show_history(glb* g, gint history) {
   if (!(g->store_history)) return;
   
   mpool=wg_create_mpool(db,1000000);
-  wr_printf("\nproof:\n");
+  if (!mpool) return;
+  //wr_printf("\nproof:\n");
   htype=wg_get_encoded_type(db,history);  
   if (htype!=WG_RECORDTYPE) {
     wr_print_simpleterm_otter(g,history,1);
@@ -651,7 +652,7 @@ void wr_show_history(glb* g, gint history) {
   } else {
     wr_print_one_history(g,mpool,history,NULL,namebuf,clnr-1,&assoc);
   }    
-  wr_printf("\n\n");
+  //wr_printf("\n\n");
  
   wg_free_mpool(db,mpool);
 }
@@ -733,6 +734,7 @@ int wr_flatten_history_addcl(glb* g, void* mpool, gint cl, int* clnr, void **ass
     snprintf(namebuf,19,"%d",(*clnr)++);
     //n=wg_mklist2(db,mpool,wg_mkatom(db,mpool,WG_STRTYPE,namebuf,NULL),(*clnr)-1);
     n=wg_mklist2(db,mpool,wg_mkatom(db,mpool,WG_STRTYPE,namebuf,NULL),(void *)(gint)((*clnr)-1));
+    if (!n) return 0;
     newassoc=wg_add_assoc(db,mpool,(void *)cl,n,*assoc);
     if (!newassoc) return 0;
     *assoc=newassoc;
@@ -1100,7 +1102,7 @@ int wr_show_result(glb* g, gint history) {
   void* db=g->db;
   int htype;
   void* assoc=NULL;
-  void* mpool;
+  void* mpool=NULL;
   int clnr=1;
   char namebuf[20];
   gptr ans;
@@ -1109,6 +1111,10 @@ int wr_show_result(glb* g, gint history) {
   FILE* outfile;
 
   // create buf for printing
+
+  if ((g->print_level_flag)>=15) {
+      printf("\nto build proof\n");
+  }
 
   namebuf[0]=0;
   blen=1000;
@@ -1216,7 +1222,10 @@ int wr_show_result(glb* g, gint history) {
     } 
     bpos=wr_strprint_flat_history(g,mpool,&buf,&blen,bpos,clnr,&assoc);
     if (bpos<0) {
-      if (buf) wr_free(g,buf);
+      if (buf) { 
+        wr_free(g,buf);
+        if (mpool) wg_free_mpool(db,mpool);
+      }  
       return bpos;
     }  
 
@@ -1229,18 +1238,24 @@ int wr_show_result(glb* g, gint history) {
       bpos=wr_strprint_one_history(g,mpool,&buf,&blen,bpos,history,NULL,namebuf,clnr-1,&assoc);
     }      
     if (bpos<0) {
-      if (buf) wr_free(g,buf);
+      if (buf) { 
+        wr_free(g,buf);
+        if (mpool) wg_free_mpool(db,mpool);
+      }
       return bpos;
     }  
     if (!wr_str_guarantee_space(g,&buf,&blen,bpos+10)) {
-      if (buf) wr_free(g,buf);
+      if (buf) { 
+        wr_free(g,buf);
+        if (mpool) wg_free_mpool(db,mpool);
+      }
       return -1;
     }  
     if (g->print_json) {
       bpos+=snprintf(buf+bpos,blen-bpos,"\n]}\n]\n"); // end one answer/proof struct
     } 
 
-    wg_free_mpool(db,mpool); 
+    if (mpool) wg_free_mpool(db,mpool); 
   }
   if (g->print_json) {
     bpos+=snprintf(buf+bpos,blen-bpos,"]}\n"); // end all answers
@@ -1258,6 +1273,9 @@ int wr_show_result(glb* g, gint history) {
       fprintf(outfile,"%s",buf);
       fclose(outfile);
     }  
+    if ((g->print_level_flag)>=15) {
+      printf("\nproof printed\n");
+    }
   } else {
     printf("%s",buf);
   }    

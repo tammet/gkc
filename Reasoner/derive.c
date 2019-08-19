@@ -37,6 +37,8 @@ extern "C" {
 
 /* ====== Private defs =========== */
 
+#define HARD_DEPTH_LIMIT 10000
+#define HARD_SIZE_LIMIT 10000
 
 //#define DEBUG
 //#undef DEBUG
@@ -162,7 +164,6 @@ void wr_process_resolve_result
   } 
 
   // check subsumption and cutoff
-  
   if (g->print_derived_precut_cl) {
     wr_printf("\nc pre-cut derived by mp: ");
     wr_print_halfbuilt_clause(g,rptr,rpos);
@@ -226,7 +227,6 @@ void wr_process_resolve_result
   // check whether should be stored as a ruleclause or not
   ruleflag=wr_process_resolve_result_isrulecl(g,rptr,rpos);  
   // create new record
-  
   if ((g->hyperres_strat) &&  !wr_hyperres_satellite_tmpres(g,rptr,rpos)){
     // must still cut something off: not fully finished hyperres
     //partialresflag=1;      
@@ -1470,6 +1470,9 @@ int wr_derived_weight_check(glb* g, double avg, int weight,  int size, int depth
   // first immediate weight limits
   //printf(" avg %f ",avg);
   //printf("\n weight %d size %d depth %d length %d \n",weight,size,depth,length);
+
+  if (depth>HARD_DEPTH_LIMIT) return 0;
+  if (size>HARD_SIZE_LIMIT) return 0;
 
   if ((g->cl_keep_weightlimit) && weight>(g->cl_keep_weightlimit)) return 0;
   if ((g->cl_keep_sizelimit) && size>(g->cl_keep_sizelimit)) return 0;
