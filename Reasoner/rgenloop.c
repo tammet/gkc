@@ -108,6 +108,16 @@ int wr_genloop(glb* g) {
 #endif  
   UNUSED(db);
 
+  /*
+  int *ptr;
+  ptr=0;
+  *ptr=100;
+  ptr=malloc(10000000);
+  free(ptr);
+  free(ptr);
+  free(ptr);
+  */
+
   //printf("\n** clactivesubsume data from external:\n"); 
   //wr_show_clactivesubsume(r_kb_g(g));
 

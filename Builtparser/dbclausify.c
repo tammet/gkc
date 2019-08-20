@@ -93,6 +93,7 @@ void* wr_clausify_formula(glb* g, void* mpool, void* frm) {
   wg_mpool_print(db,frm); 
   printf("\n");
 #endif
+  if (g->parse_errflag) return NULL;
   if (wg_isatom(db,frm)) {
     // constant
     return frm;
@@ -114,12 +115,14 @@ void* wr_clausify_formula(glb* g, void* mpool, void* frm) {
   }
   // here we have a logical formula with head being connector
   res=wr_clausify_negpush(g,mpool,frm,1);
+  if (g->parse_errflag) return NULL;
 #ifdef TDEBUG  
   printf("\nwr_clausify_negpush ending with res\n");  
   wg_mpool_print(db,res); 
   printf("\n\n");
 #endif
   res=wr_clausify_miniscope(g,mpool,res);
+  if (g->parse_errflag) return NULL;
 #ifdef TDEBUG  
   printf("\nwr_clausify_miniscope ending with res\n");  
   wg_mpool_print(db,res); 
@@ -127,12 +130,14 @@ void* wr_clausify_formula(glb* g, void* mpool, void* frm) {
 #endif 
   //exit(0);
   res=wr_clausify_skolemize(g,mpool,res,NULL,&varnr);
+  if (g->parse_errflag) return NULL;
 #ifdef TDEBUG  
   printf("\nwr_clausify_skolemize ending with res and varnr %d sknr %d\n",varnr,g->parse_skolem_nr);  
   wg_mpool_print(db,res); 
   printf("\nstarting to distribute\n");
 #endif
   res=wr_clausify_distribute(g,mpool,res,&defs,0);
+  if (g->parse_errflag) return NULL;
 #ifdef TDEBUG
   printf("\nwr_clausify_formula ending with res\n");  
   wg_mpool_print(db,res); 
@@ -227,10 +232,10 @@ void* wr_clausify_negpush(glb* g, void* mpool, void* frm, int sign) {
       arg=wg_first(db,part);
       tmp=wr_clausify_negpush(g,mpool,arg,sign);
       res=wg_mkpair(db,mpool,tmp,res);
-      if (!tmp || !res) return show_clausify_warning(db,"could not create a pair");
+      if (!tmp || !res) return show_clausify_warning(g,"could not create a pair");
     }
     res=wg_mkpair(db,mpool,newop,res);
-    if (!newop || !res) return show_clausify_warning(db,"could not create a pair");
+    if (!newop || !res) return show_clausify_warning(g,"could not create a pair");
     return res;
   } else if (wg_islogimp(db,op)) {
     // op is =>
@@ -247,11 +252,11 @@ void* wr_clausify_negpush(glb* g, void* mpool, void* frm, int sign) {
         // not a last elem: implication argument
         tmp=wr_clausify_negpush(g,mpool,arg,!sign);        
         res1=wg_mkpair(db,mpool,tmp,res1);
-        if (!tmp || !res1) return show_clausify_warning(db,"could not create a pair");             
+        if (!tmp || !res1) return show_clausify_warning(g,"could not create a pair");             
       }     
     }  
     res=wg_mkpair(db,mpool,newop,res1);
-    if (!newop || !tmp || !res || !res1) return show_clausify_warning(db,"could not create a pair");
+    if (!newop || !tmp || !res || !res1) return show_clausify_warning(g,"could not create a pair");
     return res;
   } else if (wg_islogall(db,op) || wg_islogexists(db,op)) {
     // op is a quantifer all or exists
@@ -263,7 +268,7 @@ void* wr_clausify_negpush(glb* g, void* mpool, void* frm, int sign) {
     arg2=wg_first(db,wg_rest(db,wg_rest(db,frm)));
     res1=wr_clausify_negpush(g,mpool,arg2,sign);
     res=wg_mklist3(db,mpool,newop,arg1,res1);
-    if (!newop || !res1 || !res) return show_clausify_warning(db,"could not create a pair");
+    if (!newop || !res1 || !res) return show_clausify_warning(g,"could not create a pair");
     return res;  
   } else if (wg_islogeqv(db,op)) {
     // op is <=>
@@ -286,19 +291,19 @@ void* wr_clausify_negpush(glb* g, void* mpool, void* frm, int sign) {
     res2=wr_clausify_negpush(g,mpool,arg2,sign);
     arg1cp=wr_clausify_copy(g,mpool,arg1);
     arg2cp=wr_clausify_copy(g,mpool,arg2);
-    if (!arg1cp || !arg2cp) return show_clausify_warning(db,"could not create a pair");
+    if (!arg1cp || !arg2cp) return show_clausify_warning(g,"could not create a pair");
     res3=wr_clausify_negpush(g,mpool,arg1cp,sign);   
     res4=wr_clausify_negpush(g,mpool,arg2cp,!sign);
     res5=wg_mklist3(db,mpool,newop2,res1,res2);
     res6=wg_mklist3(db,mpool,newop2,res3,res4);
     res=wg_mklist3(db,mpool,newop,res5,res6);
     if (!newop || !newop2 || !res1 || !res2 || !res3 || !res4 || !res5 || !res6 || !res) {
-      return show_clausify_warning(db,"could not create a pair");
+      return show_clausify_warning(g,"could not create a pair");
     }  
     return res; 
   } 
   // should not happen
-  return show_clausify_warning(db,"unexpected formula structure at a negpush phase");
+  return show_clausify_warning(g,"unexpected formula structure at a negpush phase");
 }
 
 void* wr_clausify_copy(glb* g, void* mpool, void* term) {
@@ -320,12 +325,12 @@ void* wr_clausify_copy(glb* g, void* mpool, void* term) {
       el=wg_first(db,part);    
       if (wg_isatom(db,el)) {
         res=wg_mkpair(db,mpool,el,res);
-        if (res==NULL) return show_clausify_warning(db,"failed to copy term");
+        if (res==NULL) return show_clausify_warning(g,"failed to copy term");
       } else {
         tmp=wr_clausify_copy(g,mpool,el);
-        if (tmp==NULL) return show_clausify_warning(db,"failed to copy term");
+        if (tmp==NULL) return show_clausify_warning(g,"failed to copy term");
         res=wg_mkpair(db,mpool,tmp,res);      
-        if (res==NULL) return show_clausify_warning(db,"failed to copy term");
+        if (res==NULL) return show_clausify_warning(g,"failed to copy term");
       }
     }
     res=wg_reverselist(db,mpool,res);
@@ -389,7 +394,7 @@ void* wr_clausify_miniscope(glb* g, void* mpool, void* frm) {
   }
   if (wg_ispair(db,op)) {
     // should not happen
-    return show_clausify_warning(db,"nonatomic head detected in a miniscope phase");
+    return show_clausify_warning(g,"nonatomic head detected in a miniscope phase");
   }
   if (!wg_islogconnective(db,op) || wg_islogneg(db,op)) {
     // simple nonlogical term or a negated atom
@@ -482,7 +487,7 @@ void *wr_miniscope_freeoccs(glb* g, void* mpool, void* vars, void* frm) {
   }
   if (wg_ispair(db,op)) {
     // should not happen
-    return show_clausify_warning(db,"nonatomic head detected in a miniscope phase");
+    return show_clausify_warning(g,"nonatomic head detected in a miniscope phase");
   }
   if (wg_islogall(db,op) || wg_islogexists(db,op)) {
     // quantifier
@@ -632,7 +637,7 @@ void* wr_clausify_skolemize(glb* g, void* mpool, void* frm, void* vars, int* var
   }
   if (wg_ispair(db,op)) {
     // should not happen
-    return show_clausify_warning(db,"nonatomic head detected in a skolemize phase");
+    return show_clausify_warning(g,"nonatomic head detected in a skolemize phase");
   }
   if (!wg_islogconnective(db,op) || wg_islogneg(db,op)) {
     // simple nonlogical term or a negated atom
@@ -664,13 +669,13 @@ void* wr_clausify_skolemize(glb* g, void* mpool, void* frm, void* vars, int* var
     return res;
   } else {
     // conventional logical term: here we assume two args
-    if (len!=3) return show_clausify_warning(db,"non-not logical op should have two arguments");
+    if (len!=3) return show_clausify_warning(g,"non-not logical op should have two arguments");
     arg2=wg_first(db,wg_rest(db,frm));
     arg3=wg_first(db,wg_rest(db,wg_rest(db,frm)));
     res2=wr_clausify_skolemize(g,mpool,arg2,vars,varnr);
     res3=wr_clausify_skolemize(g,mpool,arg3,vars,varnr);
     res=wg_mklist3(db,mpool,op,res2,res3);
-    if (!res || !res2 || !res3) return show_clausify_warning(db,"clausification of subformula failed");
+    if (!res || !res2 || !res3) return show_clausify_warning(g,"clausification of subformula failed");
     return res;
   }
 }  
@@ -695,12 +700,12 @@ void* wr_clausify_append_vars
   newassoc=assoc;
   for(; varlist!=NULL; varlist=wg_rest(db,varlist)) {
     var=wg_first(db,varlist);
-    if (!wg_isatom(db,var)) return show_clausify_warning(db,"nonatomic var found");
+    if (!wg_isatom(db,var)) return show_clausify_warning(g,"nonatomic var found");
     type=wg_atomtype(db,var);
     if (type!=WG_URITYPE && type!=WG_VARTYPE) 
-      return show_clausify_warning(db,"abnormal var found 1");    
+      return show_clausify_warning(g,"abnormal var found 1");    
     if (wg_atomstr2(db,var)!=NULL) 
-      return show_clausify_warning(db,"abnormal var found 2");
+      return show_clausify_warning(g,"abnormal var found 2");
     if (allflag) {
       // universal quantifier: 
       // pick a fresh var name
@@ -747,7 +752,7 @@ void wr_clausify_replace_vars(glb* g, void* mpool, void* assoc, void* term) {
   if (!term) return;
   if (wg_isatom(db,term)) {
     // simple atom, should not happen
-    show_clausify_warning(db,"wr_clausify_replace_vars called on atom");
+    show_clausify_warning(g,"wr_clausify_replace_vars called on atom");
     return;   
   }  
   for(part=term; part!=NULL; part=wg_rest(db,part)) {
@@ -810,6 +815,7 @@ void* wr_clausify_distribute(glb* g, void* mpool, void* frm, void **defs, int in
   wg_mpool_print(db,frm); 
   printf("\n");
 #endif
+  if (g->parse_errflag) return NULL;
   if (wg_isatom(db,frm)) {
     // simple atom
     return frm;  
@@ -822,7 +828,7 @@ void* wr_clausify_distribute(glb* g, void* mpool, void* frm, void **defs, int in
   }
   if (wg_ispair(db,op)) {
     // should not happen
-    return show_clausify_warning(db,"nonatomic head detected in a distr phase");
+    return show_clausify_warning(g,"nonatomic head detected in a distr phase");
   }
   if (!wg_islogconnective(db,op)) {
     // simple nonlogical term
@@ -833,13 +839,13 @@ void* wr_clausify_distribute(glb* g, void* mpool, void* frm, void **defs, int in
     return frm;
   }
   if (len!=3) 
-    return show_clausify_warning(db,"wrong subformula length in a distr phase: %d",len);
+    return show_clausify_warning(g,"wrong subformula length in a distr phase: %d",len);
   if (wg_islogand(db,op)) {
     // this should stay at the top level
     res1=wr_clausify_distribute(g,mpool,wg_first(db,wg_rest(db,frm)),defs,indef);
     res2=wr_clausify_distribute(g,mpool,wg_first(db,wg_rest(db,wg_rest(db,frm))),defs,indef);
     res=wg_mklist3(db,mpool,op,res1,res2);
-    if (!res1 || !res2 || !res) return show_clausify_warning(db,"could not create a pair");
+    if (!res1 || !res2 || !res) return show_clausify_warning(g,"could not create a pair");
     return res;
   }
   if (wg_islogor(db,op)) {
@@ -859,7 +865,7 @@ void* wr_clausify_distribute(glb* g, void* mpool, void* frm, void **defs, int in
     wg_mpool_print(db,res2); 
     printf("\n");
     */
-    if (!res1 || !res2) return show_clausify_warning(db,"could not create a pair");
+    if (!res1 || !res2) return show_clausify_warning(g,"could not create a pair");
     // here res1 and res2 may contain & only at top layers
     if (wg_ispair(db,res1) && wg_islogand(db,wg_first(db,res1))) {
       // res1 top level is &, must distribute
@@ -874,7 +880,7 @@ void* wr_clausify_distribute(glb* g, void* mpool, void* frm, void **defs, int in
     if (!and1flag && !and2flag) {
       // none of res1 and res2 is an &-clause, no distribution needed
       res=wg_mklist3(db,mpool,logor,res1,res2);
-      if (!res) return show_clausify_warning(db,"could not create a pair");
+      if (!res) return show_clausify_warning(g,"could not create a pair");
     } else if ((and1flag && !and2flag) || (!and1flag && and2flag)) {
       // res1 is an & clause, res2 is not or vice versa
       // (v (& a b) c) -> (& (v a c) (v b c))
@@ -899,14 +905,14 @@ void* wr_clausify_distribute(glb* g, void* mpool, void* frm, void **defs, int in
         // old part
         res3=wg_mklist3(db,mpool,logor,arg1,arg3);  // (v a c)
         res4=wg_mklist3(db,mpool,logor,arg2,arg3);  // (v b c)
-        if (!res3 || !res4) return show_clausify_warning(db,"could not create a pair");
+        if (!res3 || !res4) return show_clausify_warning(g,"could not create a pair");
         // normalize newly created res5 and res6
         res3=wr_clausify_distribute(g,mpool,res3,defs,indef);
         res4=wr_clausify_distribute(g,mpool,res4,defs,indef);
         // build a final result
         res=wg_mklist3(db,mpool,logand,res3,res4); // (& (v a c) (v b c))
         if (!res3 || !res4 || !res) {
-          return show_clausify_warning(db,"could not create a pair");
+          return show_clausify_warning(g,"could not create a pair");
         }       
       }  
     } else {
@@ -943,10 +949,10 @@ void* wr_clausify_distribute(glb* g, void* mpool, void* frm, void **defs, int in
         def1=wr_clausify_makedef(g,mpool,res1,defs);
         def2=wr_clausify_makedef(g,mpool,res2,defs);
         if (!def1 || !def2) {
-          return show_clausify_warning(db,"could not create a def pair in a distr phase");
+          return show_clausify_warning(g,"could not create a def pair in a distr phase");
         } 
         res=wg_mklist3(db,mpool,logor,def1,def2);
-        if (!res) return show_clausify_warning(db,"could not create a pair in a distr phase");
+        if (!res) return show_clausify_warning(g,"could not create a pair in a distr phase");
       } else {        
         // build new v clauses
         res3=wg_mklist3(db,mpool,logor,arg1,arg3);  // (v a c)
@@ -964,7 +970,7 @@ void* wr_clausify_distribute(glb* g, void* mpool, void* frm, void **defs, int in
         res8=wg_mklist3(db,mpool,logand,res4,res7);
         res=wg_mklist3(db,mpool,logand,res3,res8);
         if (!res3 || !res4 || !res5 || !res6 || !res7 || !res8 || !res) {
-          return show_clausify_warning(db,"could not create a pair in a distr phase");
+          return show_clausify_warning(g,"could not create a pair in a distr phase");
         }      
       }  
     }  
@@ -976,10 +982,10 @@ void* wr_clausify_distribute(glb* g, void* mpool, void* frm, void **defs, int in
     return res;
   } else {
     // should not happen
-    return show_clausify_warning(db,"unexpected formula structure at a distr phase");
+    return show_clausify_warning(g,"unexpected formula structure at a distr phase");
   }
   // should not happen
-  return show_clausify_warning(db,"unexpected error at a distr phase");
+  return show_clausify_warning(g,"unexpected error at a distr phase");
 }  
 
 int wr_clausify_isliteral(glb* g, void* frm) {
@@ -1059,56 +1065,57 @@ void* wr_clausify_makedef(glb* g, void* mpool, void* frm, void **defs) {
   wg_mpool_print(db,frm); 
   printf("\n");
 #endif
+  if (g->parse_errflag) return NULL;
   logand=wg_makelogand(db,mpool);
   logor=wg_makelogor(db,mpool);
   if (!logand || !logor) {
-    return show_clausify_warning(db,"could not create elem wr_clausify_makedef");
+    return show_clausify_warning(g,"could not create elem wr_clausify_makedef");
   }
   // make new def atom
   (g->parse_newpred_nr)++;
   snprintf(buf,19,"%s%d",g->parse_newpred_prefix,g->parse_newpred_nr);   
   fun=wg_mkatom(db,mpool,WG_URITYPE,buf,NULL);
-  if (!fun) return show_clausify_warning(db,"could not create elem wr_clausify_makedef");
+  if (!fun) return show_clausify_warning(g,"could not create elem wr_clausify_makedef");
   term=NULL;
   // build term as as a list of vars
   count=0;
   check=wr_clausify_collect_vars(g,frm,vars,&count,VARCOLLECT_SIZE-1); 
-  if (check<0) return show_clausify_warning(db,"could not create full varlist in wr_clausify_makedef");
+  if (check<0) return show_clausify_warning(g,"could not create full varlist in wr_clausify_makedef");
   term=NULL;
   for(i=0;i<count;i++) {
     term=wg_mkpair(db,mpool,(void*)(vars[i]),term);
-    if (!term) return show_clausify_warning(db,"could not create extend vars wr_clausify_makedef");
+    if (!term) return show_clausify_warning(g,"could not create extend vars wr_clausify_makedef");
   }
   if (!term) def=fun;
   else def=wg_mkpair(db,mpool,fun,term);
-  if (!def) return show_clausify_warning(db,"could not create elem wr_clausify_makedef");
+  if (!def) return show_clausify_warning(g,"could not create elem wr_clausify_makedef");
   negdef=wr_clausify_negpush(g,mpool,def,0);
-  if (!negdef) return show_clausify_warning(db,"could not create elem wr_clausify_makedef");
+  if (!negdef) return show_clausify_warning(g,"could not create elem wr_clausify_makedef");
   // res1: -def | (andarg1 & andarg2)
   res1=wg_mklist3(db,mpool,logor,negdef,frm); 
-  if (!res1) return show_clausify_warning(db,"could not create elem wr_clausify_makedef");
+  if (!res1) return show_clausify_warning(g,"could not create elem wr_clausify_makedef");
 
   res1=wr_clausify_distribute(g,mpool,res1,defs,1);
 
-  if (!res1) return show_clausify_warning(db,"could not subdist 1 in wr_clausify_makedef");
+  if (!res1) return show_clausify_warning(g,"could not subdist 1 in wr_clausify_makedef");
   
   // res2: def | -andarg1 | -andarg2
   negfrm=wr_clausify_negpush(g,mpool,frm,0);
-  if (!negfrm) return show_clausify_warning(db,"could not create elem wr_clausify_makedef");
+  if (!negfrm) return show_clausify_warning(g,"could not create elem wr_clausify_makedef");
   /* 
   res2d=wr_clausify_distribute(g,mpool,negfrm,NULL,1);
-  if (!res2d) return show_clausify_warning(db,"could not create elem wr_clausify_makedef");
+  if (!res2d) return show_clausify_warning(g,"could not create elem wr_clausify_makedef");
   // res2: def | -andarg1 | -andarg2
   res2=wg_mklist3(db,mpool,logor,def,res2d);
   res2=wr_clausify_distribute(g,mpool,res2,defs,1);
   */
    
   // negfrm: neg pushed inside for:  -(andarg1 & andarg2)
-  if (!negfrm) return show_clausify_warning(db,"could not create elem wr_clausify_makedef");
+  if (!negfrm) return show_clausify_warning(g,"could not create elem wr_clausify_makedef");
   // res2: def | -andarg1 | -andarg2
   res2=wg_mklist3(db,mpool,logor,def,negfrm);
   // res2: def | (neg pushed inside for:  -(andarg1 & andarg2))
-  if (!res2) return show_clausify_warning(db,"could not create elem wr_clausify_makedef");
+  if (!res2) return show_clausify_warning(g,"could not create elem wr_clausify_makedef");
   /* 
   printf("\nstarting to distr in makedef for\n");
   wg_mpool_print(db,res2); 
@@ -1120,16 +1127,16 @@ void* wr_clausify_makedef(glb* g, void* mpool, void* frm, void **defs) {
   wg_mpool_print(db,res2); 
   printf("\n");
   */
-  if (!res2) return show_clausify_warning(db,"could not subdist 2 in wr_clausify_makedef");
+  if (!res2) return show_clausify_warning(g,"could not subdist 2 in wr_clausify_makedef");
   deflst=wg_mklist3(db,mpool,logand,res1,res2);
 
   //deflst=res1;
-  if (!deflst) return show_clausify_warning(db,"could not create elem wr_clausify_makedef");
+  if (!deflst) return show_clausify_warning(g,"could not create elem wr_clausify_makedef");
   if (*defs==NULL) {
     *defs=deflst;
   } else {
     tmp=wg_mklist3(db,mpool,logand,*defs,deflst);
-    if (!tmp) return show_clausify_warning(db,"could not create elem wr_clausify_makedef");
+    if (!tmp) return show_clausify_warning(g,"could not create elem wr_clausify_makedef");
     *defs=tmp;
   }
 #ifdef DEBUG
@@ -1166,7 +1173,7 @@ int wr_clausify_collect_vars(glb* g, void* term, gptr* vars, int *count, int max
     }
     // new var: add
     if (*count>=max) {
-      show_clausify_warning(db,"too many vars found by wr_clausify_makedef");
+      show_clausify_warning(g,"too many vars found by wr_clausify_makedef");
       return -1;
     }
 #ifdef DEBUG
@@ -1210,7 +1217,7 @@ void* orig_wr_clausify_distribute(glb* g, void* mpool, void* frm, void* defs) {
   }
   if (wg_ispair(db,op)) {
     // should not happen
-    return show_clausify_warning(db,"nonatomic head detected in a distr phase");
+    return show_clausify_warning(g,"nonatomic head detected in a distr phase");
   }
   if (!wg_islogconnective(db,op)) {
     // simple nonlogical term
@@ -1221,13 +1228,13 @@ void* orig_wr_clausify_distribute(glb* g, void* mpool, void* frm, void* defs) {
     return frm;
   }
   if (len!=3) 
-    return show_clausify_warning(db,"wrong subformula length in a distr phase: %d",len);
+    return show_clausify_warning(g,"wrong subformula length in a distr phase: %d",len);
   if (wg_islogand(db,op)) {
     // this should stay at the top level
     res1=wr_clausify_distribute(g,mpool,wg_first(db,wg_rest(db,frm)),defs);
     res2=wr_clausify_distribute(g,mpool,wg_first(db,wg_rest(db,wg_rest(db,frm))),defs);
     res=wg_mklist3(db,mpool,op,res1,res2);
-    if (!res1 || !res2 || !res) return show_clausify_warning(db,"could not create a pair");
+    if (!res1 || !res2 || !res) return show_clausify_warning(g,"could not create a pair");
     return res;
   }
   if (wg_islogor(db,op)) {
@@ -1236,7 +1243,7 @@ void* orig_wr_clausify_distribute(glb* g, void* mpool, void* frm, void* defs) {
     // this should be distributed lower if & is found below
     res1=wr_clausify_distribute(g,mpool,wg_first(db,wg_rest(db,frm)),defs);
     res2=wr_clausify_distribute(g,mpool,wg_first(db,wg_rest(db,wg_rest(db,frm))),defs);
-    if (!res1 || !res2) return show_clausify_warning(db,"could not create a pair");
+    if (!res1 || !res2) return show_clausify_warning(g,"could not create a pair");
     // here res1 and res2 may contain & only at top layers
     if (wg_ispair(db,res1) && wg_islogand(db,wg_first(db,res1))) {
       // res1 top level is &, must distribute
@@ -1251,7 +1258,7 @@ void* orig_wr_clausify_distribute(glb* g, void* mpool, void* frm, void* defs) {
     if (!and1flag && !and2flag) {
       // none of res1 and res2 is an &-clause, no distribution needed
       res=wg_mklist3(db,mpool,logor,res1,res2);
-      if (!res) return show_clausify_warning(db,"could not create a pair");
+      if (!res) return show_clausify_warning(g,"could not create a pair");
     } else if ((and1flag && !and2flag) || (!and1flag && and2flag)) {
       // res1 is an & clause, res2 is not or vice versa
       // (v (& a b) c) -> (& (v a c) (v b c))
@@ -1266,14 +1273,14 @@ void* orig_wr_clausify_distribute(glb* g, void* mpool, void* frm, void* defs) {
       }
       res3=wg_mklist3(db,mpool,logor,arg1,arg3);  // (v a c)
       res4=wg_mklist3(db,mpool,logor,arg2,arg3);  // (v b c)
-      if (!res3 || !res4) return show_clausify_warning(db,"could not create a pair");
+      if (!res3 || !res4) return show_clausify_warning(g,"could not create a pair");
       // normalize newly created res5 and res6
       res3=wr_clausify_distribute(g,mpool,res3,defs);
       res4=wr_clausify_distribute(g,mpool,res4,defs);
       // build a final result
       res=wg_mklist3(db,mpool,logand,res3,res4); // (& (v a c) (v b c))
       if (!res3 || !res4 || !res) {
-        return show_clausify_warning(db,"could not create a pair");
+        return show_clausify_warning(g,"could not create a pair");
       }       
     } else {
       // both res1 and res2 are &-clauses
@@ -1299,7 +1306,7 @@ void* orig_wr_clausify_distribute(glb* g, void* mpool, void* frm, void* defs) {
       res8=wg_mklist3(db,mpool,logand,res4,res7);
       res=wg_mklist3(db,mpool,logand,res3,res8);
       if (!res3 || !res4 || !res5 || !res6 || !res7 || !res8 || !res) {
-        return show_clausify_warning(db,"could not create a pair in a distr phase");
+        return show_clausify_warning(g,"could not create a pair in a distr phase");
       }      
     }  
 
@@ -1310,10 +1317,10 @@ void* orig_wr_clausify_distribute(glb* g, void* mpool, void* frm, void* defs) {
     return res;
   } else {
     // should not happen
-    return show_clausify_warning(db,"unexpected formula structure at a distr phase");
+    return show_clausify_warning(g,"unexpected formula structure at a distr phase");
   }
   // should not happen
-  return show_clausify_warning(db,"unexpected error at a distr phase");
+  return show_clausify_warning(g,"unexpected error at a distr phase");
 }  
 
 */
@@ -1357,7 +1364,7 @@ void* wr_flatten_logclause(glb* g,void* mpool, void* cl) {
     //printf("\n");
 
     if (!res1 || !res) 
-      return show_clausify_warning(db,"could not create a pair in a flatten phase");
+      return show_clausify_warning(g,"could not create a pair in a flatten phase");
     return res;  
   }    
   op=wg_first(db,cl);
@@ -1367,7 +1374,7 @@ void* wr_flatten_logclause(glb* g,void* mpool, void* cl) {
     res1=wr_flatten_logclause_or(g,mpool,cl);
     res=wg_mklist1(db,mpool,res1);   
     if (!res1) 
-      return show_clausify_warning(db,"could not create a pair in a flatten phase");
+      return show_clausify_warning(g,"could not create a pair in a flatten phase");
   } else if (wg_islogand(db,op)) {
     arg1=wg_first(db,wg_rest(db,cl));
     arg2=wg_first(db,wg_rest(db,wg_rest(db,cl)));
@@ -1375,15 +1382,15 @@ void* wr_flatten_logclause(glb* g,void* mpool, void* cl) {
     res2=wr_flatten_logclause(g,mpool,arg2);
     res=wg_appendlist(db,mpool,res1,res2);
     if (!res1 || !res2 || !res) 
-     return show_clausify_warning(db,"could not create a pair in a flatten phase");
+     return show_clausify_warning(g,"could not create a pair in a flatten phase");
   } else {
     res1=wr_flatten_logclause_or(g,mpool,cl);
     res=wg_mklist1(db,mpool,res1);
     if (!res1) 
-      return show_clausify_warning(db,"could not create a pair in a flatten phase");
+      return show_clausify_warning(g,"could not create a pair in a flatten phase");
   }   
   if (!res) 
-     return show_clausify_warning(db,"could not create a pair in a flatten phase");
+     return show_clausify_warning(g,"could not create a pair in a flatten phase");
 
   //printf("\n in wr_flatten_logclause gave res:\n");
   //wg_mpool_print(db,res); 
@@ -1421,7 +1428,7 @@ void* wr_flatten_logclause_or(glb* g,void* mpool, void* cl) {
   if (!cl) return NULL;
   if (!wg_ispair(db,cl)) {
     res=wg_mklist1(db,mpool,cl);
-    if (!res) return show_clausify_warning(db,"could not create a pair in a flatten phase");
+    if (!res) return show_clausify_warning(g,"could not create a pair in a flatten phase");
     return res;
   }  
   op=wg_first(db,cl);
@@ -1431,10 +1438,10 @@ void* wr_flatten_logclause_or(glb* g,void* mpool, void* cl) {
     if (!truth1) {
       res=wr_flatten_logclause_or(g,mpool,op);
     } else if (truth1==1) {      
-      show_clausify_warning(db,"const true clause found in flatten phase");
+      show_clausify_warning(g,"const true clause found in flatten phase");
       return NULL;
     } else if (truth1==-1) {
-      show_clausify_warning(db,"const false clause found in flatten phase");
+      show_clausify_warning(g,"const false clause found in flatten phase");
       return NULL;
     }
     */
@@ -1453,29 +1460,29 @@ void* wr_flatten_logclause_or(glb* g,void* mpool, void* cl) {
       if (wg_islogtrue(db,res2)) return res2;
       res=wg_appendlist(db,mpool,res1,res2);
       if (!res1 || !res2 || !res) 
-      return show_clausify_warning(db,"could not create a pair in a flatten phase");
+      return show_clausify_warning(g,"could not create a pair in a flatten phase");
     } else if (truth1==1 || truth2==1) {
-      //show_clausify_warning(db,"const true clause found in flatten phase");
+      //show_clausify_warning(g,"const true clause found in flatten phase");
       return wg_makelogtrue(db,mpool);
     } else if (truth1==-1) {
       res=wr_flatten_logclause_or(g,mpool,arg2);
     } else if (truth2==-1) {
        res=wr_flatten_logclause_or(g,mpool,arg1);
     } else {
-      return show_clausify_warning(db,"error case in flatten phase");
+      return show_clausify_warning(g,"error case in flatten phase");
     }
     /*
     res1=wr_flatten_logclause_or(g,mpool,arg1);
     res2=wr_flatten_logclause_or(g,mpool,arg2);
     res=wg_appendlist(db,mpool,res1,res2);
     if (!res1 || !res2 || !res) 
-     return show_clausify_warning(db,"could not create a pair in a flatten phase");
+     return show_clausify_warning(g,"could not create a pair in a flatten phase");
     */ 
   } else {
     res=wg_mklist1(db,mpool,cl);
   }
   if (!res) 
-     return show_clausify_warning(db,"could not create a pair in a flatten phase");
+     return show_clausify_warning(g,"could not create a pair in a flatten phase");
   return res;
 }
 
@@ -1554,6 +1561,7 @@ void* show_clausify_error(glb* g, char* format, ...) {
   printf("*** Clausify error: ");
   vprintf (format, args);
   va_end (args);
+  (g->parse_errflag)=1;
   return NULL;
 }
 
@@ -1563,5 +1571,8 @@ void* show_clausify_warning(glb* g, char* format, ...) {
   printf("*** Clausify warning: ");
   vprintf (format, args);
   va_end (args);
+  if (g && format && !strncmp(format,"could",5)) (g->parse_errflag)=1;
+  //printf("\n(g->parse_errflag) %d\n",(g->parse_errflag));
+  printf("\n");
   return NULL;
 }

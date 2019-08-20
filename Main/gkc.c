@@ -70,6 +70,9 @@ extern "C" {
 #include "../Db/dbapi.h"
 #endif
 
+#include<sys/wait.h> 
+#include<unistd.h> 
+
 
 
 /* ====== Private defs =========== */
@@ -1214,44 +1217,87 @@ int gkc_ltb_main(int argc, char **argv) {
     #endif      
         //shmptrlocal=wg_attach_local_database_with_kb(shmsize2,(void*)shmptr);
         //shmptrlocal=wg_attach_local_database(shmsize2);
-        shmptrlocal=wg_attach_local_database_with_kb(shmsize2,(void*)shmptr);
-        if(!shmptrlocal) {
-          //err_printf("failed to attach local database");
-          wr_output_batch_prob_failure(probfullname,outfullname,"Error");       
-          continue;
-        }
-        err = wg_import_otter_file(shmptrlocal,probfullname,0,&informat);    
-        if(!err) {
-          //printf("Data read from %s.\n",cmdfiles[1]);
-        } else if(err<-1) {  
-          wr_output_batch_prob_failure(probfullname,outfullname,"Error");     
-          continue;
+
+        int pid,stat;
+        //printf("\nbefore fork\n");
+        pid=fork();
+        //printf("\nafter fork\n");
+        if (pid<0) {
+          // fork fails
+          printf("\nfork fails\n");
+          wr_output_batch_prob_failure(probfullname,outfullname,"Error");
+        } else if (pid==0) {
+          // child
+
+          shmptrlocal=wg_attach_local_database_with_kb(shmsize2,(void*)shmptr);
+          if(!shmptrlocal) {
+            //err_printf("failed to attach local database");
+            wr_output_batch_prob_failure(probfullname,outfullname,"Error");       
+            //continue;
+          }
+          err = wg_import_otter_file(shmptrlocal,probfullname,0,&informat);             
+          if(err<-1) {  
+            wr_output_batch_prob_failure(probfullname,outfullname,"Error");     
+            //continue;
+          } else if (err) {
+            wr_output_batch_prob_failure(probfullname,outfullname,"Error");     
+            //continue; 
+          } else {    
+            //wg_show_database(shmptrlocal);
+            //wr_show_database_details(NULL,shmptrlocal,"shmptrlocal");
+            //printf("about to call wg_run_reasoner\n");
+            cmdfiles[1]=probfullname;
+            stratstr=strats[iteration];
+            //printf("\nto use strategy \n%s\n",stratstr);
+            //printf("\n outfullname |%s|\n",outfullname);
+
+            
+            
+            err = wg_run_reasoner(shmptrlocal,2,cmdfiles,informat,outfullname,stratstr);
+              
+            
+            //err = wg_run_reasoner(shmptrlocal,2,cmdfiles,informat,outfullname,stratstr);
+
+
+            //err = wg_run_reasoner(shmptrlocal,2,cmdfiles,informat,NULL);
+            //wg_show_database(shmptr);
+            if(!err) {
+              //printf("wg_run_reasoner finished ok.\n");
+              printf("%% SZS status Theorem for %s\n",probfullname);
+              //rows[i]=NULL;
+              //wg_delete_local_database(shmptrlocal);
+              printf("%% SZS status Ended for %s\n",probfullname);
+              //continue;
+            } else {
+              //wg_delete_local_database(shmptrlocal);
+              wr_output_batch_prob_failure(probfullname,outfullname,"Timeout");     
+              //continue;
+            }   
+          }
+          wg_delete_local_database(shmptrlocal); 
+          exit(err); 
+
         } else {
-          wr_output_batch_prob_failure(probfullname,outfullname,"Error");     
-          continue; 
-        }     
-        //wg_show_database(shmptrlocal);
-        //wr_show_database_details(NULL,shmptrlocal,"shmptrlocal");
-        //printf("about to call wg_run_reasoner\n");
-        cmdfiles[1]=probfullname;
-        stratstr=strats[iteration];
-        //printf("\nto use strategy \n%s\n",stratstr);
-        //printf("\n outfullname |%s|\n",outfullname);
-        err = wg_run_reasoner(shmptrlocal,2,cmdfiles,informat,outfullname,stratstr);
-        //err = wg_run_reasoner(shmptrlocal,2,cmdfiles,informat,NULL);
-        //wg_show_database(shmptr);
-        if(!err) {
-          //printf("wg_run_reasoner finished ok.\n");
-          printf("%% SZS status Theorem for %s\n",probfullname);
-          rows[i]=NULL;
-          wg_delete_local_database(shmptrlocal);
-          printf("%% SZS status Ended for %s\n",probfullname);
-          continue;
-        } else {
-          wg_delete_local_database(shmptrlocal);
-          wr_output_batch_prob_failure(probfullname,outfullname,"Timeout");     
-          continue;
-        }              
+          // parent
+          err=0;
+          //printf("\nwaiting for pid %d\n",pid);
+          //pid_t cpid = waitpid(pid, &stat, 0); 
+          waitpid(pid, &stat, 0);
+          if (WIFEXITED(stat)) {
+            err = WEXITSTATUS(stat);
+            //printf("Child %d terminated with status: %d\n", cpid, err); 
+          }  else {
+            wr_output_batch_prob_failure(probfullname,outfullname,"Error"); 
+          }       
+          //wait();
+
+          if (!err) {
+            rows[i]=NULL;
+          } else if (err==1) {
+            //wr_output_batch_prob_failure(probfullname,outfullname,"Error");
+          }
+          
+        } 
       } // iteration over all problems ended
     }  // iteration over all strategies ended
     wg_delete_local_database(shmptr);
