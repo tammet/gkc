@@ -190,6 +190,11 @@ void wr_process_resolve_result
         wr_printf("\nc post-cut derived by mp ");
         wr_print_halfbuilt_clause(g,rptr,rpos);
       }
+
+      
+      //printf("\ntmp %d tmp2 %d\n",tmp,tmp2);
+      //CP0
+
       wr_process_resolve_result_remove_cuts(g,rptr,&rpos,tmp+tmp2);
       (g->stat_derived_cut)++;
       if (rpos==0) {
@@ -241,6 +246,11 @@ void wr_process_resolve_result
 
   history=wr_build_resolve_history(g,xcl_as_active,ycl,cutpos1,cutpos2,g->cut_clvec);
   res=wr_derived_build_cl_from_initial_cl(g,rptr,rpos,ruleflag,history);
+
+  //CP1  
+  //printf("\nres\n");
+  //wr_print_clause(g,res);
+
   if (!history || !res) {
     // allocation failed
     return;

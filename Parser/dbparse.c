@@ -73,6 +73,9 @@
 #define DPRINTF(...) ;
 #endif
 */
+
+//#define ERRPRINT
+
 #define DPRINTF(...) 
 
 #define json_get(obj,name) cJSON_GetObjectItemCaseSensitive(obj,name)
@@ -321,6 +324,7 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, in
   void *mpool=NULL;  
   int tmp_comp_funs;
   
+  //printf("\nstarting to read file %s \n",filename);
 #ifdef DEBUG
   DPRINTF("wr_import_otter_file called\n");
   printf("\n filename %s \n",filename);
@@ -353,8 +357,10 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, in
     printf("\nreading from file %s\n",fnamestr);
 #endif       
     fp=freopen(fnamestr, "r", stdin);
+    //printf("\nfp is %ld",(long int) fp);    
     if (!fp) {
       //if (g->print_flag)
+      //printf("\ncould not open file %s\n",fnamestr);
       db_err_printf2("could not open file",fnamestr);
       return 1;
     }
@@ -1615,5 +1621,7 @@ static int show_parse_warning(void* db, char* format, ...) {
 
 
 void db_err_printf2(char* s1, char* s2) {
+#ifdef ERRPRINT  
   printf("{\"error\": \"%s %s\"}\n",s1,s2);
+#endif  
 }

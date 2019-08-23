@@ -502,6 +502,7 @@ int wr_active_subsumed_lit(glb* g, gint atom, int negflag) {
 
 */
 
+
 int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
 
   int i,tmp;
@@ -584,7 +585,7 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
         (g->stat_lit_hash_cut_ok)++;   
         //return 0;
       }
-      if (r_kb_g(g)) {
+      if (r_kb_g(g) && rptr[tmp+LIT_META_POS]) {
 #ifdef DEBUG
         wr_printf("\nexternal kb r_kb_g(g) present");
 #endif          
@@ -658,7 +659,7 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
         (g->stat_lit_hash_cut_ok)++;       
         //return 0;
       }
-      if (r_kb_g(g)) {
+      if (r_kb_g(g) && rptr[tmp+LIT_META_POS]) {
 #ifdef DEBUG
         wr_printf("\nexternal kb r_kb_g(g) present");
 #endif          

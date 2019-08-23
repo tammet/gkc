@@ -76,6 +76,8 @@ void show_cur_time(void);
 //#define SHOWTIME
 #undef SHOWTIME
 
+//#define PRINTERR
+
 //#define SHOW_ADDED
 //#define WEIGHT_PREFER_GOALS_ASSUMPTIONS
 
@@ -427,9 +429,13 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
     } else if (res==2 && (g->print_runs)) {
       wr_printf("\n\nSearch terminated without proof.\n");        
     } else if (res==-1) {
+#ifdef PRINTERR       
       wr_printf("\n\nSearch cancelled: memory overflow.\n");
+#endif      
     } else if (res<0) {
+#ifdef PRINTERR       
       wr_printf("\n\nSearch cancelled, error code %d.\n",res);
+#endif      
     }      
     //if (g->print_flag) wr_show_stats(g,1);
 

@@ -69,6 +69,8 @@ static void* show_clausify_warning(glb* g, char* format, ...);
 
 #define MAKEDEF_COMPLEXITY_THRESHOLD 10
 
+#define PRINTERR
+
 /* ======== Data ========================= */
 
 
@@ -1558,8 +1560,10 @@ int wr_is_logconst(glb* g, void* arg) {
 void* show_clausify_error(glb* g, char* format, ...) {
   va_list args;
   va_start (args, format);
+#ifdef PRINTERR   
   printf("*** Clausify error: ");
   vprintf (format, args);
+#endif  
   va_end (args);
   (g->parse_errflag)=1;
   return NULL;
@@ -1568,8 +1572,10 @@ void* show_clausify_error(glb* g, char* format, ...) {
 void* show_clausify_warning(glb* g, char* format, ...) {
   va_list args;
   va_start (args, format);
+#ifdef PRINTERR  
   printf("*** Clausify warning: ");
   vprintf (format, args);
+#endif  
   va_end (args);
   if (g && format && !strncmp(format,"could",5)) (g->parse_errflag)=1;
   //printf("\n(g->parse_errflag) %d\n",(g->parse_errflag));

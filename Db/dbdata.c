@@ -74,6 +74,7 @@ static struct tm * localtime_r (const time_t *timer, struct tm *result);
 #endif
 
 //#define CHECK 1
+#define WG_NO_ERRPRINT
 
 /* ======= Private protos ================ */
 

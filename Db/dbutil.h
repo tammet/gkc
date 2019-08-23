@@ -86,7 +86,8 @@ free(buffer); \
 } 
 #else
 //#define LOG_ERROR(errnumber, errformat, errmessage, ...) fprintf(stderr, errformat, errmessage, ##__VA_ARGS__)
-#define LOG_ERROR(errnumber, errformat, errmessage, ...) printf(errformat, errmessage, ##__VA_ARGS__)
+//#define LOG_ERROR(errnumber, errformat, errmessage, ...) printf(errformat, errmessage, ##__VA_ARGS__)
+#define LOG_ERROR(errnumber, errformat, errmessage, ...) do {} while (0)
 #endif
 
 /* Separate raptor API (copied in rdfapi.h) */

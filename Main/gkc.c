@@ -1030,10 +1030,11 @@ int gkc_ltb_main(int argc, char **argv) {
   int row, tmp1, tmp2, found, rowcount;
   char* rowptr;
   char* rowstr;
-  char* rows[100000];  
+  char** rows; //[100000];  
   char probname[1000];
   char outname[1000];
   char probfullname[1000];
+  char probfullname_copy[1000];
   char outfullname[1000];
   //char* sep;
   char* cmdfiles[2];
@@ -1043,6 +1044,7 @@ int gkc_ltb_main(int argc, char **argv) {
   char* stratstr;
   int iteration;
   int formulation,maxiteration;
+  int readcount=0;
   //int cp;
   
 
@@ -1070,6 +1072,8 @@ int gkc_ltb_main(int argc, char **argv) {
   fclose(batchfile);
   if (!found) return 0;
   // ok, tested that batchfile is ok
+  setbuf(stdout, NULL);
+  rows=malloc(sizeof(char*)*100000);
   batchfile=fopen(batchfilename, "r");
   for(rowcount=0; rowcount<100000; rowcount++) {
     rowptr=fgets(batchfilerow,900,batchfile);
@@ -1096,8 +1100,13 @@ int gkc_ltb_main(int argc, char **argv) {
   printf("\n");
   */
 
-  for(formulation=1;formulation<3;formulation++) {
-  // create a new local database for includes
+  int formulation_counter;
+  for(formulation_counter=1;formulation_counter<4;formulation_counter++) {        
+  //for(formulation=1;formulation<3;formulation++) {
+    printf("\nformulation iteration %d starts\n",formulation_counter);
+    formulation=formulation_counter;
+    if (formulation>2) formulation=1;
+    // create a new local database for includes
 
     shmsize = (gint)5000000000;      
     //wg_delete_database("1000");
@@ -1122,20 +1131,28 @@ int gkc_ltb_main(int argc, char **argv) {
         break;
       }
       if (isincluderow && strlen(rowstr)>1 && rowstr[0]!='%') {
-        printf("%s",rowstr);
+
+        //printf("%s",rowstr);
+
         // -- st                 
         wr_make_batch_axiom_fullname(rowstr,probfullname,batchfilename,formulation);
-        //printf("\nprobname |%s| probfullname |%s|\n",
-        //  rowstr,probfullname);
-        printf("\nreading %s\n",probfullname);
-        err = wg_import_otter_file(shmptr,probfullname,1,&informat);    
+
+        printf("\nstarting to read axiom file %s\n\n",probfullname);
+        //printf("\nreading formulation %d readcount %d %s\n",formulation,readcount,probfullname);
+
+        err = wg_import_otter_file(shmptr,probfullname,1,&informat);  
+        readcount++;  
         if(!err) {
-          printf("Data parsed into the memory db.\n");
+
+          //printf("Data parsed into the memory db.\n");
+
         } else if(err<-1) {
           err_printf("problem reading otter file, data may be partially"\
             " imported");
         } else {
-          //err_printf("reading failed");
+
+          err_printf("reading failed");
+
           //wg_delete_local_database(shmptr);
           //return(1);
           continue;
@@ -1143,6 +1160,7 @@ int gkc_ltb_main(int argc, char **argv) {
         // -- ed
       }  
     }
+    fflush(stdout);
     tmp=init_shared_database(shmptr,NULL);
     //shmptr=wg_attach_existing_database("1000");
     //wr_show_database_details(NULL,shmptr,"shmptr");
@@ -1150,7 +1168,8 @@ int gkc_ltb_main(int argc, char **argv) {
       err_printf("db creation failed");   
       return(1);
     }  
-    printf("Db ready.\n");
+    //printf("Db ready.\n");
+    fflush(stdout); 
     //wr_show_database_details(NULL,shmptr,"shmptr");
 
 
@@ -1164,8 +1183,9 @@ int gkc_ltb_main(int argc, char **argv) {
 
     //printf("\nproblems:\n");
 
-    if (formulation==1) maxiteration=2;
-    else maxiteration=4; //4;
+    if (formulation_counter==1) maxiteration=2;
+    else if (formulation_counter==2) maxiteration=4;
+    else maxiteration=5; //4;
     for(iteration=0;iteration<maxiteration;iteration++) {
       // next run over all the problems
       isproblemrow=0;
@@ -1198,11 +1218,17 @@ int gkc_ltb_main(int argc, char **argv) {
         memcpy(probname,rowstr,seppos);
         probname[seppos]=0;
         memcpy(outname,rowstr+seppos+1,(len-seppos)-1);
-        outname[(len-seppos)-1]=0;    
+        outname[(len-seppos)-1]=0;
+        int k;
+        char* outnameptr=outname;
+        for(k=0;k<(len-seppos);k++) {
+          if (outnameptr[k]==' ') outnameptr++;
+          else break;
+        }
         *outfullname=0;
         strcat(outfullname,outfoldername); 
         strcat(outfullname,"/");
-        strcat(outfullname,outname);   
+        strcat(outfullname,outnameptr);   
         wr_make_batch_prob_fullname(probname,probfullname,batchfilename,formulation);
         //printf("\nprobname |%s| outname |%s| probfullname |%s| outfullname |%s|\n",
         //    probname,outname,probfullname,outfullname);
@@ -1218,17 +1244,25 @@ int gkc_ltb_main(int argc, char **argv) {
         //shmptrlocal=wg_attach_local_database_with_kb(shmsize2,(void*)shmptr);
         //shmptrlocal=wg_attach_local_database(shmsize2);
 
+        fflush(stdout); 
         int pid,stat;
         //printf("\nbefore fork\n");
-        pid=fork();
+        pid=fork();        
+        /*
+        if (pid>0) {
+          printf("pid %d\n",pid);  
+          fflush(stdout); 
+        } 
+        */       
         //printf("\nafter fork\n");
         if (pid<0) {
           // fork fails
           printf("\nfork fails\n");
+          fflush(stdout);
           wr_output_batch_prob_failure(probfullname,outfullname,"Error");
         } else if (pid==0) {
           // child
-
+          probfullname[200]=0;
           shmptrlocal=wg_attach_local_database_with_kb(shmsize2,(void*)shmptr);
           if(!shmptrlocal) {
             //err_printf("failed to attach local database");
@@ -1246,19 +1280,15 @@ int gkc_ltb_main(int argc, char **argv) {
             //wg_show_database(shmptrlocal);
             //wr_show_database_details(NULL,shmptrlocal,"shmptrlocal");
             //printf("about to call wg_run_reasoner\n");
-            cmdfiles[1]=probfullname;
+            strncpy(probfullname_copy,probfullname,900);
+            probfullname_copy[300]=0;
+            cmdfiles[1]=probfullname_copy;
             stratstr=strats[iteration];
-            //printf("\nto use strategy \n%s\n",stratstr);
-            //printf("\n outfullname |%s|\n",outfullname);
-
-            
-            
-            err = wg_run_reasoner(shmptrlocal,2,cmdfiles,informat,outfullname,stratstr);
-              
-            
+            //printf("\nto use strategy \n%s\n",stratstr);            
+            //printf("\n outfullname |%s|\n",outfullname);                      
+            err = wg_run_reasoner(shmptrlocal,2,cmdfiles,informat,outfullname,stratstr);                          
+            //printf("\n finished with err %d\n",err);
             //err = wg_run_reasoner(shmptrlocal,2,cmdfiles,informat,outfullname,stratstr);
-
-
             //err = wg_run_reasoner(shmptrlocal,2,cmdfiles,informat,NULL);
             //wg_show_database(shmptr);
             if(!err) {
@@ -1274,6 +1304,7 @@ int gkc_ltb_main(int argc, char **argv) {
               //continue;
             }   
           }
+          fflush(stdout);
           wg_delete_local_database(shmptrlocal); 
           exit(err); 
 
@@ -1296,13 +1327,15 @@ int gkc_ltb_main(int argc, char **argv) {
           } else if (err==1) {
             //wr_output_batch_prob_failure(probfullname,outfullname,"Error");
           }
+          fflush(stdout);
           
         } 
       } // iteration over all problems ended
     }  // iteration over all strategies ended
     wg_delete_local_database(shmptr);
   } // iteration over formulations ended   
-    return(1);  
+  free(rows);
+  return(1);  
 }
 
 void wr_make_batch_axiom_fullname(char* probname, char* probfullname, char* batchname, int formulation) {

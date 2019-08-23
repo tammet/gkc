@@ -43,7 +43,7 @@ extern "C" {
    
 /* ====== Private headers and defs ======== */
 
-
+#define PRINTERR
 
 /* ======= Private protos ================ */
 
@@ -62,7 +62,9 @@ extern "C" {
 */
 
 void* wr_warn(glb* g, char* errstr) {
+#ifdef PRINTERR  
   if (g->print_flag) printf("Warning: %s.\n",errstr);
+#endif  
   return NULL;
 }  
 
@@ -71,7 +73,9 @@ void* wr_warn(glb* g, char* errstr) {
 */
 
 void* wr_warn2(glb* g, char* errstr1, char* errstr2) {
+#ifdef PRINTERR   
   if (g->print_flag) printf("Warning: %s %s.\n",errstr1,errstr2);  
+#endif  
   return NULL;
 }  
 
@@ -86,7 +90,9 @@ void* wr_warn2(glb* g, char* errstr1, char* errstr2) {
 
 void* wr_errprint(char* errstr) {
   //printf("Error: %s.\n",errstr);
+#ifdef PRINTERR   
   printf("{\"error\": \"%s\"}\n",errstr);
+#endif  
   return NULL;
 }  
 
@@ -96,13 +102,17 @@ void* wr_errprint(char* errstr) {
 
 void* wr_errprint2(char* errstr1, char* errstr2) {
   //printf("Error: %s %s.\n",errstr1,errstr2);
+#ifdef PRINTERR   
   printf("{\"error\": \"%s %s\"}\n",errstr1,errstr2);
+#endif  
   return NULL;
 }
 
 void* wr_errprint3(char* errstr1, char* errstr2, char* errstr3) {
   //printf("Error: %s %s.\n",errstr1,errstr2);
+#ifdef PRINTERR   
   printf("{\"error\": \"%s %s %s\"}\n",errstr1,errstr2,errstr3);
+#endif  
   return NULL;
 }
 
@@ -139,7 +149,9 @@ void* wr_alloc_err2(glb* g, char* errstr1, char* errstr2) {
 */
 
 void* wr_alloc_err2int(glb* g, char* errstr, int n) {
+#ifdef PRINTERR   
   if (g->print_flag) printf("Cannot allocate memory: %s %d.\n",errstr,n);
+#endif  
   (g->alloc_err)=1;
   return NULL;
 }  
@@ -173,7 +185,9 @@ void wr_sys_exiterr2(glb* g, char* errstr1, char* errstr2) {
 */
 
 void wr_sys_exiterr2int(glb* g, char* errstr, int n) {
+#ifdef PRINTERR   
   printf("System error in wgdb reasoner, exiting: %s %d.\n",errstr,n);
+#endif  
   exit(1);
 }  
 
@@ -203,7 +217,9 @@ void wr_exiterr2(glb* g, char* errstr1, char* errstr2) {
 */
 
 void wr_exiterr2int(glb* g, char* errstr, int n) {
+#ifdef PRINTERR   
   printf("System error in wgdb reasoner, exiting: %s %d.\n",errstr,n);
+#endif  
   exit(1);
 }
 

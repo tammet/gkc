@@ -1303,6 +1303,28 @@ void make_ltb_guide(glb* g, char** strats, int stratscount) {
     pos+=sprintf(buf+pos,"]}\n");
     if (stratn<stratscount) strats[stratn++]=buf;
 
+    // fifth batch 
+    secs=15;
+    buf=(char*)malloc(10000);  
+    pref="{\n"
+        "\"print_level\":  5,\n"; 
+    pos=sprintf(buf,"%s",pref);
+    pos+=sprintf(buf+pos,"\"runs\":[\n");
+    pos+=sprintf(buf+pos,
+      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1},\n",secs);
+    pos+=sprintf(buf+pos,
+      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2},\n",secs);
+    pos+=sprintf(buf+pos,
+      "{\"max_seconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 1},\n",secs);  
+    pos+=sprintf(buf+pos,
+      "{\"max_seconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 0, \"reverse_clauselist\": 1},\n",secs);
+    pos+=sprintf(buf+pos,
+      "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1},\n",secs);    
+    pos+=sprintf(buf+pos,
+      "{\"max_seconds\": %d, \"strategy\":[\"hyper\"], \"query_preference\": 1}\n",secs); 
+    pos+=sprintf(buf+pos,"]}\n");
+    if (stratn<stratscount) strats[stratn++]=buf;
+
     /*
     // end of one block
     if (i<iterations-1) {

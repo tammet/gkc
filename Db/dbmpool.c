@@ -76,6 +76,8 @@ static int show_mpool_error(void* db, char* errmsg);
 static int show_mpool_error_nr(void* db, char* errmsg, int nr);
 static void wg_mpool_print_aux(void* db, void* ptr, int depth, int pflag);
 
+#define WG_NO_ERRPRINT
+
 /* ====== Functions for mpool creating/extending/allocating/destroying ============== */
 
 
