@@ -298,6 +298,7 @@ ID       [a-zA-Z][a-zA-Z0-9_:+\-*/<>]*
 void wg_yyottererror (parse_parm* parm, void* scanner, const char* msg) {
   int i;
   char *s;
+  //char* errmsg;
   //printf("\n yyerror called with xx msg %s\n",msg);
   /*
   if (linebuf!=NULL) {
@@ -315,8 +316,13 @@ void wg_yyottererror (parse_parm* parm, void* scanner, const char* msg) {
       if (s[i]=='"') s[i]='\'';
     }
   }
-  printf("{\"error\": \"%s: file %s place '%s' in line %d:\n%s\"}\n", 
-          msg,parm->filename,s,yyget_lineno(scanner),linebuf);  
+  if (parm->errmsg) return;
+  parm->errmsg=malloc(1000);
+  snprintf(parm->errmsg,900,"{\"error\": \"%s: file %s place '%s' in line %d:\n%s\"}", 
+          msg,parm->filename,s,yyget_lineno(scanner),linebuf);
+  (parm->errmsg)[900]=0;
+  // printf("{\"error\": \"%s: file %s place '%s' in line %d:\n%s\"}\n", 
+  //        msg,parm->filename,s,yyget_lineno(scanner),linebuf);  
 }
 
    

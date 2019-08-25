@@ -62,6 +62,7 @@ typedef struct parse_parm_s {
   void* db;         // database pointer
   void* mpool;      // mpool pointer
   char* foo;        // if NULL, use input from stdin, else from buf (str case)
+  char* errmsg;     // if not NULL, resulted in error
 } parse_parm;
 
 #define YYSTYPE         char*

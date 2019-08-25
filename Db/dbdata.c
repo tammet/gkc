@@ -3545,6 +3545,7 @@ static gint show_data_error(void* db, char* errmsg) {
 #else
   LOG_ERROR(-1, "wg data handling error: %s\n", errmsg);
 #endif
+  dbmemsegh(db)->errflag=DB_DATA_ERROR;
   return -1;
 
 }
@@ -3555,6 +3556,7 @@ static gint show_data_error_nr(void* db, char* errmsg, gint nr) {
   LOG_ERROR(-1, "wg data handling error: %s %d\n", errmsg, (int)nr);
   printf("\nwg data handling error: %s %d\n", errmsg, (int)nr);
 #endif
+  dbmemsegh(db)->errflag=DB_DATA_ERROR2;
   return -1;
 
 }
@@ -3564,6 +3566,7 @@ static gint show_data_error_double(void* db, char* errmsg, double nr) {
 #else
   LOG_ERROR(-1, "wg data handling error: %s %f\n",errmsg,nr);
 #endif
+  dbmemsegh(db)->errflag=DB_DATA_ERROR3;
   return -1;
 
 }
@@ -3573,6 +3576,7 @@ static gint show_data_error_str(void* db, char* errmsg, char* str) {
 #else
   LOG_ERROR(-1, "wg data handling error: %s %s\n",errmsg,str);
 #endif
+  dbmemsegh(db)->errflag=DB_DATA_ERROR4;
   return -1;
 }
 

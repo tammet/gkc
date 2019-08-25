@@ -55,6 +55,8 @@ extern "C" {
 #include "dbapi.h"
 #include "dbmpool.h"
 
+#include "dbutil.h"
+
 /* ====== Private headers and defs ======== */
 
 
@@ -781,6 +783,7 @@ static int show_mpool_error(void* db, char* errmsg) {
 #ifdef EXIT_ON_ERROR
   exit(1);
 #endif
+  dbmemsegh(db)->errflag=DB_MPOOL_ERROR;
   return -1;
 }
 
@@ -798,6 +801,7 @@ static int show_mpool_error_nr(void* db, char* errmsg, int nr) {
 #ifdef EXIT_ON_ERROR
   exit(1);
 #endif
+  dbmemsegh(db)->errflag=DB_MPOOL_ERROR2;
   return -1;
 }
 

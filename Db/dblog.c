@@ -3,7 +3,7 @@
 * $Version: $
 *
 * Copyright (c) Andri Rebane 2009
-* Copyright (c) Priit Järv 2013,2014
+* Copyright (c) Priit Jï¿½rv 2013,2014
 *
 * This file is part of WhiteDB
 *
@@ -59,6 +59,8 @@ extern "C" {
 #include "dballoc.h"
 #include "dbdata.h"
 #include "dbhash.h"
+
+#include "dbutil.h"
 
 /* ====== Private headers and defs ======== */
 
@@ -1181,6 +1183,7 @@ static gint show_log_error(void *db, char *errmsg) {
 #else
   fprintf(stderr,"wg log error: %s.\n", errmsg);
 #endif
+  dbmemsegh(db)->errflag=DB_LOG_ERROR;
   return -1;
 }
 

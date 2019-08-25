@@ -52,6 +52,8 @@ extern "C" {
 #include "dblock.h"
 #include "dbindex.h"
 
+#include "dbutil.h"
+
 /* don't output 'segment does not have enough space' messages */
 #define SUPPRESS_LOWLEVEL_ERR 1
 
@@ -116,6 +118,8 @@ gint wg_init_db_memsegment_with_kb(void* db, gint key, gint size, void* kb) {
   dbh->kb_db=kb;
   dbh->rglb=0;
   dbh->clauselist=0;
+  dbh->errflag=0;
+  dbh->errmsg=NULL;
   //printf("\n in wg_init_db_memsegment_with_kb  dbh->kb_db is %d\n",(int)dbh->kb_db);
 #endif
 #ifdef CHECK
@@ -1448,6 +1452,7 @@ static gint show_dballoc_error(void* db, char* errmsg) {
 #else
   fprintf(stderr,"db memory allocation error: %s\n",errmsg);
 #endif
+  dbmemsegh(db)->errflag=DB_MEMORY_ALLOC_ERROR;
   return -1;
 }
 
@@ -1462,6 +1467,7 @@ static gint show_dballoc_error_nr(void* db, char* errmsg, gint nr) {
 #else
   fprintf(stderr,"db memory allocation error: %s %d\n", errmsg, (int) nr);
 #endif
+  dbmemsegh(db)->errflag=DB_MEMORY_ALLOC_ERROR2;
   return -1;
 
 }

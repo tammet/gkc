@@ -1302,6 +1302,7 @@ static gint show_io_error(void *db, char *errmsg) {
 #else
   fprintf(stderr,"I/O error: %s.\n", errmsg);
 #endif
+  dbmemsegh(db)->errflag=DB_IO_ERROR;
   return -1;
 }
 
@@ -1310,6 +1311,7 @@ static gint show_io_error_str(void *db, char *errmsg, char *str) {
 #else
   fprintf(stderr,"I/O error: %s: %s.\n", errmsg, str);
 #endif
+  dbmemsegh(db)->errflag=DB_IO_ERROR2;
   return -1;
 }
 

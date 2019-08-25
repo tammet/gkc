@@ -54,6 +54,20 @@ struct wg_triple_handler_params {
 };
 #endif
 
+/* === DB ERROR CODES FOR REASONER dbmemsegh(db)->errflag === */
+
+#define DB_MEMORY_ALLOC_ERROR 1
+#define DB_MEMORY_ALLOC_ERROR2 2
+#define DB_IO_ERROR 3
+#define DB_IO_ERROR2 4
+#define DB_LOG_ERROR 5
+#define DB_MPOOL_ERROR 6
+#define DB_MPOOL_ERROR2 7 
+#define DB_DATA_ERROR 8
+#define DB_DATA_ERROR2 9
+#define DB_DATA_ERROR3 10
+#define DB_DATA_ERROR4 11
+
 /* ==== Protos ==== */
 
 /* API functions (copied in dbapi.h) */

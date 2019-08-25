@@ -69,6 +69,8 @@ static void* show_clausify_warning(glb* g, char* format, ...);
 
 #define MAKEDEF_COMPLEXITY_THRESHOLD 10
 
+#define PRINTERR
+
 /* ======== Data ========================= */
 
 
@@ -232,10 +234,10 @@ void* wr_clausify_negpush(glb* g, void* mpool, void* frm, int sign) {
       arg=wg_first(db,part);
       tmp=wr_clausify_negpush(g,mpool,arg,sign);
       res=wg_mkpair(db,mpool,tmp,res);
-      if (!tmp || !res) return show_clausify_warning(g,"could not create a pair");
+      if (!tmp || !res) return show_clausify_warning(g,"memory pool full in negation push");
     }
     res=wg_mkpair(db,mpool,newop,res);
-    if (!newop || !res) return show_clausify_warning(g,"could not create a pair");
+    if (!newop || !res) return show_clausify_warning(g,"memory pool full in negation push");
     return res;
   } else if (wg_islogimp(db,op)) {
     // op is =>
@@ -252,11 +254,11 @@ void* wr_clausify_negpush(glb* g, void* mpool, void* frm, int sign) {
         // not a last elem: implication argument
         tmp=wr_clausify_negpush(g,mpool,arg,!sign);        
         res1=wg_mkpair(db,mpool,tmp,res1);
-        if (!tmp || !res1) return show_clausify_warning(g,"could not create a pair");             
+        if (!tmp || !res1) return show_clausify_warning(g,"memory pool full in negation push");             
       }     
     }  
     res=wg_mkpair(db,mpool,newop,res1);
-    if (!newop || !tmp || !res || !res1) return show_clausify_warning(g,"could not create a pair");
+    if (!newop || !tmp || !res || !res1) return show_clausify_warning(g,"memory pool full in negation push");
     return res;
   } else if (wg_islogall(db,op) || wg_islogexists(db,op)) {
     // op is a quantifer all or exists
@@ -268,7 +270,7 @@ void* wr_clausify_negpush(glb* g, void* mpool, void* frm, int sign) {
     arg2=wg_first(db,wg_rest(db,wg_rest(db,frm)));
     res1=wr_clausify_negpush(g,mpool,arg2,sign);
     res=wg_mklist3(db,mpool,newop,arg1,res1);
-    if (!newop || !res1 || !res) return show_clausify_warning(g,"could not create a pair");
+    if (!newop || !res1 || !res) return show_clausify_warning(g,"memory pool full in negation push");
     return res;  
   } else if (wg_islogeqv(db,op)) {
     // op is <=>
@@ -291,14 +293,14 @@ void* wr_clausify_negpush(glb* g, void* mpool, void* frm, int sign) {
     res2=wr_clausify_negpush(g,mpool,arg2,sign);
     arg1cp=wr_clausify_copy(g,mpool,arg1);
     arg2cp=wr_clausify_copy(g,mpool,arg2);
-    if (!arg1cp || !arg2cp) return show_clausify_warning(g,"could not create a pair");
+    if (!arg1cp || !arg2cp) return show_clausify_warning(g,"memory pool full in negation push");
     res3=wr_clausify_negpush(g,mpool,arg1cp,sign);   
     res4=wr_clausify_negpush(g,mpool,arg2cp,!sign);
     res5=wg_mklist3(db,mpool,newop2,res1,res2);
     res6=wg_mklist3(db,mpool,newop2,res3,res4);
     res=wg_mklist3(db,mpool,newop,res5,res6);
     if (!newop || !newop2 || !res1 || !res2 || !res3 || !res4 || !res5 || !res6 || !res) {
-      return show_clausify_warning(g,"could not create a pair");
+      return show_clausify_warning(g,"memory pool full in negation push");
     }  
     return res; 
   } 
@@ -843,9 +845,11 @@ void* wr_clausify_distribute(glb* g, void* mpool, void* frm, void **defs, int in
   if (wg_islogand(db,op)) {
     // this should stay at the top level
     res1=wr_clausify_distribute(g,mpool,wg_first(db,wg_rest(db,frm)),defs,indef);
+    if (!res1) return show_clausify_warning(g,"memory pool full in simple distribution");
     res2=wr_clausify_distribute(g,mpool,wg_first(db,wg_rest(db,wg_rest(db,frm))),defs,indef);
+    if (!res2) return show_clausify_warning(g,"memory pool full in simple distribution");
     res=wg_mklist3(db,mpool,op,res1,res2);
-    if (!res1 || !res2 || !res) return show_clausify_warning(g,"could not create a pair");
+    if (!res1 || !res2 || !res) return show_clausify_warning(g,"memory pool full in simple distribution");
     return res;
   }
   if (wg_islogor(db,op)) {
@@ -856,6 +860,7 @@ void* wr_clausify_distribute(glb* g, void* mpool, void* frm, void **defs, int in
     and2flag=0;
     // this should be distributed lower if & is found below
     res1=wr_clausify_distribute(g,mpool,wg_first(db,wg_rest(db,frm)),defs,indef);
+    if (!res1) return show_clausify_warning(g,"memory pool full in simple distribution");
     res2=wr_clausify_distribute(g,mpool,wg_first(db,wg_rest(db,wg_rest(db,frm))),defs,indef);    
     /* 
     printf("wr_clausify_distribute subres res1\n");  
@@ -865,7 +870,7 @@ void* wr_clausify_distribute(glb* g, void* mpool, void* frm, void **defs, int in
     wg_mpool_print(db,res2); 
     printf("\n");
     */
-    if (!res1 || !res2) return show_clausify_warning(g,"could not create a pair");
+    if (!res1 || !res2) return show_clausify_warning(g,"memory pool full in simple distribution");
     // here res1 and res2 may contain & only at top layers
     if (wg_ispair(db,res1) && wg_islogand(db,wg_first(db,res1))) {
       // res1 top level is &, must distribute
@@ -880,7 +885,7 @@ void* wr_clausify_distribute(glb* g, void* mpool, void* frm, void **defs, int in
     if (!and1flag && !and2flag) {
       // none of res1 and res2 is an &-clause, no distribution needed
       res=wg_mklist3(db,mpool,logor,res1,res2);
-      if (!res) return show_clausify_warning(g,"could not create a pair");
+      if (!res) return show_clausify_warning(g,"memory pool full in simple distribution");
     } else if ((and1flag && !and2flag) || (!and1flag && and2flag)) {
       // res1 is an & clause, res2 is not or vice versa
       // (v (& a b) c) -> (& (v a c) (v b c))
@@ -904,15 +909,17 @@ void* wr_clausify_distribute(glb* g, void* mpool, void* frm, void **defs, int in
       else {
         // old part
         res3=wg_mklist3(db,mpool,logor,arg1,arg3);  // (v a c)
+        if (!res3) return show_clausify_warning(g,"memory pool full");
         res4=wg_mklist3(db,mpool,logor,arg2,arg3);  // (v b c)
-        if (!res3 || !res4) return show_clausify_warning(g,"could not create a pair");
+        if (!res3 || !res4) return show_clausify_warning(g,"memory pool full");
         // normalize newly created res5 and res6
         res3=wr_clausify_distribute(g,mpool,res3,defs,indef);
+        if (!res3) return show_clausify_warning(g,"memory pool full");
         res4=wr_clausify_distribute(g,mpool,res4,defs,indef);
         // build a final result
         res=wg_mklist3(db,mpool,logand,res3,res4); // (& (v a c) (v b c))
         if (!res3 || !res4 || !res) {
-          return show_clausify_warning(g,"could not create a pair");
+          return show_clausify_warning(g,"memory pool full");
         }       
       }  
     } else {
@@ -947,30 +954,40 @@ void* wr_clausify_distribute(glb* g, void* mpool, void* frm, void **defs, int in
         // introduce new pred as definition
         //printf("\nhardcount %d\n",hardcount);
         def1=wr_clausify_makedef(g,mpool,res1,defs);
+        if (!def1) return show_clausify_warning(g,"memory pool full while making a new def");
         def2=wr_clausify_makedef(g,mpool,res2,defs);
         if (!def1 || !def2) {
           return show_clausify_warning(g,"could not create a def pair in a distr phase");
         } 
         res=wg_mklist3(db,mpool,logor,def1,def2);
-        if (!res) return show_clausify_warning(g,"could not create a pair in a distr phase");
+        if (!res) return show_clausify_warning(g,"memory pool full in a distr phase");
       } else {        
         // build new v clauses
         res3=wg_mklist3(db,mpool,logor,arg1,arg3);  // (v a c)
+        if (!res3) return show_clausify_warning(g,"memory pool full in a distr phase");
         res4=wg_mklist3(db,mpool,logor,arg1,arg4);  // (v a d)
+        if (!res4) return show_clausify_warning(g,"memory pool full in a distr phase");
         res5=wg_mklist3(db,mpool,logor,arg2,arg3);  // (v b c)
+        if (!res5) return show_clausify_warning(g,"memory pool full in a distr phase");
         res6=wg_mklist3(db,mpool,logor,arg2,arg4);  // (v b d)
+        if (!res6) return show_clausify_warning(g,"memory pool full in a distr phase");
         // normalize new v clauses
         res3=wr_clausify_distribute(g,mpool,res3,defs,indef);
+        if (!res3) return show_clausify_warning(g,"memory pool full in a distr phase");
         res4=wr_clausify_distribute(g,mpool,res4,defs,indef);
+        if (!res4) return show_clausify_warning(g,"memory pool full in a distr phase");
         res5=wr_clausify_distribute(g,mpool,res5,defs,indef);
+        if (!res5) return show_clausify_warning(g,"memory pool full in a distr phase");
         res6=wr_clausify_distribute(g,mpool,res6,defs,indef);
+        if (!res6) return show_clausify_warning(g,"memory pool full in a distr phase");
         // build a final result
         // (& (v a c) (& (v a d) (& (v b c) (v b d))))
         res7=wg_mklist3(db,mpool,logand,res5,res6);
+        if (!res7) return show_clausify_warning(g,"memory pool full in a distr phase");
         res8=wg_mklist3(db,mpool,logand,res4,res7);
         res=wg_mklist3(db,mpool,logand,res3,res8);
         if (!res3 || !res4 || !res5 || !res6 || !res7 || !res8 || !res) {
-          return show_clausify_warning(g,"could not create a pair in a distr phase");
+          return show_clausify_warning(g,"memory pool full in a distr phase");
         }      
       }  
     }  
@@ -1234,7 +1251,7 @@ void* orig_wr_clausify_distribute(glb* g, void* mpool, void* frm, void* defs) {
     res1=wr_clausify_distribute(g,mpool,wg_first(db,wg_rest(db,frm)),defs);
     res2=wr_clausify_distribute(g,mpool,wg_first(db,wg_rest(db,wg_rest(db,frm))),defs);
     res=wg_mklist3(db,mpool,op,res1,res2);
-    if (!res1 || !res2 || !res) return show_clausify_warning(g,"could not create a pair");
+    if (!res1 || !res2 || !res) return show_clausify_warning(g,"memory pool full");
     return res;
   }
   if (wg_islogor(db,op)) {
@@ -1243,7 +1260,7 @@ void* orig_wr_clausify_distribute(glb* g, void* mpool, void* frm, void* defs) {
     // this should be distributed lower if & is found below
     res1=wr_clausify_distribute(g,mpool,wg_first(db,wg_rest(db,frm)),defs);
     res2=wr_clausify_distribute(g,mpool,wg_first(db,wg_rest(db,wg_rest(db,frm))),defs);
-    if (!res1 || !res2) return show_clausify_warning(g,"could not create a pair");
+    if (!res1 || !res2) return show_clausify_warning(g,"memory pool full");
     // here res1 and res2 may contain & only at top layers
     if (wg_ispair(db,res1) && wg_islogand(db,wg_first(db,res1))) {
       // res1 top level is &, must distribute
@@ -1258,7 +1275,7 @@ void* orig_wr_clausify_distribute(glb* g, void* mpool, void* frm, void* defs) {
     if (!and1flag && !and2flag) {
       // none of res1 and res2 is an &-clause, no distribution needed
       res=wg_mklist3(db,mpool,logor,res1,res2);
-      if (!res) return show_clausify_warning(g,"could not create a pair");
+      if (!res) return show_clausify_warning(g,"memory pool full");
     } else if ((and1flag && !and2flag) || (!and1flag && and2flag)) {
       // res1 is an & clause, res2 is not or vice versa
       // (v (& a b) c) -> (& (v a c) (v b c))
@@ -1273,14 +1290,14 @@ void* orig_wr_clausify_distribute(glb* g, void* mpool, void* frm, void* defs) {
       }
       res3=wg_mklist3(db,mpool,logor,arg1,arg3);  // (v a c)
       res4=wg_mklist3(db,mpool,logor,arg2,arg3);  // (v b c)
-      if (!res3 || !res4) return show_clausify_warning(g,"could not create a pair");
+      if (!res3 || !res4) return show_clausify_warning(g,"memory pool full");
       // normalize newly created res5 and res6
       res3=wr_clausify_distribute(g,mpool,res3,defs);
       res4=wr_clausify_distribute(g,mpool,res4,defs);
       // build a final result
       res=wg_mklist3(db,mpool,logand,res3,res4); // (& (v a c) (v b c))
       if (!res3 || !res4 || !res) {
-        return show_clausify_warning(g,"could not create a pair");
+        return show_clausify_warning(g,"memory pool full");
       }       
     } else {
       // both res1 and res2 are &-clauses
@@ -1306,7 +1323,7 @@ void* orig_wr_clausify_distribute(glb* g, void* mpool, void* frm, void* defs) {
       res8=wg_mklist3(db,mpool,logand,res4,res7);
       res=wg_mklist3(db,mpool,logand,res3,res8);
       if (!res3 || !res4 || !res5 || !res6 || !res7 || !res8 || !res) {
-        return show_clausify_warning(g,"could not create a pair in a distr phase");
+        return show_clausify_warning(g,"memory pool full in a distr phase");
       }      
     }  
 
@@ -1364,7 +1381,7 @@ void* wr_flatten_logclause(glb* g,void* mpool, void* cl) {
     //printf("\n");
 
     if (!res1 || !res) 
-      return show_clausify_warning(g,"could not create a pair in a flatten phase");
+      return show_clausify_warning(g,"memory pool full in a flatten phase");
     return res;  
   }    
   op=wg_first(db,cl);
@@ -1374,7 +1391,7 @@ void* wr_flatten_logclause(glb* g,void* mpool, void* cl) {
     res1=wr_flatten_logclause_or(g,mpool,cl);
     res=wg_mklist1(db,mpool,res1);   
     if (!res1) 
-      return show_clausify_warning(g,"could not create a pair in a flatten phase");
+      return show_clausify_warning(g,"memory pool full in a flatten phase");
   } else if (wg_islogand(db,op)) {
     arg1=wg_first(db,wg_rest(db,cl));
     arg2=wg_first(db,wg_rest(db,wg_rest(db,cl)));
@@ -1382,15 +1399,15 @@ void* wr_flatten_logclause(glb* g,void* mpool, void* cl) {
     res2=wr_flatten_logclause(g,mpool,arg2);
     res=wg_appendlist(db,mpool,res1,res2);
     if (!res1 || !res2 || !res) 
-     return show_clausify_warning(g,"could not create a pair in a flatten phase");
+     return show_clausify_warning(g,"memory pool full in a flatten phase");
   } else {
     res1=wr_flatten_logclause_or(g,mpool,cl);
     res=wg_mklist1(db,mpool,res1);
     if (!res1) 
-      return show_clausify_warning(g,"could not create a pair in a flatten phase");
+      return show_clausify_warning(g,"memory pool full in a flatten phase");
   }   
   if (!res) 
-     return show_clausify_warning(g,"could not create a pair in a flatten phase");
+     return show_clausify_warning(g,"memory pool full in a flatten phase");
 
   //printf("\n in wr_flatten_logclause gave res:\n");
   //wg_mpool_print(db,res); 
@@ -1428,7 +1445,7 @@ void* wr_flatten_logclause_or(glb* g,void* mpool, void* cl) {
   if (!cl) return NULL;
   if (!wg_ispair(db,cl)) {
     res=wg_mklist1(db,mpool,cl);
-    if (!res) return show_clausify_warning(g,"could not create a pair in a flatten phase");
+    if (!res) return show_clausify_warning(g,"memory pool full in a flatten phase");
     return res;
   }  
   op=wg_first(db,cl);
@@ -1460,7 +1477,7 @@ void* wr_flatten_logclause_or(glb* g,void* mpool, void* cl) {
       if (wg_islogtrue(db,res2)) return res2;
       res=wg_appendlist(db,mpool,res1,res2);
       if (!res1 || !res2 || !res) 
-      return show_clausify_warning(g,"could not create a pair in a flatten phase");
+      return show_clausify_warning(g,"memory pool full in a flatten phase");
     } else if (truth1==1 || truth2==1) {
       //show_clausify_warning(g,"const true clause found in flatten phase");
       return wg_makelogtrue(db,mpool);
@@ -1476,13 +1493,13 @@ void* wr_flatten_logclause_or(glb* g,void* mpool, void* cl) {
     res2=wr_flatten_logclause_or(g,mpool,arg2);
     res=wg_appendlist(db,mpool,res1,res2);
     if (!res1 || !res2 || !res) 
-     return show_clausify_warning(g,"could not create a pair in a flatten phase");
+     return show_clausify_warning(g,"memory pool full in a flatten phase");
     */ 
   } else {
     res=wg_mklist1(db,mpool,cl);
   }
   if (!res) 
-     return show_clausify_warning(g,"could not create a pair in a flatten phase");
+     return show_clausify_warning(g,"memory pool full in a flatten phase");
   return res;
 }
 
@@ -1556,23 +1573,60 @@ int wr_is_logconst(glb* g, void* arg) {
 
 
 void* show_clausify_error(glb* g, char* format, ...) {
+  int tmp1,tmp2;
   va_list args;
   va_start (args, format);
-  printf("*** Clausify error: ");
-  vprintf (format, args);
+#ifdef PRINTERR   
+  //printf("*** Clausify error: ");
+  //vprintf (format, args);
+#endif  
+  if (g->parse_errflag) return NULL;
+  (g->parse_errflag)=1;  
+  if (g->parse_errmsg) return NULL;
+  (g->parse_errmsg)=malloc(1000);
+  if (!(g->parse_errmsg)) return NULL;
+  tmp1=snprintf((g->parse_errmsg),50,"{\"error\": \"clausification hard error: ");
+  tmp2=vsnprintf((g->parse_errmsg)+tmp1,800,format,args);
+  snprintf((g->parse_errmsg)+tmp1+tmp2,50,"\"}");
   va_end (args);
-  (g->parse_errflag)=1;
   return NULL;
 }
 
 void* show_clausify_warning(glb* g, char* format, ...) {
+  int tmp1,tmp2;
   va_list args;
   va_start (args, format);
+#ifdef PRINTERR  
+  //printf("*** Clausify warning: ");
+  //vprintf (format, args);
+#endif    
+  if (g->parse_errflag) return NULL;
+  (g->parse_errflag)=1;  
+  if (g->parse_errmsg) return NULL;
+  (g->parse_errmsg)=malloc(1000);
+  if (!(g->parse_errmsg)) return NULL;
+  tmp1=snprintf((g->parse_errmsg),50,"{\"error\": \"clausification error: ");
+  tmp2=vsnprintf((g->parse_errmsg)+tmp1,800,format,args);
+  snprintf((g->parse_errmsg)+tmp1+tmp2,50,"\"}");
+  va_end (args);
+  //if (g && format && !strncmp(format,"could",5)) (g->parse_errflag)=1;
+  //printf("\n(g->parse_errflag) %d\n",(g->parse_errflag));
+  //printf("\n");
+  return NULL;
+}
+
+/*
+void* show_clausify_warning(glb* g, char* format, ...) {
+  va_list args;
+  va_start (args, format);
+#ifdef PRINTERR  
   printf("*** Clausify warning: ");
   vprintf (format, args);
+#endif  
   va_end (args);
   if (g && format && !strncmp(format,"could",5)) (g->parse_errflag)=1;
   //printf("\n(g->parse_errflag) %d\n",(g->parse_errflag));
   printf("\n");
   return NULL;
 }
+*/

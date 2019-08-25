@@ -62,7 +62,7 @@ extern "C" {
 
 #define wrr_printf(...) EXPAND(printf(__VA_ARGS__))
 
-
+#define TPTP
 
 
 /* ======= Private protos ================ */
@@ -1111,10 +1111,10 @@ int wr_show_result(glb* g, gint history) {
   FILE* outfile;
 
   // create buf for printing
-
-  if ((g->print_level_flag)>=15) {
-      printf("\nto build proof\n");
-  }
+ 
+  //if ((g->print_level_flag)>=15) {
+  //    printf("\nto build proof\n");
+  //}
 
   namebuf[0]=0;
   blen=1000;
@@ -1144,11 +1144,19 @@ int wr_show_result(glb* g, gint history) {
     bpos+=snprintf(buf+bpos,blen-bpos,"\n{\"answers\": [\n");
   } else {
     if ((g->print_level_flag)>1) bpos+=snprintf(buf+bpos,blen-bpos,"\n");
+#ifdef TPTP      
     if (g->in_has_fof) {
       bpos+=snprintf(buf+bpos,blen-bpos,"\nresult: proof found\n%% SZS status Theorem for %s.",g->filename);
     } else {
       bpos+=snprintf(buf+bpos,blen-bpos,"\nresult: proof found\n%% SZS status Unsatisfiable for %s.",g->filename);
-    }  
+    } 
+#else
+    if (g->in_has_fof) {
+      bpos+=snprintf(buf+bpos,blen-bpos,"\nresult: proof found for %s.",g->filename);
+    } else {
+      bpos+=snprintf(buf+bpos,blen-bpos,"\nresult: proof found for %s.",g->filename);
+    }      
+#endif    
     if ((g->required_answer_nr)<2) {
       //bpos+=snprintf(buf+bpos,blen-bpos,"\nproof:");
     } else {
@@ -1217,8 +1225,10 @@ int wr_show_result(glb* g, gint history) {
     assoc=wg_reverselist(db,mpool,assoc); 
     if (!(g->print_json)) {
       if (!wr_str_guarantee_space(g,&buf,&blen,bpos+100)) return -1;
+#ifdef TPTP      
       bpos+=snprintf(buf+bpos,blen-bpos,
         "\n%% SZS output start CNFRefutation for %s",g->filename);
+#endif        
     } 
     bpos=wr_strprint_flat_history(g,mpool,&buf,&blen,bpos,clnr,&assoc);
     if (bpos<0) {
@@ -1261,8 +1271,10 @@ int wr_show_result(glb* g, gint history) {
     bpos+=snprintf(buf+bpos,blen-bpos,"]}\n"); // end all answers
     bpos+=snprintf(buf+bpos,blen-bpos,"}\n");
   } else {
+#ifdef TPTP      
     bpos+=snprintf(buf+bpos,blen-bpos,
         "\n%% SZS output end CNFRefutation for %s",g->filename);
+#endif        
     bpos+=snprintf(buf+bpos,blen-bpos,"\n");
   }  
   if (g->outfilename) {
@@ -1273,9 +1285,9 @@ int wr_show_result(glb* g, gint history) {
       fprintf(outfile,"%s",buf);
       fclose(outfile);
     }  
-    if ((g->print_level_flag)>=15) {
-      printf("\nproof printed\n");
-    }
+    //if ((g->print_level_flag)>=15) {
+    //  printf("\nproof printed\n");
+    //}
   } else {
     printf("%s",buf);
   }    

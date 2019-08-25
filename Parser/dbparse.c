@@ -74,7 +74,7 @@
 #endif
 */
 
-//#define ERRPRINT
+#define ERRPRINT
 
 #define DPRINTF(...) 
 
@@ -89,8 +89,9 @@
 
 //static void otter_escaped_str(void *db, char *iptr, char *buf, int buflen);
 
-static int show_parse_error(void* db, char* format, ...);
-static int show_parse_warning(void* db, char* format, ...);
+static int wr_show_parse_error(glb* g, char* format, ...);
+//static int show_parse_error(void* db, char* format, ...);
+//static int show_parse_warning(void* db, char* format, ...);
 
 
 /* ======== Data ========================= */
@@ -368,6 +369,7 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, in
     pp.filename=fnamestr;
     pp.foo=NULL; // indicates file case in YY_INPUT in dbotter.l
     pp.result=NULL;
+    pp.errmsg=NULL;
   } else {
     // input from string
     fnamestr="string";    
@@ -381,6 +383,7 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, in
     pp.length = strlen(strasfile);
     pp.pos = 0;
     pp.result=NULL;
+    pp.errmsg=NULL;
   }   
   mpool=wg_create_mpool(db,PARSER_MEMPOOL_SIZE); 
   pp.mpool=mpool;  
@@ -393,7 +396,16 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, in
   pres=wg_yyotterparse(&pp, pp.yyscanner);   
   wg_yyotterlex_destroy(pp.yyscanner);     
   //printf("\nwg_yyotterparse finished\n");   
-  DPRINTF("result: %d pp.result %s\n",pres,(char*)pp.result);  
+  DPRINTF("result: %d pp.result %s\n",pres,(char*)pp.result); 
+
+  if (pp.errmsg) {
+    (g->parse_errflag)=1;
+    (g->parse_errmsg)=malloc(strlen(pp.errmsg)+10);
+    if (g->parse_errmsg) {
+      strncpy(g->parse_errmsg,pp.errmsg,strlen(pp.errmsg)+2);
+    }  
+    free(pp.errmsg);
+  }
   if (!pres && pp.result!=NULL) { 
     if ((g->print_initial_parser_result)>0) {
       printf("\nOtter parser result:\n");    
@@ -499,6 +511,7 @@ void* wr_preprocess_clauselist
 #endif       
   // loop over clauses
   
+  //wr_show_parse_error(g,"test %d",2);
   for(lpart=clauselist,clnr=0;wg_ispair(db,lpart);lpart=wg_rest(db,lpart),clnr++) {
     if (g->parse_errflag) break;
     cl=wg_first(db,lpart);
@@ -728,7 +741,7 @@ void* wr_process_tptp_import_clause(glb* g, void* mpool, void* cl) {
 #endif
 
   if (!(g->filename) || strlen(g->filename)<1) {
-    show_parse_error(db,"no filename given in wr_process_tptp_import_clause\n");
+    wr_show_parse_error(g,"no filename given in wr_process_tptp_import_clause\n");
     return NULL;
   }
   pathatom=wg_nth(db,cl,1);
@@ -792,7 +805,7 @@ void* wr_process_tptp_import_clause(glb* g, void* mpool, void* cl) {
     printf("\nalloced filename %s\n",filename);
 #endif    
     if (!filename) {
-      show_parse_error(db,"cannot allocate filename in wr_process_tptp_import_clause\n");
+      wr_show_parse_error(g,"cannot allocate filename in wr_process_tptp_import_clause\n");
       return NULL;
     }
     strcpy(filename,axiomfolder);
@@ -845,8 +858,8 @@ void* wr_parse_clauselist(glb* g,void* mpool,cvec clvec,void* clauselist) {
 
   vardata=(char**)(wg_alloc_mpool(db,mpool,sizeof(char*)*VARDATALEN));
   if (vardata==NULL) {
-    show_parse_error(db,"cannot allocate vardata in wg_parse_clauselist\n");
-    (g->parse_errflag)=1;
+    wr_show_parse_error(g,"cannot allocate vardata in wg_parse_clauselist");
+    //(g->parse_errflag)=1;
     return NULL;
   }  
   //vardata=(char**)(malloc(sizeof(char*)*VARDATALEN));
@@ -863,8 +876,8 @@ void* wr_parse_clauselist(glb* g,void* mpool,cvec clvec,void* clauselist) {
       frm=clause;
     } else {
       if (wg_list_len(db,clause)!=3) {
-        show_parse_error(db,"clause in wg_parse_clauselist not a triple\n");
-        (g->parse_errflag)=1;
+        wr_show_parse_error(g,"clause in wg_parse_clauselist not a triple");
+        //(g->parse_errflag)=1;
         return NULL;
       }
       name=wg_nth(db,clause,0);
@@ -893,8 +906,8 @@ void* wr_parse_clauselist(glb* g,void* mpool,cvec clvec,void* clauselist) {
       // add record to the clauselist in db
       cell=alloc_listcell(db);
       if (!cell) {
-        show_parse_error(db,"\nfailed to allocate a cell\n");
-        (g->parse_errflag)=1;
+        wr_show_parse_error(g,"failed to allocate a cell");
+        //(g->parse_errflag)=1;
         return NULL;
       }  
       cellptr = (gcell *) offsettoptr(db, cell);
@@ -904,8 +917,8 @@ void* wr_parse_clauselist(glb* g,void* mpool,cvec clvec,void* clauselist) {
       // add to resultlist, which is not really needed   
       resultlist=wg_mkpair(db,mpool,record,resultlist); // not really needed!!
       if (!resultlist) {
-        show_parse_error(db,"\nfailed to add a clause to resultlist\n");
-        (g->parse_errflag)=1;
+        wr_show_parse_error(g,"failed to add a clause to resultlist");
+        //(g->parse_errflag)=1;
         return NULL;
       }
       // if clvec present, store record to clvec, given enough space
@@ -1008,8 +1021,9 @@ void* wr_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
     if (!wg_ispair(db,lit)) {        
       lit=wg_mkpair(db,mpool,propfun,wg_mkpair(db,mpool,lit,NULL));
       if (!lit) {
-         show_parse_warning(db,"failed to make a literal"); 
-         return NULL;
+        //show_parse_warning(db,"failed to make a literal"); 
+        wr_show_parse_error(g,"failed to make a literal");
+        return NULL;
       }
       //show_parse_warning(db,"lit nr %d in clause nr %d is atomic and hence prefixed: ",litnr,clnr); 
       //wg_mpool_print(db,lit);
@@ -1022,12 +1036,14 @@ void* wr_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
     }               
     fun=wg_first(db,lit);
     if (!wg_isatom(db,fun)) {
-      show_parse_warning(db,"lit nr %d in clause nr %d has nonatomic leadfun and hence ignored: ",litnr,clnr); 
+      //show_parse_warning(db,"lit nr %d in clause nr %d has nonatomic leadfun and hence ignored: ",litnr,clnr); 
+      wr_show_parse_error(g,"lit nr %d in clause nr %d has nonatomic leadfun and hence ignored: ",litnr,clnr);
 #ifdef DEBUG        
       wg_mpool_print(db,fun); 
       printf("\n");
 #endif        
-      continue;
+      //continue;
+      return NULL;
     }     
     isneg=0;
     if (wg_atomtype(db,fun)==WG_ANONCONSTTYPE && 
@@ -1037,18 +1053,21 @@ void* wr_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
       isneg=1;            
       tmpptr=wg_rest(db,lit);    
       if (!wg_ispair(db,tmpptr)) {          
-        show_parse_warning(db,"lit nr %d in clause nr %d does not contain proper atom after negation and hence ignored: ",litnr,clnr); 
+        //show_parse_warning(db,"lit nr %d in clause nr %d does not contain proper atom after negation and hence ignored: ",litnr,clnr);         
+        wr_show_parse_error(g,"lit nr %d in clause nr %d does not contain proper atom after negation and hence ignored: ",litnr,clnr);
 #ifdef DEBUG          
         wg_mpool_print(db,lit); 
         printf("\n");
 #endif          
         //continue;
+        return NULL;
       } 
       atom=wg_first(db,tmpptr);
       if (!wg_ispair(db,atom)) {
         atom=wg_mkpair(db,mpool,propfun,wg_mkpair(db,mpool,atom,NULL));
         if (!atom) {
-          show_parse_warning(db,"failed to make an atom"); 
+          //show_parse_warning(db,"failed to make an atom"); 
+          wr_show_parse_error(g,"failed to make an atom"); 
           return NULL;
         }        
         //show_parse_warning(db,"lit nr %d in clause nr %d was atomic and is prefixed\n: ",litnr,clnr); 
@@ -1060,12 +1079,15 @@ void* wr_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
       }
       fun=wg_first(db,atom);
       if (!wg_isatom(db,fun)) {
-        show_parse_warning(db,"lit nr %d in clause nr %d has nonatomic leadfun and hence ignored: ",litnr,clnr); 
+        //show_parse_warning(db,"lit nr %d in clause nr %d has nonatomic leadfun and hence ignored: ",litnr,clnr); 
+        wr_show_parse_error(g,"lit nr %d in clause nr %d has nonatomic leadfun and hence ignored",litnr,clnr);
+        //(g->parse_errflag)=1;
 #ifdef DEBUG          
         wg_mpool_print(db,fun); 
         printf("\n");
 #endif          
-        continue;
+        //continue;
+        return NULL;
       }         
     } else {
       atom=lit;
@@ -1077,8 +1099,8 @@ void* wr_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
     // parse an atom in the clause
     atomres=wr_parse_atom(g,mpool,atom,isneg,issimple,vardata); 
     if (atomres==NULL) {
-      show_parse_error(db,"problem converting an atom to record");
-      (g->parse_errflag)=1;
+      wr_show_parse_error(g,"problem converting an atom to record");
+      //(g->parse_errflag)=1;
       //free(vardata);
       return NULL;        
     }
@@ -1086,7 +1108,9 @@ void* wr_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
       wr_convert_atom_fact_clause(g,atomres,isneg);
       resultlist=wg_mkpair(db,mpool,atomres,resultlist);
       if (!resultlist) {
-        show_parse_warning(db,"failed to extend resultlist"); 
+        //show_parse_warning(db,"failed to extend resultlist"); 
+        wr_show_parse_error(g,"failed to extend resultlist"); 
+        //(g->parse_errflag)=1;         
         return NULL;          
       }       
       record=atomres; // for storage of record in clvec
@@ -1156,8 +1180,8 @@ void* wr_parse_atom(glb* g,void* mpool,void* term, int isneg, int issimple, char
   void* tmpres=NULL;
   gint tmpres2;
   gint setres;
-  void* record;
-  
+  void* record;   
+
   DPRINTF("\nwg_parse_atom starting with isneg %d atom\n",isneg);
 #ifdef DEBUG  
   wg_mpool_print(db,term); 
@@ -1300,7 +1324,7 @@ gint wr_parse_primitive(glb* g,void* mpool,void* atomptr, char** vardata, int po
   char* str2;
   int intdata;
   double doubledata;
-  int i;
+  int i; 
 
 #ifdef DEBUG  
   printf("\nwg_parse_primitive starting with ");
@@ -1370,10 +1394,12 @@ gint wr_parse_primitive(glb* g,void* mpool,void* atomptr, char** vardata, int po
             }            
           }  
           if (i>=VARDATALEN) {
-            show_parse_warning(db,"too many variables in a clause: ignoring the clause");        
-            errno=0;
-            ret=WG_ILLEGAL;
-            break;          
+            //show_parse_warning(db,"too many variables in a clause: ignoring the clause");        
+            wr_show_parse_error(g,"too many variables in a clause");
+            return WG_ILLEGAL;
+            //errno=0;
+            //ret=WG_ILLEGAL;
+            //break;          
           }                   
           ret=wg_encode_var(db,intdata);
           DPRINTF("var %d encoded ok\n",intdata);
@@ -1424,10 +1450,12 @@ gint wr_parse_primitive(glb* g,void* mpool,void* atomptr, char** vardata, int po
           }            
         }  
         if (i>=VARDATALEN) {
-          show_parse_warning(db,"too many variables in a clause: ignoring the clause");        
-          errno=0;
-          ret=WG_ILLEGAL;
-          break;          
+          //show_parse_warning(db,"too many variables in a clause: ignoring the clause");        
+          wr_show_parse_error(g,"too many variables in a clause");
+          return WG_ILLEGAL;
+          //errno=0;
+          //ret=WG_ILLEGAL;
+          //break;          
         }                   
         ret=wg_encode_var(db,intdata);
         DPRINTF("var %d encoded ok\n",intdata);       
@@ -1597,28 +1625,71 @@ prefix_marked:
 
 /* ------------ errors ---------------- */
 
+/*
+static int show_parse_error(void* db, char* msg) {
+#ifdef ERRPRINT  
+  printf("{\"error\": \"%s\"}\n",msg);
+#endif     
+  return -1;  
+}
+*/
 
-static int show_parse_error(void* db, char* format, ...) {
+static int wr_show_parse_error(glb* g, char* format, ...) {
+  //void* db=g->db;
+  int tmp1,tmp2;
   va_list args;
   va_start (args, format);
+  /*
   printf("*** Parser error: ");
   vprintf (format, args);  
   va_end (args);
   printf("\n");
+  */  
+
+  if (g->parse_errflag) return -1;
+  (g->parse_errflag)=1;  
+  if (g->parse_errmsg) return -1;
+  (g->parse_errmsg)=malloc(1000);
+  if (!(g->parse_errmsg)) return -1;
+  tmp1=snprintf((g->parse_errmsg),50,"{\"error\": \"parser error: ");
+  tmp2=vsnprintf((g->parse_errmsg)+tmp1,800,format,args);
+  snprintf((g->parse_errmsg)+tmp1+tmp2,50,"\"}");
+
+  /*
+  printf("{\"error\": \"parser error: ");
+  vprintf (format, args);
+  va_end (args);
+  printf("\"}\n");
+  */
   //exit(1);
   return -1;  
 }
 
+/*
+static int show_parse_error(void* db, char* format, ...) {
+  va_list args;
+  va_start (args, format);  
+  printf("{\"error\": \"parser error: ");
+  vprintf (format, args);
+  va_end (args);
+  printf("\"}\n");
+  //exit(1);
+  return -1;  
+}
+*/
+
+/*
 static int show_parse_warning(void* db, char* format, ...) {
   va_list args;
   va_start (args, format);
-  printf("*** Parser warning: ");
+  //printf("*** Parser warning: ");
+  printf("{\"error\": \"parser error: ");
   vprintf (format, args);
   va_end (args);
-  printf("\n");
+  printf("\"}\n");
   return -1;
 }
-
+*/
 
 void db_err_printf2(char* s1, char* s2) {
 #ifdef ERRPRINT  

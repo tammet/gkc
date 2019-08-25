@@ -86,6 +86,8 @@ extern "C" {
 #define FLAGS_FORCE 0x1
 #define FLAGS_LOGGING 0x2
 
+#define TPTP
+
 //#define SHOWTIME
 
 /* Helper macros for database lock management */
@@ -129,7 +131,10 @@ void initial_printf(char* s);
 void err_printf(char* s);
 void err_printf2(char* s1, char* s2);
 
+#ifndef _WIN32
 int gkc_ltb_main(int argc, char **argv);
+#endif
+
 void wr_make_batch_axiom_fullname(char* probname, char* probfullname, char* batchname, int formulation);
 void wr_make_batch_prob_fullname(char* probname, char* probfullname, char* batchname, int formulation);
 void wr_output_batch_prob_failure(char* probname, char* outfullname, char* failure);
@@ -185,8 +190,12 @@ int gkc_main(int argc, char **argv) {
     return(0);
   }
   
+#ifndef _WIN32  
+#ifdef TPTP
   tmp=gkc_ltb_main(argc,argv);
   if (tmp==1) return(0);
+#endif  
+#endif
 
   cmdfiles=parse_cmdline(argc,argv,&cmdstr,&mbnr,&mbsize,&retcode); 
   if (retcode) return retcode;
@@ -1004,6 +1013,8 @@ void err_printf2(char* s1, char* s2) {
 
 */
 
+#ifndef _WIN32 
+#ifdef TPTP
 
 int gkc_ltb_main(int argc, char **argv) {
 
@@ -1246,7 +1257,6 @@ int gkc_ltb_main(int argc, char **argv) {
 
         fflush(stdout); 
         int pid,stat;
-        //printf("\nbefore fork\n");
         pid=fork();        
         /*
         if (pid>0) {
@@ -1257,7 +1267,7 @@ int gkc_ltb_main(int argc, char **argv) {
         //printf("\nafter fork\n");
         if (pid<0) {
           // fork fails
-          printf("\nfork fails\n");
+          printf("\nerror: fork fails\n");         
           fflush(stdout);
           wr_output_batch_prob_failure(probfullname,outfullname,"Error");
         } else if (pid==0) {
@@ -1337,6 +1347,10 @@ int gkc_ltb_main(int argc, char **argv) {
   free(rows);
   return(1);  
 }
+
+#endif
+#endif
+
 
 void wr_make_batch_axiom_fullname(char* probname, char* probfullname, char* batchname, int formulation) {
   int i,j,len,tmp;

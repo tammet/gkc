@@ -481,6 +481,8 @@ typedef struct _db_memsegment_header {
   void* kb_db; /** pointer to the knowledge base shared mem db, if available */
   gint rglb; /** offset to the reasoner global block */
   gint clauselist; /** offset of the beginning of the clause list */
+  gint errflag; /** 0 if no errors */
+  char* errmsg; /** NULL if no err msg */
 #endif  
   // areas
   db_area_header datarec_area_header;

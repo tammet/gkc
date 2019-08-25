@@ -964,7 +964,7 @@ static gint show_memory_error(char *errmsg) {
 #ifdef WG_NO_ERRPRINT
 #else
   fprintf(stderr,"wg memory error: %s.\n", errmsg);
-#endif
+#endif  
   return -1;
 }
 
