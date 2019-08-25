@@ -14,9 +14,9 @@ for the systems built on top of GKC.
 
 For compiled binaries for Linux and Windows, as well as 
 instructions for running gkc, see the latest release,
-either v0.4 or newer:
+either v0.4.1 or newer:
 
-<https://github.com/tammet/gkc/releases/tag/v0.4>
+<https://github.com/tammet/gkc/releases/tag/v0.4.1>
 
 GKC is licenced under AGPL v3. The author of GKC
 is Tanel Tammet (tanel.tammet@gmail.com).
