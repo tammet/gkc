@@ -70,8 +70,11 @@ extern "C" {
 #include "../Db/dbapi.h"
 #endif
 
+#ifndef _WIN32
 #include<sys/wait.h> 
 #include<unistd.h> 
+#endif
+
 
 
 
