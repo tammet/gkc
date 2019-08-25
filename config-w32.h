@@ -91,4 +91,4 @@
 #define VERSION_MINOR 4
 
 /* Package revision number */
-#define VERSION_REV 0
+#define VERSION_REV 1
