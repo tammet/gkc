@@ -154,23 +154,23 @@ int wr_genloop(glb* g) {
        return 1;
     } else if (((g->passed_ratio)>0.95) && (g->max_run_seconds)>3 && (g->res_arglen_limit)!=1) {
       if (g->print_given_interval_trace) {
-        wr_printf("\npassed time ratio %.2f",g->passed_ratio);
+        wr_printf("\nfork %d: passed time ratio %.2f",g->current_fork_nr,g->passed_ratio);
       }
       (g->res_arglen_limit)=1;           
     } else if (((g->passed_ratio)>0.85) &&  (g->res_shortarglen_limit)!=1) {
       if (g->print_given_interval_trace) {
-        wr_printf("\npassed time ratio %.2f",g->passed_ratio);
+        wr_printf("\nfork %d: passed time ratio %.2f",g->current_fork_nr,g->passed_ratio);
       }
       (g->res_shortarglen_limit)=1;
     } else if (((g->passed_ratio)>0.7) && 
                (!(g->res_shortarglen_limit) || (g->res_shortarglen_limit)>2) ) {
       if (g->print_given_interval_trace) {
-        wr_printf("\npassed time ratio %.2f",g->passed_ratio);      
+        wr_printf("\nfork %d: passed time ratio %.2f",g->current_fork_nr,g->passed_ratio);      
       }
       (g->res_shortarglen_limit)=2;
     } else if (((g->passed_ratio)>0.5) &&  (g->pick_given_queue_ratio)!=100) {
       if (g->print_given_interval_trace) {
-        wr_printf("\npassed time ratio %.2f",g->passed_ratio);      
+        wr_printf("\nfork %d: passed time ratio %.2f",g->current_fork_nr,g->passed_ratio);      
       }
       (g->pick_given_queue_ratio)=100;
     }
@@ -299,7 +299,7 @@ int wr_genloop(glb* g) {
       wr_print_clause(g,given_cl);   
     } else if (g->print_given_interval_trace) {
       if ((g->stat_given_used)%GIVEN_INTERVAL_TRACE==0 && (g->stat_given_used)) {        
-        wr_printf("\n%d given",(g->stat_given_used));
+        wr_printf("\nfork %d: %d given",g->current_fork_nr,(g->stat_given_used));
         if (((g->queue_termbuf)[1]-1) > 0) {
           fullness=((float)((g->queue_termbuf)[1]-1) / (float)((g->queue_termbuf)[0])); 
           wr_printf(" filled %.0f%% ",100*fullness);

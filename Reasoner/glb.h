@@ -110,6 +110,8 @@
 
 #define MAX_FILENAME_LEN 80
 
+#define MAX_GUIDETEXT_LEN 500
+
 /* ======== Structures ========== */
 
 /** glb contains global values for requests.
@@ -523,12 +525,14 @@ typedef struct {
   /* run averages and measures */
   
   int current_run_nr;
+  int current_fork_nr;
   double avg_kept_weight;
   float passed_ratio;
   clock_t allruns_start_clock;
   //clock_t allruns_end_clock;
   clock_t run_start_clock;
   //clock_t run_end_clock;  
+  char guidetext[MAX_GUIDETEXT_LEN];
 
 } glb;
 

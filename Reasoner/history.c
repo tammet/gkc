@@ -1146,9 +1146,13 @@ int wr_show_result(glb* g, gint history) {
     if ((g->print_level_flag)>1) bpos+=snprintf(buf+bpos,blen-bpos,"\n");
 #ifdef TPTP      
     if (g->in_has_fof) {
-      bpos+=snprintf(buf+bpos,blen-bpos,"\nresult: proof found\n%% SZS status Theorem for %s.",g->filename);
+      bpos+=snprintf(buf+bpos,blen-bpos,
+        "\nresult: proof found\nby run %d fork %d strat %s\n%% SZS status Theorem for %s.",
+        (g->current_run_nr)+1,g->current_fork_nr,g->guidetext,g->filename);
     } else {
-      bpos+=snprintf(buf+bpos,blen-bpos,"\nresult: proof found\n%% SZS status Unsatisfiable for %s.",g->filename);
+      bpos+=snprintf(buf+bpos,blen-bpos,
+        "\nresult: proof found\nby run %d fork %d strat %s \n%% SZS status Unsatisfiable for %s.",
+        (g->current_run_nr)+1,g->current_fork_nr,g->guidetext,g->filename);
     } 
 #else
     if (g->in_has_fof) {

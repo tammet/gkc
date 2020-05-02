@@ -399,7 +399,8 @@ int wr_glb_init_simple(glb* g) {
   (g->sin_max_const_ucount)=0;
   (g->sin_max_occ_const)=0;
 
-
+  (g->current_run_nr)=0;
+  (g->current_fork_nr)=0;
   (g->avg_kept_weight)=0;
   (g->passed_ratio)=0;
   

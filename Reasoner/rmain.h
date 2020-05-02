@@ -34,7 +34,13 @@
 
 #include "glb.h" 
 
+
 int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfilename, char* guidestr);
+/*
+int wg_run_reasoner_onestrat(
+  void* db, int pid, char* outfilename, int iter, cJSON *guide, int givenguide, char *guidebuf, char* filename,
+  void* kb_db, void *child_db, glb *kb_g, glb *rglb, glb* analyze_g, int* guideres);
+*/
 int wg_import_otter_file(void *db, char* filename, int iskb, int* informat);
 int wg_import_prolog_file(void *db, char* filename);
 glb* wg_init_reasoner(void *db, int argc, char **argv);

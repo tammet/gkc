@@ -40,6 +40,11 @@
 #include "../Builtparser/dbparse.h"
 #else
 #include "../Parser/dbparse.h"
+#include <sys/wait.h> 
+#include <unistd.h> 
+#ifdef __linux__
+#include <sys/prctl.h>
+#endif
 #endif
 
 #include "rincludes.h"  
@@ -106,6 +111,8 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
   int givenguide=0;
   glb* analyze_g;
   char* filename=NULL;
+  int forkslive=0, forkscreated=0, maxforks=2, forknr, err, cpid, i;
+  int forkpids[64];
 
   if (argc<3) {
     //guide=wr_parse_guide_file(argc,argv,&guidebuf);  
@@ -185,11 +192,100 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
       if (guidebuf!=NULL) { sys_free(guidebuf); guidebuf=NULL; }
     }
   }
+  
+    
+  int pid=1,stat;
+  forkscreated=0;
+  forkslive=0;  
+  maxforks=4;
+  if (maxforks>64) maxforks=64;
+  for(forknr=0; forknr<maxforks; forknr++) {
+    pid=fork();
+    if (pid<0) {
+      // fork fails
+      printf("\nerror: fork nr %d fails with pid %d\n",forknr,pid);         
+      fflush(stdout);
+      break;
+    } else if (pid==0) {
+      // child
+      //printf("\nafter fork nr %d with pid 0 (child)\n",forknr);
+#ifdef __linux__      
+      tmp = prctl(PR_SET_PDEATHSIG, SIGTERM);
+      if (tmp == -1) { printf("\nparent died for fork %d, exiting\n", forknr); exit(1); }
+      // test in case the original parent exited just
+      // before the prctl() call
+      if (getppid() == 1) exit(1);
+#endif      
+      break;
+    } else {
+      // parent
+      forkpids[forkscreated]=pid;     
+      forkscreated++;
+      forkslive++;
+    }
+  }
+ 
+  // forks have been created
+  if (pid && forkscreated) {
+    // only parent performs this loop
+    while(forkslive) {
+      cpid=waitpid(-1,&stat, 0);
+      //printf("\nwaitpid ended for cpid %d\n",cpid);
+      if (WIFEXITED(stat)) {
+        //printf("\nWIFEXITED(stat) true for cpid %d\n",cpid);
+        err = WEXITSTATUS(stat);
+        //printf("Child %d terminated with status: %d\n", cpid, err); 
+        forkslive--;  
+        // remove cpid from pid array      
+        for(i=0;i<forkscreated;i++) {
+          if (forkpids[i]==cpid) {
+            forkpids[i]=0;
+            break;
+          }
+        }
+        if (err==0) {
+          // proof found, kill all children
+          for(i=0;i<forkscreated;i++) {
+            if (forkpids[i]) {
+              // kill pid
+              kill(forkpids[i], SIGKILL);
+            }
+          }  
+          break;
+        }        
+      }
+    }  
+  }
+
 
   for(iter=0; 1; iter++) { 
+    // check if this process needs to run this iter
+    // two forks case:
+    // fork 0: 0, 2, 4, 6, ...
+    // fork 1: 1, 3, 5, 7, ...
+    // three forks case:
+    // fork 0: 0, 3, 6, 9, ...
+    // fork 1: 1, 4, 7, 10, ... 
+    // fork 2: 2, 5, 8, 11, ...
+
+    // parent should not do this loop at all if there are forks
+    if (pid && forkscreated) break;
+    
+    // child should only take some iters and pass others:
+    if (!pid && maxforks && ((iter % maxforks)!=forknr)) continue;
+        
 #ifdef DEBUG    
     wr_printf("\n**** run %d starts\n",iter+1);    
 #endif
+    fflush(stdout);     
+   
+    /*
+    wg_run_reasoner_onestrat(
+      db, pid, outfilename, iter, guide, givenguide, guidebuf, filename,
+      kb_db, child_db, kb_g, rglb, analyze_g, &guideres);
+    continue;  
+    */
+
     g=wr_glb_new_simple(db);
     // copy analyze_g stats to g for easier handling
     wr_copy_sin_stats(analyze_g,g);    
@@ -211,15 +307,21 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
     (g->db)=db;
 
     (g->current_run_nr)=iter;
+    (g->current_fork_nr)=forkslive;
     if (iter==0) (g->allruns_start_clock)=clock();  
     guidetext=NULL;
-    guideres=wr_parse_guide_section(g,guide,iter,&guidetext);
+    guideres=wr_parse_guide_section(g,guide,iter,&guidetext);    
     if (guideres<0) {
       // error in guide requiring stop      
       if (guidebuf!=NULL) free(guidebuf);
       if (guide!=NULL) cJSON_Delete(guide);
+      (g->guidetext)[0]=0;
       sys_free(g);
       return -1;
+    } else if (guidetext) {
+      tmp=strlen(guidetext);
+      if (tmp>=MAX_GUIDETEXT_LEN) tmp=MAX_GUIDETEXT_LEN-2;
+      memcpy(g->guidetext,guidetext,tmp+1);
     }
    
     if (!(g->print_flag)) (g->print_level_flag)=0;
@@ -234,11 +336,11 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
 
     if ((g->print_flag) && (g->print_runs)) {      
       if (guidetext!=NULL) {   
-        wr_printf("\n**** run %d starts with strategy\n",iter+1); 
+        wr_printf("\n**** run %d fork %d starts with strategy\n",iter+1,forkslive); 
         wr_printf("%s\n",guidetext);
         free(guidetext);
       } else {
-        wr_printf("\n**** run %d starts\n",iter+1);
+        wr_printf("\n**** run %d fork %d starts\n",iter+1, forkslive);
       }          
     }  
 
@@ -428,18 +530,18 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
         wr_show_result(g,g->proof_history);
       } else {
         if ((g->print_level_flag)>5) {
-          wr_printf("\n\nSearch finished without proof, result code %d.\n",res); 
+          wr_printf("\n\nfork %d: search finished without proof, result code %d.\n",g->current_fork_nr,res); 
         }  
       }  
     } else if (res==2 && (g->print_runs)) {
-      wr_printf("\n\nSearch terminated without proof.\n");        
+      wr_printf("\n\nfork %d: search terminated without proof.\n",g->current_fork_nr);        
     } else if (res==-1) {
 #ifdef PRINTERR       
-      wr_printf("\n\nSearch cancelled: memory overflow.\n");
+      wr_printf("\n\nfork %d: search cancelled: memory overflow.\n",g->current_fork_nr);
 #endif      
     } else if (res<0) {
 #ifdef PRINTERR       
-      wr_printf("\n\nSearch cancelled, error code %d.\n",res);
+      wr_printf("\n\nfork %d: search cancelled, error code %d.\n",g->current_fork_nr,res);
 #endif      
     }      
     //if (g->print_flag) wr_show_stats(g,1);
@@ -484,6 +586,307 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
   return res;  
 } 
 
+
+
+
+/*  
+int wg_run_reasoner_onestrat(
+  void* db, int pid, char* outfilename, int iter, cJSON *guide, int givenguide, char *guidebuf, char* filename,
+  void* kb_db, void *child_db, glb *kb_g, glb *rglb, glb* analyze_g, int* guideres)  {
+
+  glb* g;
+  int res=1;
+  int default_print_level=10;
+  int tmp,propres;
+  int clause_count=0;
+  char* guidetext;
+  int exit_on_proof=1; // set to 0 to clean memory and not call exit at end
+
+
+    g=wr_glb_new_simple(db);
+    // copy analyze_g stats to g for easier handling
+    wr_copy_sin_stats(analyze_g,g);    
+
+    if (kb_g!=NULL) {
+      (g->kb_g)=kb_g; // points to the copy of globals of the external kb
+    }  
+    if (g==NULL) {
+      wr_errprint("cannot allocate enough memory during reasoner initialization");
+      if (guidebuf!=NULL) free(guidebuf);
+      if (guide!=NULL) cJSON_Delete(guide);
+      sys_free(g); 
+      return -1;
+    }   
+#ifdef DEBUG
+    wr_printf("\nnow db is %ld and child_db is %ld \n",(gint)db,(gint)child_db);
+#endif    
+    (g->child_db)=child_db;
+    (g->db)=db;
+
+    (g->current_run_nr)=iter;
+    if (iter==0) (g->allruns_start_clock)=clock();  
+    guidetext=NULL;
+    *guideres=wr_parse_guide_section(g,guide,iter,&guidetext);
+    if (*guideres<0) {
+      // error in guide requiring stop      
+      if (guidebuf!=NULL) free(guidebuf);
+      if (guide!=NULL) cJSON_Delete(guide);
+      sys_free(g);
+      return -1;
+    }
+   
+    if (!(g->print_flag)) (g->print_level_flag)=0;
+    if ((g->print_level_flag)<0) (g->print_level_flag)=default_print_level;
+    if ((g->print_level_flag)==0) wr_set_no_printout(g);
+    else if ((g->print_level_flag)<=10) wr_set_tiny_printout(g);
+    else if ((g->print_level_flag)<=15) wr_set_low_printout(g);
+    else if ((g->print_level_flag)<=20) wr_set_normal_printout(g);
+    else if ((g->print_level_flag)<=30) wr_set_medium_printout(g);
+    else if ((g->print_level_flag)<=50) wr_set_detailed_printout(g);    
+    else wr_set_detailed_plus_printout(g);
+
+    if ((g->print_flag) && (g->print_runs)) {      
+      if (guidetext!=NULL) {   
+        wr_printf("\n**** run %d pid %d starts with strategy\n",iter+1,pid); 
+        wr_printf("%s\n",guidetext);
+        free(guidetext);
+      } else {
+        wr_printf("\n**** run %d pid %d starts\n",iter+1,pid);
+      }          
+    }  
+
+    (g->cl_keep_weightlimit)=(g->cl_maxkeep_weightlimit);
+    (g->cl_keep_sizelimit)=(g->cl_maxkeep_sizelimit);
+    (g->cl_keep_depthlimit)=(g->cl_maxkeep_depthlimit);
+    (g->cl_keep_lengthlimit)=(g->cl_maxkeep_lengthlimit);   
+    tmp=wr_glb_init_shared_complex(g); // creates and fills in shared tables, substructures, etc: 0.03 secs
+    if (tmp) {
+      wr_errprint("cannot init shared complex datastructures");
+      if (guidebuf!=NULL) free(guidebuf);
+      if (guide!=NULL) cJSON_Delete(guide); 
+      wr_glb_free_shared_complex(g);
+      sys_free(g);
+      return -1; 
+    }  
+    tmp=wr_glb_init_local_complex(g); // creates and fills in local tables, substructures, etc: fast
+    if (tmp) {
+      wr_errprint("cannot init local complex datastructures");
+      if (guidebuf!=NULL) free(guidebuf);
+      if (guide!=NULL) cJSON_Delete(guide); 
+      wr_glb_free_shared_complex(g);
+      wr_glb_free_local_complex(g);
+      sys_free(g);
+      return -1; 
+    }   
+    strncpy((g->filename),filename,MAX_FILENAME_LEN);
+    if (outfilename) (g->outfilename)=outfilename;    
+#ifdef SHOWTIME    
+    wr_printf("\nto call wr_init_active_passive_lists_from_all\n");
+    show_cur_time();
+#endif    
+    // if two db-s, this will take the clauses from the shared db     
+    clause_count=0;
+    if (db!=child_db) {
+      // two separate db-s
+#ifdef DEBUG
+      wr_printf("\n *** separate (local) child kb found, using\n");
+#endif      
+      // analyze local clauses; have to temporarily replace g->db to child
+     
+      //tmp_db=g->db;
+      //g->db=child_db;
+      
+      //tmp=wr_analyze_clause_list2(g,tmp_db,(dbmemsegh(g->child_db))->clauselist);
+
+      //tmp=wr_analyze_clause_list(g,db,child_db);
+      //
+      //if (!givenguide) {
+      //  make_auto_guide(g);
+      //  guide=wr_parse_guide_str(buf);
+      //}  
+
+      //g->db=tmp_db;
+
+      // wr_show_in_stats(g);  // show local stats
+      // wr_show_in_stats(rglb); // show global stats
+#ifdef DEBUG
+      wr_printf("\n** input stats for local g ****** \n");
+      show_cur_time();
+      wr_show_in_stats(g);
+      wr_printf("\n"); 
+      //exit(0);
+#endif
+      if (!(g->queryfocus_strat)) {
+        // for non-queryfocus_strat read the clauses from the 
+        // external shared mem db and do not use the
+        // indexes present there
+        //printf("\n(g->initial_cl_list) is %ld\n",(gint)((r_kb_g(g))->initial_cl_list));
+#ifdef DEBUG 
+        wr_printf("\n**** starting to read from the external shared mem kb\n");
+#endif              
+        clause_count+=wr_init_active_passive_lists_from_one(g,db,db);        
+        (g->kb_g)=NULL;        
+      } else {
+        // queryfocus case
+
+        //CP0
+        //printf("\n (g->in_goal_count %d\n",(g->in_goal_count));
+
+        // if no goals, set negative-or-ans-into passive initialization strat
+        if (!(g->in_goal_count)) {
+          (g->queryfocusneg_strat)=1;
+        } else {
+          (g->queryfocusneg_strat)=0;
+        }
+       /// ----
+      }
+      // if no equality, do not initialize indexes and do not try to use
+      
+      if (!(g->in_poseq_clause_count) && !(rglb->in_poseq_clause_count)) (g->use_equality)=0;
+      else (g->use_equality)=(g->use_equality_strat);
+      
+      // if two db-s, this will take the clauses from the local db:
+#ifdef DEBUG 
+      wr_printf("\n**** starting to read from the local db kb\n");
+#endif      
+      clause_count+=wr_init_active_passive_lists_from_one(g,db,child_db);      
+    } else {
+      // one single db      
+#ifdef DEBUG 
+        wr_printf("\n external kb NOT found\n");      
+        wr_printf("\n** starting to calc input stats for g ****** \n");
+        show_cur_time();
+#endif          
+        //tmp=wr_analyze_clause_list(g,db,db);
+        //if (!tmp) return -1;
+#ifdef DEBUG
+        wr_printf("\n** input stats for g ****** \n");
+        show_cur_time();
+        wr_show_in_stats(g);
+        wr_printf("\n");   
+#endif           
+
+      // if no goals, set negative-or-ans-into passive initialization strat
+      if (!(g->in_goal_count)) {
+        (g->queryfocusneg_strat)=1;
+      } else {
+        (g->queryfocusneg_strat)=0;
+      }
+      // if no equality, do not initialize indexes and do not try to use
+      
+      if (!(g->in_poseq_clause_count)) (g->use_equality)=0;
+      else (g->use_equality)=(g->use_equality_strat);
+      
+      /// ----
+#ifdef DEBUG       
+      wr_printf("\n**** starting to read from the single local db\n");      
+#endif     
+      clause_count=wr_init_active_passive_lists_from_one(g,db,db);      
+    } 
+
+#ifdef SHOWTIME     
+    wr_printf("\nreturned from wr_init_active_passive_lists_from_all\n");
+    show_cur_time();
+#endif    
+    if (clause_count<0) {
+      // error
+      wr_printf("\nError initializing clause lists.\n");
+      wr_glb_free(g);
+      return 10;
+    } else if (!clause_count) {
+      // no clauses found
+      wr_printf("\nNo clauses found.\n");
+      wr_glb_free(g);
+      return 10;
+    }
+    // ok, clauses found and clause lists initialized
+    //(g->kb_g)=NULL;
+    //printf("\n(g->use_equality) %d (g->use_equality_strat) %d\n",(g->use_equality),(g->use_equality_strat));
+     
+    //wr_show_in_stats(g);
+
+    //wr_print_clpick_queues(g,(g->clpick_queues));
+    
+    //if ((g->print_flag) && (g->print_runs)) wr_print_strat_flags(g);
+
+    if (!(g->proof_found) || !(wr_enough_answers(g))) {
+      res=wr_genloop(g);
+      //printf("\ngenloop ended\n");
+      //printf("\n prop_hash_clauses:\n");  
+      //wr_print_prop_clausehash(g,rotp(g,g->prop_hash_clauses));  
+
+      if (res>0 && !(res==1 && wr_have_answers(g)) &&
+          ((g->instgen_strat) || (g->propgen_strat))) {
+        propres=wr_prop_solve_current(g);
+        if (propres==2) {
+          res=0;
+        } 
+      }      
+    } else {
+      res=0;
+    }
+    if (res>=0 && !(g->parse_errflag) && !(g->alloc_err) && db && (dbmemsegh(db)->errflag)) {
+      wg_show_db_error(db);
+      res=0-2;
+    }
+
+    //printf("\nwr_genloop exited, showing database details\n");
+    //wr_show_database_details(g,NULL,"local g");
+    //printf("\n res is %d\n",res);
+    if (res==0) {
+      //wr_printf("\n\nProof found.\n"); 
+      wr_show_result(g,g->proof_history);
+    } else if (res==1) {
+      if (wr_have_answers(g)) {
+        wr_show_result(g,g->proof_history);
+      } else {
+        if ((g->print_level_flag)>5) {
+          wr_printf("\n\nSearch finished without proof, result code %d.\n",res); 
+        }  
+      }  
+    } else if (res==2 && (g->print_runs)) {
+      wr_printf("\n\nSearch terminated without proof.\n");        
+    } else if (res==-1) {
+#ifdef PRINTERR       
+      wr_printf("\n\nSearch cancelled: memory overflow.\n");
+#endif      
+    } else if (res<0) {
+#ifdef PRINTERR       
+      wr_printf("\n\nSearch cancelled, error code %d.\n",res);
+#endif      
+    }      
+    //if (g->print_flag) wr_show_stats(g,1);
+
+    if (res==0) {
+      // proof found 
+      if (g->print_flag) wr_show_stats(g,1);
+      if (exit_on_proof) {
+#ifdef SHOWTIME       
+        wr_printf("\nexiting\n");
+        show_cur_time();  
+#endif              
+        if (outfilename) {
+          wr_glb_free(g);
+          return(0);
+        } else {
+          wr_glb_free(g); // ???? added while splitting fun
+          return(0);
+        }  
+      }
+#ifdef SHOWTIME       
+      wr_printf("\nto call wr_glb_free\n");
+      show_cur_time();  
+#endif            
+      wr_glb_free(g);
+#ifdef SHOWTIME       
+      wr_printf("\nwr_glb_free returns\n");
+      show_cur_time(); 
+#endif      
+      return 20;
+    }
+  return res;  
+} 
+*/
 
 int wg_import_otter_file(void *db, char* filename, int iskb, int* informat) {  
   glb* g;
@@ -997,7 +1400,7 @@ void wr_show_stats(glb* g, int show_local_complex) {
   
   if (!(g->print_stats)) return;
   
-  wr_printf("\nstatistics:\n");
+  wr_printf("\nrun %d fork %d statistics:\n",(g->current_run_nr)+1,g->current_fork_nr);
   wr_printf("----------------------------------\n");
   wr_printf("this run seconds: %f\n",
     (float)(clock() - (g->run_start_clock)) / (float)CLOCKS_PER_SEC);

@@ -4,6 +4,6 @@
 "max_depth": 0,
 "max_length": 0,
 "max_seconds": 0,
-"weight_select_ratio": 4,
+"weight_select_ratio": 0,
 "strategy":["negative_pref"]
 }
