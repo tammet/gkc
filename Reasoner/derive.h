@@ -53,6 +53,8 @@ void wr_process_paramodulate_result
 int wr_process_resolve_result_aux
       (glb* g, gptr cl, gint cutatom, int atomnr, gptr rptr, int* rpos, int* cutpos,
        gint replpath, gint replterm);
+int wr_find_strong_duplicates(glb* g, gptr rptr, int* rpos);  
+int wr_mark_repeated_vars(glb* g, gint x);     
 int wr_process_instgen_result_aux
       (glb* g, gptr cl, gint cutatom, int atomnr, gptr rptr, int* rpos, int* cutpos, 
        gint replpath, gint replterm);      

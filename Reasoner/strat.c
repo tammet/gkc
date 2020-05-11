@@ -404,14 +404,16 @@ int wr_calc_clause_resolvability(glb* g, gptr cl, int allowall, int hyperpartial
       }          
     }    
   }
-
-  if (!allowall && negcount==0 && ((g->negpref_strat) || (g->hyperres_strat))) {
+  
+  // TESTING: normal no 0 blocker
+  if (!allowall && negcount==0 && ((g->negpref_strat) || (g->hyperres_strat))) { 
     // pure positive for neg order:
     // use a separate knuthbendix resolvability marker procedure
     tmp=wr_calc_clause_knuthbendix_resolvability(g,cl,(g->varbanks));
     if (!tmp) return 0; // error case
     return 1;
   }
+  // TESTING: normal no 0 blocker
   if (!allowall && poscount==0 && (g->pospref_strat)) {
     // pure negative for pos order:
     // use a separate knuthbendix resolvability marker procedure
@@ -448,7 +450,7 @@ int wr_calc_clause_resolvability(glb* g, gptr cl, int allowall, int hyperpartial
             (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
           } else {
             // no neg, ok to resolve
-            if (g->queryfocus_strat) {
+            if (g->queryfocus_strat) { // TESTING: normally no 1 enforcer
               // resolve only hardest pos
               if (allowedflag || (((g->tmp_hardnessinf_vec)[i+1])<max_pos_hardness)) {
                 // prohibit
@@ -486,7 +488,7 @@ int wr_calc_clause_resolvability(glb* g, gptr cl, int allowall, int hyperpartial
             (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
           } else {
             // no pos, ok to resolve
-            if (g->queryfocus_strat) {
+            if (g->queryfocus_strat) { // TESTING: normally no 1 enforcer
               // resolve only hardest neg
               if (allowedflag || (((g->tmp_hardnessinf_vec)[i+1])<max_neg_hardness)) {
                 // prohibit
@@ -1162,8 +1164,13 @@ static int wr_order_eqterms_lex_order(glb* g, gint x, gint y, gptr vb) {
   xlen=get_record_len(xptr);
   ylen=get_record_len(yptr);
   // let smaller-arity funs be lex-smaller 
+  // normal in May 2020
   if (xlen<ylen) return 1;
-  else if (ylen<xlen) return 2; 
+  else if (ylen<xlen) return 2;   
+  // TESTING 
+  //if (xlen>ylen) return 1;
+  //else if (ylen>xlen) return 2;  
+
   // here the arities are same
   uselen=xlen;
   if (g->unify_maxuseterms) {
@@ -1183,8 +1190,8 @@ static int wr_order_eqterms_lex_order(glb* g, gint x, gint y, gptr vb) {
 }        
 
 static int wr_order_eqterms_const_lex_smaller(glb* g, gint x, gint y) {
-  //if (x<y) return 1;
-  if (x>y) return 1;
+  //if (x<y) return 1;  // TESTING
+  if (x>y) return 1; // Normal in may 2020
   else return 0; 
 }
 
@@ -1225,6 +1232,17 @@ int wr_calc_clause_knuthbendix_resolvability(glb* g, gptr cl, gptr vb) {
   for(i=0; i<atomnr; i++) {
     (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,1);
   }  
+  /*
+  // TESTING BLOCK for getting foundground
+  int foundground=0;
+  for(i=0; i<atomnr; i++) {  
+    xvarlist=(gptr)((g->tmp_clinfo)[(i*2)+2+1]); // IFF no vars, xvarlist will be NULL
+    if (xvarlist==NULL) {
+      foundground=1;
+      break;
+    }  
+  }
+  */
 
   // loop over all pairs of literals, setting prohibited to 0
   for(i=0; i<atomnr; i++) {          
@@ -1235,7 +1253,15 @@ int wr_calc_clause_knuthbendix_resolvability(glb* g, gptr cl, gptr vb) {
       (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
       continue; 
     }  
-    xvarlist=(gptr)((g->tmp_clinfo)[(i*2)+2+1]);
+    xvarlist=(gptr)((g->tmp_clinfo)[(i*2)+2+1]); // IFF no vars, xvarlist will be NULL
+    /*
+    // TESTING block using foundground
+    if (foundground && xvarlist!=NULL) {
+       (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
+       continue;
+    } 
+    */
+
     for(j=i+1; j<atomnr; j++) {
       //ymeta=wg_get_rule_clause_atom_meta(db,cl,j);
       if (!(g->tmp_resolvability_vec)[j+1]) {
@@ -1265,6 +1291,24 @@ int wr_calc_clause_knuthbendix_resolvability(glb* g, gptr cl, gptr vb) {
         wr_printf(" xvarlist and yvarlist are not subsets of each other\n");
       }
 #endif   
+      
+      /*
+      // TESTING block using foundground
+      if (xvarlist==NULL) {
+        if (yvarlist==NULL) {
+          if (xw>yw) (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,j+1,0);
+          else if (xw<yw) (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
+          else {
+            lexorder=wr_order_atoms_lex_order(g,xatom,yatom,vb);
+            if (lexorder==2) (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,j+1,0);
+            else if (lexorder==1) (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
+          }
+        } else {
+          (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,j+1,0);
+        }  
+        continue;
+      }
+      */
 
       if (xw>yw && wr_countedvarlist_is_subset(g,yvarlist,xvarlist)) {
         res=1;
@@ -1292,7 +1336,7 @@ int wr_calc_clause_knuthbendix_resolvability(glb* g, gptr cl, gptr vb) {
       dp("\n wr_order_eqterms returns on complex comparison: %d\n",res); 
   #endif    
       if (res==1) {
-        // yatom probited
+        // yatom prohibited
         (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,j+1,0);
       } else if (res==2) {
         // xatom prohibited

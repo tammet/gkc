@@ -907,7 +907,8 @@ gint wr_create_clpick_queues(glb* g, int count) {
       queues[i+CLPICK_THIS_QUEUE_RATIO]=1;
     }   
     */   
-    // v40 code follows:    
+    // v40 code follows (was in may 2020) before testing
+    
     if (i==1) {
       // goalassumption
       if (g->cl_pick_queue_strategy) queues[i+CLPICK_THIS_QUEUE_RATIO]=6; // 6
@@ -921,7 +922,28 @@ gint wr_create_clpick_queues(glb* g, int count) {
       queues[i+CLPICK_THIS_QUEUE_RATIO]=1;  
     } else {
       queues[i+CLPICK_THIS_QUEUE_RATIO]=1;
-    }      
+    } 
+         
+    // assumption experiment code follows  TESTING
+    /*
+    if (i==1) {
+      // goalassumption
+      if (g->cl_pick_queue_strategy) queues[i+CLPICK_THIS_QUEUE_RATIO]=10; // 6, 3
+      else queues[i+CLPICK_THIS_QUEUE_RATIO]=1;
+    } else if (i==11) {
+      // goal
+      if (g->cl_pick_queue_strategy) queues[i+CLPICK_THIS_QUEUE_RATIO]=1; // 4, 3
+      else queues[i+CLPICK_THIS_QUEUE_RATIO]=1;  // 1
+    } else if (i==21) {
+      // assumption      
+      //queues[i+CLPICK_THIS_QUEUE_RATIO]=1;  
+      if (g->cl_pick_queue_strategy) queues[i+CLPICK_THIS_QUEUE_RATIO]=10; // 4, 2
+      else queues[i+CLPICK_THIS_QUEUE_RATIO]=1;
+    } else {
+      queues[i+CLPICK_THIS_QUEUE_RATIO]=1;
+    } 
+    */
+    // assumption experiment code ends   
     queues[i+CLPICK_THIS_QUEUE_RATIO_COUNTER]=0;   
     tmpvec=wr_cvec_new(g,NROF_DYNALLOCINITIAL_ELS);
     if (!tmpvec) return 0;

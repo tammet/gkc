@@ -419,6 +419,116 @@ gint wr_eqmodvars_term_aux(glb* g, gint x, gint y, int uniquestrflag) {
   }        
 } 
 
+
+/* ---------------------------------------------------
+
+
+   Matching against non-repeating vars without substitution
+   Used for strong factorization (duplicate elimination)
+   right after derivation.
+
+ ---------------------------------------------------- */
+
+
+/* ----------------------------------------------------------
+
+    Matching: one-sided unification
+
+  ------------------------------------------------------------- */
+
+
+/** Match terms:  x is the general term, y is an instance of x
+    using g->unify_samelen and g->unify_maxuseterms
+
+    returns 
+      0 iff x subsumes y
+      1 iff fails because of vars
+      2 iff fais because of const/fun
+
+*/
+
+
+gint wr_nomatch_term_uniquevars(glb* g, gint x, gint y, int uniquestrflag) {  
+  gptr db;
+  gint encx,ency, tmp;
+  gptr xptr,yptr;
+  int xlen,ylen,uselen,ilimit,i;
+  gint eqencx; // used by WR_EQUAL_TERM macro
+
+#ifdef DEBUG
+  printf("\nwr_match_term_uniquevars called with x %d \n",x);
+  wr_print_term(g,x);
+  printf(" and y %d ",y);
+  wr_print_term(g,y);
+  printf("\n");
+#endif  
+
+  UNUSED(eqencx);      
+  // check x var case immediately
+  if (isvar(x)) { 
+    /*      
+    printf("\n var:\n");
+    printf("\nraw var %d decoded %d\n",x,decode_var(x));
+    wr_print_term(g,x);
+    printf("\nraw val %d \n",(g->varbanks)[decode_var(x)]);
+    wr_print_term(g,(g->varbanks)[decode_var(x)]);
+    printf("\n");
+    */ 
+    if ((g->varbanks)[decode_var(x)]==(gint)NULL) return 0; // marked as unique
+    if (WR_EQUAL_TERM(g,x,y,uniquestrflag)) return 0;
+    return 1;   
+  }
+  // now x is not var
+  if (!isdatarec(x)) {
+    if (WR_EQUAL_TERM(g,x,y,uniquestrflag)) return 0;  
+  }   
+  if (isvar(y)) return 1; // x is not var, y is var
+  // x and y cannot be vars
+  if (!isdatarec(y)) return 2; // x is datarec but y is a const    
+  // now x and y are different datarecs
+  if (1) {  
+    db=g->db;
+    xptr=decode_record(db,x);
+    yptr=decode_record(db,y);
+    xlen=get_record_len(xptr);
+    ylen=get_record_len(yptr);
+    if (g->unify_samelen) {
+      if (xlen!=ylen) return 2;
+#ifdef USE_TERM_META       
+      encx=*(xptr+(RECORD_HEADER_GINTS+TERM_META_POS));
+      ency=*(yptr+(RECORD_HEADER_GINTS+TERM_META_POS));  
+      if (issmallint(encx) && issmallint(ency)) {
+        if (encx>ency) { return 2; } // term with bigger termmeta cannot subs one with smaller
+        if (decode_smallint(encx) & TERMMETA_GROUND_MASK) {
+          if (encx!=ency) { return 2; } // ground term can subs only ground with same size
+        }
+      }
+#endif      
+      uselen=xlen;      
+    } else {
+      if (xlen<=ylen) uselen=xlen;
+      else uselen=ylen;
+    } 
+    
+    if (g->unify_maxuseterms) {
+      if (((g->unify_maxuseterms)+(g->unify_firstuseterm))<uselen) 
+        uselen=(g->unify_firstuseterm)+(g->unify_maxuseterms);
+    }    
+    ilimit=RECORD_HEADER_GINTS+uselen;
+    for(i=RECORD_HEADER_GINTS+(g->unify_firstuseterm); i<ilimit; i++) {
+      encx=*(xptr+i);
+      ency=*(yptr+i);
+      tmp=wr_nomatch_term_uniquevars(g,encx,ency,uniquestrflag);
+      if (tmp) return tmp;
+    }           
+    return 0;        
+  }        
+} 
+
+
+
+
+
 /* ----------------------------------------------------------
 
     Equality check

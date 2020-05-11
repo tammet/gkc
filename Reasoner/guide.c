@@ -189,11 +189,12 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr) {
       //printf("\nmax_run_seconds %d\n", json_valueint(elem));
       (g->max_run_seconds)=json_valueint(elem);
 
+      // TESTING: commented out. NORMALLY: active
       if ((g->max_run_seconds)<2) {
         (g->use_strong_unit_cutoff)=1;
       } else {
         (g->use_strong_unit_cutoff)=0;
-      }
+      }      
 
     } else if (!strcmp(key,"total_seconds")) {
       //printf("\nmax_seconds %d\n", json_valueint(elem));

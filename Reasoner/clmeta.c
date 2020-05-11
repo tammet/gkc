@@ -187,7 +187,8 @@ int  wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length
   }  
 #endif  
   // now check if rewrite rule
-  if (xatomnr==1 &&
+  if (// TESTING: normally not blocked by 0
+      xatomnr==1 &&
       (g->use_equality) && (g->use_rewrite_terms_strat) && 
       wr_equality_atom(g,xatom) &&
       ruleflag && 
@@ -208,7 +209,7 @@ int  wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length
         // rewrite rule  
         //printf("\nfound rewrite rule\n");
         //wr_print_clause(g,xptr);
-        w=(int)((float)w/2.0);
+        w=(int)((float)w/2.0); // NORMAL /2.0 TESTING
       }
     }
   }      
@@ -259,13 +260,13 @@ int wr_calc_term_weight(glb* g, gint x, int depth, int* size, int* maxdepth, int
     if (VARVAL_DIRECT(x,(g->varbanks))==UNASSIGNED) {
       // a new var 
       SETVAR(x,encode_smallint(1),g->varbanks,g->varstack,g->tmp_unify_vc);
-      return 5;
+      return 5; // TESTING normal 5, testing 1
     } else {
       // a var seen before
-      return 7;
+      return 7; // TESTING normal 7, testing 1
     }    
 #else
-    return 5;    
+    return 5;  // TESTING normal 5, testing 1   
 #endif      
    
   }   

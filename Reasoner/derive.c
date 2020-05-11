@@ -205,6 +205,13 @@ void wr_process_resolve_result
       } 
     }  
   }
+  // remove strong duplicates  
+  //printf("\nrpos starts with %d\n",rpos);
+  if ((rpos>1) && (g->use_strong_duplicates)) {    
+    //printf("\nrpos before %d\n",rpos);
+    wr_find_strong_duplicates(g,rptr,&rpos);
+    //printf("\nrpos after %d\n",rpos);
+  }  
   /* 
   } else if (tmp>0) {
     // there were cuts
@@ -1006,6 +1013,13 @@ void wr_process_paramodulate_result
   // --
   
 
+  // remove strong duplicates  
+  //printf("\nrpos starts with %d\n",rpos);
+  if ((rpos>1) && (g->use_strong_duplicates)) {    
+    //printf("\nrpos before %d\n",rpos);
+    wr_find_strong_duplicates(g,rptr,&rpos);
+    //printf("\nrpos after %d\n",rpos);
+  } 
 
   // now we have stored all subst-into and renamed metas/atoms into rptr: build clause  
 
@@ -1236,9 +1250,205 @@ int wr_process_resolve_result_aux
       ++(*rpos);      
     }       
   }     
-  
+ 
+
   return 1; // 1 means clause is still ok. 0 return means: drop clause 
 }  
+
+// check if xatom can subsume another atom without instantiating repeating vars
+// if yes, drop the atom
+// example 1: p(c,X) | p(c,Y) | r(X)  gives  p(c,X) | r(X)
+// example 2: p(c,d) | p(c,Y) | r(X)  gives  p(c,d) | r(X)
+
+#define MAX_BLOCKED_LITNR 40
+
+int wr_find_strong_duplicates(glb* g, gptr rptr, int* rpos) {
+  void* db;
+  int varoccs,x,y,maxpos,foundunique;
+  int blockedcount,keepcount,shift,newpos;
+  gptr vx,maxpt;
+  gint mres,maxnr,xatom,xmeta,yatom,ymeta,lit1,lit2;
+  char blocked[MAX_BLOCKED_LITNR];
+    
+  UNUSED(db);   
+  maxpos=*rpos; 
+  wr_clear_varstack(g,g->varstack);
+  //vb=g->varbanks; // start from the beginning of varbanks
+  g->tmp_unify_vc=((gptr)(g->varstack))+1;
+  // first mark repeated vars    
+  varoccs=0;
+  //wr_print_vardata(g);
+  for(x=0; x<maxpos; x++) {
+    xatom=rptr[(x*LIT_WIDTH)+LIT_ATOM_POS];
+    varoccs+=wr_mark_repeated_vars(g,xatom);
+  }
+  //wr_print_vardata(g);
+  // check if there were any vars
+  //printf("\nvaroccs %d\n",varoccs);
+  if (!varoccs) {
+    // no vars, nothing to clean
+    return 0;
+  }
+   
+  // now all non-repeated vars are set to NULL
+  // check if there were any nonrepeated vars 
+  foundunique=0;  
+  vx=(g->varstack);
+  ++vx;
+  maxnr= *vx;
+  //printf("\nmaxnr %d\n",maxnr);
+  if (maxnr>2) {    
+    maxpt=(g->varstack)+maxnr;    
+    for(++vx; vx<maxpt; ++vx) { 
+      //printf("\n vx %d var %d val %d ",vx,*vx,decode_var(*vx),*((gptr)(*vx)));
+      //wr_print_term(g,*((gptr)(*vx)));
+      //printf("\n");       
+      if(*((gptr)(*vx))==(gint)NULL) {
+        foundunique=1;
+        break;
+      }      
+    }  
+  }
+  //printf("\nfoundunique %d\n",foundunique);  
+  if (!foundunique) {
+    wr_clear_varstack(g,g->varstack);
+    return 0;
+  }
+  // now there were some unique vars
+  // loop over atoms
+   
+  // zero blocked array
+  memset(blocked,0,MAX_BLOCKED_LITNR);
+  blockedcount=0;
+  db=g->db;
+  // loop over atoms, trying to mark them as blocked to be dropped later
+  for(x=0; (x < maxpos) && (x < MAX_BLOCKED_LITNR) ;x++){  
+    if (blocked[x]) continue;  
+    xmeta=rptr[(x*LIT_WIDTH)+LIT_META_POS];
+    xatom=rptr[(x*LIT_WIDTH)+LIT_ATOM_POS];
+    lit1=rpto(g,xatom);
+    for(y=x+1; (y < maxpos) && (y < MAX_BLOCKED_LITNR); y++) {
+      if (blocked[y]) continue;
+      ymeta=rptr[(y*LIT_WIDTH)+LIT_META_POS];      
+      if (wg_atom_meta_is_neg(db,xmeta)==wg_atom_meta_is_neg(db,ymeta)) {
+        yatom=rptr[(y*LIT_WIDTH)+LIT_ATOM_POS];
+        lit2=rpto(g,yatom);      
+        mres=wr_nomatch_term_uniquevars(g,xatom,yatom,1); // uniquestrflag=1
+        //printf("\n mres1 %d\n",mres);
+        // mres=0 if success, 1 if fails because of vars, 2 if fails because of const/fun
+        if (!mres) {
+          // match successful, lit1 is more general, drop lit1          
+          blocked[x]=(char)1;
+          blockedcount++;
+        } else if (mres==1) {
+          // failed because of vars: try another way
+          mres=wr_nomatch_term_uniquevars(g,yatom,xatom,1);
+          //printf("\n mres2 %d\n",mres);
+          if (!mres) {
+            // match successful, lit2 is more general, drop lit2
+            blocked[y]=(char)1;
+            blockedcount++;
+          }  
+        } else {
+          // failed because of const/fun: do not try more
+        }
+      }                 
+    }
+  }  
+  wr_clear_varstack(g,g->varstack);
+  if (!blockedcount) {
+    return 0;
+  } 
+  /*
+  printf("\nfound blockedcount %d and blocked els:\n",blockedcount);
+  for(x=0;x<*rpos;x++) {
+    printf("el %d blocked %d\n",x,(int)(blocked[x]));
+  }
+  printf("for halfbuilt cl:\n");
+  wr_print_halfbuilt_clause(g,rptr,*rpos);
+  printf("\n");
+  */
+
+  // here we found a blocked lit
+  keepcount=0;
+  shift=0;
+  for(x=0; (x < *rpos) ; x++){
+    if ((x < MAX_BLOCKED_LITNR) && blocked[x]) {
+      shift++;
+    } else {
+      keepcount++;
+      if (shift) {
+        newpos=x-shift;
+        rptr[(newpos*LIT_WIDTH)+LIT_META_POS]=rptr[(x*LIT_WIDTH)+LIT_META_POS];
+        rptr[(newpos*LIT_WIDTH)+LIT_ATOM_POS]=rptr[(x*LIT_WIDTH)+LIT_ATOM_POS];
+      } 
+    }
+  }  
+  // finally change count
+  //*rpos=(*rpos)-blockedcount;
+  *rpos=keepcount;
+  /*
+  printf("simplified halfbuilt cl with *rpos %d:\n",*rpos);
+  wr_print_halfbuilt_clause(g,rptr,*rpos);
+  printf("\n");
+  */
+  return blockedcount;  
+}
+
+/*
+    push all vars to (g->varstack)
+    mark repeated vars in as having themselves as value
+    mark non-repeated vars as having NULL as value
+    return nr of overall var occurrences (0 if none)
+
+    *vc is a pointer to stack counter var
+*/
+
+int wr_mark_repeated_vars(glb* g, gint x) {
+  void* db;
+  gptr xptr;
+  int i, start, end, varoccs;  
+  gint tmp; // used by VARVAL_F
+  gint val;  
+
+#ifdef DEBUG
+  wr_printf("wr_mark_repeated_vars called with x %ld ",x);
+  wr_print_term(g,x);
+  wr_printf("\n");
+#endif      
+  if (!isdatarec(x)) {
+    // now we have a simple value     
+    if (isvar(x)) {
+      val=(g->varbanks)[decode_var(x)];
+      if (val==UNASSIGNED) {
+        // var has not been seen before
+        // initially, vars are set UNASSIGNED 
+        // set it to NULL and push to stack
+        SETVAR(x,(gint)NULL,(g->varbanks),(g->varstack),(g->tmp_unify_vc)); 
+      } else {
+        // var has been seen before
+        // set it to itself and do not push to stack
+        (g->varbanks)[decode_var(x)]=x;         
+#ifdef DEBUG        
+        wr_printf("\nvar %d %d marked as repeated\n",x,decode_var(x));            
+#endif        
+      }
+      return 1; // if var found, return 1 
+    } 
+    return 0;  // no var found
+  }   
+  // now we have a datarec
+  db=g->db;
+  xptr=decode_record(db,x);
+  start=wr_term_unify_startpos(g);
+  end=wr_term_unify_endpos(g,xptr); 
+  varoccs=0;
+  for(i=start;i<end;i++) {
+    tmp=wr_mark_repeated_vars(g,xptr[i]);      
+    varoccs=varoccs+tmp;
+  }
+  return varoccs;
+} 
 
 
 int wr_process_instgen_result_aux

@@ -38,7 +38,7 @@
 /* ==== Global defines ==== */
 
 #define CONSTANT_WEIGHT 10
-#define VAR_WEIGHT 5
+#define VAR_WEIGHT 5 // TESTING: NORMAL 5, TESTING 1
 
 #define CLMETABLOCK_ELS 6
 #define CLMETABLOCK_LENGTHS_POS 0

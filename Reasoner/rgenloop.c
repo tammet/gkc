@@ -149,7 +149,7 @@ int wr_genloop(glb* g) {
     //wr_printf("\n run_seconds %f (g->max_run_seconds) %d g->passed_ratio %f\n",
     //  (float)run_seconds,(g->max_run_seconds),g->passed_ratio);
     // change strategy for endgame
-      
+    
     if ((g->instgen_strat) &&  (int)((g->queue_termbuf)[0])<(int)((g->queue_termbuf)[1]+1000000)) {
        return 1;
     } else if (((g->passed_ratio)>0.95) && (g->max_run_seconds)>3 && (g->res_arglen_limit)!=1) {
@@ -173,8 +173,7 @@ int wr_genloop(glb* g) {
         wr_printf("\nfork %d: passed time ratio %.2f",g->current_fork_nr,g->passed_ratio);      
       }
       (g->pick_given_queue_ratio)=100;
-    }
-    
+    }    
 
 #ifdef DEBUG
     wr_printf("wr_genloop for loop beginning queue is\n");
@@ -364,14 +363,34 @@ int wr_genloop(glb* g) {
     if ((g->res_arglen_limit) && (g->res_arglen_limit)<2) {
       continue;
     }
+    //int tmp_para=(g->prohibit_nested_para);
     if (g->use_equality) {
+      /*
+      if (g->prohibit_nested_para) {
+        if (wr_get_cl_history_tag(g,given_cl)==WR_HISTORY_TAG_PARA) {
+          // given derived by eq: then ycl should not be derived by eq
+        } else {
+          // given not derived by eq: then ycl can be derived by eq
+          (g->prohibit_nested_para)=0;
+        }
+      }
       wr_paramodulate_from_all_active(g,given_cl,given_cl_as_active,(g->tmp_resolvability_vec));    
       if ((g->proof_found) && wr_enough_answers(g)) return 0;
-      if (g->alloc_err) return -1;          
+      if (g->alloc_err) return -1;                  
       wr_paramodulate_into_all_active(g,given_cl,given_cl_as_active,(g->tmp_resolvability_vec));    
       if ((g->proof_found) && wr_enough_answers(g)) return 0;
-      if (g->alloc_err) return -1;       
+      if (g->alloc_err) return -1; 
+      */      
+      if (!(g->prohibit_nested_para) || (wr_get_cl_history_tag(g,given_cl)!=WR_HISTORY_TAG_PARA)) {
+        wr_paramodulate_from_all_active(g,given_cl,given_cl_as_active,(g->tmp_resolvability_vec));    
+        if ((g->proof_found) && wr_enough_answers(g)) return 0;
+        if (g->alloc_err) return -1;                  
+        wr_paramodulate_into_all_active(g,given_cl,given_cl_as_active,(g->tmp_resolvability_vec));    
+        if ((g->proof_found) && wr_enough_answers(g)) return 0;
+        if (g->alloc_err) return -1;          
+      }      
     }
+    //(g->prohibit_nested_para)=tmp_para;
     
   }
   // loop ended: either nothing to do or timeout

@@ -45,4 +45,6 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
 
 void wr_resolve_equality_reflexive(glb* g, gptr cl, gptr cl_as_active);
 
+int wr_get_cl_history_tag(glb* g, gptr cl);
+
 #endif

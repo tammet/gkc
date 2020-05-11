@@ -197,7 +197,7 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
   int pid=1,stat;
   forkscreated=0;
   forkslive=0;  
-  maxforks=4;
+  maxforks=2; // TESTING
   if (maxforks>64) maxforks=64;
   for(forknr=0; forknr<maxforks; forknr++) {
     pid=fork();
@@ -210,6 +210,7 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
       // child
       //printf("\nafter fork nr %d with pid 0 (child)\n",forknr);
 #ifdef __linux__      
+      // make child to terminate if parent terminates
       tmp = prctl(PR_SET_PDEATHSIG, SIGTERM);
       if (tmp == -1) { printf("\nparent died for fork %d, exiting\n", forknr); exit(1); }
       // test in case the original parent exited just
@@ -310,7 +311,15 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
     (g->current_fork_nr)=forkslive;
     if (iter==0) (g->allruns_start_clock)=clock();  
     guidetext=NULL;
-    guideres=wr_parse_guide_section(g,guide,iter,&guidetext);    
+    guideres=wr_parse_guide_section(g,guide,iter,&guidetext);  
+
+    // (g->cl_maxkeep_depthlimit)=10;  // TESTING
+    // (g->res_shortarglen_limit)=3; // TESTING
+    // (g->posunitpara_strat)=1; // TESTING
+    // (g->use_strong_unit_cutoff)=1; // TESTING
+    // (g->pick_given_queue_ratio)=100; // TESTING
+    (g->cl_maxkeep_sizelimit)=30; // TESTING
+
     if (guideres<0) {
       // error in guide requiring stop      
       if (guidebuf!=NULL) free(guidebuf);

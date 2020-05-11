@@ -57,6 +57,7 @@ gint wr_unify_term_aux(glb* g, gint x, gint y, int uniquestrflag);
 gint wr_match_term_aux(glb* g, gint x, gint y, int uniquestrflag);
 gint wr_eqmodvars_term_aux(glb* g, gint x, gint y, int uniquestrflag);
 gint wr_match_term(glb* g, gint x, gint y, int uniquestrflag);
+gint wr_nomatch_term_uniquevars(glb* g, gint x, gint y, int uniquestrflag); 
 
 gint wr_equal_term1(glb* g, gint x, gint y, int uniquestrflag);
 gint wr_equal_term2(glb* g, gint x, gint y, int uniquestrflag);

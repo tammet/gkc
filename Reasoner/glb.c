@@ -143,8 +143,8 @@ int wr_glb_init_simple(glb* g) {
   (g->pick_given_queue_ratio_counter)=0; // this is not used for queues
   (g->next_pick_given_queue_block_nr)=0;
 
-  (g->cl_depth_penalty)=0;
-  (g->cl_length_penalty)=1;
+  (g->cl_depth_penalty)=0; // normal 0
+  (g->cl_length_penalty)=1; // normal 1
 
   /* pre-given limits */
   (g->max_run_seconds)=0; // one run max seconds
@@ -178,10 +178,12 @@ int wr_glb_init_simple(glb* g) {
   (g->propgen_strat)=0;
   (g->use_comp_funs_strat)=1;
   (g->use_comp_funs)=1;
-  (g->use_rewrite_terms_strat)=1; // general strategy
+  (g->use_rewrite_terms_strat)=1; // general strategy // NORMAL 1
   (g->have_rewrite_terms)=0; // do we actually have rewrite terms
   (g->use_strong_unit_cutoff)=0; // if 1, then cut off also with unification, not just with hash equality
-  
+  (g->use_strong_duplicates)=0; // iff 1, then additional unique var based duplicate removal used
+  (g->prohibit_nested_para)=0; // iff 1, paramodulation derivations cannot be directly nested
+
   (g->max_proofs)=1;
   (g->store_history)=1;
   //(g->cl_maxdepth)=1000000;

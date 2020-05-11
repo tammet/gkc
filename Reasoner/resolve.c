@@ -516,7 +516,7 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active, cvec re
 #endif  
   // loop over literals
   for(i=0; i<len; i++) {
-    if (!(resolvability[i+1])) continue; // limit para to resolvable only (!!???)
+    if (!(resolvability[i+1])) continue; // limit para to resolvable only (!!???) TESTING: normal: do limit
     if (!ruleflag) {
       xatom=encode_record(db,xcl);
 #ifdef DEBUG 
@@ -680,7 +680,11 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active, cvec re
             while(node!=0) {  
               nodeptr=otp(db,node);  
               yterm=nodeptr[CLTERM_HASHNODE_TERM_POS];
-              ycl=otp(db,nodeptr[CLTERM_HASHNODE_CL_POS]);        
+              ycl=otp(db,nodeptr[CLTERM_HASHNODE_CL_POS]); 
+              if ((g->prohibit_nested_para) && (wr_get_cl_history_tag(g,ycl)==WR_HISTORY_TAG_PARA)) {
+                node=wr_clterm_hashlist_next(g,hashvec,node);
+                continue;
+              }       
               /*
               wr_printf("after while(node!=0): \n");
               wr_printf("ycl: \n");
@@ -868,7 +872,7 @@ void wr_paramodulate_into_all_active(glb* g, gptr cl, gptr cl_as_active, cvec re
 #endif  
   // loop over literals
   for(i=0; i<len; i++) {  
-     if (!(resolvability[i+1])) continue; // limit para to resolvable only (!!???)   
+    if (!(resolvability[i+1])) continue; // limit para to resolvable only (!!???) TESTING: normal: do limit
     if (!ruleflag) {
       xatom=encode_record(db,xcl);
 #ifdef DEBUG      
@@ -1054,6 +1058,10 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
       //nodeptr=otp(db,node);
       yterm=(otp(db,node))[CLTERM_HASHNODE_TERM_POS];     //nodeptr[CLTERM_HASHNODE_TERM_POS];
       ycl=otp(db,(otp(db,node))[CLTERM_HASHNODE_CL_POS]); //(otp(db,nodeptr)[CLTERM_HASHNODE_CL_POS]);
+      if ((g->prohibit_nested_para) && (wr_get_cl_history_tag(g,ycl)==WR_HISTORY_TAG_PARA)) {
+        node=wr_clterm_hashlist_next(g,hashvec,node);
+        continue;
+      }
       if ((g->back_subsume) && wr_blocked_clause(g,ycl)) {
         node=wr_clterm_hashlist_next(g,hashvec,node);
         continue;
@@ -1078,6 +1086,14 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
           continue;     
         }  
       } 
+      // NEW ADDITION in may
+      if ((g->posunitpara_strat) && (wg_rec_is_rule_clause(db,ycl))) {
+        if (wr_count_cl_nonans_atoms(g,ycl)>1) {
+          // cannot use: continue loop
+          node=wr_clterm_hashlist_next(g,hashvec,node);
+          continue;
+        }  
+      }
       if (g->print_litterm_selection) {                
           wr_printf("\nactive para-into eq term:");
           wr_print_term(g,yterm); 
@@ -1246,6 +1262,24 @@ void wr_resolve_equality_reflexive(glb* g, gptr cl, gptr cl_as_active) {
 #endif    
   return;
 }
+
+// values WR_HISTORY_TAG_FACTORIAL, WR_HISTORY_TAG_PARA etc
+
+int wr_get_cl_history_tag(glb* g, gptr cl) {
+  void *db=g->db;
+  gint history,head,htype,dechead;
+  int tag;
+  
+  history=wr_get_history(g,cl);
+  if (!history) return 0;
+  head=wr_get_history_record_field(db,otp(db,history),HISTORY_DERIVATION_TAG_POS);
+  htype=wg_get_encoded_type(db,head);
+  if (htype!=WG_INTTYPE) return 0;
+  dechead=wg_decode_int(db,head);
+  tag=wr_get_history_tag(g,dechead);  
+  return tag;
+}  
+  
 
 
 #ifdef __cplusplus

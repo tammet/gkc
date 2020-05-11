@@ -307,6 +307,8 @@ typedef struct {
   int use_rewrite_terms_strat; // general strategy
   int have_rewrite_terms; // observation  
   int use_strong_unit_cutoff; 
+  int use_strong_duplicates; // iff 1, then unique var based duplicate removal
+  int prohibit_nested_para;
 
   int max_proofs;
   int store_history;
