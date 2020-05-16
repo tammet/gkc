@@ -75,63 +75,6 @@ ignoring ans literals
 */
 
 
-int  oldremove_wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length) {
-  void* db;
-  int ruleflag;       
-  gint xatomnr; 
-  gint xatom;  
-  int i;
-  int w;
-  int atomdepth;
-  int vc_tmp;
-
-#ifdef DEBUG  
-  wr_printf("wr_calc_clause_weight called for:\n"); 
-  wr_print_clause(g,xptr);
-  wr_printf("\n");
-#endif
-  db=g->db; 
-  *size=0;
-  *depth=0;
-  *length=0;
-  ruleflag=wg_rec_is_rule_clause(db,xptr);  
-#ifdef WEIGHT_VARS  
-  vc_tmp=*(g->tmp_unify_vc);
-#endif
-  if (!ruleflag) {
-    *length=1;
-    xatom=encode_datarec_offset(pto(db,xptr));
-    if (wr_answer_lit(g,xatom)) w=1; // !! special answer-lit weight
-    else w=wr_calc_term_weight(g,xatom,0,size,depth,0);    
-    //return w;        
-  } else {        
-    w=0;
-    // loop over clause elems
-    xatomnr=wg_count_clause_atoms(db,xptr);
-    for(i=0;i<xatomnr;i++) {
-      //xmeta=wg_get_rule_clause_atom_meta(db,xptr,i);
-      xatom=wg_get_rule_clause_atom(db,xptr,i);
-      if (wr_answer_lit(g,xatom)) w=w+1;
-      else {
-        atomdepth=0;
-        w=w+wr_calc_term_weight(g,xatom,0,size,&atomdepth,i);   
-        (*length)++;
-        if (atomdepth > (*depth)) *depth=atomdepth;
-      }  
-    }   
-  }
-#ifdef WEIGHT_VARS 
-  if (vc_tmp!=*(g->tmp_unify_vc)) {
-    wr_clear_varstack_topslice(g,g->varstack,vc_tmp);
-  }  
-#endif  
-  w=w+(((*length)-1)*(g->cl_length_penalty))+(((*depth)-1)*(g->cl_depth_penalty));
-#ifdef DEBUG  
-  wr_printf("\nwr_calc_clause_weight returns weight %d and size %d depth %d length %d\n",
-      w,*size,*depth,*length); 
-#endif  
-  return w;
-} 
 
 int  wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length) {
   void* db;
@@ -139,9 +82,11 @@ int  wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length
   gint xatomnr; 
   gint xatom=0;  
   int i;
-  int w;
+  int w,weight,is_rewrite;
+  int max_ground_weight=0;
   int atomdepth;
   int vc_tmp;
+  int hasvars;
   int eqtermorder,atomlen;
   gint a,b; //,atype,btype;
   gptr tptr;
@@ -163,21 +108,38 @@ int  wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length
     xatomnr=1;
     *length=1;
     xatom=encode_datarec_offset(pto(db,xptr));
+    hasvars=0;
     if (wr_answer_lit(g,xatom)) w=1; // !! special answer-lit weight
-    else w=wr_calc_term_weight(g,xatom,0,size,depth,0);            
+    else w=wr_calc_term_weight(g,xatom,0,size,depth,0,&hasvars);    
+    weight=w;   
+    if (!hasvars) {
+      if (weight>max_ground_weight) max_ground_weight=weight;
+    }      
   } else {        
     w=0;
     // loop over clause elems
-    xatomnr=wg_count_clause_atoms(db,xptr);
+    xatomnr=wg_count_clause_atoms(db,xptr); 
+    max_ground_weight=0;   
     for(i=0;i<xatomnr;i++) {
       //xmeta=wg_get_rule_clause_atom_meta(db,xptr,i);
       xatom=wg_get_rule_clause_atom(db,xptr,i);
       if (wr_answer_lit(g,xatom)) w=w+1;
       else {
         atomdepth=0;
-        w=w+wr_calc_term_weight(g,xatom,0,size,&atomdepth,0);   
+        hasvars=0;
+        weight=wr_calc_term_weight(g,xatom,0,size,&atomdepth,0,&hasvars);
+        w=w+weight;
+        if (g->atom_poseq_penalty) {
+          if (wr_equality_atom(g,xatom) && 
+              !wg_atom_meta_is_neg(db,wg_get_rule_clause_atom_meta(db,xptr,i))) {
+            w=w+(g->atom_poseq_penalty);
+          }
+        }  
         (*length)++;
         if (atomdepth > (*depth)) *depth=atomdepth;
+        if (!hasvars) {
+          if (weight>max_ground_weight) max_ground_weight=weight;
+        }  
       }  
     }   
   }
@@ -187,6 +149,7 @@ int  wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length
   }  
 #endif  
   // now check if rewrite rule
+  is_rewrite=0;
   if (// TESTING: normally not blocked by 0
       xatomnr==1 &&
       (g->use_equality) && (g->use_rewrite_terms_strat) && 
@@ -209,12 +172,17 @@ int  wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length
         // rewrite rule  
         //printf("\nfound rewrite rule\n");
         //wr_print_clause(g,xptr);
-        w=(int)((float)w/2.0); // NORMAL /2.0 TESTING
+        is_rewrite=1;
+        w=(int)((float)w/2.0); // NORMAL /2.0 TESTING *0.8
       }
     }
   }      
-
-  w=w+(((*length)-1)*(g->cl_length_penalty))+(((*depth)-1)*(g->cl_depth_penalty));
+  if ((g->use_max_ground_weight) && max_ground_weight) {
+    w=max_ground_weight+(((*length)-1)*(g->cl_length_penalty))+(((*depth)-1)*(g->cl_depth_penalty));
+    if (is_rewrite) w=(int)((float)w/2.0); // NORMAL /2.0 TESTING *0.8
+  } else {
+    w=w+(((*length)-1)*(g->cl_length_penalty))+(((*depth)-1)*(g->cl_depth_penalty));
+  }  
 #ifdef DEBUG  
   wr_printf("\nwr_calc_clause_weight returns weight %d and size %d depth %d length %d\n",
       w,*size,*depth,*length); 
@@ -222,7 +190,7 @@ int  wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length
   return w;
 } 
 
-int wr_calc_term_weight(glb* g, gint x, int depth, int* size, int* maxdepth, int pos) {
+int wr_calc_term_weight(glb* g, gint x, int depth, int* size, int* maxdepth, int pos, int* hasvars) {
   void* db;
   gptr xptr;
   int i, start, end;  
@@ -232,8 +200,8 @@ int wr_calc_term_weight(glb* g, gint x, int depth, int* size, int* maxdepth, int
 #endif  
 
 #ifdef DEBUG    
-  wr_printf("wr_calc_term_weight called with x %d type %d depth %d size %d maxdepth %d pos %d\n",
-       x,wg_get_encoded_type(g->db,x),depth,*size,*maxdepth,pos);
+  wr_printf("wr_calc_term_weight called with x %d type %d depth %d size %d maxdepth %d pos %d hasvars %d\n",
+       x,wg_get_encoded_type(g->db,x),depth,*size,*maxdepth,pos,*hasvars);
 #endif
   if (!isdatarec(x)) {
     // now we have a simple value  
@@ -251,6 +219,7 @@ int wr_calc_term_weight(glb* g, gint x, int depth, int* size, int* maxdepth, int
         }  
       } else return 10;  
 #else
+      *hasvars=1;
       return 10;
 #endif               
   }  
@@ -260,13 +229,13 @@ int wr_calc_term_weight(glb* g, gint x, int depth, int* size, int* maxdepth, int
     if (VARVAL_DIRECT(x,(g->varbanks))==UNASSIGNED) {
       // a new var 
       SETVAR(x,encode_smallint(1),g->varbanks,g->varstack,g->tmp_unify_vc);
-      return 5; // TESTING normal 5, testing 1
+      return (g->var_weight); // TESTING normal 5, testing 1
     } else {
       // a var seen before
-      return 7; // TESTING normal 7, testing 1
+      return (g->repeat_var_weight); // TESTING normal 7, testing 1
     }    
 #else
-    return 5;  // TESTING normal 5, testing 1   
+    return (g->var_weight);  // TESTING normal 5, testing 1   
 #endif      
    
   }   
@@ -279,7 +248,7 @@ int wr_calc_term_weight(glb* g, gint x, int depth, int* size, int* maxdepth, int
   depth++;
   if (depth>(*maxdepth)) *maxdepth=depth;
   for(i=start;i<end;i++) {
-    w=w+wr_calc_term_weight(g,xptr[i],depth,size,maxdepth,i-start);      
+    w=w+wr_calc_term_weight(g,xptr[i],depth,size,maxdepth,i-start,hasvars);      
   }   
   return w;
 }  
@@ -576,7 +545,7 @@ gint wr_calc_term_meta(glb* g, gint x, int depth, int pos, term_metacalc* metapt
       (metaptr->weight)+=CONSTANT_WEIGHT;
       tmeta=1 | TERMMETA_GROUND_MASK;   
     } else {
-      (metaptr->weight)+=VAR_WEIGHT;
+      (metaptr->weight)+=(g->var_weight);
       (metaptr->hasvars)=1;
       if (depth==1) (metaptr->topvars)++;
       tmeta=1;

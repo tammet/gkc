@@ -112,7 +112,7 @@ int wr_glb_init_simple(glb* g) {
   
   /* parser configuration */
 
-  (g->parse_newpred_strat)=1;
+  (g->parse_newpred_strat)=1; // NORMAL 1, TESTING 0
   (g->parse_caps_as_var)=1;
   (g->parse_question_as_var)=1;
 
@@ -138,6 +138,7 @@ int wr_glb_init_simple(glb* g) {
   
   /* strategy selection */    
   
+  (g->max_forks)=2; // default 2 forks
   (g->required_answer_nr)=1;
   (g->pick_given_queue_ratio)=5;         // this is used for all queues to diff btw priority and simple
   (g->pick_given_queue_ratio_counter)=0; // this is not used for queues
@@ -145,6 +146,10 @@ int wr_glb_init_simple(glb* g) {
 
   (g->cl_depth_penalty)=0; // normal 0
   (g->cl_length_penalty)=1; // normal 1
+  (g->var_weight)=5; // NORMAL 5
+  (g->repeat_var_weight)=7; // NORMAL 7
+  (g->atom_poseq_penalty)=0; // normal 0
+  (g->use_max_ground_weight)=0; // normal 0
 
   /* pre-given limits */
   (g->max_run_seconds)=0; // one run max seconds
@@ -170,7 +175,7 @@ int wr_glb_init_simple(glb* g) {
   (g->res_shortarglen_limit)=0; // max non-ans len of the shortest res argument (generalization of unit)
   (g->res_arglen_limit)=0; // if non-zero, do not resolve upon longer clauses
   (g->back_subsume)=0; // 1 does not work any more
-  (g->propagate)=0;    // 1 does not work any more ??
+  (g->propagate)=0;    // 1 does not work any more 
   (g->use_equality_strat)=1; // general strategy
   (g->use_equality)=1; // current principle
   (g->posunitpara_strat)=0; // only paramodulate from unit equalities

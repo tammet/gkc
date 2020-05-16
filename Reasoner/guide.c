@@ -201,10 +201,16 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr) {
       (g->max_seconds)=json_valueint(elem);
     } 
 
+    else if (!strcmp(key,"max_forks")) {
+      //printf("\nmax_forks %d\n", json_valueint(elem));
+      (g->max_forks)=json_valueint(elem);
+    }
+
     else if (!strcmp(key,"given_queue_ratio")) {
       //printf("\nmax_seconds %d\n", json_valueint(elem));
       (g->pick_given_queue_ratio)=json_valueint(elem);
     } 
+
 
     else if (!strcmp(key,"max_weight")) {
       //printf("\nmax_weight %d\n", json_valueint(elem));
@@ -218,6 +224,23 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr) {
     } else if (!strcmp(key,"max_length")) {
       //printf("max_length %d\n", json_valueint(elem));
       (g->cl_maxkeep_lengthlimit)=json_valueint(elem);
+
+    } else if (!strcmp(key,"depth_penalty")) {
+      //printf("depth_penalty %d\n", json_valueint(elem));
+      (g->cl_depth_penalty)=json_valueint(elem);
+    } else if (!strcmp(key,"length_penalty")) {
+      //printf("length_penalty %d\n", json_valueint(elem));
+      (g->cl_length_penalty)=json_valueint(elem);  
+    } else if (!strcmp(key,"var_weight")) {
+      //printf("var_weight %d\n", json_valueint(elem));
+      (g->var_weight)=json_valueint(elem);   
+    } else if (!strcmp(key,"repeat_var_weight")) {
+      //printf("repeat_var_weight %d\n", json_valueint(elem));
+      (g->repeat_var_weight)=json_valueint(elem);     
+  
+      
+
+
     } else if (!strcmp(key,"equality")) {
       //printf("equality %d\n", json_valueint(elem));
       (g->use_equality_strat)=json_valueint(elem);  
@@ -322,6 +345,14 @@ int wr_parse_guide_strategy_set(glb* g, char* stratname) {
     (g->queryfocus_strat)=1;   
   } else if (!strcmp(stratname,"knuthbendix_pref")) {
     (g->knuthbendixpref_strat)=1;     
+  } else if (!strcmp(stratname,"prohibit_nested_para")) {
+    (g->prohibit_nested_para)=1;    
+  } else if (!strcmp(stratname,"posunitpara")) {
+    (g->posunitpara_strat)=1;     
+   } else if (!strcmp(stratname,"max_ground_weight")) {
+    (g->use_max_ground_weight)=1;  
+
+
   } else {
     wr_warn2(g,"unknown strategy: ", stratname);
   }

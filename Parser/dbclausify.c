@@ -67,7 +67,7 @@ static void* show_clausify_warning(glb* g, char* format, ...);
 
 #define VARCOLLECT_SIZE 1000
 
-#define MAKEDEF_COMPLEXITY_THRESHOLD 10
+#define MAKEDEF_COMPLEXITY_THRESHOLD 10 // NORMAL 10, TESTING 100
 
 #define PRINTERR
 

@@ -1231,14 +1231,25 @@ int wr_calc_clause_knuthbendix_resolvability(glb* g, gptr cl, gptr vb) {
   // initially set all literals as allowed
   for(i=0; i<atomnr; i++) {
     (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,1);
-  }  
-  /*
+  }    
   // TESTING BLOCK for getting foundground
+  /*
   int foundground=0;
   for(i=0; i<atomnr; i++) {  
     xvarlist=(gptr)((g->tmp_clinfo)[(i*2)+2+1]); // IFF no vars, xvarlist will be NULL
     if (xvarlist==NULL) {
       foundground=1;
+      break;
+    }  
+  } 
+  */ 
+  // TESTING BLOCK for getting foundeq
+  /*
+  int foundeq=0;
+  for(i=0; i<atomnr; i++) {  
+    xatom=wg_get_rule_clause_atom(db,cl,i);   
+    if (wr_equality_atom(g,xatom)) {
+      foundeq=1;
       break;
     }  
   }
@@ -1254,14 +1265,6 @@ int wr_calc_clause_knuthbendix_resolvability(glb* g, gptr cl, gptr vb) {
       continue; 
     }  
     xvarlist=(gptr)((g->tmp_clinfo)[(i*2)+2+1]); // IFF no vars, xvarlist will be NULL
-    /*
-    // TESTING block using foundground
-    if (foundground && xvarlist!=NULL) {
-       (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
-       continue;
-    } 
-    */
-
     for(j=i+1; j<atomnr; j++) {
       //ymeta=wg_get_rule_clause_atom_meta(db,cl,j);
       if (!(g->tmp_resolvability_vec)[j+1]) {
@@ -1292,21 +1295,35 @@ int wr_calc_clause_knuthbendix_resolvability(glb* g, gptr cl, gptr vb) {
       }
 #endif   
       
-      /*
+      
       // TESTING block using foundground
-      if (xvarlist==NULL) {
-        if (yvarlist==NULL) {
-          if (xw>yw) (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,j+1,0);
-          else if (xw<yw) (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
-          else {
-            lexorder=wr_order_atoms_lex_order(g,xatom,yatom,vb);
-            if (lexorder==2) (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,j+1,0);
-            else if (lexorder==1) (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
-          }
-        } else {
+      /*
+      if (foundground) {
+        if (xvarlist!=NULL && yvarlist==NULL) {
+          // xatom prohibited
+          //printf("\nxatom prohibited\n");
+          (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
+          continue;
+        } else if (xvarlist==NULL && yvarlist!=NULL) {
+          // yatom prohibited
+          //printf("\nyatom prohibited\n");
           (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,j+1,0);
-        }  
-        continue;
+          continue;
+        }
+      } 
+      */    
+      // TESTING block using foundeq
+      /*
+      if (foundeq) {
+        if (wr_equality_atom(g,xatom) && !wr_equality_atom(g,yatom)) {
+          // xatom prohibited
+          (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
+          continue;
+        } else if (!wr_equality_atom(g,xatom) && wr_equality_atom(g,yatom)) {
+          // yatom prohibited
+          (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,j+1,0);
+          continue;
+        }
       }
       */
 
@@ -1542,8 +1559,44 @@ int wr_order_atoms_lex_order(glb* g, gint x, gint y, gptr vb) {
 }        
 
 int wr_order_atoms_const_lex_smaller(glb* g, gint x, gint y) {
+  // NORMAL block
+  
   if (x>y) return 1;
   else return 0; 
+  
+
+  // TESTING with count
+  /*
+  void* db=g->db;
+  gint dtypex=wg_get_encoded_type(db,x);
+  gint dtypey=wg_get_encoded_type(db,y);
+  if (dtypex==WG_URITYPE && dtypey==WG_URITYPE) {    
+
+    //printf("\nuri: ");
+    //printf(" %s \n", wg_decode_unistr(db,x,WG_URITYPE));
+
+    gint ucountx=wg_decode_uri_count(db,x);
+    gint ucountposx=ucountx >> URI_COUNT_POSCOUNT_SHIFT;
+    if (ucountposx>30000) ucountposx=30000;
+    gint ucountnegx=ucountx & URI_COUNT_NEGCOUNT_MASK;
+    if (ucountnegx>10000) ucountnegx=10000;
+    gint ucountallx=ucountposx+ucountnegx; 
+
+    gint ucounty=wg_decode_uri_count(db,y);
+    gint ucountposy=ucounty >> URI_COUNT_POSCOUNT_SHIFT;
+    if (ucountposy>30000) ucountposy=30000;
+    gint ucountnegy=ucounty & URI_COUNT_NEGCOUNT_MASK;
+    if (ucountnegy>10000) ucountnegy=10000;
+    gint ucountally=ucountposx+ucountnegy;
+
+    if (ucountallx<ucountally) return 1;
+    else return 0;
+      
+  } else {
+     if (x>y) return 1;
+      else return 0; 
+  }
+  */
 }
 
 /*

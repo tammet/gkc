@@ -255,6 +255,7 @@ typedef struct {
   
   /* strategy selection */
   
+  int max_forks;
   int required_answer_nr;
   int pick_given_queue_ratio;
   int pick_given_queue_ratio_counter;
@@ -262,6 +263,11 @@ typedef struct {
 
   int cl_depth_penalty;
   int cl_length_penalty;
+  int var_weight;
+  int repeat_var_weight;
+  int atom_poseq_penalty;
+  int use_max_ground_weight;
+
 
   int cl_maxkeep_weightlimit;
   int cl_maxkeep_sizelimit;
