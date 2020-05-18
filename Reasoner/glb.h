@@ -300,7 +300,8 @@ typedef struct {
   int knuthbendixpref_strat;  // clause ordering for resolvability of literals
   int hardnesspref_strat;     // clause ordering for resolvability of literals
   int res_shortarglen_limit; // max non-ans len of the shortest res argument (generalization of unit)
-  int res_arglen_limit; // if non-zero, do not resolve upon longer clauses
+  int res_arglen_limit; // if non-zero, do not resolve upon longer clauses and do not ever para
+  int res_strict_arglen_limit; // if non-zero,  do para on units if res_arglen_limit<2
   int posunitpara_strat;
   int instgen_strat;
   int propgen_strat;

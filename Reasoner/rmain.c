@@ -197,7 +197,10 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
   int pid=1,stat;
   forkscreated=0;
   forkslive=0;  
-  maxforks=(g->max_forks); // TESTING
+
+  // NB! TODO: find maxforks before wr_parse_guide_section is run
+
+  maxforks=4; //(analyze_g->max_forks); // TESTING
   if (maxforks>64) maxforks=64;
   for(forknr=0; forknr<maxforks; forknr++) {
     pid=fork();

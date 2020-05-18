@@ -138,7 +138,7 @@ int wr_glb_init_simple(glb* g) {
   
   /* strategy selection */    
   
-  (g->max_forks)=2; // default 2 forks
+  (g->max_forks)=4; // default 2 forks
   (g->required_answer_nr)=1;
   (g->pick_given_queue_ratio)=5;         // this is used for all queues to diff btw priority and simple
   (g->pick_given_queue_ratio_counter)=0; // this is not used for queues
@@ -173,7 +173,8 @@ int wr_glb_init_simple(glb* g) {
   (g->knuthbendixpref_strat)=0;
   (g->hardnesspref_strat)=0;
   (g->res_shortarglen_limit)=0; // max non-ans len of the shortest res argument (generalization of unit)
-  (g->res_arglen_limit)=0; // if non-zero, do not resolve upon longer clauses
+  (g->res_arglen_limit)=0; // if non-zero, do not resolve upon longer clauses and never para
+  (g->res_strict_arglen_limit)=0; // if non-zero,  do para on units if res_arglen_limit<2
   (g->back_subsume)=0; // 1 does not work any more
   (g->propagate)=0;    // 1 does not work any more 
   (g->use_equality_strat)=1; // general strategy
@@ -619,6 +620,7 @@ int wr_glb_init_local_complex(glb* g) {
     
   (g->tmp_litinf_vec)=wr_vec_new(g,MAX_CLAUSE_LEN); // used by subsumption
   (g->tmp_hardnessinf_vec)=wr_vec_new(g,MAX_CLAUSE_LEN); // used for resolvability
+  
   (g->tmp_resolvability_vec)=wr_vec_new(g,MAX_CLAUSE_LEN); // used for resolvability
   (g->tmp_sort_vec)=wr_vec_new(g,INITIAL_SORTVEC_LEN); // used for sorting the initial clause list
 

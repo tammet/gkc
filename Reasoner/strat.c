@@ -661,6 +661,13 @@ int wr_calc_atom_hardness(glb* g, int polarity, gint atom) {
   wr_print_atom_otter(g,atom,1);
   wr_printf("\n");
   */
+  /*
+  if (g->hardnesspref_strat){
+    wr_printf("\n wr_calc_atom_hardness for ");
+    wr_print_atom_otter(g,atom,1);
+    wr_printf("\n");
+  }
+  */
 
   hdata.size=0;
   hdata.maxdepth=0;
@@ -701,6 +708,14 @@ int wr_calc_atom_hardness(glb* g, int polarity, gint atom) {
     hardness, polarity,hdata.maxdepth,hdata.size,hdata.newvars,hdata.repvars);
   wr_printf("\n       atomposocc %ld,atomnegocc %ld,internposocc %ld,internnegocc %ld;\n",
     hdata.atomposocc,hdata.atomnegocc,hdata.internposocc,hdata.internnegocc); 
+  */
+  /*
+  if (g->hardnesspref_strat){
+    wr_printf("\nresult hardness %d polarity %d maxdepth %d size %d newvars %d repvars %d\n",
+      hardness, polarity,hdata.maxdepth,hdata.size,hdata.newvars,hdata.repvars);
+    wr_printf("\n       atomposocc %ld,atomnegocc %ld,internposocc %ld,internnegocc %ld;\n",
+      hdata.atomposocc,hdata.atomnegocc,hdata.internposocc,hdata.internnegocc);
+  }
   */
   
   return hardness;

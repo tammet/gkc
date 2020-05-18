@@ -1267,7 +1267,7 @@ int wr_find_strong_duplicates(glb* g, gptr rptr, int* rpos) {
   int varoccs,x,y,maxpos,foundunique;
   int blockedcount,keepcount,shift,newpos;
   gptr vx,maxpt;
-  gint mres,maxnr,xatom,xmeta,yatom,ymeta,lit1,lit2;
+  gint mres,maxnr,xatom,xmeta,yatom,ymeta; //lit1,lit2;
   char blocked[MAX_BLOCKED_LITNR];
     
   UNUSED(db);   
@@ -1326,13 +1326,13 @@ int wr_find_strong_duplicates(glb* g, gptr rptr, int* rpos) {
     if (blocked[x]) continue;  
     xmeta=rptr[(x*LIT_WIDTH)+LIT_META_POS];
     xatom=rptr[(x*LIT_WIDTH)+LIT_ATOM_POS];
-    lit1=rpto(g,xatom);
+    //lit1=rpto(g,xatom);
     for(y=x+1; (y < maxpos) && (y < MAX_BLOCKED_LITNR); y++) {
       if (blocked[y]) continue;
       ymeta=rptr[(y*LIT_WIDTH)+LIT_META_POS];      
       if (wg_atom_meta_is_neg(db,xmeta)==wg_atom_meta_is_neg(db,ymeta)) {
         yatom=rptr[(y*LIT_WIDTH)+LIT_ATOM_POS];
-        lit2=rpto(g,yatom);      
+        //lit2=rpto(g,yatom);      
         mres=wr_nomatch_term_uniquevars(g,xatom,yatom,1); // uniquestrflag=1
         //printf("\n mres1 %d\n",mres);
         // mres=0 if success, 1 if fails because of vars, 2 if fails because of const/fun

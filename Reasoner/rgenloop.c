@@ -136,7 +136,17 @@ int wr_genloop(glb* g) {
   //if (propres==2) {
   //    return 0;
   //} 
+  //wr_print_strat_flags(g);
   for(;;) {     
+    /*
+    if (g->hardnesspref_strat) {
+      (g->print_initial_given_cl)=1;
+      (g->print_final_given_cl)=1;
+      printf("(g->stat_given_candidates) %d\n",(g->stat_given_candidates));
+      if ((g->stat_given_used)>200) break;
+    }
+    */
+
     //printf("\n %d %d %d %d\n",(g->queryfocus_strat), (g->res_shortarglen_limit),(g->negpref_strat),(g->pospref_strat));
     // first check time
     curclock=clock();
@@ -358,11 +368,11 @@ int wr_genloop(glb* g) {
     // normal case: active loop is done inside the wr_resolve_binary_all_active    
     wr_resolve_binary_all_active(g,given_cl,given_cl_as_active,(g->tmp_resolvability_vec)); 
     if ((g->proof_found) && wr_enough_answers(g)) return 0;
-    if (g->alloc_err) return -1;    
-    
-    if ((g->res_arglen_limit) && (g->res_arglen_limit)<2) {
+    if (g->alloc_err) return -1;        
+    // next one blocks para for endgame
+    if ((g->res_arglen_limit) && !(g->res_strict_arglen_limit) && (g->res_arglen_limit)<2) {
       continue;
-    }
+    }    
     //int tmp_para=(g->prohibit_nested_para);
     if (g->use_equality) {
       /*

@@ -41,6 +41,7 @@ extern "C" {
  
 
 //#define DEBUG  
+//define DEBUG1 
 //#undef DEBUG
 
 //#define BACKDEBUG  
@@ -76,7 +77,7 @@ int wr_given_cl_subsumed(glb* g, gptr given_cl, gptr given_cl_metablock) {
   int i,cllen;
   gint meta, lit;
   int dbused;
-
+ 
 #ifdef DEBUG
   wr_printf("wr_given_cl_is_subsumed is called with \n");
   wr_print_clause(g,given_cl); 
@@ -86,7 +87,7 @@ int wr_given_cl_subsumed(glb* g, gptr given_cl, gptr given_cl_metablock) {
   // first try to subsume with active unit clauses  
   if (!wg_rec_is_rule_clause(db,given_cl)) {
     if (wr_active_subsumed_lit(g,rpto(g,given_cl),0)) {
-#ifdef DEBUG
+#ifdef DEBUG1
       wr_printf("\n fact cl is subsumed by active unit by wr_active_subsumed_lit\n");
 #endif      
       (g->stat_clsubs_fact_groundunit_found)++;
@@ -100,7 +101,7 @@ int wr_given_cl_subsumed(glb* g, gptr given_cl, gptr given_cl_metablock) {
       if (!wg_atom_meta_is_ground(db,meta)) break; // only nonground will come later
       lit=wg_get_rule_clause_atom(db,given_cl,i);
       if (wr_active_subsumed_lit(g,lit,wg_atom_meta_is_neg(db,meta))) {
-#ifdef DEBUG
+#ifdef DEBUG1
         wr_printf("\n rule cl literal is subsumed by active unit by wr_active_subsumed_lit\n");
 #endif           
         (g->stat_clsubs_rule_groundunit_found)++;
@@ -230,8 +231,10 @@ int wr_given_cl_subsumed(glb* g, gptr given_cl, gptr given_cl_metablock) {
           // try to subsume
           sres=wr_subsume_cl(g,cl,given_cl,1);
           if (sres) {
-  #ifdef DEBUG
-            wr_printf(" * subsumer was found! \n");         
+  #ifdef DEBUG1
+            wr_printf(" * subsumer was found! \n"); 
+            wr_print_clause(g,cl);
+            wr_printf("\n");        
   #endif           
             return 1;
           }  

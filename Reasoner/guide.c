@@ -349,8 +349,12 @@ int wr_parse_guide_strategy_set(glb* g, char* stratname) {
     (g->prohibit_nested_para)=1;    
   } else if (!strcmp(stratname,"posunitpara")) {
     (g->posunitpara_strat)=1;     
-   } else if (!strcmp(stratname,"max_ground_weight")) {
+  } else if (!strcmp(stratname,"max_ground_weight")) {
     (g->use_max_ground_weight)=1;  
+  } else if (!strcmp(stratname,"pure_unit")) {
+    (g->res_arglen_limit)=1;
+    (g->res_strict_arglen_limit)=1;
+
 
 
   } else {
