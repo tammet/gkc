@@ -200,7 +200,7 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
 
   // NB! TODO: find maxforks before wr_parse_guide_section is run
 
-  maxforks=4; //(analyze_g->max_forks); // TESTING
+  maxforks=2; //(analyze_g->max_forks); // TESTING
   if (maxforks>64) maxforks=64;
   for(forknr=0; forknr<maxforks; forknr++) {
     pid=fork();
@@ -1024,6 +1024,62 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
   else if (g->reverse_clauselist_strat) i=n-1;
   else i=0;
 
+  if (0 && (g->use_equality) && (g->rewrite_only_strat)) {
+    if (!vecflag) cell=lastcell;
+    else if (g->reverse_clauselist_strat) i=n-1;
+    else i=0;
+    while(1) { 
+      // take rec
+      if (vecflag) {
+        if (g->reverse_clauselist_strat) {
+          if (i<0) break;
+        } else {
+          if (i>=n) break;
+        }  
+        rec=(gptr)((g->tmp_sort_vec)[(i*2)+2]);
+      } else {      
+        if (!cell) break;
+        cellptr=(gcell *) offsettoptr(child_db, cell);
+        rec=offsettoptr(child_db,cellptr->car);
+      } 
+      if (g->alloc_err) {
+        wr_errprint("\nbuffer overflow, terminating\n");
+        //wr_show_stats(g,1);      
+        //exit(0);
+        return 0;
+      }           
+      clmeta=wr_calc_clause_meta(g,rec,given_cl_metablock); 
+      given_cl=wr_process_given_cl(g,(gptr)rec, g->given_termbuf);
+      if (wg_count_clause_atoms(g->db,given_cl)<2) {
+        if ( ((gint)given_cl==ACONST_FALSE) || ((gint)given_cl==ACONST_TRUE) ||
+              (given_cl==NULL) ) {          
+          cell=cellptr->cdr;   
+          continue;
+        };
+        wr_process_given_cl_setupsubst(g,g->active_termbuf,2,0); 
+        given_cl_as_active=wr_build_calc_cl(g,given_cl);
+        if (!given_cl_as_active) {
+          cell=cellptr->cdr;
+          continue; 
+        }
+        wr_process_given_cl_cleanupsubst(g); 
+        wr_sort_cl(g,given_cl_as_active);      
+        if ((g->sin_clause_count) > SUBSFLAG_CLAUSE_COUNT_LIMIT) subsflag=0;
+        else subsflag=1;
+        if (given_cl_as_active==NULL) {
+          //if (g->alloc_err) return -1;
+          cell=cellptr->cdr;
+          continue; 
+        } 
+        wr_calc_clause_resolvability(g,given_cl_as_active,0,0);
+        wr_cl_store_para_terms(g,given_cl_as_active,(g->tmp_resolvability_vec));
+      }  
+    }
+    if (!vecflag) cell=lastcell;
+    else if (g->reverse_clauselist_strat) i=n-1;
+    else i=0;  
+  }
+
   while(1) { 
     // take rec
     if (vecflag) {
@@ -1097,8 +1153,10 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
         }    
         if (g->use_strong_unit_cutoff) wr_cl_store_res_units(g,given_cl_as_active);
       } else {       
-        if (0) { //(!(g->cl_pick_queue_strategy)) {
+        if (g->goalweight_normal_strat) { //(!(g->cl_pick_queue_strategy)) {
           weight=wr_calc_clause_weight(g,rec,&size,&depth,&length);
+          //if (wr_cl_is_goal(g, rec) && weight>2) weight=weight-2;
+          //else if (wr_cl_is_assumption(g, rec) && weight>3) weight=weight-1;
         } else {  
           if (wr_cl_is_goal(g, rec)) weight=1;
           else if (wr_cl_is_assumption(g, rec)) weight=2;
@@ -1160,7 +1218,7 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
         }    
         if (g->use_strong_unit_cutoff) wr_cl_store_res_units(g,given_cl_as_active);
       } else {
-        if (0) { // (!(g->cl_pick_queue_strategy)) {
+        if (g->goalweight_normal_strat) { // (!(g->cl_pick_queue_strategy)) {
           weight=wr_calc_clause_weight(g,rec,&size,&depth,&length);
         } else {  
           if (wr_cl_is_goal(g, rec)) weight=1;

@@ -374,7 +374,7 @@ int wr_genloop(glb* g) {
       continue;
     }    
     //int tmp_para=(g->prohibit_nested_para);
-    if (g->use_equality) {
+    if ((g->use_equality) && (!(g->rewrite_only_strat))) {
       /*
       if (g->prohibit_nested_para) {
         if (wr_get_cl_history_tag(g,given_cl)==WR_HISTORY_TAG_PARA) {

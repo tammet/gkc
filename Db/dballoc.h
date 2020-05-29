@@ -482,7 +482,13 @@ typedef struct _db_memsegment_header {
   gint rglb; /** offset to the reasoner global block */
   gint clauselist; /** offset of the beginning of the clause list */
   gint errflag; /** 0 if no errors */
-  char* errmsg; /** NULL if no err msg */
+  gint longstr_count; /** initially 0, finally, nr of longstr */
+  gint cl_count; /** initially 0 finally, nr of clauses */
+#ifdef SINE
+
+#endif
+
+  char* errmsg; /** NULL if no err msg */  
 #endif  
   // areas
   db_area_header datarec_area_header;
@@ -514,6 +520,7 @@ typedef struct _db_memsegment_header {
   // field/table name structures
   syn_var_area locks;   /** currently holds a single global lock */
   extdb_area extdbs;    /** offset ranges of external databases */
+
 } db_memsegment_header;
 
 #ifdef USE_DATABASE_HANDLE

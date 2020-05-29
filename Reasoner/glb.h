@@ -83,6 +83,7 @@
 #define INITIAL_SORTVEC_LEN 10
 #define INITIAL_CLTMPVEC_LEN 10
 #define INITIAL_VARTMPVEC_LEN 10
+#define INITIAL_URITMPVEC_LEN 100
 
 #define INITIAL_ANSWERS_LEN 1000
 
@@ -224,7 +225,8 @@ typedef struct {
   cvec answers; // storing answer/proof pairs
 
   cvec tmp_clinfo; // used for storing additional clause info while ordering for knuth-bendix
-  cvec tmp_varinfo; // used for storing additional var info while ordering for knuth-bendix
+  cvec tmp_varinfo; // used for storing additional var info while ordering for knuth-bendix 
+  cveco tmp_uriinfo; // used for storing uri info in a clause while doing sine
 
   /* parser configuration */
   
@@ -294,6 +296,8 @@ typedef struct {
   int queryfocusneg_strat;
   int hyperres_strat;
   int relaxed_hyperres_strat;
+  int goalweight_normal_strat; // if 1, normal initial weights are applied, else special low weights
+  int unit_active_strat;    // if 1, make all units active for sos strategies
   int weightorder_strat;          // clause ordering for resolvability of literals
   int negpref_strat;          // clause ordering for resolvability of literals
   int pospref_strat;          // clause ordering for resolvability of literals
@@ -303,6 +307,7 @@ typedef struct {
   int res_arglen_limit; // if non-zero, do not resolve upon longer clauses and do not ever para
   int res_strict_arglen_limit; // if non-zero,  do para on units if res_arglen_limit<2
   int posunitpara_strat;
+  int rewrite_only_strat; // if non-zero, do not store para terms: only store demodulators
   int instgen_strat;
   int propgen_strat;
   int back_subsume;

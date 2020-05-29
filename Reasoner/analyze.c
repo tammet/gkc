@@ -94,10 +94,14 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
   int poseq=0, negeq=0, uniteq=0;
   int size=0,maxdepth=0,varcount=0;
   gint priority, decprior=0; 
+#ifdef REASONER_SINE
+  cvec uriinfo;
+#endif  
 #ifdef DEBUG  
   gint name;
   char* namestr;
 #endif
+  
 
 #ifdef DEBUG
   wr_printf("\n wr_analyze_clause \n");
@@ -106,6 +110,10 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
   wg_print_record(g->db,cl); 
   wr_printf("\n");
 #endif
+  wr_printf("\n wr_analyze_clause \n");
+  wr_print_clause(g,cl); 
+  wr_printf("\n");
+
 
   //wr_print_clause(g,cl); 
   //wr_printf("\n");
@@ -148,6 +156,10 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
   }
   g->tmp_unify_vc=((gptr)(g->varstack))+1;
   vc_tmp=*(g->tmp_unify_vc);
+#ifdef REASONER_SINE
+  uriinfo=rotp(g,(g->tmp_uriinfo)); 
+  uriinfo[1]=2; // initialize  
+#endif  
 
   if (wg_rec_is_fact_clause(db,cl)) {
     ruleflag=0;
@@ -250,7 +262,15 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
   (g->in_assumption_count)=0;
   (g->in_goal_count)=0;
   */
-  
+#ifdef REASONER_SINE  
+  for(i=2;i<uriinfo[1];i++) {
+    printf("\nuri: ");    
+    wr_print_term_otter(g,uriinfo[i],100);
+    tmp=wg_decode_uri_scount(db,uriinfo[i]);
+    wg_set_uri_scount(db,uriinfo[i],tmp+1);
+    printf(" count %ld ",wg_decode_uri_scount(db,uriinfo[i]));
+  }
+#endif  
   return 1;
 }
 
@@ -260,7 +280,7 @@ int wr_analyze_term(glb* g, gint x,
       int depth, int* size, int* maxdepth, int polarity, int haveextdb, int argpos) {
   void* db;
   gptr xptr;
-  int i, start, end;  
+  int i, start, end, j, urifound;  
   int w, dtype;
   gint ucount, ucountpos, ucountneg;
 
@@ -306,6 +326,20 @@ int wr_analyze_term(glb* g, gint x,
 #endif             
           }
         }
+#ifdef REASONER_SINE        
+        urifound=0;
+        cvec uriinfo=rotp(g,(g->tmp_uriinfo));
+        for(j=2; j<uriinfo[1]; j++) {
+          if (uriinfo[j]==x) {
+            urifound=1;
+            break;
+          }
+        }
+        if (!urifound) {         
+          uriinfo=wr_cvec_push(g,uriinfo,x);
+          (g->tmp_uriinfo)=rpto(g,uriinfo);
+        }         
+#endif        
 
       }
       
@@ -836,6 +870,8 @@ char* make_auto_guide(glb* g, glb* kb_g) {
         "{\"max_seconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":1,\"max_depth\": 2},\n",secs);      
         pos+=sprintf(buf+pos,
         "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"max_depth\": 1},\n",secs);     
+        //pos+=sprintf(buf+pos,
+        //"{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1,\"reverse_clauselist\": 1},\n",secs);
         pos+=sprintf(buf+pos,
         "{\"max_seconds\": %d,\"strategy\":[\"unit\",\"pure_unit\"],\"query_preference\":0},\n",secs);         
       }
@@ -901,6 +937,7 @@ char* make_auto_guide(glb* g, glb* kb_g) {
           pos+=sprintf(buf+pos,
           "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":1,\"reverse_clauselist\":1},\n",secs);
         }
+        
 
         //exp single:
 
@@ -924,6 +961,9 @@ char* make_auto_guide(glb* g, glb* kb_g) {
           pos+=sprintf(buf+pos,
           "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1, \"var_weight\":1, \"repeat_var_weight\":1},\n",secs);
         }
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"], \"var_weight\":1, \"repeat_var_weight\":1,\
+         \"depth_penalty\":100, \"length_penalty\":100, \"max_length\":3,\"max_depth\":3},\n",secs);
         if (i<1) {
           pos+=sprintf(buf+pos,
           "{\"max_seconds\": %d,\"strategy\":[\"unit\",\"pure_unit\"],\"query_preference\":0},\n",secs);

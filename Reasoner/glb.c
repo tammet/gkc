@@ -167,6 +167,8 @@ int wr_glb_init_simple(glb* g) {
 
   (g->hyperres_strat)=0;
   (g->relaxed_hyperres_strat)=1;
+  (g->goalweight_normal_strat)=0; // normal 0: if 1, normal initial weights are applied, else special low weights
+  (g->unit_active_strat)=0;  // normal 0; if 1, all units are made active for sos strategies
   (g->weightorder_strat)=0;  
   (g->negpref_strat)=0;
   (g->pospref_strat)=0;
@@ -180,6 +182,7 @@ int wr_glb_init_simple(glb* g) {
   (g->use_equality_strat)=1; // general strategy
   (g->use_equality)=1; // current principle
   (g->posunitpara_strat)=0; // only paramodulate from unit equalities
+  (g->rewrite_only_strat)=1; // only store demodulators, do not store para terms
   (g->instgen_strat)=0;
   (g->propgen_strat)=0;
   (g->use_comp_funs_strat)=1;
@@ -521,6 +524,9 @@ int wr_glb_init_shared_complex(glb* g) {
     (g->prop_varval_clauses)=rpto(g,wr_cvec_new_zero(g,NROF_PROP_VARVALS_ELS));
   }
 
+  // sine
+  (g->tmp_uriinfo)=rpto(g,wr_cvec_new(g,INITIAL_URITMPVEC_LEN));
+
   if (g->alloc_err) {
     return 1;
   }  
@@ -535,7 +541,6 @@ int wr_glb_init_shared_complex(glb* g) {
 */
 
 int wr_glb_init_local_complex(glb* g) {     
-    
   // first NULL all vars
   
   (g->filename)=NULL;
@@ -625,7 +630,7 @@ int wr_glb_init_local_complex(glb* g) {
   (g->tmp_sort_vec)=wr_vec_new(g,INITIAL_SORTVEC_LEN); // used for sorting the initial clause list
 
   (g->tmp_clinfo)=wr_cvec_new(g,INITIAL_CLTMPVEC_LEN);
-  (g->tmp_varinfo)=wr_cvec_new(g,INITIAL_VARTMPVEC_LEN);
+  (g->tmp_varinfo)=wr_cvec_new(g,INITIAL_VARTMPVEC_LEN);  
 
   //(g->derived_termbuf_freeindex)=2;
   
@@ -733,7 +738,9 @@ int wr_glb_free_shared_complex(glb* g) {
     wr_free_prop_clauses(g,rotp(g,g->prop_clauses));
     wr_vec_free(g,rotp(g,g->prop_varval_clauses));
   }  
- 
+  // sine
+  wr_vec_free(g,rotp(g,(g->tmp_uriinfo)));
+
   return 0;
 }  
 
@@ -762,6 +769,7 @@ int wr_glb_free_local_complex(glb* g) {
   wr_vec_free(g,(g->tmp_sort_vec));
   wr_vec_free(g,g->tmp_clinfo);
   wr_vec_free(g,g->tmp_varinfo);
+  wr_vec_free(g,g->tmp_uriinfo);
   wr_vec_free(g,g->hyper_queue);
   wr_vec_free(g,g->answers);
 

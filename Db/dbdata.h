@@ -236,6 +236,16 @@ wg_int wg_decode_uri_count(void* db, wg_int data);
 wg_int wg_set_uri_rhash(void* db, wg_int data, wg_int rhash);
 wg_int wg_decode_uri_rhash(void* db, wg_int data);
 
+wg_int wg_set_uri_id(void* db, wg_int data, wg_int id);
+wg_int wg_decode_uri_id(void* db, wg_int data);
+wg_int wg_set_uri_scount(void* db, wg_int data, wg_int scount);
+wg_int wg_decode_uri_scount(void* db, wg_int data);
+wg_int wg_set_uri_occs(void* db, wg_int data, wg_int occs);
+wg_int wg_decode_uri_occs(void* db, wg_int data);
+wg_int wg_set_uri_krelevance(void* db, wg_int data, wg_int krelevance);
+wg_int wg_decode_uri_krelevance(void* db, wg_int data);
+
+
 #endif
 
 // blob (binary large object, i.e. any kind of data)
@@ -639,8 +649,13 @@ gint usage from start:
 
 */
 
+#define REASONER_SINE
 
+#ifdef REASONER_SINE
+#define LONGSTR_HEADER_GINTS 14 /** including obj length gint */
+#else
 #define LONGSTR_HEADER_GINTS 10 /** including obj length gint */
+#endif
 
 #define LONGSTR_META_POS 1 /** metainfo, incl object type (longstr/xmlliteral/uri/blob/datarec etc)
    last byte (low 0) object type (WG_STRTYPE,WG_XMLLITERALTYPE, etc)
@@ -661,6 +676,15 @@ gint usage from start:
 #define LONGSTR_RMETA_POS 7 /**  metaflags gint used by reasoner:  if 0 not calculated yet */
 #define LONGSTR_RCOUNT_POS 8 /**  counts gint used by reasoner:  if 0 not calculated yet */
 #define LONGSTR_TAXONOMY_POS 9 /**  taxonomy relations pointer used by reasoner: if 0 none available */
+
+#ifdef REASONER_SINE
+#define LONGSTR_ID_POS 10  /** unique id **/
+#define LONGSTR_SCOUNT_POS 11  /** occurrence clause count for sine **/
+#define LONGSTR_OCCS_POS 12  /** occurrence cvec for sine **/
+#define LONGSTR_KRELEVANCE_POS 13  /** relevance nr for sine **/
+#define KRELEVANCE_DEFAULT (encode_smallint(1000))  /** default worst relevance for sine **/
+#endif
+
 
 /* --------- error handling ------------ */
 

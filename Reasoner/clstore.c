@@ -554,7 +554,7 @@ int wr_cl_store_para_terms(glb* g, gptr cl, cvec resolvability) {
     }
     if (!atom) continue;
     // store subterms into a hash structure for para-from later
-    wr_cl_store_para_subterms(g,cl,atom,0,i,&termpath);    
+    if (!(g->rewrite_only_strat)) wr_cl_store_para_subterms(g,cl,atom,0,i,&termpath);    
     // cannot store anything if len>1 and g->posunitpara_strat is on
     if ((g->posunitpara_strat) && len!=1) continue;
     // store equality args into a hash structure for para-into later
@@ -579,12 +579,12 @@ int wr_cl_store_para_terms(glb* g, gptr cl, cvec resolvability) {
         if ((eqtermorder==1 || eqtermorder==3) && atype!=WG_VARTYPE) {
             //(atype==WG_RECORDTYPE || atype==WG_URITYPE || atype==WG_ANONCONSTTYPE)) {
           // ok to para from left
-          wr_cl_store_eq_arg(g,cl,a,atype,i,1);
+          if (!(g->rewrite_only_strat)) wr_cl_store_eq_arg(g,cl,a,atype,i,1);
         }
         if ((eqtermorder==2 || eqtermorder==3) && btype!=WG_VARTYPE) {
             //(btype==WG_RECORDTYPE || btype==WG_URITYPE || btype==WG_ANONCONSTTYPE)) {
           // ok to para from right
-          wr_cl_store_eq_arg(g,cl,b,btype,i,0);
+          if (!(g->rewrite_only_strat)) wr_cl_store_eq_arg(g,cl,b,btype,i,0);
         }   
       }    
       // store equality as demodulator if everything ok

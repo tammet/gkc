@@ -329,7 +329,7 @@ void wr_print_simpleterm_otter(glb* g, gint enc,int printlevel) {
 
 #ifdef DEBUG  
   printf("simpleterm called with enc %d and type %d \n",(int)enc,wg_get_encoded_type(db,enc)); 
-#endif  
+#endif   
   switch(wg_get_encoded_type(db, enc)) {
     case WG_NULLTYPE:
       printf("NULL");
@@ -353,9 +353,9 @@ void wr_print_simpleterm_otter(glb* g, gint enc,int printlevel) {
     case WG_URITYPE:
       strdata = wg_decode_uri(db, enc);
       exdata = wg_decode_uri_prefix(db, enc);
-      if (exdata==NULL)
-        printf("%s", strdata);
-      else
+      if (exdata==NULL) {
+        printf("%s", strdata);        
+      } else
         printf("%s:%s", exdata, strdata);
       break;      
     case WG_XMLLITERALTYPE:
@@ -779,11 +779,12 @@ int wr_strprint_simpleterm_otter(glb* g, gint enc,int printlevel, char** buf, in
           } else {
             return pos+snprintf((*buf)+pos,(*len)-pos,"\"%s\"", strdata);
           }          
-        } else {
+        } else {          
           if (isneg) {
             return pos+snprintf((*buf)+pos,(*len)-pos,"-%s", strdata);
           } else {
-            return pos+snprintf((*buf)+pos,(*len)-pos,"%s", strdata);
+            //return pos+snprintf((*buf)+pos,(*len)-pos,"%s", strdata);
+            return pos+snprintf((*buf)+pos,(*len)-pos,"%s%ld", strdata,wg_decode_uri_id(db,enc));
           }           
         }        
       } else {

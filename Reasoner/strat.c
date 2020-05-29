@@ -199,6 +199,11 @@ int wr_initial_select_active_cl(glb* g, gptr cl) {
   if (!history) return 1;
   htype=wg_get_encoded_type(db,history);  
   if (htype!=WG_RECORDTYPE) return 1;
+
+  if (g->unit_active_strat) {
+    if (wr_count_cl_nonans_atoms(g,cl)<2) return 1;
+  }
+
   priority=wr_get_history_record_field(g,otp(db,history),HISTORY_PRIORITY_POS);
   decpriority=wg_decode_int(db,priority);
 
