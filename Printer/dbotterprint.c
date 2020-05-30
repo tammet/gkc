@@ -783,8 +783,8 @@ int wr_strprint_simpleterm_otter(glb* g, gint enc,int printlevel, char** buf, in
           if (isneg) {
             return pos+snprintf((*buf)+pos,(*len)-pos,"-%s", strdata);
           } else {
-            //return pos+snprintf((*buf)+pos,(*len)-pos,"%s", strdata);
-            return pos+snprintf((*buf)+pos,(*len)-pos,"%s%ld", strdata,wg_decode_uri_id(db,enc));
+            return pos+snprintf((*buf)+pos,(*len)-pos,"%s", strdata);
+            //return pos+snprintf((*buf)+pos,(*len)-pos,"%s%ld", strdata,wg_decode_uri_id(db,enc));
           }           
         }        
       } else {

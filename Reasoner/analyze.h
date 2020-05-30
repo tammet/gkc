@@ -42,6 +42,9 @@
 #define URI_COUNT_POSCOUNT_MASK 0xEFFF<<URI_COUNT_POSCOUNT_SHIF  // mask decoded val with this to get poscont
 #define URI_COUNT_NEGCOUNT_MASK 0x1FFF  // mask decoded val with this to get negcount: 13 last bits ie 5+8 bits
 
+// SINE
+
+#define INITIAL_SINE_OCCVECLEN 4
 
 /* ==== Protos ==== */
 
@@ -49,6 +52,10 @@ int wr_analyze_clause_list(glb* g, void* db, void* child_db);
 int wr_analyze_clause(glb* g, gptr cl, int haveextdb);
 int wr_analyze_term(glb* g, gint x, 
       int depth, int* size, int* maxdepth, int polarity, int haveextdb, int argpos);
+
+int wr_analyze_sine(glb* g, void* db, void* child_db);
+void wr_get_clause_symbols(glb* g, gptr cl, cvec* uriinfo);
+void wr_get_term_symbols(glb* g, gint x, cvec* uriinfo);
 
 char* make_auto_guide(glb* g, glb* kb_g);
 void make_sum_input_stats(glb* g, glb* kb_g);

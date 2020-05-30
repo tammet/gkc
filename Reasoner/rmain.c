@@ -200,7 +200,7 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
 
   // NB! TODO: find maxforks before wr_parse_guide_section is run
 
-  maxforks=2; //(analyze_g->max_forks); // TESTING
+  maxforks=1; //(analyze_g->max_forks); // TESTING
   if (maxforks>64) maxforks=64;
   for(forknr=0; forknr<maxforks; forknr++) {
     pid=fork();
@@ -980,6 +980,10 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
   //wr_show_in_summed_stats(g);
   //printf("\ng->in_clause_count %d g->sin_clause_count %d\n",
   //       g->in_clause_count,g->sin_clause_count);
+
+  // perform sine analysis
+
+  wr_analyze_sine(g,db,child_db);
 
   // Reverse the order
     

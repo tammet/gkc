@@ -240,8 +240,8 @@ wg_int wg_set_uri_id(void* db, wg_int data, wg_int id);
 wg_int wg_decode_uri_id(void* db, wg_int data);
 wg_int wg_set_uri_scount(void* db, wg_int data, wg_int scount);
 wg_int wg_decode_uri_scount(void* db, wg_int data);
-wg_int wg_set_uri_occs(void* db, wg_int data, wg_int occs);
-wg_int wg_decode_uri_occs(void* db, wg_int data);
+wg_int wg_set_uri_occs(void* db, wg_int data, wg_int* occs);
+wg_int* wg_decode_uri_occs(void* db, wg_int data);
 wg_int wg_set_uri_krelevance(void* db, wg_int data, wg_int krelevance);
 wg_int wg_decode_uri_krelevance(void* db, wg_int data);
 

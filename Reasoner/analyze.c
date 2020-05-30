@@ -78,7 +78,7 @@ int wr_analyze_clause_list(glb* g, void* db, void* child_db) {
     }
     n++;
     cell=cellptr->cdr;
-  }  
+  }   
   return 1;  
 }
 
@@ -86,7 +86,7 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
   void* db=g->db;
   gint history;
   gptr historyptr;
-  int i, hlen;
+  int i, hlen, j;
   gint meta,atom=0;
   gint vc_tmp;
   int tmp;
@@ -96,6 +96,7 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
   gint priority, decprior=0; 
 #ifdef REASONER_SINE
   cvec uriinfo;
+  cvec occs;
 #endif  
 #ifdef DEBUG  
   gint name;
@@ -266,9 +267,49 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
   for(i=2;i<uriinfo[1];i++) {
     printf("\nuri: ");    
     wr_print_term_otter(g,uriinfo[i],100);
+    // increase count
     tmp=wg_decode_uri_scount(db,uriinfo[i]);
     wg_set_uri_scount(db,uriinfo[i],tmp+1);
     printf(" count %ld ",wg_decode_uri_scount(db,uriinfo[i]));
+    // add clause to occs list    
+    tmp=(g->inkb);
+    (g->inkb)=0; // use malloc temporarily
+    occs=wg_decode_uri_occs(db,uriinfo[i]);
+    //printf("\nuriinfo[i] %ld decoded %ld\n",uriinfo[i],occs);      
+    if (!occs) {
+      // no occs so far
+      occs=wr_cvec_new(g,INITIAL_SINE_OCCVECLEN);
+      if (!occs) {
+        printf("\nfailed to alloc occs cvec while analyzing clause\n");
+        (g->inkb)=1;
+        return 1;
+      } else {
+        occs=wr_cvec_push(g,occs,rpto(g,cl));
+        wg_set_uri_occs(db,uriinfo[i],occs);
+      }  
+      //printf("\nafter create occs[0] %ld occs[1] %ld\n",occs[0],occs[1]);
+    } else {
+      // add a new occ
+      occs=wr_cvec_push(g,occs,rpto(g,cl));
+      if (!occs) {
+        printf("\nfailed to alloc occs after push cvec while analyzing clause\n");
+        (g->inkb)=tmp;
+        return 1;
+      } else {        
+        wg_set_uri_occs(db,uriinfo[i],occs);
+      }
+    }
+    // print occs elements
+    //occs=wg_decode_uri_occs(db,uriinfo[i]);
+    if (occs) {
+      //printf("\noccs[0] %ld occs[1] %ld\n",occs[0],occs[1]);
+      for(j=2;j<occs[1];j++) {
+        printf("\n");
+        wr_print_clause(g,rotp(g,occs[j]));
+      }
+      printf("\n");
+    }
+    (g->inkb)=tmp;
   }
 #endif  
   return 1;
@@ -369,6 +410,183 @@ int wr_analyze_term(glb* g, gint x,
   }   
   return 1;
 }  
+
+// ======= get symbols of a clause ===========
+
+
+
+
+int wr_analyze_sine(glb* g, void* db, void* child_db) {
+  gint cell;
+  gcell *cellptr;
+  gptr rec;
+  int n=0, k, i, j, tmpinkb; //, haveextdb=0;
+  cvec uriinfo, cl_uriinfo, occs;
+  gint uri;
+  gptr cl;
+
+
+  //if (db!=child_db) haveextdb=1;
+  //else haveextdb=0;
+  
+  printf("\nwr_analyze_sine starts\n");
+
+  // setup
+  tmpinkb=(g->inkb);
+  (g->inkb)=0; // use malloc temporarily
+  uriinfo=wr_cvec_new(g,INITIAL_URITMPVEC_LEN);
+  cl_uriinfo=wr_cvec_new(g,INITIAL_URITMPVEC_LEN);
+
+  // loop over all clauses
+  /*
+  n=0;
+  cell=(dbmemsegh(child_db)->clauselist);
+  while(0 && cell) {     
+    cellptr=(gcell *) offsettoptr(child_db, cell);
+    rec=offsettoptr(child_db,cellptr->car);
+    uriinfo[1]=2; // initialize uriinfo
+    wr_get_clause_symbols(g,rec,&uriinfo);   
+    n++;
+    cell=cellptr->cdr;
+  }  
+  */
+  // collect initial symbols from goal
+
+  cell=(dbmemsegh(child_db)->clauselist);
+  uriinfo[1]=2; // initialize uriinfo
+  n=0;
+  while(cell) {
+    cellptr=(gcell *) offsettoptr(child_db, cell);
+    rec=offsettoptr(child_db,cellptr->car); 
+    wr_print_clause(g,rec);
+    printf("\n");
+    if (wr_cl_is_goal(g, rec)) {
+      printf("\n goal: ");
+      wr_print_clause(g,rec);
+      wr_get_clause_symbols(g,rec,&uriinfo);  
+    }
+    cell=cellptr->cdr;         
+    n++;
+  }
+
+  // do the main sine loop
+
+  for(k=0;k<1;k++) {
+    printf("\nouter loop k: %d starts\n",k);
+    // loop over k-level uris 
+    printf("\nuriinfo[1]: %ld",uriinfo[1]);
+    for(i=2;i<uriinfo[1];i++) {
+      uri=uriinfo[i];
+      printf("\nsymbol loop for i: %d for k: %d\n",i,k);
+      wr_print_term_otter(g,uri,100); 
+      printf("\n");
+      
+      occs=wg_decode_uri_occs(db,uri);      
+      if (!occs) continue;   
+      printf("\noccs[0] %ld occs[1]: %ld\n",occs[0],occs[1]);
+      // loop over all occs of the uri
+      for(j=2;j<occs[1];j++) {
+        printf("\nocc j: %d\n",j);
+        cl=rotp(g,occs[j]);
+        wr_print_clause(g,cl);
+        // get this clause uris
+        cl_uriinfo[1]=2;
+        wr_get_clause_symbols(g,cl,&cl_uriinfo);
+      }
+      printf("\n");
+    }
+  }
+
+ 
+  // final cleanup
+  wr_vec_free(g,uriinfo);
+  wr_vec_free(g,cl_uriinfo);
+  (g->inkb)=tmpinkb;  
+
+  printf("\nwr_analyze_sine ends\n");
+  //exit(0);  
+  return 1;
+}
+
+/*
+
+for initialization do 
+  uriinfo[1]=2; // initialize  
+before calling  
+
+
+*/
+
+
+void wr_get_clause_symbols(glb* g, gptr cl, cvec* uriinfo) {
+  void* db=g->db;
+  int i, len;
+  gint atom=0;   
+  gint uri;
+
+  printf("\nwr_get_clause_symbols called for \n");
+  wr_print_clause(g,cl); 
+  printf("\n");
+
+  if (wg_rec_is_fact_clause(db,cl)) {   
+    wr_get_term_symbols(g,pto(db,cl),uriinfo);
+  } else if (wg_rec_is_rule_clause(db,cl)) {      
+    len=wg_count_clause_atoms(db, cl);
+    for(i=0; i<len; i++) {    
+      atom=wg_get_rule_clause_atom(db,cl,i);     
+      wr_get_term_symbols(g,atom,uriinfo);            
+    }
+  }
+  for(i=2;i<(*uriinfo)[1];i++) {
+    uri=(*uriinfo)[i];
+    printf("\nuri: ");    
+    wr_print_term_otter(g,uri,100); 
+    printf("\nid %ld scount %ld",wg_decode_uri_id(db,uri),wg_decode_uri_scount(db,uri));     
+  }
+  return;
+}
+
+
+
+void wr_get_term_symbols(glb* g, gint x, cvec* uriinfo) {
+  void* db;
+  gptr xptr;
+  int i, start, end, j;
+  gint dtype;
+  cvec uinfo;
+
+  if (!isdatarec(x)) {
+    // now we have a simple value   
+    if (isvar(x)) return;      
+    db=g->db;
+    dtype=wg_get_encoded_type(db,x);      
+    if (dtype!=WG_URITYPE) return;    
+#ifdef DEBUG                
+    wr_printf("\nuri: ");
+    wr_printf(" %s \n", wg_decode_unistr(db,x,WG_URITYPE));
+#endif                     
+    uinfo = *uriinfo;
+    for(j=2; j<uinfo[1]; j++) {
+      if (uinfo[j]==x) {
+        return;
+      }
+    }        
+    uinfo=wr_cvec_push(g,uinfo,x);
+    if (uinfo!=*uriinfo) *uriinfo=uinfo;                 
+    return;    
+  }   
+  // now we have a datarec
+  db=g->db;
+  xptr=decode_record(db,x);
+  start=wr_term_unify_startpos(g);
+  end=wr_term_unify_endpos(g,xptr);
+  for(i=start;i<end;i++) {
+    if (!xptr[i]) return; // should not have 0 in args
+    wr_get_term_symbols(g,xptr[i],uriinfo);
+  }   
+  return;
+}
+
 
 // ====== make auto guide ====================
 

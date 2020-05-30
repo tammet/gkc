@@ -1619,6 +1619,8 @@ int wr_order_atoms_const_lex_smaller(glb* g, gint x, gint y) {
   */
 }
 
+
+
 /*
  
  ================= printing =========================
