@@ -113,6 +113,8 @@
 
 #define MAX_GUIDETEXT_LEN 500
 
+#define SINE_K_VALUES_SIZE 1000000 // bytestring 1 mbyte
+
 /* ======== Structures ========== */
 
 /** glb contains global values for requests.
@@ -136,6 +138,7 @@ typedef struct {
   /* === shared data block === */
   
   gint initial_cl_list; /**< offset of the initial clause list in a shared db */
+  gint shared_clid_next; /** next id of the clause */
 
   cveco clbuilt;        /**< vector containing built clauses, newest last. 0: vec len, 1: index of next unused vec elem */
   cveco clactive;      /**< vector containing active clauses, newest last.  */
@@ -190,6 +193,7 @@ typedef struct {
 
   /* == local data block === */
        
+  gint local_clid_next; /** next id of the clause */     
   gint proof_found;
   gptr proof_answer;
   gint proof_history;
@@ -223,6 +227,11 @@ typedef struct {
   cvec rewrite_clvec; // used for storing rewriters of a clause
   cvec hyper_queue; // storing partially derived clauses during hyperres for picking as given
   cvec answers; // storing answer/proof pairs
+  char* sine_k_values; // k-values bytestring indexed by clause id: each byte contains k 
+  gint sine_k_bytes; // length of sine_k_values bytestring
+  char* sine_uri_k_values; // k-values bytestring indexed by uri id: each byte contains k 
+  gint sine_uri_k_bytes; // length of sine_uri_k_values bytestring
+
 
   cvec tmp_clinfo; // used for storing additional clause info while ordering for knuth-bendix
   cvec tmp_varinfo; // used for storing additional var info while ordering for knuth-bendix 

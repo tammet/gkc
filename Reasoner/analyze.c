@@ -65,6 +65,9 @@ int wr_analyze_clause_list(glb* g, void* db, void* child_db) {
   if (db!=child_db) haveextdb=1;
   else haveextdb=0;
   wr_clear_all_varbanks(g);
+  if (!(g->tmp_uriinfo)) {
+    (g->tmp_uriinfo)=rpto(g,wr_cvec_new(g,INITIAL_URITMPVEC_LEN));
+  }
 
   cell=(dbmemsegh(child_db)->clauselist);
   while(cell) {     
@@ -74,11 +77,13 @@ int wr_analyze_clause_list(glb* g, void* db, void* child_db) {
     if (!tmp) {
       // something wrong with the clause
       wr_clear_all_varbanks(g);
+      if (g->tmp_uriinfo) wr_vec_free(g,rotp(g,(g->tmp_uriinfo)));
       return 0;
     }
     n++;
     cell=cellptr->cdr;
   }   
+  if (g->tmp_uriinfo) wr_vec_free(g,rotp(g,(g->tmp_uriinfo)));  
   return 1;  
 }
 
@@ -110,11 +115,7 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
   wr_printf("\n");
   wg_print_record(g->db,cl); 
   wr_printf("\n");
-#endif
-  wr_printf("\n wr_analyze_clause \n");
-  wr_print_clause(g,cl); 
-  wr_printf("\n");
-
+#endif 
 
   //wr_print_clause(g,cl); 
   //wr_printf("\n");
@@ -158,7 +159,9 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
   g->tmp_unify_vc=((gptr)(g->varstack))+1;
   vc_tmp=*(g->tmp_unify_vc);
 #ifdef REASONER_SINE
+  //printf("\n(g->tmp_uriinfo) initial %ld\n",(gint)(g->tmp_uriinfo));
   uriinfo=rotp(g,(g->tmp_uriinfo)); 
+  //printf("\nuriinfo initial %ld\n",(gint)uriinfo);
   uriinfo[1]=2; // initialize  
 #endif  
 
@@ -367,7 +370,7 @@ int wr_analyze_term(glb* g, gint x,
 #endif             
           }
         }
-#ifdef REASONER_SINE        
+#ifdef REASONER_SINE      
         urifound=0;
         cvec uriinfo=rotp(g,(g->tmp_uriinfo));
         for(j=2; j<uriinfo[1]; j++) {
@@ -377,9 +380,13 @@ int wr_analyze_term(glb* g, gint x,
           }
         }
         if (!urifound) {         
+          //printf("\nuriinfo1 %ld\n",(gint)uriinfo);
           uriinfo=wr_cvec_push(g,uriinfo,x);
+          //printf("\nuriinfo2 %ld\n",(gint)uriinfo);
+          //printf("\n(g->tmp_uriinfo) %ld\n",(gint)(g->tmp_uriinfo));
+          //printf("\nrpto(g,uriinfo) %ld\n",(gint)(rpto(g,uriinfo)));
           (g->tmp_uriinfo)=rpto(g,uriinfo);
-        }         
+        }        
 #endif        
 
       }
@@ -420,22 +427,39 @@ int wr_analyze_sine(glb* g, void* db, void* child_db) {
   gint cell;
   gcell *cellptr;
   gptr rec;
-  int n=0, k, i, j, tmpinkb; //, haveextdb=0;
+  int n, k, i, j, s, tmpinkb, sine_k, uri_k, inuri_k; //, haveextdb=0;
   cvec uriinfo, cl_uriinfo, occs;
-  gint uri;
+  gint uri, uri_id, inuri, inuri_id, scount;
   gptr cl;
+  int sine_maxk;
+  gint sine_common;
+  gint sine_g;
+  float sine_tolerance;
+  int common_found=0;
+  int triggers=0;
 
 
   //if (db!=child_db) haveextdb=1;
   //else haveextdb=0;
   
-  printf("\nwr_analyze_sine starts\n");
+  printf("\nwr_analyze_sine starts (g->sine_k_bytes) %ld \n",(g->sine_k_bytes));
+  if (!(g->sine_k_values) || !(g->sine_k_bytes)) {
+    return 0;
+  }  
 
   // setup
+  memset((g->sine_k_values),0,(g->sine_k_bytes));
+  memset((g->sine_uri_k_values),0,(g->sine_uri_k_bytes));
   tmpinkb=(g->inkb);
   (g->inkb)=0; // use malloc temporarily
   uriinfo=wr_cvec_new(g,INITIAL_URITMPVEC_LEN);
   cl_uriinfo=wr_cvec_new(g,INITIAL_URITMPVEC_LEN);
+
+  // params
+  sine_maxk=120; // should fit into char
+  sine_common=5; // smaller number means more pure-common clauses
+  sine_tolerance=2; // bigger number means more triggering
+  sine_g=5; // bigger number means more triggering
 
   // loop over all clauses
   /*
@@ -450,7 +474,8 @@ int wr_analyze_sine(glb* g, void* db, void* child_db) {
     cell=cellptr->cdr;
   }  
   */
-  // collect initial symbols from goal
+  // collect initial symbols from goal and set goal k to 1
+  // also check commonness
 
   cell=(dbmemsegh(child_db)->clauselist);
   uriinfo[1]=2; // initialize uriinfo
@@ -458,45 +483,125 @@ int wr_analyze_sine(glb* g, void* db, void* child_db) {
   while(cell) {
     cellptr=(gcell *) offsettoptr(child_db, cell);
     rec=offsettoptr(child_db,cellptr->car); 
+    printf("\n clid %ld cl: ",wr_get_clid(g,rec));
     wr_print_clause(g,rec);
     printf("\n");
     if (wr_cl_is_goal(g, rec)) {
-      printf("\n goal: ");
-      wr_print_clause(g,rec);
-      wr_get_clause_symbols(g,rec,&uriinfo);  
+      printf("clause is goal ");
+      wr_set_cl_sine_k(g,rec,1);     
+      wr_get_clause_symbols(g,rec,&uriinfo);       
+    } else if (sine_common) {
+      // check if a fully common-symbol clause
+      if (wr_sine_check_trigger_cl(g,rec,1,sine_tolerance,sine_common)) {
+        wr_set_cl_sine_k(g,rec,sine_maxk+1);
+        common_found++;
+      }
     }
     cell=cellptr->cdr;         
     n++;
   }
 
+  // set the goal uri k-s to 1
+
+  printf("\n=== setting goal uri k-s to 1 ===\n");
+
+  for(s=2;s<uriinfo[1];s++) {
+    uri=uriinfo[s];
+    uri_id=wg_decode_uri_id(db,uri);
+    if (uri_id>=(g->sine_uri_k_bytes)) continue;
+    wr_set_uri_sine_k(g,uri,1);
+
+    printf("\ngoal uri id %ld k %d ",uri_id,wr_get_uri_sine_k(g,uri));
+    wr_print_term_otter(g,uri,100);
+    printf("\n");       
+  }
+
   // do the main sine loop
 
-  for(k=0;k<1;k++) {
-    printf("\nouter loop k: %d starts\n",k);
+  k=1;
+  int dummy=1;
+  while(dummy<2) {
+    dummy=2;
+    printf("\n=== outer loop k: %d starts ===\n",k);
     // loop over k-level uris 
     printf("\nuriinfo[1]: %ld",uriinfo[1]);
     for(i=2;i<uriinfo[1];i++) {
       uri=uriinfo[i];
-      printf("\nsymbol loop for i: %d for k: %d\n",i,k);
+      uri_id=wg_decode_uri_id(db,uri);
+      uri_k=wr_get_uri_sine_k(g,uri);
+      k=uri_k;
+      if (k>sine_maxk) continue; // cannot fit into char
+      scount=wg_decode_uri_scount(db,uri);
+
+      printf("\n -- start symbol loop for i: %d for k: %d scount: %ld with uri: --- \n",i,k,scount);
       wr_print_term_otter(g,uri,100); 
       printf("\n");
       
-      occs=wg_decode_uri_occs(db,uri);      
+      occs=wg_decode_uri_occs(db,uri);
       if (!occs) continue;   
-      printf("\noccs[0] %ld occs[1]: %ld\n",occs[0],occs[1]);
+      printf("\noccs[1]: %ld\n",occs[1]);
       // loop over all occs of the uri
       for(j=2;j<occs[1];j++) {
-        printf("\nocc j: %d\n",j);
+        printf("\nocc j: %d ",j);
         cl=rotp(g,occs[j]);
+        printf("clid %ld k %d cl: ",wr_get_clid(g,cl),wr_get_cl_sine_k(g,cl));
         wr_print_clause(g,cl);
-        // get this clause uris
-        cl_uriinfo[1]=2;
-        wr_get_clause_symbols(g,cl,&cl_uriinfo);
+        // if not set or bigger, set clause sine_k to k+1
+        sine_k=wr_get_cl_sine_k(g,cl);
+        if (!sine_k || sine_k>(k+1)) {
+          // check if uri triggers          
+          if ((scount>sine_g) && 
+              (!wr_sine_check_trigger_cl(g,cl,scount,sine_tolerance,0)) ) {
+            continue; 
+          }  
+          // triggered ok
+          printf("\nuri triggers cl!\n");
+          wr_set_cl_sine_k(g,cl,k+1);
+          triggers++;
+          // get this clause uris
+          cl_uriinfo[1]=2;
+          wr_get_clause_symbols(g,cl,&cl_uriinfo);
+          printf("\n- loop over uris in occ clause -");
+          // loop over uris in the occ clause
+          for(s=2;s<cl_uriinfo[1];s++) {
+            inuri=cl_uriinfo[s];
+            inuri_id=wg_decode_uri_id(db,inuri);
+            inuri_k=wr_get_uri_sine_k(g,inuri);
+            printf("\ninuri id %ld k %d inuri: ",inuri_id,inuri_k);
+            wr_print_term_otter(g,inuri,100);
+            printf("\n");                      
+            if (!inuri_k || inuri_k>k+1) {
+              // set inuri (uri in occurring clause) to the same k+1 as clause
+              wr_set_uri_sine_k(g,inuri,k+1);
+              // push uri to uri list to handle later              
+              uriinfo=wr_cvec_push(g,uriinfo,inuri);             
+              printf("\n* inuri_k set to %d\n",wr_get_uri_sine_k(g,inuri));
+            }
+          }            
+        }
       }
       printf("\n");
     }
   }
 
+  // show result
+  printf("\n=== sine result ==== \n");
+  printf("\ncommon: %d",common_found);
+  printf("\ntriggers: %d\n",triggers);
+  cell=(dbmemsegh(child_db)->clauselist); 
+  n=0;
+  while(cell) {
+    cellptr=(gcell *) offsettoptr(child_db, cell);
+    rec=offsettoptr(child_db,cellptr->car); 
+    printf("clid %ld k %d cl: ",wr_get_clid(g,rec),wr_get_cl_sine_k(g,rec));
+    wr_print_clause(g,rec);    
+    if (wr_cl_is_goal(g, rec)) {
+      printf(" clause is goal ");            
+    }
+    printf("\n");
+    cell=cellptr->cdr;         
+    n++;
+  }
  
   // final cleanup
   wr_vec_free(g,uriinfo);
@@ -507,6 +612,59 @@ int wr_analyze_sine(glb* g, void* db, void* child_db) {
   //exit(0);  
   return 1;
 }
+
+/*
+int wr_sine_uri_triggers_cl(glb* g, gint uri, gint scount, gptr cl, cvec cl_uriinfo) {    
+  void* db=g->db;
+  gint cluri,sc,minsc,urioccs;
+  int i;
+
+  minsc=100000000;
+  for(i=2;i<cl_uriinfo[1];i++) {
+    cluri=cl_uriinfo[i];
+    sc=wg_decode_uri_scount(db,cluri);
+    printf("\nsc %ld",sc)
+    if (!sc) continue;
+    if (sc>scount) return 0; // fails!
+    if (sc<minsc) minsc=sc;
+  }
+  printf("scount %ld minsc %ld\n",scount,minsc);
+  return 1;
+}
+*/
+
+void wr_set_cl_sine_k(glb* g,gptr cl,int k) {
+  gint clid;
+
+  clid=wr_get_clid(g,cl);
+  if (clid>=(g->sine_k_bytes)) return;
+  (g->sine_k_values)[clid]=(char)k;
+}
+
+int wr_get_cl_sine_k(glb* g,gptr cl) {
+  gint clid;
+
+  clid=wr_get_clid(g,cl);
+  if (clid>=(g->sine_k_bytes)) return 0;
+  return (int)((g->sine_k_values)[clid]);
+}
+
+void wr_set_uri_sine_k(glb* g,gint uri,int k) {
+  gint id;
+
+  id=wg_decode_uri_id(g->db,uri);
+  if (id>=(g->sine_uri_k_bytes)) return;
+  (g->sine_uri_k_values)[id]=(char)k;
+}
+
+int wr_get_uri_sine_k(glb* g,gint uri) {
+  gint id;
+
+  id=wg_decode_uri_id(g->db,uri);
+  if (id>=(g->sine_uri_k_bytes)) return 100;
+  return (int)((g->sine_uri_k_values)[id]);
+}
+
 
 /*
 
@@ -585,6 +743,69 @@ void wr_get_term_symbols(glb* g, gint x, cvec* uriinfo) {
     wr_get_term_symbols(g,xptr[i],uriinfo);
   }   
   return;
+}
+
+
+int wr_sine_check_trigger_cl(glb* g, gptr cl, gint scount, float tolerance, gint common) {
+  void* db=g->db;
+  int i, len;
+  gint atom=0;   
+
+  printf("\nwr_sine_check_trigger_cl called for \n");
+  wr_print_clause(g,cl); 
+  printf("\n");
+
+  if (wg_rec_is_fact_clause(db,cl)) {   
+    return wr_sine_check_trigger_term(g,pto(db,cl),scount,tolerance,common);
+  } else if (wg_rec_is_rule_clause(db,cl)) {      
+    len=wg_count_clause_atoms(db, cl);
+    for(i=0; i<len; i++) {    
+      atom=wg_get_rule_clause_atom(db,cl,i);     
+      if (!wr_sine_check_trigger_term(g,atom,scount,tolerance,common)) return 0;            
+    }
+  }
+  return 1;  
+}
+
+
+
+int wr_sine_check_trigger_term(glb* g, gint x, gint scount, float tolerance, gint common) {
+  void* db;
+  gptr xptr;
+  int i, start, end;
+  gint dtype,sc;
+
+  if (!isdatarec(x)) {
+    // now we have a simple value   
+    if (isvar(x)) return 1;      
+    db=g->db;
+    dtype=wg_get_encoded_type(db,x);      
+    if (dtype!=WG_URITYPE) return 1;    
+#ifdef DEBUG                
+    wr_printf("\nuri: ");
+    wr_printf(" %s \n", wg_decode_unistr(db,x,WG_URITYPE));
+#endif        
+    sc=wg_decode_uri_scount(db,x);
+    if (common) {
+      // commonness criteria
+      if (sc<common) return 0;
+      else return 1;
+    } else {
+      // normal sine
+      if (scount>(sc*tolerance)) return 0;                    
+      else return 1;    
+    }  
+  }   
+  // now we have a datarec
+  db=g->db;
+  xptr=decode_record(db,x);
+  start=wr_term_unify_startpos(g);
+  end=wr_term_unify_endpos(g,xptr);
+  for(i=start;i<end;i++) {
+    if (!xptr[i]) return 0; // should not have 0 in args
+    if (!wr_sine_check_trigger_term(g,xptr[i],scount,tolerance,common)) return 0;   
+  }   
+  return 1;
 }
 
 

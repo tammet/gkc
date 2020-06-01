@@ -54,8 +54,15 @@ int wr_analyze_term(glb* g, gint x,
       int depth, int* size, int* maxdepth, int polarity, int haveextdb, int argpos);
 
 int wr_analyze_sine(glb* g, void* db, void* child_db);
+void wr_set_cl_sine_k(glb* g,gptr cl,int k);
+int wr_get_cl_sine_k(glb* g,gptr cl);
+void wr_set_uri_sine_k(glb* g,gint uri,int k);
+int wr_get_uri_sine_k(glb* g,gint uri);
+
 void wr_get_clause_symbols(glb* g, gptr cl, cvec* uriinfo);
 void wr_get_term_symbols(glb* g, gint x, cvec* uriinfo);
+int wr_sine_check_trigger_cl(glb* g, gptr cl, gint scount, float tolerance, gint common);
+int wr_sine_check_trigger_term(glb* g, gint x, gint scount, float tolerance, gint common);
 
 char* make_auto_guide(glb* g, glb* kb_g);
 void make_sum_input_stats(glb* g, glb* kb_g);

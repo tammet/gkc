@@ -2640,7 +2640,7 @@ wg_int* wg_decode_uri_occs(void* db, wg_int data) {
   objptr = (gint *) offsettoptr(db,decode_longstr_offset(data));
   fldptr=((gint*)objptr)+LONGSTR_OCCS_POS;
   fldval=*fldptr;
-  if (!fldval) return fldval;
+  if (!fldval) return NULL;
   else return wg_decode_record(db,fldval);
 }
 
@@ -2648,7 +2648,7 @@ wg_int* wg_decode_uri_occs(void* db, wg_int data) {
 /*
   set krelevance field to int: will encode int during that
 */
-
+/*
 wg_int wg_set_uri_krelevance(void* db, wg_int data, wg_int krelevance) {
   gint* objptr;
   gint* fldptr;
@@ -2669,11 +2669,11 @@ wg_int wg_set_uri_krelevance(void* db, wg_int data, wg_int krelevance) {
   *fldptr=wg_encode_int(db, krelevance); 
   return 0;
 }
-
+*/
 /*
   get krelevance field, decoding int stored there
 */
-
+/*
 wg_int wg_decode_uri_krelevance(void* db, wg_int data) {
   gint* objptr;
   gint* fldptr;
@@ -2694,7 +2694,7 @@ wg_int wg_decode_uri_krelevance(void* db, wg_int data) {
   fldval=*fldptr;
   return wg_decode_int(db,fldval);
 }
-
+*/
 
 /* blob */
 
@@ -3145,8 +3145,8 @@ static gint find_create_longstr(void* db, char* data, char* extrastr, gint type,
     dbstore(db,offset+LONGSTR_ID_POS*sizeof(gint),encode_smallint(dbh->longstr_count)); // next id
     (dbh->longstr_count)++;
     dbstore(db,offset+LONGSTR_SCOUNT_POS*sizeof(gint),tmp); // 0: no sine count yet
-    dbstore(db,offset+LONGSTR_OCCS_POS*sizeof(gint),(gint*)(0)); // no occs yet
-    dbstore(db,offset+LONGSTR_KRELEVANCE_POS*sizeof(gint),KRELEVANCE_DEFAULT); // 0: no krelevance yet, hence 1000
+    dbstore(db,offset+LONGSTR_OCCS_POS*sizeof(gint),(gint)NULL); // no occs yet
+    //dbstore(db,offset+LONGSTR_KRELEVANCE_POS*sizeof(gint),KRELEVANCE_DEFAULT); // 0: no krelevance yet, hence 1000
 #endif    
 #endif    
     // encode

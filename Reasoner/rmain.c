@@ -981,6 +981,11 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
   //printf("\ng->in_clause_count %d g->sin_clause_count %d\n",
   //       g->in_clause_count,g->sin_clause_count);
 
+  // setup local clid start: this makes each proof search start 
+  // a new sequence of clids after input clids (these are shared)
+  
+  (g->local_clid_next)=(g->shared_clid_next);
+
   // perform sine analysis
 
   wr_analyze_sine(g,db,child_db);

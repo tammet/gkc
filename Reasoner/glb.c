@@ -110,6 +110,9 @@ int wr_glb_init_simple(glb* g) {
   (g->alloc_err)=0; // 0 if ok, becomes 1 or larger if alloc error occurs:
                     // 3 out of varspace err
   
+  (g->shared_clid_next)=0;
+  (g->local_clid_next)=0;
+
   /* parser configuration */
 
   (g->parse_newpred_strat)=1; // NORMAL 1, TESTING 0
@@ -197,6 +200,7 @@ int wr_glb_init_simple(glb* g) {
   (g->store_history)=1;
   //(g->cl_maxdepth)=1000000;
   //(g->cl_limitkept)=1;
+  (g->sine_k_bytes)=SINE_K_VALUES_SIZE;
 
   // prop
 
@@ -525,7 +529,7 @@ int wr_glb_init_shared_complex(glb* g) {
   }
 
   // sine
-  (g->tmp_uriinfo)=rpto(g,wr_cvec_new(g,INITIAL_URITMPVEC_LEN));
+  //(g->tmp_uriinfo)=rpto(g,wr_cvec_new(g,INITIAL_URITMPVEC_LEN));
 
   if (g->alloc_err) {
     return 1;
@@ -622,6 +626,21 @@ int wr_glb_init_local_complex(glb* g) {
 
   (g->answers)=wr_cvec_new(g,INITIAL_ANSWERS_LEN);
   (g->answers)[1]=2; // next free pos in the queue (initially for empty queue 2)
+
+  (g->sine_k_values)=sys_malloc(SINE_K_VALUES_SIZE); // bytestring allocated by malloc
+  if (!(g->sine_k_values)) {
+    wr_printf("\nerror: cannot init sine_k_values\n");   
+    (g->sine_k_bytes)=0;
+  } else {
+    (g->sine_k_bytes)=SINE_K_VALUES_SIZE;
+  }  
+  (g->sine_uri_k_values)=sys_malloc(SINE_K_VALUES_SIZE); // bytestring allocated by malloc
+  if (!(g->sine_uri_k_values)) {
+    wr_printf("\nerror: cannot init sine_uri_k_values\n");   
+    (g->sine_uri_k_bytes)=0;
+  } else {
+    (g->sine_uri_k_bytes)=SINE_K_VALUES_SIZE;
+  }
     
   (g->tmp_litinf_vec)=wr_vec_new(g,MAX_CLAUSE_LEN); // used by subsumption
   (g->tmp_hardnessinf_vec)=wr_vec_new(g,MAX_CLAUSE_LEN); // used for resolvability
@@ -739,7 +758,7 @@ int wr_glb_free_shared_complex(glb* g) {
     wr_vec_free(g,rotp(g,g->prop_varval_clauses));
   }  
   // sine
-  wr_vec_free(g,rotp(g,(g->tmp_uriinfo)));
+  //wr_vec_free(g,rotp(g,(g->tmp_uriinfo)));
 
   return 0;
 }  
@@ -769,9 +788,10 @@ int wr_glb_free_local_complex(glb* g) {
   wr_vec_free(g,(g->tmp_sort_vec));
   wr_vec_free(g,g->tmp_clinfo);
   wr_vec_free(g,g->tmp_varinfo);
-  wr_vec_free(g,g->tmp_uriinfo);
   wr_vec_free(g,g->hyper_queue);
   wr_vec_free(g,g->answers);
+  if (g->sine_k_values) sys_free(g->sine_k_values); // bytestring
+  if (g->sine_uri_k_values) sys_free(g->sine_uri_k_values); // bytestring
 
   wr_str_free(g,(g->parse_skolem_prefix));
   (g->parse_skolem_prefix)=NULL;

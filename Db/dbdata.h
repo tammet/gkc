@@ -242,8 +242,8 @@ wg_int wg_set_uri_scount(void* db, wg_int data, wg_int scount);
 wg_int wg_decode_uri_scount(void* db, wg_int data);
 wg_int wg_set_uri_occs(void* db, wg_int data, wg_int* occs);
 wg_int* wg_decode_uri_occs(void* db, wg_int data);
-wg_int wg_set_uri_krelevance(void* db, wg_int data, wg_int krelevance);
-wg_int wg_decode_uri_krelevance(void* db, wg_int data);
+//wg_int wg_set_uri_krelevance(void* db, wg_int data, wg_int krelevance);
+//wg_int wg_decode_uri_krelevance(void* db, wg_int data);
 
 
 #endif
@@ -652,7 +652,7 @@ gint usage from start:
 #define REASONER_SINE
 
 #ifdef REASONER_SINE
-#define LONGSTR_HEADER_GINTS 14 /** including obj length gint */
+#define LONGSTR_HEADER_GINTS 13 /** including obj length gint */
 #else
 #define LONGSTR_HEADER_GINTS 10 /** including obj length gint */
 #endif
@@ -681,7 +681,7 @@ gint usage from start:
 #define LONGSTR_ID_POS 10  /** unique id **/
 #define LONGSTR_SCOUNT_POS 11  /** occurrence clause count for sine **/
 #define LONGSTR_OCCS_POS 12  /** occurrence cvec for sine **/
-#define LONGSTR_KRELEVANCE_POS 13  /** relevance nr for sine **/
+//#define LONGSTR_KRELEVANCE_POS 13  /** relevance nr for sine **/
 #define KRELEVANCE_DEFAULT (encode_smallint(1000))  /** default worst relevance for sine **/
 #endif
 

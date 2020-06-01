@@ -92,6 +92,7 @@ gint wr_build_input_history(glb* g, gptr cl1, char* name, gint priority) {
       encname=wg_encode_str(db,name,NULL); 
       if (!encname) return wg_encode_null(db,NULL);
     }
+    wr_set_input_history_clid(g,rec);
     wr_set_history_record_field(g,rec,HISTORY_PRIORITY_POS,encpriority);
     wr_set_history_record_field(g,rec,HISTORY_NAME_POS,encname);       
     wr_set_history_record_derived_order(g,rec);
@@ -120,6 +121,7 @@ gint wr_build_resolve_history(glb* g, gptr cl1, gptr cl2, int pos1, int pos2, gp
     if (rec==NULL) return wg_encode_null(db,NULL);
 
     tag=wr_encode_history_resolve(g,pos1,pos2);
+    wr_set_history_clid(g,rec);
     wr_set_history_record_field(g,rec,HISTORY_DERIVATION_TAG_POS,tag);
     wr_set_history_record_field(g,rec,HISTORY_PARENT1_POS,wg_encode_record(db,cl1));
     wr_set_history_record_field(g,rec,HISTORY_PARENT2_POS,wg_encode_record(db,cl2));
@@ -154,6 +156,7 @@ gint wr_build_instgen_history(glb* g, gptr cl1, gptr cl2, int pos1, int pos2, gp
     if (rec==NULL) return wg_encode_null(db,NULL);
 
     tag=wr_encode_history_instgen(g,pos1,pos2);
+    wr_set_history_clid(g,rec);
     wr_set_history_record_field(g,rec,HISTORY_DERIVATION_TAG_POS,tag);
     wr_set_history_record_field(g,rec,HISTORY_PARENT1_POS,wg_encode_record(db,cl1));
     wr_set_history_record_field(g,rec,HISTORY_PARENT2_POS,wg_encode_record(db,cl2));
@@ -304,6 +307,7 @@ gint wr_build_propagate_history(glb* g, gptr cl1, gptr cl2, int pos1, int pos2) 
     if (rec==NULL) return wg_encode_null(db,NULL);
 
     tag=wr_encode_history_propagate(g,pos1,pos2);
+    wr_set_history_clid(g,rec);
     wr_set_history_record_field(g,rec,HISTORY_DERIVATION_TAG_POS,tag);
     wr_set_history_record_field(g,rec,HISTORY_PARENT1_POS,wg_encode_record(db,cl1));
     wr_set_history_record_field(g,rec,HISTORY_PARENT2_POS,wg_encode_record(db,cl2)); 
@@ -333,6 +337,7 @@ gint wr_build_factorial_history(glb* g, gptr cl1, int pos1, int pos2, gptr cut_c
     //tag=wr_encode_history_factorial(g,pos1,pos2);
     if (pos2>=0) tag=wr_encode_history_factorial(g,pos1,pos2);
     else tag=wr_encode_history_equality_reflexive(g,pos1);
+    wr_set_history_clid(g,rec);
     wr_set_history_record_field(g,rec,HISTORY_DERIVATION_TAG_POS,tag);
     wr_set_history_record_field(g,rec,HISTORY_PARENT1_POS,wg_encode_record(db,cl1));
     wr_set_history_record_field(g,rec,HISTORY_PRIORITY_POS,wr_calc_history_priority2(g,cl1,NULL));
@@ -363,6 +368,7 @@ gint wr_build_propinst_history(glb* g, gptr cl1, gint term, gptr cut_clvec) {
     if (rec==NULL) return wg_encode_null(db,NULL);
     //tag=wr_encode_history_factorial(g,pos1,pos2);
     tag=wr_encode_history_propinst(g);   
+    wr_set_history_clid(g,rec);
     wr_set_history_record_field(g,rec,HISTORY_DERIVATION_TAG_POS,tag);
     wr_set_history_record_field(g,rec,HISTORY_PARENT1_POS,wg_encode_record(db,cl1));
     wr_set_history_record_field(g,rec,HISTORY_PARENT2_POS,term);
@@ -389,6 +395,7 @@ gint wr_build_extprop_history(glb* g) {
   if (g->store_history) {
     rec=wr_create_raw_history_record(g,datalen+1,g->build_buffer);
     if (rec==NULL) return wg_encode_null(db,NULL);
+    wr_set_history_clid(g,rec);
     tag=wr_encode_history_extprop(g);
     wr_set_history_record_field(g,rec,HISTORY_DERIVATION_TAG_POS,tag);
     encpriority=wr_encode_priority(g,0);    
@@ -417,6 +424,7 @@ gint wr_build_para_history(glb* g, gptr cl1, gptr cl2, int pos1, int pos2, gptr 
     rec=wr_create_raw_history_record(g,datalen+cutn,g->build_buffer);
     if (rec==NULL) return wg_encode_null(db,NULL);
     tag=wr_encode_history_para(g,pos1,pos2,leftflag);
+    wr_set_history_clid(g,rec);
     wr_set_history_record_field(g,rec,HISTORY_DERIVATION_TAG_POS,tag);
     wr_set_history_record_field(g,rec,HISTORY_PATH_POS,wg_encode_int(db,path));
     wr_set_history_record_field(g,rec,HISTORY_PARA_PARENT1_POS,wg_encode_record(db,cl1));
@@ -449,6 +457,7 @@ gint wr_build_simplify_history(glb* g, gptr cl1, gptr cut_clvec, gptr rewrite_cl
     if (rec==NULL) return wg_encode_null(db,NULL);
     //tag=wr_encode_history_factorial(g,pos1,pos2);
     tag=wr_encode_history_simplify(g);   
+    wr_set_history_clid(g,rec);
     wr_set_history_record_field(g,rec,HISTORY_DERIVATION_TAG_POS,tag);
     wr_set_history_record_field(g,rec,HISTORY_PARENT1_POS,wg_encode_record(db,cl1));
     wr_set_history_record_field(g,rec,HISTORY_PRIORITY_POS,wr_calc_history_priority2(g,cl1,NULL));
@@ -498,6 +507,41 @@ void wr_set_history_record_given_order(glb* g, gptr rec) {
        wg_encode_int(g->db,g->stat_given_used));  
   }   
 #endif
+}
+
+void wr_set_input_history_clid(glb* g, gptr rec) {
+  if (g->store_history) {
+    wr_set_history_record_field(g,rec,HISTORY_CLID_POS,
+       wg_encode_int(g->db,(g->shared_clid_next)));  
+    (g->shared_clid_next)++;   
+  } 
+}
+
+void wr_set_history_clid(glb* g, gptr rec) {
+  if (g->store_history) {
+    wr_set_history_record_field(g,rec,HISTORY_CLID_POS,
+       wg_encode_int(g->db,(g->local_clid_next)));  
+    (g->local_clid_next)++;   
+  } 
+}
+
+gint wr_get_history_clid(glb* g, gptr rec) {
+  gint tmp;
+  if (g->store_history) {
+    tmp=wr_get_history_record_field(g,rec,HISTORY_CLID_POS);
+    return wg_decode_int(g->db,tmp);      
+  } else {
+    return 0;
+  }
+}
+
+gint wr_get_clid(glb* g, gptr clause) {
+  gint history;
+  gptr historyptr;
+  
+  history=wr_get_history(g,clause);
+  historyptr=otp(g->db,history);
+  return wr_get_history_clid(g,historyptr);
 }
 
 
