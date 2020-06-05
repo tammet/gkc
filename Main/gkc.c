@@ -283,7 +283,11 @@ int gkc_main(int argc, char **argv) {
     //else
       //fprintf(stderr, "wg_run_reasoner finished with an error %d.\n",err);
     //break;
-
+    /*
+    if (dbmemsegh(shmptrlocal)->infrm_mpool) {
+            wg_free_mpool(shmptrlocal),(dbmemsegh(shmptrlocal)->infrm_mpool));
+    }
+    */
     return(0);
   }  
 
@@ -452,6 +456,9 @@ int gkc_main(int argc, char **argv) {
     //printf("\nshowing shared memory db\n"); 
     //wr_show_database_details(NULL,shmptr,"shmptr");
     //printf("\n-querykb exits\n");
+    //if (dbmemsegh(shmptrlocal)->infrm_mpool) {
+    //    wg_free_mpool(shmptrlocal),(dbmemsegh(shmptrlocal)->infrm_mpool));
+    //}
     return(0);  
   }
 
@@ -1318,6 +1325,9 @@ int gkc_ltb_main(int argc, char **argv) {
             }   
           }
           fflush(stdout);
+          if (dbmemsegh(shmptrlocal)->infrm_mpool) {
+            wg_free_mpool(shmptrlocal,(dbmemsegh(shmptrlocal)->infrm_mpool));
+          }
           wg_delete_local_database(shmptrlocal); 
           exit(err); 
 

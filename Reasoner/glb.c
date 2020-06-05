@@ -185,7 +185,7 @@ int wr_glb_init_simple(glb* g) {
   (g->use_equality_strat)=1; // general strategy
   (g->use_equality)=1; // current principle
   (g->posunitpara_strat)=0; // only paramodulate from unit equalities
-  (g->rewrite_only_strat)=1; // only store demodulators, do not store para terms
+  (g->rewrite_only_strat)=0; // only store demodulators, do not store para terms
   (g->instgen_strat)=0;
   (g->propgen_strat)=0;
   (g->use_comp_funs_strat)=1;
@@ -195,6 +195,8 @@ int wr_glb_init_simple(glb* g) {
   (g->use_strong_unit_cutoff)=0; // if 1, then cut off also with unification, not just with hash equality
   (g->use_strong_duplicates)=0; // iff 1, then additional unique var based duplicate removal used
   (g->prohibit_nested_para)=0; // iff 1, paramodulation derivations cannot be directly nested
+  (g->use_sine_strat)=0; // sine actually used: look at this for initial clause selection
+  (g->attempt_sine_strat)=0; // sine attempted, but may be decided to abandon
 
   (g->max_proofs)=1;
   (g->store_history)=1;

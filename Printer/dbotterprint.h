@@ -64,4 +64,26 @@ int wr_strprint_term_otter(glb* g, gint rec,int printlevel, char** buf, int *len
 int wr_strprint_simpleterm_otter(glb* g, gint enc,int printlevel, char** buf, int *len, int pos, int isneg);
 int wg_nice_strprint_var(glb* g, gint i, char** buf, int *len, int pos);
 
+void wg_tptp_print(void* db, void* ptr);
+void wg_tptp_print_aux(void* db, void* ptr, int depth, int pflag);
+//int wg_print_frm_tptp(void* db, gptr rec, char** buf, int *len, int pos);
+int wg_print_frm_aux_tptp(void* db, gptr rec, int printlevel, char** buf, int *len, int pos);
+int wg_print_rule_clause_tptp(void* db, void* rec,int printlevel, char** buf, int *len, int pos);
+int wg_print_fact_clause_tptp(void* db, void* rec, int printlevel, char** buf, int *len, int pos);
+int wg_print_prop_clause_tptp(void* db,void* rec,int printlevel, char** buf, int *len, int pos);
+int wg_print_atom_tptp(void* db, void* rec, int printlevel,char** buf, int *len, int pos, int isneg);
+
+int wg_print_frm_tptp(void* db, void* ptr, char** buf, int *len, int pos); 
+int wg_print_subfrm_tptp(void* db, void* rec,int depth, int pflag, int termflag, char** buf, int *len, int pos);
+
+int wg_print_term_tptp(void* db, void* rec,int depth, int pflag, char** buf, int *len, int pos);
+int wg_print_simpleterm_tptp(void* db, void* rec,int printlevel, char** buf, int *len, int pos, int isneg);
+
+int wg_print_nice_var_tptp(void* db, gint i, char** buf, int *len, int pos);
+int wg_str_guarantee_space(void* db, char** stradr, int* strlenadr, int needed);
+void wg_str_free(void* db, char* str);
+void wg_str_freeref(void* db, char** strref);
+int wg_print_tptp_json(void* db); 
+void wg_printerr_tptp(void* db, char* str);
+
 #endif

@@ -660,6 +660,16 @@ void* wg_makelog_conn(void* db, void* mpool, char* str) {
   return res;
 }
 
+// ---------- copying ---------
+
+void* wg_mpool_copy(void* db, void* mpool, void* ptr) {
+  if (!wg_ispair(db,ptr)) return ptr;
+  return wg_mkpair(db,mpool,
+                   wg_mpool_copy(db,mpool,wg_first(db,ptr)),
+                   wg_mpool_copy(db,mpool,wg_rest(db,ptr)) );   
+}  
+
+
 
 // ------------ printing ------------------
 

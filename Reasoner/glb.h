@@ -330,6 +330,8 @@ typedef struct {
   int use_strong_unit_cutoff; 
   int use_strong_duplicates; // iff 1, then unique var based duplicate removal
   int prohibit_nested_para;
+  int use_sine_strat; // sine actually used: look at this for initial clause selection
+  int attempt_sine_strat; // sine attempted, but may be decided to abandon
 
   int max_proofs;
   int store_history;

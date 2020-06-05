@@ -80,7 +80,7 @@ void* wr_realloc(glb* g, void* p, int bytes) {
   wr_printf("\nwr_realloc %d \n",bytes);
 #endif  
   if (g->inkb) return wr_inkb_realloc(g,p,bytes);
-  else return sys_realloc(p,bytes);  
+  else return sys_realloc(p,bytes);
 }
 
 void wr_free(glb* g, void* p) {
@@ -388,7 +388,10 @@ vec wr_vec_store(glb* g,vec v, int i, gint e) {
     v[i]=(gint)e;
     return v;
   } else {
+    //CP0
     nvec=wr_vec_realloc(g,v,i);
+    //CP1
+    //printf("\nnvec %ld\n",(gint)nvec);
     if (nvec==NULL) {
       (g->alloc_err)=1;
       wr_alloc_err2int(g,"vec_store cannot allocate enough memory to store at",i);    

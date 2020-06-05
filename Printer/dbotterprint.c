@@ -941,6 +941,965 @@ int wg_nice_strprint_var(glb* g, gint i, char** buf, int *len, int pos) {
   }  
 }
 
+/* ==================================== 
+
+
+   TPTP printing
+
+===================================== */
+
+
+void wg_tptp_print(void* db, void* ptr) {
+  char* buf;
+  int blen, bpos;
+
+  blen=1000;
+  bpos=0;
+  buf=sys_malloc(blen);
+  if (buf==NULL) {   
+    wg_printerr_tptp(db,"tptp printing start cannot alloc buffer");
+    return;
+  }
+  *buf=0;  
+  if (!wg_str_guarantee_space(db,&buf,&blen,bpos+100)) {
+    wg_printerr_tptp(db,"tptp printing start cannot guarantee buffer space"); 
+    if (buf) sys_free(buf);
+    return;
+  }
+  //bpos+=snprintf(buf+bpos,blen-bpos,"buf start");
+  printf("\nTPTP starts\n");
+  wg_tptp_print_aux(db,ptr,0,1);
+  printf("\nCP");
+  bpos=wg_print_frm_tptp(db,ptr,&buf,&blen,bpos); 
+  //bpos=wg_print_subfrm_tptp(db,ptr,0,0,0,&buf,&blen,bpos);
+  printf("\npos %d \n",bpos);
+  printf("buf: %s\n",buf); 
+  if (buf) sys_free(buf);
+  printf("\nTPTP ends\n");
+}
+
+
+void wg_tptp_print_aux(void* db, void* ptr, int depth, int pflag) {
+  int type;
+  char* p;
+  //int count;
+  //int ppflag=1;
+  //int i;
+  //void *curptr;
+
+  if (ptr==NULL) {
+    printf("()");
+  } else if (wg_isatom(db,ptr)) {
+    type=wg_atomtype(db,ptr);
+    switch (type) {
+      case 0: printf("_:"); break;
+      case WG_NULLTYPE: printf("n:"); break;
+      case WG_RECORDTYPE: 
+        printf("r:"); 
+        wg_print_record(db, ((gint*)(offsettoptr((db),(wg_atomrec(db,ptr))))));
+        printf(" ");
+        break;
+      case WG_INTTYPE: printf("i:"); break;
+      case WG_DOUBLETYPE: printf("d:"); break;
+      case WG_STRTYPE: printf("s:"); break;
+      case WG_XMLLITERALTYPE: printf("x:"); break;
+      case WG_URITYPE: printf("u:"); break;
+      case WG_BLOBTYPE: printf("b:"); break;
+      case WG_CHARTYPE: printf("c:"); break;
+      case WG_FIXPOINTTYPE: printf("f:"); break;
+      case WG_DATETYPE: printf("date:"); break;
+      case WG_TIMETYPE: printf("time:"); break;
+      case WG_ANONCONSTTYPE: printf("a:"); break;
+      case WG_VARTYPE: printf("?:"); break;
+      default: printf("!:");
+    }    
+    p=wg_atomstr1(db,ptr);
+    /*
+    if (type==WG_ANONCONSTTYPE || type==WG_URITYPE) {
+      for(i=0; *p!='\0'; i++, p++) {
+        printf(" i%d%c ",i,*p);
+      }
+      printf(" t1:%d at %d",(int)*p,(int)p);
+      p++;
+      printf(" t2:%d at %d",(int)*p,(int)p);
+    }  
+    p=wg_atomstr2(db,ptr);
+    printf(" compp:%d at %d",100,(int)p);
+    p=wg_atomstr1(db,ptr); 
+    */
+
+    if (p!=NULL) {
+      if (strchr(p,' ')!=NULL || strchr(p,'\n')!=NULL || strchr(p,'\t')!=NULL) {
+        printf("\"%s\"",p);
+      } else {
+        printf("%s",p);
+      }
+    } else {
+      printf("\"\"");
+    }
+    p=wg_atomstr2(db,ptr);
+    if (p!=NULL) {
+      if (strchr(p,' ')!=NULL || strchr(p,'\n')!=NULL || strchr(p,'\t')!=NULL) {
+        printf("^^\"%s\"",p);
+      } else {
+        printf("^^%s",p);
+      }
+    }
+  } else {
+    /*
+    if (pflag && wg_listtreecount(db,ptr)>10) ppflag=1;
+    printf ("(");
+    for(curptr=ptr, count=0;curptr!=NULL && !wg_isatom(db,curptr);curptr=wg_rest(db,curptr), count++) {
+      if (count>0) {
+        if (ppflag) {
+          printf("\n");
+          for(i=0;i<depth;i++) printf(" ");
+        }
+        printf(" ");
+      }
+      wg_tptp_print_aux(db,wg_first(db,curptr),depth+1,0);
+    }
+    if (wg_isatom(db,curptr)) {
+      printf(" . ");
+      wg_tptp_print_aux(db,curptr,depth+1,ppflag);
+    }
+    printf (")");
+    if (ppflag) printf("\n");
+    */
+   printf ("(");
+   
+   printf (")");
+  }
+}
+
+/*
+
+int wg_print_frm_tptp(void* db, gptr rec, char** buf, int *len, int pos) {
+  //gint history;
+
+  if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;  
+  if (rec==NULL) {   
+    pos+=snprintf((*buf)+pos,(*len)-pos,"false");    
+    return pos;
+  }  
+  pos=wg_print_frm_aux_tptp(db,rec,100, buf, len, pos);
+  return pos;
+} 
+
+*/
+
+/** Print single clause (rule/fact record)
+ * 
+ * return next-to-write position in buf or -1 if error
+ */
+
+/*
+int wg_print_frm_aux_tptp(void* db, gptr rec, int printlevel, char** buf, int *len, int pos) {
+  if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;  
+  if (rec==NULL) { pos+=sprintf((*buf)+pos,"NULL"); return pos; }
+  if (wg_rec_is_rule_clause(db,rec)) {
+    pos=wg_print_rule_clause_tptp(db,(gptr)rec,printlevel,buf,len,pos);
+  } else if (wg_rec_is_fact_clause(db,rec)) {
+    pos=wg_print_fact_clause_tptp(db,(gptr)rec,printlevel,buf,len,pos);
+  } else if (wg_rec_is_prop_clause(db,rec)) {
+    pos=wg_print_prop_clause_tptp(db,(gptr)rec,printlevel,buf,len,pos);
+  }    
+  return pos;
+}
+*/
+
+/** Print single rule record
+ *
+ * return next-to-write position in buf or -1 if error
+ * 
+ */
+
+/*
+int wg_print_rule_clause_tptp(void* db, gint* rec,int printlevel, char** buf, int *len, int pos) {
+  gint meta, enc;
+  int i, clen, isneg;
+  
+  if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;
+  if (rec==NULL) {    
+    if (wg_print_tptp_json(db)) {    
+      pos+=snprintf((*buf)+pos,(*len)-pos,"[]"); 
+      return pos;       
+    } else {    
+      pos+=snprintf((*buf)+pos,(*len)-pos,"NULL"); 
+      return pos;
+    }
+  }
+  clen = wg_count_clause_atoms(db, rec);
+  if (wg_print_tptp_json(db)) {
+    pos+=snprintf((*buf)+pos,(*len)-pos,"[");
+  } 
+  for(i=0; i<clen; i++) {
+    if (i>0 && i<clen) {
+      if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;
+      if (wg_print_tptp_json(db)) {
+        pos+=snprintf((*buf)+pos,(*len)-pos,", ");          
+      } else {
+        pos+=snprintf((*buf)+pos,(*len)-pos," | ");
+      }       
+    }  
+    meta=wg_get_rule_clause_atom_meta(db,rec,i);
+    enc=wg_get_rule_clause_atom(db,rec,i);
+    if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;
+    isneg=0;
+    if (wg_print_tptp_json(db)) {
+      if (wg_atom_meta_is_neg(db,meta)) isneg=1;  
+    } else {
+      if (wg_atom_meta_is_neg(db,meta)) pos+=snprintf((*buf)+pos,(*len)-pos,"-");
+    }    
+    if (wg_get_encoded_type(db, enc)==WG_RECORDTYPE) {   
+      pos=wg_print_atom_tptp(db,enc,printlevel,buf,len,pos,isneg);
+      if (pos<0) return pos;
+    } else {  
+      pos=wg_print_simpleterm_tptp(db,enc,printlevel,buf,len,pos,0);
+      if (pos<0) return pos;
+    }      
+  }
+  if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;
+  if (wg_print_tptp_json(db)) {
+    pos+=snprintf((*buf)+pos,(*len)-pos,"]");
+  } else {
+    pos+=snprintf((*buf)+pos,(*len)-pos,".");
+  } 
+  return pos;
+}
+*/
+/** Print single fact record
+ *
+ */
+/*
+int wg_print_fact_clause_tptp(void* db, gint* rec, int printlevel, char** buf, int *len, int pos) {
+  
+  if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;
+  if (rec==NULL) {    
+    if (wg_print_tptp_json(db)) {    
+      pos+=snprintf((*buf)+pos,(*len)-pos,"[]"); 
+      return pos;       
+    } else {    
+      pos+=snprintf((*buf)+pos,(*len)-pos,"NULL"); 
+      return pos;
+    }
+  }
+  if (wg_print_tptp_json(db)) {
+    pos+=snprintf((*buf)+pos,(*len)-pos,"[");
+    pos=wg_print_atom_tptp(db,wg_encode_record(db,rec),printlevel,buf,len,pos,0);
+    if (pos<0) return pos;
+    if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;
+    pos+=snprintf((*buf)+pos,(*len)-pos,"]");
+  } else {
+    pos=wg_print_atom_tptp(db,wg_encode_record(db,rec),printlevel,buf,len,pos,0);
+    if (pos<0) return pos;
+    if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;
+    pos+=sprintf((*buf)+pos,".");
+  }      
+  return pos;
+}
+
+int wg_print_prop_clause_tptp(void* db, gint* rec,int printlevel, char** buf, int *len, int pos) {
+  gint var;
+  //gint meta;
+  int i, clen;
+
+  UNUSEDVAR(db);
+  if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;
+  if (rec==NULL) {    
+    if (wg_print_tptp_json(db)) {    
+      pos+=snprintf((*buf)+pos,(*len)-pos,"[]"); 
+      return pos;       
+    } else {    
+      pos+=snprintf((*buf)+pos,(*len)-pos,"NULL"); 
+      return pos;
+    }
+  } 
+  clen = wg_count_prop_clause_atoms(db, rec);
+  for(i=0; i<clen; i++) {
+    if (!wg_str_guarantee_space(db,buf,len,pos+20)) return -1;
+    if (i>0 && i<clen) {      
+      if (wg_print_tptp_json(db)) {    
+        pos+=snprintf((*buf)+pos,(*len)-pos,",");              
+      } else {    
+        pos+=snprintf((*buf)+pos,(*len)-pos," ");       
+      }
+    }  
+    //meta=wg_get_rule_clause_atom_meta(db,rec,i);
+    var=wg_get_prop_clause_atom(db,rec,i);    
+    if (wg_print_tptp_json(db)) {    
+      pos+=snprintf((*buf)+pos,(*len)-pos,"%ld",var);              
+    } else {    
+      pos+=snprintf((*buf)+pos,(*len)-pos,"%ld",var);       
+    }
+  }
+  if (wg_print_tptp_json(db)) {    
+    pos+=snprintf((*buf)+pos,(*len)-pos,"]");            
+  } else {    
+    pos+=snprintf((*buf)+pos,(*len)-pos,".");    
+  }
+  return pos;
+}
+
+
+int wg_print_atom_tptp(void* db, gint rec, int printlevel,char** buf, int *len, int pos, int isneg) {
+  gptr recptr;
+  gint clen, enc;
+  int i;
+  
+  if (wg_get_encoded_type(db,rec)!=WG_RECORDTYPE) {
+    if (isneg) {
+      return wg_print_simpleterm_tptp(db,rec,printlevel,buf,len,pos,1); 
+    } else {
+      return wg_print_simpleterm_tptp(db,rec,printlevel,buf,len,pos,0); 
+    }       
+  }
+  recptr=wg_decode_record(db, rec);
+  clen = wg_get_record_len(db, recptr);
+  if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;
+  if (wg_print_tptp_json(db)) { 
+    pos+=snprintf((*buf)+pos,(*len)-pos,"[");
+  }  
+  for(i=0; i<clen; i++) {  
+    //if (i<(g->unify_firstuseterm)) continue;
+    if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;
+    //if(i>((g->unify_firstuseterm)+1)) pos+=snprintf((*buf)+pos,(*len)-pos,",");
+    enc = wg_get_field(db, recptr, i);
+    if (wg_get_encoded_type(db, enc)==WG_RECORDTYPE) {
+      pos=wg_print_term_tptp(db,enc,printlevel,buf,len,pos);
+      if (pos<0) return pos;
+    } else {  
+      if (0) { //(isneg && (i<=((g->unify_firstuseterm)))) {
+        pos=wg_print_simpleterm_tptp(db, enc,printlevel,buf,len,pos,1);
+      } else {
+        pos=wg_print_simpleterm_tptp(db, enc,printlevel,buf,len,pos,0);
+      }      
+      if (pos<0) return pos;
+    }       
+    if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;
+    if (wg_print_tptp_json(db)) {
+      //if (i==(g->unify_firstuseterm))  pos+=snprintf((*buf)+pos,(*len)-pos,",");
+    } else {
+      //if (i==(g->unify_firstuseterm))  pos+=snprintf((*buf)+pos,(*len)-pos,"(");
+    }     
+  }
+  if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;
+  if (wg_print_tptp_json(db)) { 
+    pos+=snprintf((*buf)+pos,(*len)-pos,"]");
+  } else {
+    pos+=snprintf((*buf)+pos,(*len)-pos,")");
+  }  
+  return pos;
+}
+*/
+
+int wg_print_frm_tptp(void* db, void* ptr, char** buf, int *len, int pos) {  
+  int p;
+  p=wg_print_subfrm_tptp(db,ptr,0,0,0,buf,len,pos);
+  //printf("\nwg_print_frm_tptp calcs p: %d\n",p);
+  return p;
+}
+
+
+int wg_print_subfrm_tptp(void* db, void* ptr,int depth,int pflag, int termflag, char** buf, int *len, int pos) {
+  /*
+  gptr recptr;
+  gint  enc;
+  int i, clen;
+  */
+#ifdef DEBUG  
+  printf("print_term called"); 
+#endif   
+  //int type;
+  char* p;
+  int count;
+  int ppflag=0;
+  int i;
+  void *curptr;
+  void *op;
+  int lstlen;
+  char* symb;
+  void* varlst;
+  void* varptr;
+  int varcount;
+
+  //printf("\nwg_print_subfrm_tptp called\n"); 
+
+  if (!wg_str_guarantee_space(db,buf,len,pos+1000)) {
+    wg_printerr_tptp(db,"wg_print_subfrm_tptp cannot guarantee buffer space"); 
+    if (buf) sys_free(buf);
+    return -1;
+  }
+  /*
+  printf("\npos before2: %d",pos);
+  pos+=snprintf((*buf)+pos,(*len)-pos,"efg");
+  printf("\npos after2: %d",pos);
+  return pos;
+  */
+  if (ptr==NULL) {
+    //printf("()");
+    pos+=snprintf((*buf)+pos,(*len)-pos,"()");
+    return pos;
+  } else if (wg_isatom(db,ptr)) {
+    //type=wg_atomtype(db,ptr);    
+    p=wg_atomstr1(db,ptr);   
+    if (p!=NULL) {
+      if (strchr(p,' ')!=NULL || strchr(p,'\n')!=NULL || strchr(p,'\t')!=NULL) {
+        //printf("\"%s\"",p);
+        pos+=snprintf((*buf)+pos,(*len)-pos,"\'%s\'",p);
+      } else {
+        //printf("%s",p);
+        pos+=snprintf((*buf)+pos,(*len)-pos,"%s",p);
+      }
+    } else {
+      //printf("\'\'");
+      pos+=snprintf((*buf)+pos,(*len)-pos,"\' \'" );
+    }
+    p=wg_atomstr2(db,ptr);
+    if (p!=NULL) {
+      if (strchr(p,' ')!=NULL || strchr(p,'\n')!=NULL || strchr(p,'\t')!=NULL) {
+        //printf("^^\"%s\"",p);
+        pos+=snprintf((*buf)+pos,(*len)-pos,"^^\"%s\"",p);
+      } else {
+        //printf("^^%s",p);
+        pos+=snprintf((*buf)+pos,(*len)-pos,"^^%s",p);
+      }
+    }
+    return pos;
+  } else {    
+
+    op=wg_first(db,ptr);
+    lstlen=wg_list_len(db,ptr);   
+    if (pflag && wg_listtreecount(db,ptr)>10) ppflag=1;
+    if (!termflag &&
+       wg_isatom(db,op) && 
+       (wg_atomtype(db,op)==WG_ANONCONSTTYPE || wg_atomtype(db,op)==WG_URITYPE) &&
+       wg_atomstr1(db,op) &&
+       (wg_atomstr1(db,op))[0]=='=' &&
+       !(wg_atomstr1(db,op))[1]) {
+      // equality predicate
+      pos+=snprintf((*buf)+pos,(*len)-pos,"(");
+      pos=wg_print_subfrm_tptp(db,wg_nth(db,ptr,1),depth+1,0,1,buf,len,pos);
+      if (pos<0) return pos;
+      if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
+      pos+=snprintf((*buf)+pos,(*len)-pos," = ");
+      pos=wg_print_subfrm_tptp(db,wg_nth(db,ptr,2),depth+1,0,1,buf,len,pos);
+      if (pos<0) return pos;
+      if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
+      pos+=snprintf((*buf)+pos,(*len)-pos,")");
+      return pos;
+    } else if (!termflag && wg_islogconnective(db,op)) {
+      //printf("@");
+      //pos+=snprintf((*buf)+pos,(*len)-pos,"@");
+        
+      // special handling of connective printing 
+      if (wg_islogneg(db,op)) {
+        pos+=snprintf((*buf)+pos,(*len)-pos,"~");
+        pos=wg_print_subfrm_tptp(db,wg_nth(db,ptr,1),depth+1,0,termflag,buf,len,pos);
+        if (pos<0) return pos; 
+      } else if (wg_islogor(db,op) || wg_islogand(db,op) 
+                 || wg_islogimp(db,op) || wg_islogeqv(db,op)) {
+        if (wg_islogor(db,op)) symb=" | ";
+        if (wg_islogand(db,op)) symb=" & ";
+        if (wg_islogimp(db,op)) symb=" => ";
+        if (wg_islogeqv(db,op)) symb=" <=> ";
+        pos+=snprintf((*buf)+pos,(*len)-pos,"(");
+        pos=wg_print_subfrm_tptp(db,wg_nth(db,ptr,1),depth+1,0,termflag,buf,len,pos);
+        if (pos<0) return pos;
+        if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;        
+        pos+=snprintf((*buf)+pos,(*len)-pos,"%s",symb);        
+        pos=wg_print_subfrm_tptp(db,wg_nth(db,ptr,2),depth+1,0,termflag,buf,len,pos);
+        if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1; 
+        pos+=snprintf((*buf)+pos,(*len)-pos,")");
+        if (pos<0) return pos;        
+      } else if (wg_islogall(db,op) || wg_islogexists(db,op)) {
+        if (wg_islogall(db,op)) symb="! ";
+        if (wg_islogexists(db,op)) symb="? ";      
+        pos+=snprintf((*buf)+pos,(*len)-pos,"(");
+        pos+=snprintf((*buf)+pos,(*len)-pos,"%s",symb); 
+        pos+=snprintf((*buf)+pos,(*len)-pos,"[");
+        varlst=wg_nth(db,ptr,1);
+        for(varptr=varlst, varcount=0;
+            varptr!=NULL && !wg_isatom(db,varlst);
+            varptr=wg_rest(db,varptr), varcount++) {
+          pos=wg_print_subfrm_tptp(db,wg_first(db,varptr),depth+1,0,1,buf,len,pos);
+          if (pos<0) return pos;
+          if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
+          if (wg_rest(db,varptr)) {
+            pos+=snprintf((*buf)+pos,(*len)-pos,",");
+          }    
+        }      
+        pos+=snprintf((*buf)+pos,(*len)-pos,"] : ");
+        pos=wg_print_subfrm_tptp(db,wg_nth(db,ptr,2),depth+1,0,termflag,buf,len,pos);
+        if (pos<0) return pos;
+        if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;              
+        pos+=snprintf((*buf)+pos,(*len)-pos,")");
+        if (pos<0) return pos;
+      } 
+      return pos;   
+    } 
+    // normal term printing
+    for(curptr=ptr, count=0;curptr!=NULL && !wg_isatom(db,curptr);curptr=wg_rest(db,curptr), count++) {
+      if (count>0) {
+        // tail of list
+        if (ppflag) {
+          //printf("\n");
+          pos+=snprintf((*buf)+pos,(*len)-pos,"\n");
+          if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
+          for(i=0;i<depth;i++) {
+            //printf(" ");
+            pos+=snprintf((*buf)+pos,(*len)-pos," ");
+            if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
+          }  
+        }        
+        pos=wg_print_subfrm_tptp(db,wg_first(db,curptr),depth+1,0,1,buf,len,pos);
+        if (pos<0) return pos;
+        if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
+        if ((count+1)<lstlen) {
+          // not the last element
+          //printf(",");
+          pos+=snprintf((*buf)+pos,(*len)-pos,",");
+        }
+      } else {
+        // header of list
+        pos=wg_print_subfrm_tptp(db,wg_first(db,curptr),depth+1,0,1,buf,len,pos);
+        if (pos<0) return pos;
+        if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
+        //printf ("(");
+        pos+=snprintf((*buf)+pos,(*len)-pos,"(");
+      }      
+    }
+    if (wg_isatom(db,curptr)) {
+      //printf(" . ");
+      pos+=snprintf((*buf)+pos,(*len)-pos," . ");
+      pos=wg_print_subfrm_tptp(db,curptr,depth+1,pflag,1,buf,len,pos);
+      if (pos<0) return pos;
+      if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
+    }
+    //printf (")");
+    if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
+    pos+=snprintf((*buf)+pos,(*len)-pos,")");
+    if (ppflag) {
+      //printf("\n");
+      pos+=snprintf((*buf)+pos,(*len)-pos,"\n");
+    }
+  }
+  return pos;
+}
+
+int wg_print_term_tptp(void* db, void* ptr,int depth,int pflag,char** buf, int *len, int pos) {
+  /*
+  gptr recptr;
+  gint  enc;
+  int i, clen;
+  */
+#ifdef DEBUG  
+  printf("print_term called"); 
+#endif   
+  int type;
+  char* p;
+  int count;
+  int ppflag=0;
+  int i;
+  void *curptr;
+
+  if (ptr==NULL) {
+    printf("()");
+  } else if (wg_isatom(db,ptr)) {
+    type=wg_atomtype(db,ptr);
+    switch (type) {
+      case 0: printf("_:"); break;
+      case WG_NULLTYPE: printf("n:"); break;
+      case WG_RECORDTYPE: 
+        printf("r:"); 
+        wg_print_record(db, ((gint*)(offsettoptr((db),(wg_atomrec(db,ptr))))));
+        printf(" ");
+        break;
+      case WG_INTTYPE: printf("i:"); break;
+      case WG_DOUBLETYPE: printf("d:"); break;
+      case WG_STRTYPE: printf("s:"); break;
+      case WG_XMLLITERALTYPE: printf("x:"); break;
+      case WG_URITYPE: printf("u:"); break;
+      case WG_BLOBTYPE: printf("b:"); break;
+      case WG_CHARTYPE: printf("c:"); break;
+      case WG_FIXPOINTTYPE: printf("f:"); break;
+      case WG_DATETYPE: printf("date:"); break;
+      case WG_TIMETYPE: printf("time:"); break;
+      case WG_ANONCONSTTYPE: printf("a:"); break;
+      case WG_VARTYPE: printf("?:"); break;
+      default: printf("!:");
+    }    
+    p=wg_atomstr1(db,ptr);
+    /*
+    if (type==WG_ANONCONSTTYPE || type==WG_URITYPE) {
+      for(i=0; *p!='\0'; i++, p++) {
+        printf(" i%d%c ",i,*p);
+      }
+      printf(" t1:%d at %d",(int)*p,(int)p);
+      p++;
+      printf(" t2:%d at %d",(int)*p,(int)p);
+    }  
+    p=wg_atomstr2(db,ptr);
+    printf(" compp:%d at %d",100,(int)p);
+    p=wg_atomstr1(db,ptr); 
+    */
+
+    if (p!=NULL) {
+      if (strchr(p,' ')!=NULL || strchr(p,'\n')!=NULL || strchr(p,'\t')!=NULL) {
+        printf("\"%s\"",p);
+      } else {
+        printf("%s",p);
+      }
+    } else {
+      printf("\"\"");
+    }
+    p=wg_atomstr2(db,ptr);
+    if (p!=NULL) {
+      if (strchr(p,' ')!=NULL || strchr(p,'\n')!=NULL || strchr(p,'\t')!=NULL) {
+        printf("^^\"%s\"",p);
+      } else {
+        printf("^^%s",p);
+      }
+    }
+  } else {    
+    if (pflag && wg_listtreecount(db,ptr)>10) ppflag=1;
+    printf ("(");
+    for(curptr=ptr, count=0;curptr!=NULL && !wg_isatom(db,curptr);curptr=wg_rest(db,curptr), count++) {
+      if (count>0) {
+        if (ppflag) {
+          printf("\n");
+          for(i=0;i<depth;i++) printf(" ");
+        }
+        printf(" ");
+      }
+      wg_print_term_tptp(db,wg_first(db,curptr),depth+1,0,buf,len,pos);
+    }
+    if (wg_isatom(db,curptr)) {
+      printf(" . ");
+      wg_print_term_tptp(db,curptr,depth+1,ppflag,buf,len,pos);
+    }
+    printf (")");
+    if (ppflag) printf("\n");
+  }
+  return pos;
+  /*
+  // ---- old ---
+  if (wg_get_encoded_type(db,rec)!=WG_RECORDTYPE) {
+    pos=wg_print_simpleterm_tptp(db,rec,printlevel,buf,len,pos,0);
+    return pos;
+  }
+  recptr=wg_decode_record(db, rec);
+  clen = wg_get_record_len(db, recptr);
+  if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;
+  if (wg_print_tptp_json(db)) { 
+    pos+=snprintf((*buf)+pos,(*len)-pos,"[");
+  }  
+  for(i=0; i<clen; i++) {
+    //if (i<(g->unify_firstuseterm)) continue;
+    if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;
+    //if(i>((g->unify_firstuseterm)+1)) pos+=snprintf((*buf)+pos,(*len)-pos,",");
+    enc = wg_get_field(db, recptr, i);    
+    if (wg_get_encoded_type(db, enc)==WG_RECORDTYPE) {
+      pos=wg_print_term_tptp(db,enc,printlevel,buf,len,pos);
+      if (pos<0) return pos;
+    } else {  
+      pos=wg_print_simpleterm_tptp(db, enc,printlevel,buf,len,pos,0);
+      if (pos<0) return pos;
+    }           
+    if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;
+    if (wg_print_tptp_json(db)) {
+      //if (i==(g->unify_firstuseterm))  pos+=snprintf((*buf)+pos,(*len)-pos,",");
+    } else {
+      //if (i==(g->unify_firstuseterm))  pos+=snprintf((*buf)+pos,(*len)-pos,"(");
+    }  
+  } 
+  if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;
+  if (wg_print_tptp_json(db)) { 
+    pos+=snprintf((*buf)+pos,(*len)-pos,"]");
+  } else {
+    pos+=snprintf((*buf)+pos,(*len)-pos,")");
+  }  
+  return pos;
+  */
+}
+
+
+/** Print a single, encoded value or a subrecord
+ *  
+ */
+/*
+int wg_print_simpleterm_tptp(void* db, void* ptr,int printlevel, char** buf, int *len, int pos, int isneg) {
+  int intdata;
+  char *strdata, *exdata;
+  double doubledata;
+  char strbuf[80];
+  int len1=0,len2=0;
+
+#ifdef DEBUG  
+  printf("simpleterm called with enc %d and type %d \n",(int)enc,wg_get_encoded_type(db,enc)); 
+#endif  
+  strbuf[0]=(char)0;
+  if (!wg_str_guarantee_space(db,buf,len,pos+50)) return -1;
+  switch(wg_get_encoded_type(db, enc)) {
+    case WG_NULLTYPE:
+      return pos+snprintf((*buf)+pos,(*len)-pos,"NULL");      
+    //case WG_RECORDTYPE:
+    //  ptrdata = (gint) wg_decode_record(db, enc);
+    //  wg_print_subrecord_otter(db,(gint*)ptrdata);
+    //  break;    
+    case WG_INTTYPE:      
+      intdata = wg_decode_int(db, enc);     
+      return pos+snprintf((*buf)+pos,(*len)-pos,"%d", intdata);
+    case WG_DOUBLETYPE:
+      doubledata = wg_decode_double(db, enc);
+      return pos+snprintf((*buf)+pos,(*len)-pos,"%f", doubledata);
+    case WG_STRTYPE:
+      strdata = wg_decode_str(db, enc);
+      if (wg_print_tptp_json(db)) {
+        if (isneg) {
+          return pos+snprintf((*buf)+pos,(*len)-pos,"\"-:%s\"", strdata);
+        } else {
+          return pos+snprintf((*buf)+pos,(*len)-pos,"\":%s\"", strdata);
+        }  
+      } else {
+        return pos+snprintf((*buf)+pos,(*len)-pos,":%s", strdata);
+      }      
+    case WG_URITYPE:
+      strdata = wg_decode_uri(db, enc);
+      exdata = wg_decode_uri_prefix(db, enc);
+      if (strdata) len1=strlen(strdata);
+      if (exdata) len2=strlen(exdata);
+      if (!wg_str_guarantee_space(db,buf,len,pos+len1+len2+50)) return -1;
+      if (exdata==NULL) {
+        if (wg_print_tptp_json(db)) {
+          if (isneg) {
+            return pos+snprintf((*buf)+pos,(*len)-pos,"\"-%s\"", strdata);
+          } else {
+            return pos+snprintf((*buf)+pos,(*len)-pos,"\"%s\"", strdata);
+          }          
+        } else {          
+          if (isneg) {
+            return pos+snprintf((*buf)+pos,(*len)-pos,"-%s", strdata);
+          } else {
+            return pos+snprintf((*buf)+pos,(*len)-pos,"%s", strdata);
+            //return pos+snprintf((*buf)+pos,(*len)-pos,"%s%ld", strdata,wg_decode_uri_id(db,enc));
+          }           
+        }        
+      } else {
+        if (wg_print_tptp_json(db)) {
+          if (isneg) {
+            return pos+snprintf((*buf)+pos,(*len)-pos,"\"-%s:%s\"", exdata, strdata);
+          } else {
+            return pos+snprintf((*buf)+pos,(*len)-pos,"\"%s:%s\"", exdata, strdata);
+          }          
+        } else {
+          if (isneg) {
+            return pos+snprintf((*buf)+pos,(*len)-pos,"-%s:%s", exdata, strdata);
+          } else {
+            return pos+snprintf((*buf)+pos,(*len)-pos,"%s:%s", exdata, strdata);
+          }           
+        }               
+      }  
+    case WG_XMLLITERALTYPE:
+      strdata = wg_decode_xmlliteral(db, enc);
+      exdata = wg_decode_xmlliteral_xsdtype(db, enc);
+      if (strdata) len1=strlen(strdata);
+      if (exdata) len2=strlen(exdata);
+      if (!wg_str_guarantee_space(db,buf,len,pos+len1+len2+50)) return -1;
+      if (wg_print_tptp_json(db)) {
+        if (isneg) {
+          return pos+snprintf((*buf)+pos,(*len)-pos,"\"-x:%s:%s\"", exdata, strdata);
+        } else {
+          return pos+snprintf((*buf)+pos,(*len)-pos,"\"x:%s:%s\"", exdata, strdata);
+        }        
+      } else {
+        if (isneg) {
+          return pos+snprintf((*buf)+pos,(*len)-pos,"-x:%s:%s", exdata, strdata);
+        } else {
+          return pos+snprintf((*buf)+pos,(*len)-pos,"x:%s:%s", exdata, strdata);
+        }        
+      }          
+    case WG_CHARTYPE:
+      intdata = wg_decode_char(db, enc);    
+      if (wg_print_tptp_json(db)) {
+        if (isneg) {
+          return pos+snprintf((*buf)+pos,(*len)-pos,"\"-%c\"", (char) intdata);
+        } else {
+          return pos+snprintf((*buf)+pos,(*len)-pos,"\"%c\"", (char) intdata);
+        }        
+      } else {
+        if (isneg) {
+          return pos+snprintf((*buf)+pos,(*len)-pos,"-%c", (char) intdata);
+        } else {
+          return pos+snprintf((*buf)+pos,(*len)-pos,"%c", (char) intdata);
+        }        
+      }       
+    case WG_DATETYPE:
+      intdata = wg_decode_date(db, enc);
+      wg_strf_iso_datetime(db,intdata,0,strbuf);
+      strbuf[10]=0;
+      if (!wg_str_guarantee_space(db,buf,len,pos+50)) return -1;
+      if (wg_print_tptp_json(db)) {
+        if (isneg) {
+          return pos+snprintf((*buf)+pos,(*len)-pos,"\"-d:%s\"",strbuf);
+        } else {
+          return pos+snprintf((*buf)+pos,(*len)-pos,"\"d:%s\"",strbuf);
+        }        
+      } else {
+        if (isneg) {
+          return pos+snprintf((*buf)+pos,(*len)-pos,"-d:%s",strbuf);
+        } else {
+          return pos+snprintf((*buf)+pos,(*len)-pos,"d:%s",strbuf);
+        }         
+      }      
+    case WG_TIMETYPE:
+      intdata = wg_decode_time(db, enc);
+      wg_strf_iso_datetime(db,1,intdata,strbuf);  
+      if (wg_print_tptp_json(db)) {
+        if (isneg) {
+          return pos+snprintf((*buf)+pos,(*len)-pos,"\"-t:%s\"",strbuf);
+        } else {
+          return pos+snprintf((*buf)+pos,(*len)-pos,"\"t:%s\"",strbuf);
+        }        
+      } else {
+        if (isneg) {
+          return pos+snprintf((*buf)+pos,(*len)-pos,"-t:%s",strbuf);
+        } else {
+          return pos+snprintf((*buf)+pos,(*len)-pos,"t:%s",strbuf);
+        }        
+      }             
+    case WG_VARTYPE:
+      intdata = wg_decode_var(db, enc);
+      return wg_print_nice_var_tptp(db,intdata,buf,len,pos);
+    case WG_ANONCONSTTYPE:
+      strdata = wg_decode_anonconst(db, enc);
+      if (strdata) len1=strlen(strdata);
+      if (!wg_str_guarantee_space(db,buf,len,pos+len1+50)) return -1;      
+      if (wg_print_tptp_json(db)) {
+        if (isneg) {
+          return pos+snprintf((*buf)+pos,(*len)-pos,"\"-%s\"",strbuf);
+        } else {
+          return pos+snprintf((*buf)+pos,(*len)-pos,"\"%s\"",strbuf);
+        }        
+      } else {
+        if (isneg) {
+          return pos+snprintf((*buf)+pos,(*len)-pos,"-!%s",strbuf);
+        } else {
+          return pos+snprintf((*buf)+pos,(*len)-pos,"!%s",strbuf);
+        }       
+      } 
+    default:
+      if (wg_print_tptp_json(db)) {
+        return pos+snprintf((*buf)+pos,(*len)-pos,"\"$unknown_type\"");
+      } else {
+        return pos+snprintf((*buf)+pos,(*len)-pos,"<unsupported type>");
+      }
+      
+  }
+}
+*/
+int wg_print_nice_var_tptp(void* db, gint i, char** buf, int *len, int pos) {
+  char strbuf[80];
+
+  strbuf[0]=(char)0;
+  if (!wg_str_guarantee_space(db,buf,len,pos+20)) return -1;
+
+  if      (i==1000) strcpy(strbuf,"X1");
+  else if (i==1001) strcpy(strbuf,"Y1");
+  else if (i==1002) strcpy(strbuf,"Z1");
+  else if (i==1003) strcpy(strbuf,"U1");
+  else if (i==1004) strcpy(strbuf,"V1");
+  else if (i==1005) strcpy(strbuf,"W1");
+
+  else if (i==2000) strcpy(strbuf,"X");
+  else if (i==2001) strcpy(strbuf,"Y");
+  else if (i==2002) strcpy(strbuf,"Z");
+  else if (i==2003) strcpy(strbuf,"U");
+  else if (i==2004) strcpy(strbuf,"V");
+  else if (i==2005) strcpy(strbuf,"W");
+
+  else if (i==3000) strcpy(strbuf,"X3");
+  else if (i==3001) strcpy(strbuf,"Y3");
+  else if (i==3002) strcpy(strbuf,"Z3");
+  else if (i==3003) strcpy(strbuf,"U3");
+  else if (i==3004) strcpy(strbuf,"V3");
+  else if (i==3005) strcpy(strbuf,"W3");
+
+  else {
+    if (wg_print_tptp_json(db)) {
+      snprintf(strbuf,70,"%d", (int)i);
+    } else {
+      snprintf(strbuf,70,"?%d", (int)i);
+    }
+  }  
+  if (wg_print_tptp_json(db)) {
+    return pos+snprintf((*buf)+pos,(*len)-pos,"\"?%s\"",strbuf);
+  } else {
+    return pos+snprintf((*buf)+pos,(*len)-pos,"%s",strbuf);
+  }  
+}
+
+
+/** Guarantee string space: realloc if necessary, then set last byte to 0
+*
+*/
+
+int wg_str_guarantee_space(void* db, char** stradr, int* strlenadr, int needed) {
+  char* tmp;
+  int newlen;
+  int j;
+  
+  //printf("str_guarantee_space, needed: %d, *strlenadr: %d\n",needed,*strlenadr);
+  if (needed<=(*strlenadr)) return 1;
+  // now need more space
+  newlen=(*strlenadr);
+  while(1) {
+    newlen=newlen*2;      
+    if (newlen>1000000000) return 0; // too big, over one gig
+    if (newlen>needed) break;          
+  }  
+  tmp=sys_realloc(*stradr,newlen);
+  if (tmp==NULL) {
+    wg_printerr_tptp(db,"Cannot reallocate memory for a string");    
+    return 0;
+  }  
+  for(j=(*strlenadr)-1;j<newlen;j++) *(tmp+j)=' '; // clear new space
+  tmp[newlen-1]=0;   // set last byte to 0  
+  *stradr=tmp;
+  *strlenadr=newlen;
+  return 1;
+}
+    
+/** Free the passed string.
+*
+*/
+
+void wg_str_free(void* db, char* str) {
+  //UNUSED(db);
+  if (str!=NULL) sys_free(str);
+}  
+
+
+/** Free the string pointed to at passed address and set address ptr to NULL
+*
+*/
+
+void wg_str_freeref(void* db, char** strref) {
+  //UNUSED(db);
+  if (*strref!=NULL) sys_free(*strref);
+  *strref=NULL;  
+}  
+
+
+int wg_print_tptp_json(void* db) {
+  //UNUSED(db);
+  return 0;
+}
+
+void wg_printerr_tptp(void* db, char* str) {
+  printf("\nERROR while printing: %s\n",str);
+  return;
+}
 
 /* ------------ errors ---------------- */
 /*

@@ -61,6 +61,9 @@
 #define MARK_IMPORTED_NAMES
 #define IMPORTED_NAME_PREFIX "$imp::"
 
+#define STORE_SOURCE_FRM 
+
+
 //#define DEBUG
 #undef DEBUG
 
@@ -385,7 +388,8 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, in
     pp.result=NULL;
     pp.errmsg=NULL;
   }   
-  mpool=wg_create_mpool(db,PARSER_MEMPOOL_SIZE); 
+  //mpool=wg_create_mpool(db,PARSER_MEMPOOL_SIZE); 
+  mpool=(dbmemsegh(db)->infrm_mpool);
   pp.mpool=mpool;  
   //printf("otter input:%s\n",(char*)pp.buf);
 #ifdef DEBUG  
@@ -430,7 +434,9 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, in
     }  
   } 
   */ 
-  wg_free_mpool(db,mpool);
+
+  //wg_free_mpool(db,mpool); // TODO !!!!!!!!!!!!!!!!!!!
+
   if (fp) fclose(fp);
   (g->use_comp_funs)=tmp_comp_funs;
   if (pres || pres2==NULL) return 1;
@@ -504,6 +510,11 @@ void* wr_preprocess_clauselist
   int clnr=0;
   char namebuf[1000];
   char rolebuf[100];
+  gint cell;
+  gcell *cellptr;
+  void* copied;
+  void* part;
+
 #ifdef DEBUG  
   printf("wr_preprocess_clauselist starting with clauselist\n");  
   wg_mpool_print(db,clauselist);
@@ -532,6 +543,30 @@ void* wr_preprocess_clauselist
     wg_mpool_print(db,cl); 
     printf("\n");   
 #endif
+#ifdef STORE_SOURCE_FRM  
+/*
+    //printf("\n in wr_preprocess_clauselist clause: ");
+    //wg_mpool_print(db,cl); 
+    //printf("\n");
+    if (1) {
+      if (wr_is_tptp_fof_clause(g,cl)) copied=wg_mpool_copy(db,mpool,cl);
+      else copied=cl;
+      //printf("\n copy: ");
+      //wg_mpool_print(db,copied);
+      //printf("\n");
+      cell=alloc_listcell(db);
+      if (!cell) {
+        wr_show_parse_error(g,"failed to allocate a cell for storing source formula");        
+        return NULL;
+      }  
+      cellptr = (gcell *) offsettoptr(db, cell);             
+      (cellptr->car) = (gint)copied; //ptrtooffset(db, res);
+      (cellptr->cdr) = (dbmemsegh(db)->infrmlist);
+      (dbmemsegh(db)->infrmlist) = cell;    
+    }  
+*/    
+#endif 
+
     if (wr_is_tptp_import_clause(db,cl)) {
       // tptp import clause 
       wr_process_tptp_import_clause(g,mpool,cl);
@@ -539,7 +574,43 @@ void* wr_preprocess_clauselist
     } else if (wr_is_tptp_cnf_clause(db,cl)) {
       // tptp cnf clause
       clname=wg_nth(db,cl,1);
-      clrole=wg_nth(db,cl,2);
+#ifdef MARK_IMPORTED_NAMES      
+      //printf("\n!!! clname %s\n",wg_atomstr1(db,clname));
+      if (g->parse_is_included_file) {
+        strncpy(namebuf,IMPORTED_NAME_PREFIX,900);
+        strncat(namebuf,wg_atomstr1(db,clname),900);
+        clname=wg_mkatom(db,mpool,WG_URITYPE,namebuf, NULL);
+      }        
+      //printf("\n!!! clnamenew %s\n",wg_atomstr1(db,clname));
+#endif       
+      clrole=wg_nth(db,cl,2); 
+/*      
+#ifdef STORE_SOURCE_FRM  
+      //printf("\n in wr_preprocess_clauselist clause: ");
+      //wg_mpool_print(db,cl); 
+      //printf("\n");
+      if (1) {
+        copied=wg_mpool_copy(db,mpool,cl);        
+        printf("\n copy: ");
+        wg_mpool_print(db,copied);
+        printf("\n");
+
+        //(void*)(*((gint*)ptr));
+        part=wg_rest(db,copied);
+        *((gint*)part)=(gint)clname;       
+
+        cell=alloc_listcell(db);
+        if (!cell) {
+          wr_show_parse_error(g,"failed to allocate a cell for storing source formula");        
+          return NULL;
+        }  
+        cellptr = (gcell *) offsettoptr(db, cell);             
+        (cellptr->car) = (gint)copied; //ptrtooffset(db, res);
+        (cellptr->cdr) = (dbmemsegh(db)->infrmlist);
+        (dbmemsegh(db)->infrmlist) = cell;    
+      }  
+#endif      
+*/
       resultclause=wr_preprocess_tptp_cnf_clause(g,mpool,cl);     
       resultclause=wg_mklist3(db,mpool,clname,clrole,resultclause);
     } else if (wr_is_tptp_fof_clause(db,cl)) {
@@ -555,6 +626,36 @@ void* wr_preprocess_clauselist
       //printf("\n!!! clnamenew %s\n",wg_atomstr1(db,clname));
 #endif      
       clrole=wg_nth(db,cl,2);
+#ifdef STORE_SOURCE_FRM  
+      //printf("\n in wr_preprocess_clauselist clause: ");
+      //wg_mpool_print(db,cl); 
+      //printf("\n");
+      if (1) {
+        copied=wg_mpool_copy(db,mpool,cl);        
+        printf("\n copy: ");
+        wg_mpool_print(db,copied);
+        printf("\n");
+        /*
+        cell=wg_rest(db,copied);
+        cellptr = (gcell *) offsettoptr(db, cell);             
+        (cellptr->car) = clname;
+        */
+
+        //(void*)(*((gint*)ptr));
+        part=wg_rest(db,copied);
+        *((gint*)part)=(gint)clname;       
+
+        cell=alloc_listcell(db);
+        if (!cell) {
+          wr_show_parse_error(g,"failed to allocate a cell for storing source formula");        
+          return NULL;
+        }  
+        cellptr = (gcell *) offsettoptr(db, cell);             
+        (cellptr->car) = (gint)copied; //ptrtooffset(db, res);
+        (cellptr->cdr) = (dbmemsegh(db)->infrmlist);
+        (dbmemsegh(db)->infrmlist) = cell;    
+      }  
+#endif
       resultclause=wr_preprocess_tptp_fof_clause(g,mpool,cl); 
       if (resultclause) {
         resultclause=wg_mklist3(db,mpool,clname,clrole,resultclause);     
@@ -667,6 +768,8 @@ void* wr_preprocess_tptp_fof_clause(glb* g, void* mpool, void* cl) {
   void* res;
   void* tmp;
   void* cltype;
+  gint cell;
+  gcell *cellptr;
 
 
 #ifdef DEBUG
@@ -675,6 +778,26 @@ void* wr_preprocess_tptp_fof_clause(glb* g, void* mpool, void* cl) {
   printf("\n");
 #endif   
   (g->in_has_fof)=1;
+  // insert to source list
+#ifdef STORE_SOURCE_FRM  
+ /*
+  printf("\n in wr_preprocess_tptp_fof_clause: ");
+  wg_mpool_print(db,cl); 
+  printf("\n");
+
+  if (1) {
+    cell=alloc_listcell(db);
+    if (!cell) {
+      wr_show_parse_error(g,"failed to allocate a cell for storing source formula");        
+      return NULL;
+    }  
+    cellptr = (gcell *) offsettoptr(db, cell);
+    (cellptr->car) = (gint)cl; //ptrtooffset(db, res);
+    (cellptr->cdr) = (dbmemsegh(db)->infrmlist);
+    (dbmemsegh(db)->infrmlist) = cell;    
+  }  
+ */ 
+#endif 
   //printf("\n(g->in_has_fof) %d\n",(g->in_has_fof));
   cltype=wg_first(db,wg_rest(db,wg_rest(db,cl)));
   clpart=wg_first(db,wg_rest(db,wg_rest(db,wg_rest(db,cl))));

@@ -36,6 +36,7 @@
 #include "../config.h"
 #endif
 
+typedef ptrdiff_t wg_int;
 
 /* ====== data structures ======== */
 
@@ -95,11 +96,11 @@ void* wg_get_assoc(void* db, void* el1, void* alist);
 
 int wg_isatom(void* db, void* ptr);
 void* wg_mkatom(void* db, void* mpool, int type, char* str1, char* str2);
-void* wg_mkrecatom(void* db, void* mpool, gint rec);
+void* wg_mkrecatom(void* db, void* mpool, wg_int rec);
 int wg_atomtype(void* db, void* ptr);
 char* wg_atomstr1(void* db, void* ptr);
 char* wg_atomstr2(void* db, void* ptr);
-gint wg_atomrec(void* db, void* ptr);
+wg_int wg_atomrec(void* db, void* ptr);
 
 int wg_islogtrue(void* db, void* ptr);
 int wg_islogfalse(void* db, void* ptr);
@@ -125,6 +126,7 @@ void* wg_makelogall(void* db, void* mpool);
 void* wg_makelogexists(void* db, void* mpool);
 void* wg_makelog_conn(void* db, void* mpool, char* str);
 
+void* wg_mpool_copy(void* db, void* mpool, void* ptr);
 void wg_mpool_print(void* db, void* ptr);
 
 

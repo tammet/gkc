@@ -3031,6 +3031,10 @@ static gint find_create_longstr(void* db, char* data, char* extrastr, gint type,
   unsigned long hashsum;
   //char* cbuf[100]; // for debugprint
 #endif
+#ifdef REASONER_SINE
+  gint cell;
+  gcell *cellptr;
+#endif
   // find hash
 #ifdef USE_REASONER 
   //printf("\n  **** in find_create_longstr for %s \n",data);
@@ -3141,7 +3145,7 @@ static gint find_create_longstr(void* db, char* data, char* extrastr, gint type,
     dbstore(db,offset+LONGSTR_RMETA_POS*sizeof(gint),tmp); // encoded 0: no meta yet
     dbstore(db,offset+LONGSTR_RCOUNT_POS*sizeof(gint),tmp); // encoded 0: no counts yet
     dbstore(db,offset+LONGSTR_TAXONOMY_POS*sizeof(gint),0); // 0: no taxonomy yet
-#ifdef REASONER_SINE
+#ifdef REASONER_SINE    
     dbstore(db,offset+LONGSTR_ID_POS*sizeof(gint),encode_smallint(dbh->longstr_count)); // next id
     (dbh->longstr_count)++;
     dbstore(db,offset+LONGSTR_SCOUNT_POS*sizeof(gint),tmp); // 0: no sine count yet
@@ -3168,8 +3172,23 @@ static gint find_create_longstr(void* db, char* data, char* extrastr, gint type,
     printf("\n offset is %d\n", (int)offset);
     printf("\n encode_kb_offset(db,offset) is %d\n", (int)encode_kb_offset(db,offset));
     */
-    return encode_longstr_offset(encode_kb_offset(db,offset));   
-    //return res;
+    res=encode_longstr_offset(encode_kb_offset(db,offset)); 
+#ifdef REASONER_SINE   
+    // store to list of uris
+    if (type==WG_URITYPE) {
+      cell=alloc_listcell(db);
+      if (!cell) {
+        show_data_error(db,"failed to allocate a cell for storing in longstrlist");        
+        return 0;
+      }  
+      cellptr = (gcell *) offsettoptr(db, cell);
+      (cellptr->car) = res; //ptrtooffset(db, res);
+      (cellptr->cdr) = (dbmemsegh(db)->urilist);
+      (dbmemsegh(db)->urilist) = cell;    
+    }  
+#endif    
+    //return encode_longstr_offset(encode_kb_offset(db,offset));   
+    return res;
   }
 
 }

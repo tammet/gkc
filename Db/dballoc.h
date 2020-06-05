@@ -43,6 +43,8 @@
 #include "../config.h"
 #endif
 
+#include "dbmpool.h"
+
 //#define USE_DATABASE_HANDLE 1
 #undef USE_DATABASE_HANDLE
 
@@ -481,6 +483,9 @@ typedef struct _db_memsegment_header {
   void* kb_db; /** pointer to the knowledge base shared mem db, if available */
   gint rglb; /** offset to the reasoner global block */
   gint clauselist; /** offset of the beginning of the clause list */
+  gint urilist; /** offset of the beginning of the uri list */
+  gint infrmlist; /** offset of the beginning of the input formula list */
+  mpool_header* infrm_mpool; /** storage of parsed clauses **/ 
   gint errflag; /** 0 if no errors */
   gint longstr_count; /** initially 0, finally, nr of longstr */
   gint cl_count; /** initially 0 finally, nr of clauses */

@@ -214,7 +214,7 @@ ID       [a-zA-Z][a-zA-Z0-9_:+\-*/<>]*
 <STRSTATE>.     { *s++ = *yytext; }
 
 
-\'              { BEGIN QUOTESTATE; s = elmparsestrbuf; *s++ = '#';} 
+\'              { BEGIN QUOTESTATE; s = elmparsestrbuf; } /* *s++ = '#';}  */
 <QUOTESTATE>\\n   { *s++ = '\n'; } 
 <QUOTESTATE>\\t   { *s++ = '\t'; } 
 <QUOTESTATE>\\\'  { *s++ = '\''; } 

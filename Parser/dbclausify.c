@@ -60,7 +60,7 @@ extern "C" {
 
 //#undef DEBUG
 //#define DEBUG
-//#define TDEBUG
+#define TDEBUG
 
 //static void* show_clausify_error(glb* g, char* format, ...);
 static void* show_clausify_warning(glb* g, char* format, ...);
@@ -93,6 +93,8 @@ void* wr_clausify_formula(glb* g, void* mpool, void* frm) {
 #ifdef TDEBUG   
   printf("wr_clausify_formula starting with frm\n");  
   wg_mpool_print(db,frm); 
+  printf("\n");
+  wg_tptp_print(db,frm); 
   printf("\n");
 #endif
   if (g->parse_errflag) return NULL;
@@ -157,8 +159,9 @@ void* wr_clausify_formula(glb* g, void* mpool, void* frm) {
   printf("\nfinal res\n");  
   wg_mpool_print(db,res); 
   printf("\n\n");
+  wg_tptp_print(db,res); 
+  printf("\n");
 #endif    
-  //exit(0);
   return res;  
 }
 

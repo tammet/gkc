@@ -122,6 +122,9 @@ gint wg_init_db_memsegment_with_kb(void* db, gint key, gint size, void* kb) {
   dbh->errmsg=NULL;  
   dbh->longstr_count=0;
   dbh->cl_count=0;
+  dbh->urilist=0;
+  dbh->infrmlist=0;
+  dbh->infrm_mpool=NULL;
   //printf("\n in wg_init_db_memsegment_with_kb  dbh->kb_db is %d\n",(int)dbh->kb_db);
 #endif
 #ifdef CHECK
