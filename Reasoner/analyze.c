@@ -605,7 +605,7 @@ int wr_analyze_sine(glb* g, void* db, void* child_db) {
     sine_tolerance=4; // bigger number means more triggering
     sine_g=1;
   }
-
+  
   printf("\nclauses %d sine_tolerance %f sine_g %ld\n",n,sine_tolerance,sine_g);
 
  

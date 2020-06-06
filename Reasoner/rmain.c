@@ -50,6 +50,7 @@
 #include "rincludes.h"  
 #include "../cjson/cjson.h"
 #include "../Db/dballoc.h"  // for ACONST_TRUE/FALSE
+#include "../Db/dbmpool.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -911,6 +912,7 @@ int wg_import_otter_file(void *db, char* filename, int iskb, int* informat) {
   (g->parser_print_level)=0;
   (g->print_initial_parser_result)=0;
   (g->print_generic_parser_result)=1;
+  (dbmemsegh(db)->infrm_mpool)=wg_create_mpool(db,PARSER_MEMPOOL_SIZE); 
   res=wr_import_otter_file(g,filename,NULL,NULL,iskb);
   if (g->parse_errmsg) {
     printf("%s\n",(g->parse_errmsg));
@@ -988,7 +990,12 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
 
   // perform sine analysis
 
-  wr_analyze_sine(g,db,child_db);
+  if (g->attempt_sine_strat) {
+    (g->use_sine_strat)=1;
+    wr_analyze_sine(g,db,child_db); // this may turn off use_sine_strat
+  } else {
+    (g->use_sine_strat)=0;
+  }  
 
   // Reverse the order
     
@@ -1001,23 +1008,26 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
     while(cell2) {
       cellptr2=(gcell *) offsettoptr(child_db, cell2);
       rec=offsettoptr(child_db,cellptr2->car); 
-      //printf("\nn: %d ",n);
-      //wr_print_clause(g,rec); 
-      j=(n*2)+1;  
-      weight=wr_calc_clause_weight(g,rec,&size,&depth,&length); 
-#ifdef WEIGHT_PREFER_GOALS_ASSUMPTIONS      
-      if (wr_cl_is_goal(g, rec)) weight=weight*1;
-      else if (wr_cl_is_assumption(g, rec)) weight=weight*1000;
-      else weight=weight*10000;
-#else
-      if (g->cl_pick_queue_strategy) {
+
+      if (1 || wr_get_cl_sine_k(g,rec)) {
+        //printf("\nn: %d ",n);
+        //wr_print_clause(g,rec); 
+        j=(n*2)+1;  
+        weight=wr_calc_clause_weight(g,rec,&size,&depth,&length); 
+  #ifdef WEIGHT_PREFER_GOALS_ASSUMPTIONS      
         if (wr_cl_is_goal(g, rec)) weight=weight*1;
         else if (wr_cl_is_assumption(g, rec)) weight=weight*1000;
         else weight=weight*10000;
-      }
-#endif      
-      (g->tmp_sort_vec)=wr_vec_store(g,g->tmp_sort_vec,j,(gint)weight);
-      (g->tmp_sort_vec)=wr_vec_store(g,g->tmp_sort_vec,j+1,(gint)rec);
+  #else
+        if (g->cl_pick_queue_strategy) {
+          if (wr_cl_is_goal(g, rec)) weight=weight*1;
+          else if (wr_cl_is_assumption(g, rec)) weight=weight*1000;
+          else weight=weight*10000;
+        }
+  #endif      
+        (g->tmp_sort_vec)=wr_vec_store(g,g->tmp_sort_vec,j,(gint)weight);
+        (g->tmp_sort_vec)=wr_vec_store(g,g->tmp_sort_vec,j+1,(gint)rec);
+      }  
       cell2=cellptr2->cdr;         
       n++;
     }       
@@ -1032,7 +1042,7 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
   if (!vecflag) cell=lastcell;
   else if (g->reverse_clauselist_strat) i=n-1;
   else i=0;
-
+  /*
   if (0 && (g->use_equality) && (g->rewrite_only_strat)) {
     if (!vecflag) cell=lastcell;
     else if (g->reverse_clauselist_strat) i=n-1;
@@ -1088,7 +1098,7 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
     else if (g->reverse_clauselist_strat) i=n-1;
     else i=0;  
   }
-
+  */
   while(1) { 
     // take rec
     if (vecflag) {
@@ -1110,6 +1120,20 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
       return 0;
     }     
     
+    if ((g->use_sine_strat) && !wr_get_cl_sine_k(g,rec)) {
+      // take next element
+      //printf("\ndropped clause by sine ");
+      //wr_print_clause(g,rec);
+      //printf("\n");
+      if (vecflag) {
+        if (g->reverse_clauselist_strat) i--;
+        else i++;
+      } else {      
+        cell=cellptr->cdr;
+      }   
+      continue;
+    }
+
     //wr_print_clause(g,rec);
     //printf("\n");
 #ifdef DEBUG   

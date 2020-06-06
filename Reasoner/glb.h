@@ -242,6 +242,8 @@ typedef struct {
   int parse_caps_as_var;
   int parse_question_as_var;
   int parse_newpred_strat; // introduce new predicates during distribution phase of clausification?
+  int store_fof_skolem_steps; 
+  int store_fof_source; 
 
   /* parser temporary vars set by parser */
 
@@ -338,12 +340,14 @@ typedef struct {
 
   /*  printout configuration */
   
+
   int print_flag;
   int print_json;
   int print_clauses_json;
   int print_level_flag;
   int print_clause_history;
   int print_history_extra;  
+  int print_fof_conversion_proof;
   
   int parser_print_level;
   int print_initial_parser_result;

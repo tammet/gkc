@@ -60,7 +60,7 @@ extern "C" {
 
 //#undef DEBUG
 //#define DEBUG
-#define TDEBUG
+//#define TDEBUG
 
 //static void* show_clausify_error(glb* g, char* format, ...);
 static void* show_clausify_warning(glb* g, char* format, ...);
@@ -82,13 +82,17 @@ static void* show_clausify_warning(glb* g, char* format, ...);
 /* ====== Functions ============== */
 
 
-void* wr_clausify_formula(glb* g, void* mpool, void* frm) {
+void* wr_clausify_formula(glb* g, void* mpool, void* frm, 
+      void* clrole, void* skname) {
   void* db=g->db;
   void* head;
   void* res;
   void* defs=NULL;
   int varnr=0;
   void* op;
+  void* skclause;
+  gint cell;
+  gcell *cellptr;
 
 #ifdef TDEBUG   
   printf("wr_clausify_formula starting with frm\n");  
@@ -111,7 +115,7 @@ void* wr_clausify_formula(glb* g, void* mpool, void* frm) {
     // first el is a list itself
     if (!wg_rest(db,frm)) {
       // pointless parenthesis around formula: lift up
-      return wr_clausify_formula(g,mpool,head);
+      return wr_clausify_formula(g,mpool,head,clrole,skname);
     } else {
       // seems to be wrong syntax
       return show_clausify_warning(g,"formula has a complex term leading a term");     
@@ -135,6 +139,23 @@ void* wr_clausify_formula(glb* g, void* mpool, void* frm) {
   //exit(0);
   res=wr_clausify_skolemize(g,mpool,res,NULL,&varnr);
   if (g->parse_errflag) return NULL;
+#ifdef STORE_SKOLEM_STEPS  
+  if (g->store_fof_skolem_steps) {
+    if (res && skname) {
+      skclause=wg_mklist4(db,mpool,NULL,skname,clrole,res);         
+      if (g->parse_errflag) return NULL;
+      cell=alloc_listcell(db);
+      if (!cell) {
+        //wr_show_parse_error(g,"failed to allocate a cell for storing skolemized formula");        
+        return NULL;
+      }  
+      cellptr = (gcell *) offsettoptr(db, cell);             
+      (cellptr->car) = (gint)skclause; //ptrtooffset(db, res);
+      (cellptr->cdr) = (dbmemsegh(db)->infrmlist);
+      (dbmemsegh(db)->infrmlist) = cell; 
+    }
+  }  
+#endif  
 #ifdef TDEBUG  
   printf("\nwr_clausify_skolemize ending with res and varnr %d sknr %d\n",varnr,g->parse_skolem_nr);  
   wg_mpool_print(db,res); 

@@ -35,7 +35,7 @@
 
 #define NEWVAR_PREFIX "X"
 
-void* wr_clausify_formula(glb* g, void* mpool, void* frm);
+void* wr_clausify_formula(glb* g, void* mpool, void* frm, void* clrole, void* skname);
 void* wr_clausify_negpush(glb* g, void* mpool, void* frm, int sign);
 void* wr_clausify_copy(glb* g, void* mpool, void* term);
 

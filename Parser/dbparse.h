@@ -47,6 +47,10 @@
 #define PARSER_GOAL_ROLENR 1
 #define PARSER_EXTAXIOM_ROLENR 12
 
+#define STORE_SOURCE_FRM 
+#define STORE_SKOLEM_STEPS
+#define SKOLEM_CLNAME_SUFFIX "_$sk"
+#define SKOLEM_CLNAME_SUFFIX_LEN 4
 
 int wr_import_json_file(glb* g, char* filename, char* strasfile, cvec clvec, int isincluded);
 int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, int isincluded);

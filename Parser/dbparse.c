@@ -61,9 +61,6 @@
 #define MARK_IMPORTED_NAMES
 #define IMPORTED_NAME_PREFIX "$imp::"
 
-#define STORE_SOURCE_FRM 
-
-
 //#define DEBUG
 #undef DEBUG
 
@@ -627,24 +624,10 @@ void* wr_preprocess_clauselist
 #endif      
       clrole=wg_nth(db,cl,2);
 #ifdef STORE_SOURCE_FRM  
-      //printf("\n in wr_preprocess_clauselist clause: ");
-      //wg_mpool_print(db,cl); 
-      //printf("\n");
-      if (1) {
+      if (g->store_fof_source) {
         copied=wg_mpool_copy(db,mpool,cl);        
-        printf("\n copy: ");
-        wg_mpool_print(db,copied);
-        printf("\n");
-        /*
-        cell=wg_rest(db,copied);
-        cellptr = (gcell *) offsettoptr(db, cell);             
-        (cellptr->car) = clname;
-        */
-
-        //(void*)(*((gint*)ptr));
         part=wg_rest(db,copied);
         *((gint*)part)=(gint)clname;       
-
         cell=alloc_listcell(db);
         if (!cell) {
           wr_show_parse_error(g,"failed to allocate a cell for storing source formula");        
@@ -768,8 +751,12 @@ void* wr_preprocess_tptp_fof_clause(glb* g, void* mpool, void* cl) {
   void* res;
   void* tmp;
   void* cltype;
-  gint cell;
-  gcell *cellptr;
+  void* name;
+  void* skname=NULL;
+  char* namestr;
+  char namebuf[1000];
+  //gint cell;
+  //gcell *cellptr;
 
 
 #ifdef DEBUG
@@ -816,12 +803,26 @@ void* wr_preprocess_tptp_fof_clause(glb* g, void* mpool, void* cl) {
     // clpart=wg_mkpair(db,mpool,wg_makelogneg(db,mpool),clpart); // old
     clpart=wg_mklist2(db,mpool,wg_makelogneg(db,mpool),clpart);
   }
+  // naming part for skolemization
+#ifdef STORE_SKOLEM_STEPS   
+  if (g->store_fof_skolem_steps) {
+    name=wg_first(db,wg_rest(db,cl));
+    if (name && wg_isatom(db,name)) {
+      namestr=wg_atomstr1(db,name);
+      strncpy(namebuf,namestr,900);
+      strncat(namebuf,SKOLEM_CLNAME_SUFFIX,900);
+      skname=wg_mkatom(db,mpool,WG_URITYPE,namebuf, NULL);
+    } else {
+      skname=NULL;
+    }
+  }  
+#endif  
 #ifdef DEBUG
   printf("in wr_preprocess_tptp_fof_clause clpart:\n");  
   wg_mpool_print(db,clpart); 
   printf("\n");
 #endif
-  tmp=wr_clausify_formula(g,mpool,clpart);
+  tmp=wr_clausify_formula(g,mpool,clpart,cltype,skname);
 #ifdef DEBUG
   printf("in wr_preprocess_tptp_fof_clause wr_clausify_formula resulting with frm\n");  
   wg_mpool_print(db,tmp); 

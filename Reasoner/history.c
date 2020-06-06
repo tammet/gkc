@@ -37,6 +37,7 @@ extern "C" {
 #endif
 
 #include "rincludes.h"
+#include "../Parser/dbparse.h"
   
 /* ====== Private headers and defs ======== */
 
@@ -1352,26 +1353,54 @@ int wr_strprint_flat_history(glb* g, void* mpool, char** buf, int* blen, int bpo
   gint cl, history; 
   char namebuf[20];
   int num;
-  gint iname;
-  char* inamestr;
-  gptr historyptr;
   char** inputs;
-  int i,j, inputcount;
-  gint cell;
-  gcell *cellptr;
-  void* frm;
-  void* child_db=db;
-  int n;
-  void* el;
-  gcell* tmppt;
-  int found;
-  void* tmpptr;
-  
+  int inputcount;
+
   namebuf[0]=0;
   if (g->print_json) {
     bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"{\"proof\":\n[");
   }
-  // get inputs
+  // get and show inputs
+  if (g->print_fof_conversion_proof) {
+    inputs=wr_collect_inputs(g,assoc,&inputcount);
+    bpos=wr_strprint_inputs(g,inputcount,inputs,buf,blen,bpos);   
+    if (inputs) wr_free(g,inputs);
+  }  
+  // print all proof steps before last
+  flat=*assoc; 
+  if (flat) {
+    for(part=flat; wg_ispair(db,part); part=wg_rest(db,part)) {
+      tmp=wg_first(db,part);   
+      cl=(gint)(wg_first(db,tmp));
+      history=wr_get_history(g,rotp(g,cl));     
+      // normal part
+      num=(int)(gint)(wg_nth(db,tmp,2));
+      snprintf(namebuf,19,"%d",num);
+      bpos=wr_strprint_one_history(g,mpool,buf,blen,bpos,history,rotp(g,cl),namebuf,maxclnr,assoc);
+      if (g->print_json) { //&& wg_ispair(db,wg_rest(db,part))) {
+        bpos+=snprintf((*buf)+bpos,(*blen)-bpos,",");
+      }
+      if (bpos<0) return bpos;
+    }
+  }
+  //if (g->print_json) {
+  //    bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\n]");
+  //}
+  return bpos;
+}
+
+char** wr_collect_inputs(glb* g,void **assoc, int* inputcountptr) {
+  void* db=g->db;  
+  void *flat, *part, *tmp;
+  gint cl, history; 
+  gint iname;
+  char* inamestr;
+  gptr historyptr;
+  char** inputs;
+  int j;
+  int found;
+  int inputcount= *inputcountptr;
+
   inputs=wr_malloc(g,INPUTS_INITIAL_SIZE*sizeof(char*));
   inputcount=0;
   flat=*assoc; 
@@ -1403,9 +1432,15 @@ int wr_strprint_flat_history(glb* g, void* mpool, char** buf, int* blen, int bpo
     }     
   }
   /*
+  void* child_db=db;
+  void* frm;
+  gint cell;
+  int n=0;
+  gcell *cellptr;
   cell=(dbmemsegh(child_db)->infrmlist); 
+  printf("\n**** FULL LIST OF INPUTS ********* n %d\n",n);
   while(cell) {
-      printf("\n**** FULL LIST OF INPUTS ********* n %d\n",n);
+      printf("input n %d\n",n);
       cellptr=(gcell *) offsettoptr(child_db, cell);
       //rec=offsettoptr(child_db,cellptr->car); 
       frm=(void*)((gcell *)cellptr->car);
@@ -1418,34 +1453,46 @@ int wr_strprint_flat_history(glb* g, void* mpool, char** buf, int* blen, int bpo
   exit(0);
   */
 
+  *inputcountptr=inputcount;
+  return inputs;
+}
+
+int wr_strprint_inputs(glb* g, int inputcount, char** inputs, char** buf, int* blen, int bpos) {
+  void* db=g->db;  
+  int i;
+  gint cell;
+  gcell *cellptr;
+  void* frm;
+  void* child_db=db;
+  int n;
+  void* tmpptr;
+  char* atomstr;
+  int slen;
+  char* inputstr;
+  int inpslen;
+  int minlen;
+
   // print inputs
   for(i=0;i<inputcount;i++) {
     //printf("\ninput i %d: %s",i,inputs[i]);      
     cell=(dbmemsegh(child_db)->infrmlist); 
     n=0;
     while(cell) {
-      printf("\ninfrmlist n %d\n",n);
-      cellptr=(gcell *) offsettoptr(child_db, cell);
-      //rec=offsettoptr(child_db,cellptr->car); 
+      //printf("\ninfrmlist n %d\n",n);
+      cellptr=(gcell *) offsettoptr(child_db, cell);     
       frm=(void*)((gcell *)cellptr->car);
       //wr_printf("\nn %d %s \n",n,wg_decode_unistr(child_db,uri,WG_URITYPE));
-      if (frm) {
-        //tmppt=(gcell*)((gcell *)frm->cdr);
-        //if (tmppt && !strcmp(inputs[i],wg_atomstr1(db,(void*)((gcell *)frm->car)))) {
-        if (!strcmp(inputs[i],wg_atomstr1(child_db,wg_nth(child_db,frm,1)))) {     
-          /*
-          wg_mpool_print(child_db,wg_nth(child_db,frm,1));
-          wg_mpool_print(child_db,wg_nth(child_db,frm,3));  
-          CP0          
-          printf("\nbefore blen %d bpos %d\n",*blen,bpos);
-          printf("\nbuf: %s\n",*buf);
-          */
-          wg_mpool_print(child_db,frm);
-          printf("\n");
-
+      if (frm) {        
+        inputstr=inputs[i];
+        inpslen=strnlen(inputstr,900);
+        atomstr=wg_atomstr1(child_db,wg_nth(child_db,frm,1));  
+        if (!strcmp(inputstr,atomstr)) {   
+          // exact str match, original input           
+          //wg_mpool_print(child_db,frm);
+          //printf("\n");
           tmpptr=wg_nth(child_db,frm,2);
           if (tmpptr) {
-            bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\n %s:",inputs[i]);    
+            bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\n %s:",inputstr);    
             if (bpos<0) return bpos;
             if (tmpptr && wg_isatom(child_db,tmpptr) && wg_atomstr1(child_db,tmpptr)) {
               bpos+=snprintf((*buf)+bpos,(*blen)-bpos," [%s] ",wg_atomstr1(child_db,tmpptr)); 
@@ -1454,48 +1501,41 @@ int wr_strprint_flat_history(glb* g, void* mpool, char** buf, int* blen, int bpo
             }   
             bpos=wg_print_frm_tptp(child_db,wg_nth(child_db,frm,3),buf,blen,bpos);
           }
-          /*
-          printf("\nafter blen %d bpos %d\n",*blen,bpos);
-           printf("\nbuf: %s\n",*buf);
-          if (bpos<0) return bpos;
-          CP1
-          */
-          //exit(0);
-          cell=cellptr->cdr;         
           n++;
-          break;
-        }  
+        } else {
+          slen=strnlen(atomstr,900);
+          //printf("\n** sk compare atomstr %s ",atomstr,)
+          minlen=inpslen;
+          if (slen<minlen) minlen=slen;
+          if (slen==inpslen+SKOLEM_CLNAME_SUFFIX_LEN && 
+              !strncmp(atomstr,inputstr,inpslen) &&
+              !strncmp(atomstr+(slen-SKOLEM_CLNAME_SUFFIX_LEN),
+                SKOLEM_CLNAME_SUFFIX,900)) {
+            
+            // inexact str match, skolem step case
+            tmpptr=wg_nth(child_db,frm,2);
+            if (tmpptr) {
+              bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\n %s:",atomstr);    
+              if (bpos<0) return bpos;
+              if (tmpptr && wg_isatom(child_db,tmpptr) && wg_atomstr1(child_db,tmpptr)) {                                           
+                bpos+=snprintf((*buf)+bpos,(*blen)-bpos," [sk,%s] ",inputstr); 
+              } else {
+                bpos+=snprintf((*buf)+bpos,(*blen)-bpos," [%s] ","input");
+              }   
+              bpos=wg_print_frm_tptp(child_db,wg_nth(child_db,frm,3),buf,blen,bpos);
+            }
+            n++;
+          }
+        }
       }
       //wg_mpool_print(child_db,frm);
-      cell=cellptr->cdr;         
-      n++;
+      cell=cellptr->cdr;               
+      if (n>1) break;
     }   
   }
-  //printf("\nfinished tptp printing\n");
-  if (inputs) wr_free(g,inputs);
-
-  // print all proof steps before last
-  flat=*assoc; 
-  if (flat) {
-    for(part=flat; wg_ispair(db,part); part=wg_rest(db,part)) {
-      tmp=wg_first(db,part);   
-      cl=(gint)(wg_first(db,tmp));
-      history=wr_get_history(g,rotp(g,cl));     
-      // normal part
-      num=(int)(gint)(wg_nth(db,tmp,2));
-      snprintf(namebuf,19,"%d",num);
-      bpos=wr_strprint_one_history(g,mpool,buf,blen,bpos,history,rotp(g,cl),namebuf,maxclnr,assoc);
-      if (g->print_json) { //&& wg_ispair(db,wg_rest(db,part))) {
-        bpos+=snprintf((*buf)+bpos,(*blen)-bpos,",");
-      }
-      if (bpos<0) return bpos;
-    }
-  }
-  //if (g->print_json) {
-  //    bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\n]");
-  //}
-  return bpos;
+  return bpos;  
 }
+
 
 int wr_strprint_one_history
         (glb* g, void* mpool, char** buf, int* blen, int bpos, 
@@ -1551,7 +1591,8 @@ int wr_strprint_one_history
     if (g->print_json) {
       bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\n[%s,%s [\"in\"",clns,orderbuf);         
     } else {  
-      if (name && wg_get_encoded_type(db,name)==WG_STRTYPE) {
+      if (name && wg_get_encoded_type(db,name)==WG_STRTYPE && 
+         (g->print_fof_conversion_proof)) {
         bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\n %s:%s [cnf",clns,orderbuf);
       } else {
         bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\n %s:%s [in",clns,orderbuf);
@@ -1563,7 +1604,13 @@ int wr_strprint_one_history
       namestr=wg_decode_str(db,name);
       if (!wr_str_guarantee_space(g,buf,blen,bpos+100+strlen(namestr))) return -1;
       if (g->print_json) bpos+=snprintf((*buf)+bpos,(*blen)-bpos,", \"%s\"",namestr);
-      else bpos+=snprintf((*buf)+bpos,(*blen)-bpos,",%s",namestr);
+      else {
+        if ((g->print_fof_conversion_proof) && (g->store_fof_skolem_steps)) {
+          bpos+=snprintf((*buf)+bpos,(*blen)-bpos,",%s%s",namestr,SKOLEM_CLNAME_SUFFIX);
+        } else {
+          bpos+=snprintf((*buf)+bpos,(*blen)-bpos,",%s",namestr);
+        }  
+      } 
     } else if (name && wg_get_encoded_type(db,name)==WG_INTTYPE) {
       bpos+=snprintf((*buf)+bpos,(*blen)-bpos,",%d",(int)(wg_decode_int(db,name)));
     }
