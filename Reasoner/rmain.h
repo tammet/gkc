@@ -34,6 +34,10 @@
 
 #include "glb.h" 
 
+/*
+#define PROOF_FOUND_SIGNAL SIGUSR1
+void sig_usr(int signo, siginfo_t *sinfo, void *context);
+*/
 
 int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfilename, char* guidestr);
 /*

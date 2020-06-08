@@ -32,6 +32,15 @@
 #include <stdio.h>
 #include <string.h>
 
+/*
+#include <sys/types.h>
+#include <signal.h>
+#include <unistd.h>
+*/
+
+#include <unistd.h>
+#include <sys/time.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -1153,14 +1162,32 @@ int wr_show_result(glb* g, gint history) {
   gptr ans;
   char* buf;
   int ansnr, blen, bpos;
-  FILE* outfile;
+  FILE* outfile; 
+  int sleepi;
+  gint sleept, coeff, limit_low, limit_high, usecs;
+  struct timeval now;
+
+  // selecting a timeslot for proof output  
+  if ((dbmemsegh(db)->max_forks)>1) {    
+    coeff=(gint)(1000000.0/((dbmemsegh(db)->max_forks))); 
+    sleept=1000;
+    limit_low=(g->current_fork_nr)*coeff;
+    limit_high=((g->current_fork_nr)+1)*coeff;
+    //printf("\ng->current_fork_nr %d coeff %ld limit_low  %ld limit_high %ld\n",
+    //         g->current_fork_nr,coeff,limit_low,limit_high);
+    for(sleepi=0;sleepi<2000;sleepi++) {
+      gettimeofday(&now, NULL);
+      usecs=now.tv_usec;
+      if (limit_low<usecs && usecs<limit_high) {
+        //printf("\ng->current_fork_nr %d found slot at usecs %ld\n",g->current_fork_nr,usecs);
+        break;
+      } 
+      usleep(sleept); 
+    }
+    //printf("\nsleepi iterations done: %d\n",sleepi);
+  }    
 
   // create buf for printing
- 
-  //if ((g->print_level_flag)>=15) {
-  //    printf("\nto build proof\n");
-  //}
-
   namebuf[0]=0;
   blen=1000;
   bpos=0;
@@ -1189,8 +1216,12 @@ int wr_show_result(glb* g, gint history) {
     bpos+=snprintf(buf+bpos,blen-bpos,"\n{\"answers\": [\n");
   } else {
     if ((g->print_level_flag)>1) bpos+=snprintf(buf+bpos,blen-bpos,"\n");
-#ifdef TPTP      
-    if (g->in_has_fof) {
+#ifdef TPTP
+    if (!(g->print_tptp)) {
+       bpos+=snprintf(buf+bpos,blen-bpos,
+        "\nresult: proof found\nfor %s\nby run %d fork %d strat %s\n",
+        (g->filename),(g->current_run_nr)+1,g->current_fork_nr,g->guidetext);
+    } else if (g->in_has_fof) {
       bpos+=snprintf(buf+bpos,blen-bpos,
         "\nresult: proof found\nby run %d fork %d strat %s\n%% SZS status Theorem for %s.",
         (g->current_run_nr)+1,g->current_fork_nr,g->guidetext,g->filename);
@@ -1274,9 +1305,13 @@ int wr_show_result(glb* g, gint history) {
     assoc=wg_reverselist(db,mpool,assoc); 
     if (!(g->print_json)) {
       if (!wr_str_guarantee_space(g,&buf,&blen,bpos+100)) return -1;
-#ifdef TPTP      
-      bpos+=snprintf(buf+bpos,blen-bpos,
-        "\n%% SZS output start CNFRefutation for %s",g->filename);
+#ifdef TPTP  
+      if (!(g->print_tptp)) {
+        bpos+=snprintf(buf+bpos,blen-bpos,"proof:");
+      } else {
+        bpos+=snprintf(buf+bpos,blen-bpos,
+          "\n%% SZS output start CNFRefutation for %s",g->filename);
+      }  
 #endif        
     } 
     bpos=wr_strprint_flat_history(g,mpool,&buf,&blen,bpos,clnr,&assoc);
@@ -1323,8 +1358,12 @@ int wr_show_result(glb* g, gint history) {
     bpos+=snprintf(buf+bpos,blen-bpos,"}\n");
   } else {
 #ifdef TPTP      
-    bpos+=snprintf(buf+bpos,blen-bpos,
+    if (!(g->print_tptp)) {
+      bpos+=snprintf(buf+bpos,blen-bpos,"\n");
+    } else {
+      bpos+=snprintf(buf+bpos,blen-bpos,
         "\n%% SZS output end CNFRefutation for %s",g->filename);
+    }    
 #endif        
     bpos+=snprintf(buf+bpos,blen-bpos,"\n");
   }  
@@ -1341,6 +1380,12 @@ int wr_show_result(glb* g, gint history) {
     //}
   } else {
     printf("%s",buf);
+    fflush(stdout);
+    // signals
+    /*
+    printf("\ngetppid() %d getpid() %d \n",getppid(),getpid());
+    kill(getppid(),PROOF_FOUND_SIGNAL);
+    */
   }    
   if (buf) wr_free(g,buf);
   return bpos;
@@ -1380,7 +1425,7 @@ int wr_strprint_flat_history(glb* g, void* mpool, char** buf, int* blen, int bpo
     printf("\ni %d str %s\n",i,skinputs[i]);
   }
   */
- 
+
   // print all proof steps before last
   flat=*assoc; 
   if (flat) {

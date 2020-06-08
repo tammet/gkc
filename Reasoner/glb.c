@@ -216,6 +216,7 @@ int wr_glb_init_simple(glb* g) {
   
   (g->print_flag)=1; // if 0: no printout except result: rmain sets other flags accordingly
   (g->print_json)=0; // if 1: non-log output is json
+  (g->print_tptp)=1; // if 1: non-log output is tptp/casc format
   (g->print_clauses_json)=0; // if 1: clauses are printed as json lists
   (g->print_level_flag)=10; // rmain uses this to set other flags accordingly. Normal: 10
                            // -1: use default, 0: none, 10: normal, 20: medium, 30: detailed
@@ -244,7 +245,7 @@ int wr_glb_init_simple(glb* g) {
   (g->print_runs)=1;
   (g->print_stats)=1;  
   (g->print_datastructs)=1;
-  (g->print_sine)=1;
+  (g->print_sine)=0;
   
   /* tmp variables */
 

@@ -175,7 +175,16 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr) {
       (g->print_flag)=json_valueint(elem);
     } else if (!strcmp(key,"print_json")) {
       //printf("print_level %d\n", json_valueint(elem));
-      (g->print_json)=json_valueint(elem);      
+      (g->print_json)=json_valueint(elem);     
+    } else if (!strcmp(key,"print_tptp")) {
+      //printf("print_tptp %d\n", json_valueint(elem));
+      (g->print_tptp)=json_valueint(elem);   
+      if (json_valueint(elem)==0) {
+        // remove fof source storage and printout
+        (g->print_fof_conversion_proof)=0;
+        (g->store_fof_source)=0;
+        (g->store_fof_skolem_steps)=0;
+      }
     } else if (!strcmp(key,"print_level")) {
       //printf("print_level %d\n", json_valueint(elem));
       (g->print_level_flag)=json_valueint(elem);

@@ -82,7 +82,7 @@ void show_cur_time(void);
 //#undef DEBUG
 
 //#define SHOWTIME
-#undef SHOWTIME
+//#undef SHOWTIME
 
 //#define PRINTERR
 
@@ -92,7 +92,20 @@ void show_cur_time(void);
 /* ====== Functions ============== */
 
 
-  
+#ifndef _WIN32
+// set up signal handling
+/*
+volatile sig_atomic_t last_received_signal_pid = 0;
+
+void sig_usr(int signo, siginfo_t *sinfo, void *context){
+  if(signo == PROOF_FOUND_SIGNAL) {
+    last_received_signal_pid=(long)sinfo->si_pid;
+    printf("\nSignal %d from proc %ld caught!\n",PROOF_FOUND_SIGNAL,(long)sinfo->si_pid);    
+  }
+}
+*/
+#endif
+
 int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfilename, char* guidestr) {
   glb* g;    // our g (globals)
   glb* kb_g; // our copy of the g (globals) of the external shared db 
@@ -128,9 +141,9 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
   }
   filename=argv[1];
 #ifdef SHOWTIME
-  wr_printf("Guide parsed.\n");
-  wr_printf("\ndb is %d \n",(int)((gint)db));
-  show_cur_time();
+  //wr_printf("Guide parsed.\n");
+  //wr_printf("\ndb is %d \n",(int)((gint)db));
+  //show_cur_time();
 #endif
   // kb_db is set to parent db
   kb_db=db_get_kb_db(db);
@@ -158,7 +171,6 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
     wr_printf("\n");
 #endif   
   } else {
-
     // just one single db 
 #ifdef DEBUG
     printf("\njust one single db \n");
@@ -179,8 +191,9 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
   (analyze_g->varstack)[1]=2; // first free elem  
   (analyze_g->in_has_fof)=informat;
   if (outfilename) (analyze_g->outfilename)=outfilename;
+  //printf("\nto call wr_analyze_clause_list\n");
   tmp=wr_analyze_clause_list(analyze_g,db,child_db);
-
+  //printf("\nreturned from wr_analyze_clause_list\n");
   if (!givenguide) {
     if (guidestr!=NULL) {      
       guide=wr_parse_guide_str(guidestr); 
@@ -193,18 +206,28 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
       if (guidebuf!=NULL) { sys_free(guidebuf); guidebuf=NULL; }
     }
   }
-  
     
   int pid=1,stat;
   forkscreated=0;
   forkslive=0;  
+#ifdef _WIN32
+  maxforks=0;
+  pid=1;
+#else  
+  /*
+  struct sigaction sa;
+  //sa.sa_handler = sig_usr;
+  sigemptyset(&sa.sa_mask);
+  sigaddset(&sa.sa_mask, PROOF_FOUND_SIGNAL);
+  sa.sa_flags = SA_SIGINFO; // | SA_RESETHAND; 
+  sa.sa_sigaction = sig_usr;
+  */                        
 
-  // NB! TODO: find maxforks before wr_parse_guide_section is run
-
-  maxforks=1; //(analyze_g->max_forks); // TESTING
+  maxforks=(dbmemsegh(db)->max_forks);  
   if (maxforks>64) maxforks=64;
+  setbuf(stdout, 0);
   for(forknr=0; forknr<maxforks; forknr++) {
-    pid=fork();
+    pid=fork();     
     if (pid<0) {
       // fork fails
       printf("\nerror: fork nr %d fails with pid %d\n",forknr,pid);         
@@ -227,10 +250,19 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
       forkpids[forkscreated]=pid;     
       forkscreated++;
       forkslive++;
-    }
+      /*
+      if(sigaction(PROOF_FOUND_SIGNAL, &sa, NULL) == -1) {
+        printf("\nSignal %d checking error in parent\n",PROOF_FOUND_SIGNAL);
+      } else {
+        printf("\nSignal %d checking successful in parent",PROOF_FOUND_SIGNAL);
+      } 
+      */
+    }       
   }
+#endif  
  
   // forks have been created
+#ifndef _WIN32  
   if (pid && forkscreated) {
     // only parent performs this loop
     while(forkslive) {
@@ -240,19 +272,23 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
         //printf("\nWIFEXITED(stat) true for cpid %d\n",cpid);
         err = WEXITSTATUS(stat);
         //printf("Child %d terminated with status: %d\n", cpid, err); 
+        //printf("last_received_signal_pid: %d\n", last_received_signal_pid);
         forkslive--;  
         // remove cpid from pid array      
-        for(i=0;i<forkscreated;i++) {
-          if (forkpids[i]==cpid) {
+        for(i=0;i<forkscreated;i++) {          
+          if (forkpids[i]==cpid) { //} && last_received_signal_pid!=cpid) {
+            //printf("\ni %d removing cpid %d from forkpids[i] %d\n",i,cpid,forkpids[i]);
             forkpids[i]=0;
             break;
           }
         }
         if (err==0) {
+          //printf("\nerr==0\n");
           // proof found, kill all children
           for(i=0;i<forkscreated;i++) {
-            if (forkpids[i]) {
+            if (forkpids[i]) { //} && last_received_signal_pid!=forkpids[i]) {
               // kill pid
+              //printf("\ni %d killing cpid forkpids[i] %d from forkpids\n",i,forkpids[i]);
               kill(forkpids[i], SIGKILL);
             }
           }  
@@ -261,7 +297,7 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
       }
     }  
   }
-
+#endif
 
   for(iter=0; 1; iter++) { 
     // check if this process needs to run this iter
@@ -272,18 +308,22 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
     // fork 0: 0, 3, 6, 9, ...
     // fork 1: 1, 4, 7, 10, ... 
     // fork 2: 2, 5, 8, 11, ...
-
     // parent should not do this loop at all if there are forks
     if (pid && forkscreated) break;
     
     // child should only take some iters and pass others:
-    if (!pid && maxforks && ((iter % maxforks)!=forknr)) continue;
-        
+    //printf("\niter %d pid %d maxforks %d forknr %d (iter div maxforks) %d\n",iter,pid,maxforks,forknr,(iter % maxforks));
+    if (!pid && maxforks && ((iter % maxforks)!=forknr)) continue; 
 #ifdef DEBUG    
-    wr_printf("\n**** run %d starts\n",iter+1);    
+    //wr_printf("\n**** run %d starts\n",iter+1);    
 #endif
-    fflush(stdout);     
-   
+    /*
+    if (g->print_flag) {
+      printf("\n**** run %d starts\n",iter+1);
+      fflush(stdout);     
+    }  
+    */
+
     /*
     wg_run_reasoner_onestrat(
       db, pid, outfilename, iter, guide, givenguide, guidebuf, filename,
@@ -316,6 +356,11 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
     if (iter==0) (g->allruns_start_clock)=clock();  
     guidetext=NULL;
     guideres=wr_parse_guide_section(g,guide,iter,&guidetext);  
+
+    if (g->print_flag) {
+      printf("\n**** run %d starts\n",iter+1);
+      fflush(stdout);     
+    }  
 
     // (g->cl_maxkeep_depthlimit)=10;  // TESTING
     // (g->res_shortarglen_limit)=3; // TESTING
@@ -425,8 +470,8 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
         //printf("\n(g->initial_cl_list) is %ld\n",(gint)((r_kb_g(g))->initial_cl_list));
 #ifdef DEBUG 
         wr_printf("\n**** starting to read from the external shared mem kb\n");
-#endif              
-        clause_count+=wr_init_active_passive_lists_from_one(g,db,db);        
+#endif                     
+        clause_count+=wr_init_active_passive_lists_from_one(g,db,db);       
         (g->kb_g)=NULL;        
       } else {
         // queryfocus case
@@ -482,8 +527,10 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
       /// ----
 #ifdef DEBUG       
       wr_printf("\n**** starting to read from the single local db\n");      
-#endif     
-      clause_count=wr_init_active_passive_lists_from_one(g,db,db);      
+#endif    
+      //printf("\nto call wr_init_active_passive_lists_from_one\n"); 
+      clause_count=wr_init_active_passive_lists_from_one(g,db,db);  
+      //printf("\nreturned from wr_init_active_passive_lists_from_one with clause_count %d\n",clause_count);    
     } 
 
 #ifdef SHOWTIME     
@@ -598,8 +645,6 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
 #endif  
   return res;  
 } 
-
-
 
 
 /*  
@@ -990,11 +1035,11 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
 
   // perform sine analysis
 
-  if (g->attempt_sine_strat) {
-    (g->use_sine_strat)=1;
+  if (g->sine_strat) {
+    (g->sine_strat_used)=1;
     wr_analyze_sine(g,db,child_db); // this may turn off use_sine_strat
   } else {
-    (g->use_sine_strat)=0;
+    (g->sine_strat_used)=0;
   }  
 
   // Reverse the order
@@ -1120,7 +1165,8 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
       return 0;
     }     
     
-    if ((g->use_sine_strat) && !wr_get_cl_sine_k(g,rec)) {
+    if ((g->sine_strat_used) && (g->sine_k_values) && (g->sine_k_bytes) 
+        && !wr_get_cl_sine_k(g,rec)) {
       // take next element
       //printf("\ndropped clause by sine ");
       //wr_print_clause(g,rec);
@@ -1133,9 +1179,10 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
       }   
       continue;
     }
-
+   
     //wr_print_clause(g,rec);
     //printf("\n");
+    
 #ifdef DEBUG   
     wr_printf("\n next rec from db: ");
     wg_print_record(db,rec);
@@ -1620,6 +1667,7 @@ void wr_show_stats(glb* g, int show_local_complex) {
   wr_printf("----------------------------------\n");
 
   if (g->print_datastructs) print_datastructs(g);
+  fflush(stdout);
 }  
 
 void show_cur_time(void)  {
