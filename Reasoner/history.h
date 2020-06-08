@@ -177,11 +177,15 @@ void wr_print_clause_name_history(glb* g, gint history);
 int wr_show_result(glb* g, gint history);
 int wr_strprint_flat_history(glb* g, void* mpool, char** buf, int* blen, int bpos,
                              int maxclnr, void **assoc);
+//char** wr_collect_inputs(glb* g,void **assoc, int* inputcountptr);
 char** wr_collect_inputs(glb* g,void **assoc, int* inputcountptr);
-int wr_strprint_inputs(glb* g, int inputcount, char** inputs, char** buf, int* blen, int bpos);                             
+int wr_strprint_inputs(glb* g, int inputcount, char** inputs, 
+      int* skinputcount, char** skinputs,
+      char** buf, int* blen, int bpos); 
 int wr_strprint_one_history
         (glb* g, void* mpool, char** buf, int* blen, int bpos, 
-         gint history, gptr cl, char* clns, int maxclnr, void **assoc);
+         gint history, gptr cl, char* clns, int maxclnr, void **assoc,
+         int skinputcount, char** skinputs);
 int wr_strprint_history_extra(glb* g, char** buf, int* blen, int bpos, gint history);
 
 void wr_set_history_record_field(glb* g, gptr rec, int pos, gint val);

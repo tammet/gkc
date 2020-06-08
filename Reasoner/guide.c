@@ -200,16 +200,19 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr) {
       //printf("\nmax_seconds %d\n", json_valueint(elem));
       (g->max_seconds)=json_valueint(elem);
     } 
-
+    /*
     else if (!strcmp(key,"max_forks")) {
       //printf("\nmax_forks %d\n", json_valueint(elem));
       (g->max_forks)=json_valueint(elem);
     }
-
+    */
     else if (!strcmp(key,"given_queue_ratio")) {
       //printf("\nmax_seconds %d\n", json_valueint(elem));
       (g->pick_given_queue_ratio)=json_valueint(elem);
-    } 
+    } else if (!strcmp(key,"sine")) {
+      //printf("\nsine_strat %d\n", json_valueint(elem));
+      (g->sine_strat)=json_valueint(elem);
+    }
 
 
     else if (!strcmp(key,"max_weight")) {

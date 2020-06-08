@@ -61,13 +61,30 @@ int wr_analyze_clause_list(glb* g, void* db, void* child_db) {
   gcell *cellptr;
   gptr rec;
   int n=0, tmp, haveextdb=0;
-
+  int tmp_inkb;
+  
   if (db!=child_db) haveextdb=1;
   else haveextdb=0;
   wr_clear_all_varbanks(g);
-  if (!(g->tmp_uriinfo)) {
-    (g->tmp_uriinfo)=rpto(g,wr_cvec_new(g,INITIAL_URITMPVEC_LEN));
+  //printf("\n(g->inkb) %d (g->tmp_uriinfo) %d\n",(g->inkb),(g->tmp_uriinfo));
+  if (1) { //!(g->tmp_uriinfo)) {
+    tmp_inkb=(g->inkb);
+    (g->inkb)=0;
+    //printf("\n(g->inkb) %d\n",(g->inkb));
+    (g->tmp_uriinfo)=wr_cvec_new(g,INITIAL_URITMPVEC_LEN);
+    (g->inkb)=tmp_inkb;
   }
+  /*
+  cvec occs;
+  int i;
+  occs=wr_cvec_new(g,INITIAL_SINE_OCCVECLEN);
+  for(i=0;i<100;i++) {
+    printf("\nbefore push occs %ld occs[0] %ld occs[1] %ld i %d\n",(gint)occs,occs[0],occs[1],i);
+    occs=wr_cvec_push(g,occs,i);
+    printf("\nafter push occs %ld occs[0] %ld occs[1] %ld i %d\n",(gint)occs,occs[0],occs[1],i);
+  }  
+  exit(0);
+  */    
 
   cell=(dbmemsegh(child_db)->clauselist);
   while(cell) {     
@@ -77,13 +94,23 @@ int wr_analyze_clause_list(glb* g, void* db, void* child_db) {
     if (!tmp) {
       // something wrong with the clause
       wr_clear_all_varbanks(g);
-      if (g->tmp_uriinfo) wr_vec_free(g,rotp(g,(g->tmp_uriinfo)));
+      if (g->tmp_uriinfo) {
+        tmp_inkb=(g->inkb);
+        (g->inkb)=0;
+        wr_vec_free(g,(g->tmp_uriinfo));
+        (g->inkb)=tmp_inkb; 
+      }  
       return 0;
     }
     n++;
     cell=cellptr->cdr;
-  }   
-  if (g->tmp_uriinfo) wr_vec_free(g,rotp(g,(g->tmp_uriinfo)));  
+  } 
+  if (g->tmp_uriinfo) {
+    tmp_inkb=(g->inkb);
+    (g->inkb)=0;
+    wr_vec_free(g,(gptr)(g->tmp_uriinfo));  
+    (g->inkb)=tmp_inkb;
+  }  
   return 1;  
 }
 
@@ -95,6 +122,7 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
   gint meta,atom=0;
   gint vc_tmp;
   int tmp;
+  gint ctmp;
   int ruleflag=0, len=0, anslit=0, neglit=0, poslit=0;
   int poseq=0, negeq=0, uniteq=0;
   int size=0,maxdepth=0,varcount=0;
@@ -119,10 +147,8 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
 
   //wr_print_clause(g,cl); 
   //wr_printf("\n");
-
   history=wr_get_history(g,cl);
   if (history) {
-    
     historyptr=otp(db,history);
     hlen=wg_get_record_len(db,historyptr);
       
@@ -160,11 +186,10 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
   vc_tmp=*(g->tmp_unify_vc);
 #ifdef REASONER_SINE
   //printf("\n(g->tmp_uriinfo) initial %ld\n",(gint)(g->tmp_uriinfo));
-  uriinfo=rotp(g,(g->tmp_uriinfo)); 
+  uriinfo=(gptr)(g->tmp_uriinfo); 
   //printf("\nuriinfo initial %ld\n",(gint)uriinfo);
   uriinfo[1]=2; // initialize  
 #endif  
-
   if (wg_rec_is_fact_clause(db,cl)) {
     ruleflag=0;
     len=1;
@@ -179,6 +204,8 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
       poseq++;
       uniteq++;
     } 
+    // this is a recursive call into atom and then terms,
+    // also adds new found uris to uriinfo cvec
     tmp=wr_analyze_term(g,pto(db,cl),0,&size,&maxdepth,1,haveextdb,0);
   } else if (wg_rec_is_rule_clause(db,cl)) {   
     ruleflag=1;
@@ -198,6 +225,8 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
           if (len<2) uniteq++;
         }  
       } 
+      // this is a recursive call into atom and then terms,
+      // also adds new found uris to uriinfo cvec
       tmp=wr_analyze_term(g,atom,0,
             &size,&maxdepth,!wg_atom_meta_is_neg(db,meta),haveextdb,0);
       if (!tmp) {
@@ -265,19 +294,29 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
   (g->in_axiom_count)=0;
   (g->in_assumption_count)=0;
   (g->in_goal_count)=0;
-  */
-#ifdef REASONER_SINE  
+  */ 
+#ifdef REASONER_SINE
+  //printf("\n(g->tmp_uriinfo) initial %ld\n",(gint)(g->tmp_uriinfo));
+  // uriinfo cvec may have been reallocated while collecting uris
+  uriinfo=(gptr)(g->tmp_uriinfo); 
+  //printf("\nuriinfo initial %ld\n",(gint)uriinfo);  
+  // add 1 to all elements of uriinfo cvec (uris present in clause)
   for(i=2;i<uriinfo[1];i++) {
     //printf("\nuri: ");    
     //wr_print_term_otter(g,uriinfo[i],100);
     // increase count
-    tmp=wg_decode_uri_scount(db,uriinfo[i]);
-    wg_set_uri_scount(db,uriinfo[i],tmp+1);
+    //printf("\nbefore wg_decode_uri_scount i %d uriinfo[i] %ld\n",i,uriinfo[i]);
+    ctmp=wg_decode_uri_scount(db,uriinfo[i]);
+    //printf("\nwg_decode_uri_scount gave tmp %ld \n",ctmp);
+    wg_set_uri_scount(db,uriinfo[i],ctmp+1);
+    //printf("\nwg_decode_uri_scount after setting is %ld \n",wg_decode_uri_scount(db,uriinfo[i]));
     //printf(" count %ld ",wg_decode_uri_scount(db,uriinfo[i]));
     // add clause to occs list    
     tmp=(g->inkb);
     (g->inkb)=0; // use malloc temporarily
+    //printf("\nbefore wg_decode_uri_occs i %d uriinfo[i] %ld\n",i,uriinfo[i]);
     occs=wg_decode_uri_occs(db,uriinfo[i]);
+    //printf("\nwg_decode_uri_occs gave occs %ld \n",(gint)occs);
     //printf("\nuriinfo[i] %ld decoded %ld\n",uriinfo[i],occs);      
     if (!occs) {
       // no occs so far
@@ -287,7 +326,9 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
         (g->inkb)=1;
         return 1;
       } else {
+        //printf("\nbefore occs1 occs %ld occs[0] %ld occs[1] %ld rpto(g,cl) %ld\n",(gint)occs,occs[0],occs[1],rpto(g,cl));
         occs=wr_cvec_push(g,occs,rpto(g,cl));
+        //printf("\nafter occs1 occs %ld occs[0] %ld occs[1] %ld rpto(g,cl) %ld\n",(gint)occs,occs[0],occs[1],rpto(g,cl));
         if (!occs) {
           printf("\nfailed(1) to alloc occs after push cvec while analyzing clause\n");
           (g->inkb)=tmp;
@@ -298,7 +339,9 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
       //printf("\nafter create occs[0] %ld occs[1] %ld\n",occs[0],occs[1]);
     } else {
       // add a new occ
+      //printf("\nbefore occs2 occs %ld occs[0] %ld occs[1] %ld rpto(g,cl) %ld\n",(gint)occs,occs[0],occs[1],rpto(g,cl));
       occs=wr_cvec_push(g,occs,rpto(g,cl));
+      //printf("\nafter occs2 occs %ld occs[0] %ld occs[1] %ld rpto(g,cl) %ld\n",(gint)occs,occs[0],occs[1],rpto(g,cl));     
       if (!occs) {
         printf("\nfailed(2) to alloc occs after push cvec while analyzing clause\n");
         (g->inkb)=tmp;
@@ -334,6 +377,7 @@ int wr_analyze_term(glb* g, gint x,
   int i, start, end, j, urifound;  
   int w, dtype;
   gint ucount, ucountpos, ucountneg;
+  int tmp_inkb;
 
 #ifdef DEBUG
   wr_printf("wr_analyze_term called with x %d type %d depth %d size %d maxdepth %d argpos %d\n",
@@ -379,21 +423,26 @@ int wr_analyze_term(glb* g, gint x,
         }
 #ifdef REASONER_SINE      
         urifound=0;
-        cvec uriinfo=rotp(g,(g->tmp_uriinfo));
+        cvec uriinfo=(gptr)(g->tmp_uriinfo);
         for(j=2; j<uriinfo[1]; j++) {
           if (uriinfo[j]==x) {
             urifound=1;
             break;
           }
-        }
+        }        
         if (!urifound) {         
           //printf("\nuriinfo1 %ld\n",(gint)uriinfo);
+          //printf("\nbefore uriinfo %ld uriinfo[0] %ld uriinfo[1] %ld x %ld\n",(gint)uriinfo,uriinfo[0],uriinfo[1],x);
+          tmp_inkb=(g->inkb);
+          (g->inkb)=0;
           uriinfo=wr_cvec_push(g,uriinfo,x);
+          (g->inkb)=tmp_inkb;
+          //printf("\nafter uriinfo %ld uriinfo[0] %ld uriinfo[1] %ld x %ld\n",(gint)uriinfo,uriinfo[0],uriinfo[1],x);
           //printf("\nuriinfo2 %ld\n",(gint)uriinfo);
           //printf("\n(g->tmp_uriinfo) %ld\n",(gint)(g->tmp_uriinfo));
           //printf("\nrpto(g,uriinfo) %ld\n",(gint)(rpto(g,uriinfo)));
-          (g->tmp_uriinfo)=rpto(g,uriinfo);
-        }        
+          (g->tmp_uriinfo)=uriinfo;
+        }                
 #endif        
 
       }
@@ -441,12 +490,17 @@ int wr_analyze_sine(glb* g, void* db, void* child_db) {
   int sine_maxk;
   gint sine_common;
   gint sine_g;
+  int sine_maxtriggers, sine_maxcommon;
   float sine_tolerance;
   int common_found=0;
   int triggers=0;
   int usedn, common_n;
   gint maxcount;
+  int weak_sine;
 
+
+  if ((g->sine_strat)==2) weak_sine=0;
+  else weak_sine=1;
 
   //if (db!=child_db) haveextdb=1;
   //else haveextdb=0;
@@ -469,6 +523,7 @@ int wr_analyze_sine(glb* g, void* db, void* child_db) {
   sine_common=4; // initial value: this and above are common, smaller number means more pure-common clauses
   sine_tolerance=2; // bigger number means more triggering
   sine_g=5; // bigger number means more triggering
+  sine_maxtriggers=1000; // how many are allowed to be triggered
 
   // loop over all clauses
   /*
@@ -505,13 +560,48 @@ int wr_analyze_sine(glb* g, void* db, void* child_db) {
     n++;
   }   
   // update sine_common
-  
+
+  // originally was
+  //if (maxcount<10) sine_common=(gint)(maxcount*0.6);
+  //if (maxcount<50) sine_common=(gint)(maxcount*0.7);
+  //else sine_common=10; // normal 10
+  // ie
+  //if (maxcount<50) sine_common=(gint)(maxcount*0.7);
+  //else sine_common=10; // normal 10
+
+
+  // trying for strong and weak 
+  /*
   if (maxcount<10) sine_common=(gint)(maxcount*0.6);
-  if (maxcount<50) sine_common=(gint)(maxcount*0.7);
-  else sine_common=10;
-  
-  
-  printf("\nn: %d usedn: %d maxcount: %ld sine_common: %ld\n",n,usedn,maxcount,sine_common);
+  else if (maxcount<50) sine_common=(gint)(maxcount*0.7);
+  else if (maxcount<1000) sine_common=10;
+  else if (maxcount<10000) sine_common=100;
+  //else sine_common=1000;
+  else sine_common=1000; //(gint)(maxcount*0.9);
+  */
+
+  //else sine_common=1000; // normal 10
+  //sine_common=10000000;
+
+
+  if (weak_sine) {
+    if (maxcount<50) sine_common=(gint)(maxcount*0.7);
+    else sine_common=10; // normal 10
+
+    sine_maxcommon=1000000;
+  } else {
+    if (maxcount<50) { sine_common=(gint)(maxcount*0.7); }   
+    sine_common=10; 
+    
+    sine_maxcommon=(int)(n/10.0);
+    if (sine_maxcommon>10000) { sine_maxcommon=10000; }
+    else if (sine_maxcommon<10) { sine_maxcommon=10; }
+  }
+
+  if (g->print_sine) {
+    printf("\nn: %d usedn: %d maxcount: %ld sine_common: %ld sine_maxcommon: %d\n",
+          n,usedn,maxcount,sine_common,sine_maxcommon);
+  }        
 
   // collect initial symbols from goal and set goal k to 1
   // also check commonness
@@ -529,8 +619,8 @@ int wr_analyze_sine(glb* g, void* db, void* child_db) {
       //printf("clause is goal ");
       wr_set_cl_sine_k(g,rec,1);     
       wr_get_clause_symbols(g,rec,&uriinfo);       
-    } else if (sine_common) {
-      // check if a fully common-symbol clause
+    } else if (sine_common && sine_maxcommon>common_found) {
+      // check if a fully common-symbol clause      
       if (wr_sine_check_trigger_cl(g,rec,1,sine_tolerance,sine_common)) {
         wr_set_cl_sine_k(g,rec,sine_maxk+1);
         common_found++;
@@ -538,6 +628,15 @@ int wr_analyze_sine(glb* g, void* db, void* child_db) {
     }
     cell=cellptr->cdr;         
     n++;
+  }
+
+  // update sine_maxtriggers
+  if (weak_sine) {
+    sine_maxtriggers=1000000;
+  } else {
+    sine_maxtriggers=(int)(n/10.0);
+    if (sine_maxtriggers>10000) sine_maxtriggers=10000;
+    else if (sine_maxtriggers<10) sine_maxtriggers=10;
   }
 
   // update sine_tolerance and g
@@ -601,15 +700,52 @@ int wr_analyze_sine(glb* g, void* db, void* child_db) {
   } else if (n<10000) {
     sine_tolerance=4; // bigger number means more triggering
     sine_g=2;
-  } else {
+  } else if (n<100000) {
     sine_tolerance=4; // bigger number means more triggering
     sine_g=1;
+  } else {
+    sine_tolerance=1.5;
+    sine_g=1;
   }
-  
-  printf("\nclauses %d sine_tolerance %f sine_g %ld\n",n,sine_tolerance,sine_g);
-
+  //if (n>100000) sine_tolerance=1.5; // large csrs with sine_g=1;
  
+  //sine5:
   
+  /*
+  if (n<100) {
+    sine_tolerance=4; // bigger number means more triggering
+    sine_g=3;
+  } else if (n<1000) {
+    sine_tolerance=4; // bigger number means more triggering
+    sine_g=2;
+  } else if (n<10000) {
+    sine_tolerance=2; // bigger number means more triggering
+    sine_g=2;
+  } else {
+    sine_tolerance=2; // bigger number means more triggering
+    sine_g=1;
+  }
+  */
+
+  //sine6:
+  /*
+  if (n<100) {
+    sine_tolerance=2; // bigger number means more triggering
+    sine_g=2;
+  } else if (n<1000) {
+    sine_tolerance=1.5; // bigger number means more triggering
+    sine_g=2;
+  } else if (n<10000) {
+    sine_tolerance=1.5; // bigger number means more triggering
+    sine_g=1;
+  } else {
+    sine_tolerance=1.5; // bigger number means more triggering
+    sine_g=1;
+  }
+  */
+  if (g->print_sine) {
+    printf("\nclauses %d sine_tolerance %f sine_g %ld\n",n,sine_tolerance,sine_g);
+  }  
 
   // set the goal uri k-s to 1
 
@@ -636,6 +772,7 @@ int wr_analyze_sine(glb* g, void* db, void* child_db) {
     // loop over k-level uris 
     //printf("\nuriinfo[1]: %ld",uriinfo[1]);
     for(i=2;i<uriinfo[1];i++) {
+      if (triggers>=sine_maxtriggers) break;
       uri=uriinfo[i];
       uri_id=wg_decode_uri_id(db,uri);
       uri_k=wr_get_uri_sine_k(g,uri);
@@ -668,6 +805,7 @@ int wr_analyze_sine(glb* g, void* db, void* child_db) {
           //printf("\nuri triggers cl!\n");
           wr_set_cl_sine_k(g,cl,k+1);
           triggers++;
+          if (triggers>=sine_maxtriggers) break;
           // get this clause uris
           cl_uriinfo[1]=2;
           wr_get_clause_symbols(g,cl,&cl_uriinfo);
@@ -695,9 +833,11 @@ int wr_analyze_sine(glb* g, void* db, void* child_db) {
   }
 
   // show result
-  printf("\n=== sine result ==== \n");
-  printf("\ncommon: %d",common_found);
-  printf("\ntriggers: %d\n",triggers);
+  if (g->print_sine) {
+    printf("\n=== sine result ==== \n");
+    printf("\ncommon: %d",common_found);
+    printf("\ntriggers: %d\n",triggers);
+  }  
   cell=(dbmemsegh(child_db)->clauselist); 
   n=0;
   usedn=0;
@@ -718,7 +858,9 @@ int wr_analyze_sine(glb* g, void* db, void* child_db) {
     cell=cellptr->cdr;         
     n++;
   }
-  printf("\nclauses %d used by sine %d of these common %d\n",n,usedn,common_n);
+  if (g->print_sine) {
+    printf("\nclauses %d used by sine %d of these common %d\n",n,usedn,common_n);
+  }  
  
   // final cleanup
   wr_vec_free(g,uriinfo);
@@ -1030,6 +1172,7 @@ char* make_auto_guide(glb* g, glb* kb_g) {
   }
 
   buf=(char*)wr_malloc(g,10000);
+  // normal "\"print_level\": 15,\n"
   pref="{\n"
       "\"print\":1,\n"
       "\"print_level\": 15,\n"
@@ -1097,6 +1240,26 @@ char* make_auto_guide(glb* g, glb* kb_g) {
         "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"positive_pref\"], \"query_preference\": 2},\n",secs);
       }  
 
+      // sine
+
+      if (qp2ok && i<2) {
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2, \"sine\":1},\n",secs);
+      }
+      if (qp3ok && i<2) {         
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 3, \"sine\":1},\n",secs);          
+      }
+      if (qp1ok && i<2) {
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1, \"sine\":2},\n",secs);
+      }
+      if (qp1ok && i<2) {
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1, \"sine\":1},\n",secs);
+      }
+
+
       // -- maybe --
 
       if (i<1) {
@@ -1129,7 +1292,19 @@ char* make_auto_guide(glb* g, glb* kb_g) {
         "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2},\n",secs);
       }     
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 0},\n",secs);      
+      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 0},\n",secs);  
+
+      // sine
+
+      if (qp2ok && i<2) {
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2, \"sine\":1},\n",secs);
+      }
+
+      if (i<2) {
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 0, \"sine\":2},\n",secs);
+      }
 
       // unit mod
 
@@ -1172,6 +1347,10 @@ char* make_auto_guide(glb* g, glb* kb_g) {
           pos+=sprintf(buf+pos,
           "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1},\n",secs);
         }  
+        if (qp1ok) {
+          pos+=sprintf(buf+pos,
+          "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1,\"sine\":1},\n",secs);
+        }
         if (qp3ok) {         
           pos+=sprintf(buf+pos,
           "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 3},\n",secs);          
@@ -1247,6 +1426,27 @@ char* make_auto_guide(glb* g, glb* kb_g) {
           pos+=sprintf(buf+pos,
           "{\"max_seconds\": %d,\"strategy\":[\"unit\",\"pure_unit\"],\"query_preference\":0},\n",secs);
         }
+        if (eq) {
+          pos+=sprintf(buf+pos,
+          "{\"max_seconds\": %d,\"strategy\":[\"query_focus\",\"posunitpara\"],\"query_preference\":1,\"depth_penalty\":50,\"length_penalty\":100, \"sine\":1},\n",secs);
+        }
+        if (qp1ok) {
+          pos+=sprintf(buf+pos,
+          "{\"max_seconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 1, \"sine\":1},\n",secs);
+        }
+        if (qp1ok) {
+          pos+=sprintf(buf+pos,
+          "{\"max_seconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 1, \"sine\":2},\n",secs);
+        }
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"depth_penalty\":100, \"sine\":1},\n",secs);
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"sine\":2},\n",secs);
+        if (qp2ok) {
+          pos+=sprintf(buf+pos,
+          "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2, \"sine\":1},\n",secs);
+        }
+        
       }
      
     // ---
@@ -1331,6 +1531,22 @@ char* make_auto_guide(glb* g, glb* kb_g) {
         pos+=sprintf(buf+pos,
         "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0},\n",secs);    
 
+        if (eq) {
+          pos+=sprintf(buf+pos,
+          "{\"max_seconds\": %d,\"strategy\":[\"query_focus\",\"posunitpara\"],\"query_preference\":1,\"depth_penalty\":50,\"length_penalty\":100, \"sine\":1},\n",secs);
+        }
+
+        if (qp1ok) {
+          pos+=sprintf(buf+pos,
+          "{\"max_seconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 1, \"sine\":1},\n",secs);
+        }
+        if (qp1ok) {
+          pos+=sprintf(buf+pos,
+          "{\"max_seconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 1, \"sine\":2},\n",secs);
+        }
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"depth_penalty\":100, \"sine\":1},\n",secs);
+
         // maybe
 
         if (i<1) {
@@ -1345,6 +1561,14 @@ char* make_auto_guide(glb* g, glb* kb_g) {
             }  
 
           }
+          if (qp2ok) {
+            pos+=sprintf(buf+pos,
+            "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2, \"sine\":1},\n",secs);
+          }
+          if (qp1ok) {
+            pos+=sprintf(buf+pos,
+            "{\"max_seconds\": %d,\"strategy\":[\"hardness_pref\"],\"query_preference\":1, \"sine\":1},\n",secs);
+          }  
         }
       }
      
@@ -1393,7 +1617,9 @@ char* make_auto_guide(glb* g, glb* kb_g) {
           "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":1,\"max_depth\":2},\n",secs);
         }
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"max_depth\":3},\n",secs);      
+        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"max_depth\":3},\n",secs);
+        pos+=sprintf(buf+pos,
+          "{\"max_seconds\": %d, \"strategy\":[\"hardness_pref\"], \"query_preference\": 0,\"sine\":1},\n",secs);
         if (qp2ok) {
           pos+=sprintf(buf+pos,
           "{\"max_seconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":2},\n",secs);
@@ -1431,7 +1657,22 @@ char* make_auto_guide(glb* g, glb* kb_g) {
         //pos+=sprintf(buf+pos,
         //"{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1,\"reverse_clauselist\": 1},\n",secs);
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"unit\",\"pure_unit\"],\"query_preference\":0},\n",secs);         
+        "{\"max_seconds\": %d,\"strategy\":[\"unit\",\"pure_unit\"],\"query_preference\":0},\n",secs);   
+
+        pos+=sprintf(buf+pos,     
+        "{\"max_seconds\": %d,\"strategy\":[\"hardness_pref\"],\"query_preference\":0, \"sine\":1},\n",secs);
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0, \"sine\":1},\n",secs);   
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0, \"sine\":1},\n",secs); 
+        if (qp1ok) {
+          pos+=sprintf(buf+pos,
+          "{\"max_seconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":1, \"sine\":2},\n",secs);
+        }  
+        if (qp1ok) {
+          pos+=sprintf(buf+pos,
+          "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1, \"sine\":2},\n",secs);
+        }                
       }
     
     // ---
@@ -1526,6 +1767,10 @@ char* make_auto_guide(glb* g, glb* kb_g) {
           pos+=sprintf(buf+pos,
           "{\"max_seconds\": %d,\"strategy\":[\"unit\",\"pure_unit\"],\"query_preference\":0},\n",secs);
         }  
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0, \"sine\":1},\n",secs);
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0, \"sine\":1},\n",secs);
       }  
 
     // ----

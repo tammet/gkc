@@ -83,7 +83,7 @@
 #define INITIAL_SORTVEC_LEN 10
 #define INITIAL_CLTMPVEC_LEN 10
 #define INITIAL_VARTMPVEC_LEN 10
-#define INITIAL_URITMPVEC_LEN 100
+#define INITIAL_URITMPVEC_LEN 1000
 
 #define INITIAL_ANSWERS_LEN 1000
 
@@ -113,7 +113,7 @@
 
 #define MAX_GUIDETEXT_LEN 500
 
-#define SINE_K_VALUES_SIZE 1000000 // bytestring 1 mbyte
+#define SINE_K_VALUES_SIZE 10000000 // bytestring 10 mbyte
 
 /* ======== Structures ========== */
 
@@ -235,7 +235,7 @@ typedef struct {
 
   cvec tmp_clinfo; // used for storing additional clause info while ordering for knuth-bendix
   cvec tmp_varinfo; // used for storing additional var info while ordering for knuth-bendix 
-  cveco tmp_uriinfo; // used for storing uri info in a clause while doing sine
+  cvec tmp_uriinfo; // used for storing uri info in a clause while doing sine
 
   /* parser configuration */
   
@@ -268,7 +268,9 @@ typedef struct {
   
   /* strategy selection */
   
-  int max_forks;
+  //int max_forks;
+  int sine_strat; // 0 if none, 1 if weak, 2 if strong
+  int sine_strat_used; // 0 if not actually used, 1 if used: set automatically by analyze if sine_strat!=0
   int required_answer_nr;
   int pick_given_queue_ratio;
   int pick_given_queue_ratio_counter;
@@ -331,9 +333,7 @@ typedef struct {
   int have_rewrite_terms; // observation  
   int use_strong_unit_cutoff; 
   int use_strong_duplicates; // iff 1, then unique var based duplicate removal
-  int prohibit_nested_para;
-  int use_sine_strat; // sine actually used: look at this for initial clause selection
-  int attempt_sine_strat; // sine attempted, but may be decided to abandon
+  int prohibit_nested_para;  
 
   int max_proofs;
   int store_history;
@@ -370,6 +370,7 @@ typedef struct {
   int print_runs;
   int print_stats;
   int print_datastructs;
+  int print_sine;
   
   /* tmp variables */
   

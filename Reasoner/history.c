@@ -1292,9 +1292,11 @@ int wr_show_result(glb* g, gint history) {
     snprintf(namebuf,19,"%d",clnr++);
     if (((g->answers)[1])>ansnr && (gptr)((g->answers)[ansnr])!=NULL) {    
       bpos=wr_strprint_one_history(g,mpool,&buf,&blen,bpos,history,
-            (gptr)((g->answers)[ansnr]),namebuf,clnr-1,&assoc);           
+            (gptr)((g->answers)[ansnr]),namebuf,clnr-1,&assoc,
+            0,NULL);           
     } else {
-      bpos=wr_strprint_one_history(g,mpool,&buf,&blen,bpos,history,NULL,namebuf,clnr-1,&assoc);
+      bpos=wr_strprint_one_history(g,mpool,&buf,&blen,bpos,history,NULL,namebuf,clnr-1,&assoc,
+            0,NULL);
     }      
     if (bpos<0) {
       if (buf) { 
@@ -1344,7 +1346,7 @@ int wr_show_result(glb* g, gint history) {
   return bpos;
 }
  
-#define INPUTS_INITIAL_SIZE 100
+#define INPUTS_INITIAL_SIZE 1000
 
 int wr_strprint_flat_history(glb* g, void* mpool, char** buf, int* blen, int bpos,
                              int maxclnr, void **assoc) {
@@ -1354,18 +1356,31 @@ int wr_strprint_flat_history(glb* g, void* mpool, char** buf, int* blen, int bpo
   char namebuf[20];
   int num;
   char** inputs;
-  int inputcount;
-
+  char** skinputs;
+  int inputcount, skinputcount;
+  
+  //printf("\nwr_strprint_flat_history starts\n");
   namebuf[0]=0;
   if (g->print_json) {
     bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"{\"proof\":\n[");
   }
   // get and show inputs
+  skinputcount=0;
+  skinputs=NULL;
   if (g->print_fof_conversion_proof) {
-    inputs=wr_collect_inputs(g,assoc,&inputcount);
-    bpos=wr_strprint_inputs(g,inputcount,inputs,buf,blen,bpos);   
+    inputs=wr_collect_inputs(g,assoc,&inputcount);  
+    skinputs=wr_malloc(g,INPUTS_INITIAL_SIZE*sizeof(char*));
+    skinputcount=0;
+    bpos=wr_strprint_inputs(g,inputcount,inputs,&skinputcount,skinputs,buf,blen,bpos);   
     if (inputs) wr_free(g,inputs);
-  }  
+  }
+  /*
+  int i;
+  for(i=0;i<skinputcount;i++) {
+    printf("\ni %d str %s\n",i,skinputs[i]);
+  }
+  */
+ 
   // print all proof steps before last
   flat=*assoc; 
   if (flat) {
@@ -1376,7 +1391,8 @@ int wr_strprint_flat_history(glb* g, void* mpool, char** buf, int* blen, int bpo
       // normal part
       num=(int)(gint)(wg_nth(db,tmp,2));
       snprintf(namebuf,19,"%d",num);
-      bpos=wr_strprint_one_history(g,mpool,buf,blen,bpos,history,rotp(g,cl),namebuf,maxclnr,assoc);
+      bpos=wr_strprint_one_history(g,mpool,buf,blen,bpos,history,rotp(g,cl),namebuf,maxclnr,assoc,
+                                   skinputcount,skinputs);
       if (g->print_json) { //&& wg_ispair(db,wg_rest(db,part))) {
         bpos+=snprintf((*buf)+bpos,(*blen)-bpos,",");
       }
@@ -1457,7 +1473,9 @@ char** wr_collect_inputs(glb* g,void **assoc, int* inputcountptr) {
   return inputs;
 }
 
-int wr_strprint_inputs(glb* g, int inputcount, char** inputs, char** buf, int* blen, int bpos) {
+int wr_strprint_inputs(glb* g, int inputcount, char** inputs, 
+      int* skinputcount, char** skinputs,
+      char** buf, int* blen, int bpos) {
   void* db=g->db;  
   int i;
   gint cell;
@@ -1515,6 +1533,12 @@ int wr_strprint_inputs(glb* g, int inputcount, char** inputs, char** buf, int* b
             // inexact str match, skolem step case
             tmpptr=wg_nth(child_db,frm,2);
             if (tmpptr) {
+              // first register sk input existence
+              if ((*skinputcount)<INPUTS_INITIAL_SIZE) {
+                skinputs[*skinputcount]=atomstr;
+                (*skinputcount)++;
+              }  
+              // print
               bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\n %s:",atomstr);    
               if (bpos<0) return bpos;
               if (tmpptr && wg_isatom(child_db,tmpptr) && wg_atomstr1(child_db,tmpptr)) {                                           
@@ -1539,17 +1563,19 @@ int wr_strprint_inputs(glb* g, int inputcount, char** inputs, char** buf, int* b
 
 int wr_strprint_one_history
         (glb* g, void* mpool, char** buf, int* blen, int bpos, 
-         gint history, gptr cl, char* clns, int maxclnr, void **assoc) {
+         gint history, gptr cl, char* clns, int maxclnr, void **assoc,
+         int skinputcount, char** skinputs) {
   void* db=g->db;
   int htype,tag,dechead;
   void *tmp1;
   gint head, cl1, path, name;
   char* namestr;
   //char *n, *n1;
-  int pos1, pos2, num, len, i, termpos, leftflag;
+  int pos1, pos2, num, len, i,termpos, leftflag;
   char namebuf1[20];  
   char orderbuf[80];
   gptr historyptr;
+  int j,skfound, namelen;
 #ifdef SHOW_HISTORY_ORDER  
   int o1,o2;
 #endif
@@ -1605,8 +1631,22 @@ int wr_strprint_one_history
       if (!wr_str_guarantee_space(g,buf,blen,bpos+100+strlen(namestr))) return -1;
       if (g->print_json) bpos+=snprintf((*buf)+bpos,(*blen)-bpos,", \"%s\"",namestr);
       else {
-        if ((g->print_fof_conversion_proof) && (g->store_fof_skolem_steps)) {
-          bpos+=snprintf((*buf)+bpos,(*blen)-bpos,",%s%s",namestr,SKOLEM_CLNAME_SUFFIX);
+        if ((g->print_fof_conversion_proof) && (g->store_fof_skolem_steps) &&
+            namestr) {
+          skfound=0;
+          namelen=strlen(namestr);
+          for(j=0;j<skinputcount;j++) {
+            if (skinputs[j] && !strncmp(namestr,skinputs[j],namelen) &&
+                strlen(skinputs[j])==namelen+SKOLEM_CLNAME_SUFFIX_LEN) {
+              skfound=1;
+              break;
+            }
+          }
+          if (skfound) {
+            bpos+=snprintf((*buf)+bpos,(*blen)-bpos,",%s%s",namestr,SKOLEM_CLNAME_SUFFIX);
+          } else {
+            bpos+=snprintf((*buf)+bpos,(*blen)-bpos,",%s",namestr);
+          }  
         } else {
           bpos+=snprintf((*buf)+bpos,(*blen)-bpos,",%s",namestr);
         }  

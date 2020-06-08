@@ -128,7 +128,7 @@ int wr_is_tptp_import_clause(void* db, void* cl);
 
 
 void* wr_preprocess_tptp_cnf_clause(glb* g, void* mpool, void* cl);
-void* wr_preprocess_tptp_fof_clause(glb* g, void* mpool, void* cl);
+void* wr_preprocess_tptp_fof_clause(glb* g, void* mpool, void* cl, void* clname);
 void* wr_process_tptp_import_clause(glb* g, void* mpool, void* cl);
 
 void db_err_printf2(char* s1, char* s2);
@@ -639,7 +639,7 @@ void* wr_preprocess_clauselist
         (dbmemsegh(db)->infrmlist) = cell;    
       }  
 #endif
-      resultclause=wr_preprocess_tptp_fof_clause(g,mpool,cl); 
+      resultclause=wr_preprocess_tptp_fof_clause(g,mpool,cl,clname); 
       if (resultclause) {
         resultclause=wg_mklist3(db,mpool,clname,clrole,resultclause);     
       }  
@@ -745,7 +745,7 @@ void* wr_preprocess_tptp_cnf_clause(glb* g, void* mpool, void* cl) {
   return res;
 }
 
-void* wr_preprocess_tptp_fof_clause(glb* g, void* mpool, void* cl) {
+void* wr_preprocess_tptp_fof_clause(glb* g, void* mpool, void* cl, void* clname) {
   void* db=g->db;
   void* clpart;
   void* res;
@@ -766,25 +766,6 @@ void* wr_preprocess_tptp_fof_clause(glb* g, void* mpool, void* cl) {
 #endif   
   (g->in_has_fof)=1;
   // insert to source list
-#ifdef STORE_SOURCE_FRM  
- /*
-  printf("\n in wr_preprocess_tptp_fof_clause: ");
-  wg_mpool_print(db,cl); 
-  printf("\n");
-
-  if (1) {
-    cell=alloc_listcell(db);
-    if (!cell) {
-      wr_show_parse_error(g,"failed to allocate a cell for storing source formula");        
-      return NULL;
-    }  
-    cellptr = (gcell *) offsettoptr(db, cell);
-    (cellptr->car) = (gint)cl; //ptrtooffset(db, res);
-    (cellptr->cdr) = (dbmemsegh(db)->infrmlist);
-    (dbmemsegh(db)->infrmlist) = cell;    
-  }  
- */ 
-#endif 
   //printf("\n(g->in_has_fof) %d\n",(g->in_has_fof));
   cltype=wg_first(db,wg_rest(db,wg_rest(db,cl)));
   clpart=wg_first(db,wg_rest(db,wg_rest(db,wg_rest(db,cl))));
@@ -806,7 +787,7 @@ void* wr_preprocess_tptp_fof_clause(glb* g, void* mpool, void* cl) {
   // naming part for skolemization
 #ifdef STORE_SKOLEM_STEPS   
   if (g->store_fof_skolem_steps) {
-    name=wg_first(db,wg_rest(db,cl));
+    name=clname; //wg_first(db,wg_rest(db,cl));
     if (name && wg_isatom(db,name)) {
       namestr=wg_atomstr1(db,name);
       strncpy(namebuf,namestr,900);

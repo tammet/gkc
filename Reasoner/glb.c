@@ -118,6 +118,8 @@ int wr_glb_init_simple(glb* g) {
   (g->parse_newpred_strat)=1; // NORMAL 1, TESTING 0
   (g->parse_caps_as_var)=1;
   (g->parse_question_as_var)=1;
+  (g->store_fof_skolem_steps)=1;
+  (g->store_fof_source)=1;
 
   /* parser temporary */
 
@@ -141,7 +143,9 @@ int wr_glb_init_simple(glb* g) {
   
   /* strategy selection */    
   
-  (g->max_forks)=4; // default 2 forks
+  //(g->max_forks)=4; // default 2 forks
+  (g->sine_strat)=0; // 0 if none, 1 if weak, 2 if strong
+  (g->sine_strat_used)=0; // 0 if not actually used, 1 if used: set automatically by analyze if sine_strat!=0
   (g->required_answer_nr)=1;
   (g->pick_given_queue_ratio)=5;         // this is used for all queues to diff btw priority and simple
   (g->pick_given_queue_ratio_counter)=0; // this is not used for queues
@@ -195,9 +199,7 @@ int wr_glb_init_simple(glb* g) {
   (g->use_strong_unit_cutoff)=0; // if 1, then cut off also with unification, not just with hash equality
   (g->use_strong_duplicates)=0; // iff 1, then additional unique var based duplicate removal used
   (g->prohibit_nested_para)=0; // iff 1, paramodulation derivations cannot be directly nested
-  (g->use_sine_strat)=0; // sine actually used: look at this for initial clause selection
-  (g->attempt_sine_strat)=0; // sine attempted, but may be decided to abandon
-
+ 
   (g->max_proofs)=1;
   (g->store_history)=1;
   //(g->cl_maxdepth)=1000000;
@@ -215,10 +217,11 @@ int wr_glb_init_simple(glb* g) {
   (g->print_flag)=1; // if 0: no printout except result: rmain sets other flags accordingly
   (g->print_json)=0; // if 1: non-log output is json
   (g->print_clauses_json)=0; // if 1: clauses are printed as json lists
-  (g->print_level_flag)=10; // rmain uses this to set other flags accordingly 
+  (g->print_level_flag)=10; // rmain uses this to set other flags accordingly. Normal: 10
                            // -1: use default, 0: none, 10: normal, 20: medium, 30: detailed
   (g->print_clause_history)=0; // 1 does not work well: prints double while deriving, ok for parsing res
   (g->print_history_extra)=1; // 1 prints clause group etc, 0 prints basics
+  (g->print_fof_conversion_proof)=1; // 1 prints fof sources and some conversion steps in proof, 0 does not
 
   (g->parser_print_level)=1;
   (g->print_initial_parser_result)=0;
@@ -241,6 +244,7 @@ int wr_glb_init_simple(glb* g) {
   (g->print_runs)=1;
   (g->print_stats)=1;  
   (g->print_datastructs)=1;
+  (g->print_sine)=1;
   
   /* tmp variables */
 
@@ -532,6 +536,7 @@ int wr_glb_init_shared_complex(glb* g) {
 
   // sine
   //(g->tmp_uriinfo)=rpto(g,wr_cvec_new(g,INITIAL_URITMPVEC_LEN));
+  //(g->tmp_uriinfo)=NULL;
 
   if (g->alloc_err) {
     return 1;

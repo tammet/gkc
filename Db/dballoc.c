@@ -125,6 +125,7 @@ gint wg_init_db_memsegment_with_kb(void* db, gint key, gint size, void* kb) {
   dbh->urilist=0;
   dbh->infrmlist=0;
   dbh->infrm_mpool=NULL;
+  dbh->max_forks=1;
   //printf("\n in wg_init_db_memsegment_with_kb  dbh->kb_db is %d\n",(int)dbh->kb_db);
 #endif
 #ifdef CHECK

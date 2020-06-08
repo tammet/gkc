@@ -489,6 +489,7 @@ typedef struct _db_memsegment_header {
   gint errflag; /** 0 if no errors */
   gint longstr_count; /** initially 0, finally, nr of longstr */
   gint cl_count; /** initially 0 finally, nr of clauses */
+  gint max_forks; /** initially 1, set by cmd line switches */
 #ifdef SINE
 
 #endif

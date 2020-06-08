@@ -89,6 +89,7 @@ extern "C" {
 #define FLAGS_FORCE 0x1
 #define FLAGS_LOGGING 0x2
 
+#define DEFAULT_PARALLEL 8 // set to 1 for no parallel
 #define TPTP
 
 //#define SHOWTIME
@@ -123,7 +124,7 @@ void usage(char *prog);
 gint parse_shmsize(char *arg);
 gint parse_flag(char *arg);
 int parse_memmode(char *arg);
-char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsize, int* retcode);
+char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsize, int* parallel, int* retcode);
 void wg_set_kb_db(void* db, void* kb);
 void segment_stats(void *db);
 void wg_show_strhash(void* db);
@@ -179,7 +180,7 @@ int gkc_main(int argc, char **argv) {
   gint shmsize=0, shmsize2=0;
   //wg_int rlock = 0;
   //wg_int wlock = 0;
-  int mbnr=0, mbsize=0; // parsed from cmd line
+  int mbnr=0, mbsize=0, parallel=DEFAULT_PARALLEL; // parsed from cmd line
   char* cmdstr=NULL; // parsed from cmd line
   char** cmdfiles; // parsed from cmd line
   int cmdfileslen; // computed below
@@ -200,7 +201,7 @@ int gkc_main(int argc, char **argv) {
 #endif  
 #endif
 
-  cmdfiles=parse_cmdline(argc,argv,&cmdstr,&mbnr,&mbsize,&retcode); 
+  cmdfiles=parse_cmdline(argc,argv,&cmdstr,&mbnr,&mbsize,&parallel,&retcode); 
   if (retcode) return retcode;
   //printf("\n parsed cmdstr %s mbnr %d mbsize %d\n",cmdstr,mbnr,mbsize);
   cmdfileslen=0;
@@ -261,7 +262,9 @@ int gkc_main(int argc, char **argv) {
       return(1);
     }
     //islocaldb=1;
-    err = wg_import_otter_file(shmptr,cmdfiles[1],0,&informat);   
+    //printf("\nto call wg_import_otter_file\n");
+    err = wg_import_otter_file(shmptr,cmdfiles[1],0,&informat); 
+    //printf("\nreturned from wg_import_otter_file\n");  
     if(!err) {
       //printf("Data read from %s.\n",cmdfiles[1]);
     } else if(err<-1) {
@@ -276,6 +279,7 @@ int gkc_main(int argc, char **argv) {
 
     //wg_show_database(shmptr);
     //printf("about to call wg_run_reasoner\n");
+    (dbmemsegh(shmptr)->max_forks)=parallel;
     err = wg_run_reasoner(shmptr,cmdfileslen,cmdfiles,informat,NULL,NULL);
     //wg_show_database(shmptr);
     //if(!err);
@@ -443,6 +447,7 @@ int gkc_main(int argc, char **argv) {
     wr_show_in_stats(xg);
     return(0);
     */
+    (dbmemsegh(shmptrlocal)->max_forks)=parallel;
     err = wg_run_reasoner(shmptrlocal,cmdfileslen,cmdfiles,informat,NULL,NULL);
     //if(!err);
       //printf("wg_run_reasoner finished ok.\n");
@@ -681,6 +686,8 @@ void usage(char *prog) {
          "  <dump file> stores the parsed and prepared database for fast loading \n"\
          "\n"\
          "additional optional parameters:\n"\
+         "  -parallel <nr of parallel processes to run>\n"\
+         "   if omitted, 8 worker processes and 1 parent used\n"\
          "  -mbsize <megabytes to allocate>\n"\
          "   if omitted, 1000 megabytes assumed\n"\
          "  -mbnr <shared memory database nr>\n"\
@@ -767,7 +774,8 @@ int parse_memmode(char *arg) {
  * 
  */
 
-char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsize, int* retcode) {
+char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsize, 
+          int* parallel, int* retcode) {
   int i,alen,nargc;
   char* arg;
   char c;
@@ -840,6 +848,33 @@ char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsiz
           printf("Error: missing parameter to keyword %s\n",arg);
           exit(1);
         }
+      } else if (!(strncmp(arg,"-parallel",10))) {
+        if ((i+1)<argc) {
+          //printf("\n cmd %s param %s",arg,argv[i+1]);
+          i++;
+          if (!(sscanf(argv[i], "%d", &nr))) {
+            printf("Error: keyword %s argument must be a number, not %s\n",
+                    arg,argv[i]);
+            *retcode=1;       
+            return NULL;
+          } else {
+            //printf("\n parsed nr %d\n",nr);
+            if (nr<0) {
+              printf("Error: -parallel argument is negative\n");
+              *retcode=1;       
+            return NULL;
+            }
+            if (nr>=10000) {
+              printf("Error: -parallel argument: %s is too big\n",argv[i]);
+              *retcode=1;       
+              return NULL;
+            }
+            *parallel=nr;
+          }
+        } else {
+          printf("Error: missing parameter to keyword %s\n",arg);
+          exit(1);
+        }        
       } else if (!(strncmp(arg,"-prove",10)) || 
                 !(strncmp(arg,"-readkb",10)) ||
                 !(strncmp(arg,"-provekb",10)) || 
