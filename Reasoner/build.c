@@ -384,8 +384,18 @@ gint wr_build_calc_term(glb* g, gint x) {
       //wr_print_term(g,rpto(g,yptr));      
     }
     res=encode_record(db,yptr);
-    if (g->build_rewrite) {      
+    if (g->build_rewrite) {  
+      if ((g->print_level_flag)==50) {
+        printf("\nto  rewrite ");
+        wr_print_term(g,res);         
+      } 
       res=wr_rewrite_term(g,res); 
+      if ((g->print_level_flag)==50) {       
+        printf("\ngot rewrite ");
+        wr_print_term(g,res); 
+        printf("\n");      
+      } 
+     
     }
     return res;
   }   

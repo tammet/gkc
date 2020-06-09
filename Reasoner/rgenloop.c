@@ -156,18 +156,33 @@ int wr_genloop(glb* g) {
     if ((g->max_seconds) && (total_seconds>(g->max_seconds))) return 2; 
     if (g->max_run_seconds) g->passed_ratio=(float)run_seconds / (float)(g->max_run_seconds);
     else g->passed_ratio=0; 
-    //wr_printf("\n run_seconds %f (g->max_run_seconds) %d g->passed_ratio %f\n",
-    //  (float)run_seconds,(g->max_run_seconds),g->passed_ratio);
+    /*
+    printf("\n run_seconds %f (g->max_run_seconds) %d g->passed_ratio %f\n",
+      (float)run_seconds,(g->max_run_seconds),g->passed_ratio);
+    printf("(g->pick_given_queue_ratio) %ld (g->res_shortarglen_limit) %ld (g->res_arglen_limit) %ld\n", 
+      (g->pick_given_queue_ratio), (g->res_shortarglen_limit), (g->res_arglen_limit));
+    printf("(g->stat_given_candidates) %ld (g->stat_para_derived_cl) %ld\n",
+      (g->stat_given_candidates),(g->stat_para_derived_cl));  
+    */  
     // change strategy for endgame
-    
+    /*
+    if ((g->stat_given_used)>=1050) {
+      printf("\n (g->stat_given_used) %d\n", (g->stat_given_used));
+      (g->print_level_flag)=50;
+    }
+    */
     if ((g->instgen_strat) &&  (int)((g->queue_termbuf)[0])<(int)((g->queue_termbuf)[1]+1000000)) {
        return 1;
-    } else if (((g->passed_ratio)>0.95) && (g->max_run_seconds)>3 && (g->res_arglen_limit)!=1) {
+    } else if (((g->passed_ratio)>0.9) && ((g->res_arglen_limit)!=1)) {
+               //&& (g->max_run_seconds)>3) {
       if (g->print_given_interval_trace) {
         wr_printf("\nfork %d: passed time ratio %.2f",g->current_fork_nr,g->passed_ratio);
       }
       (g->res_arglen_limit)=1;           
-    } else if (((g->passed_ratio)>0.85) &&  (g->res_shortarglen_limit)!=1) {
+      (g->endgame_mode)=1;
+      (g->stat_given_candidates_at_endgame)=(g->stat_given_candidates);
+      (g->stat_given_used_at_endgame)=(g->stat_given_used);
+    } else if (((g->passed_ratio)>0.8) &&  (g->res_shortarglen_limit)!=1) {
       if (g->print_given_interval_trace) {
         wr_printf("\nfork %d: passed time ratio %.2f",g->current_fork_nr,g->passed_ratio);
       }
@@ -197,6 +212,9 @@ int wr_genloop(glb* g) {
     //wr_show_clactive(g);
     //picked_given_cl_cand=wr_pick_given_cl(g,given_cl_metablock); 
     given_from_hyperqueue_flag=0;  
+
+    //if ((g->print_level_flag)==50) CP0;
+
     picked_given_cl_cand=wr_pick_from_hyper_queue(g,(g->hyper_queue),given_cl_metablock);  
     if (picked_given_cl_cand==NULL) {
       //printf("\ncandidate NOT from hyper_queue:\n");
@@ -206,6 +224,7 @@ int wr_genloop(glb* g) {
       given_from_hyperqueue_flag=1;
       (g->stat_given_candidates_hyper)++;
     }
+    //if ((g->print_level_flag)==50) CP1;
     if (!picked_given_cl_cand && !(g->stat_given_candidates)) {
        if ((g->print_flag) && (g->print_runs)) wr_printf("No candidate clauses found.\n");
        if (wr_have_answers(g)) return 0;
@@ -219,6 +238,7 @@ int wr_genloop(glb* g) {
         wr_print_clause(g,picked_given_cl_cand);          
       }  
     }       
+    //if ((g->print_level_flag)==50) CP2;
     if (picked_given_cl_cand==NULL) {
       return 1;
     }
@@ -227,6 +247,10 @@ int wr_genloop(glb* g) {
         continue;
       }
     }
+    if ((g->endgame_mode) && (wr_count_cl_nonans_atoms(g,picked_given_cl_cand)>1)) {
+      continue;
+    }
+    //if ((g->print_level_flag)==50) CP3;
     (g->stat_given_candidates)++; //stats 
     /*
     handling picked given_cl_cand:
@@ -237,18 +261,22 @@ int wr_genloop(glb* g) {
           and use that in the following
       fully subsume with active clauses: if subsumed, drop      
     */  
-    if ((g->back_subsume) && wr_blocked_clause(g,picked_given_cl_cand)) {
+    if ((g->back_subsume) && !(g->endgame_mode) && wr_blocked_clause(g,picked_given_cl_cand)) {
       //printf("\n given is blocked\n");
       continue;
     } else if ((g->propagate) && wg_rec_is_blocked_clause(db,picked_given_cl_cand)) {     
       //printf("\n given is blocked\n");
       continue;      
     }
+    //if ((g->print_level_flag)==50) CP4;
     wr_process_given_cl_setupsubst(g,g->given_termbuf,1,1); // !!!!! new try      
     wr_sort_cl(g, picked_given_cl_cand);
+    //if ((g->print_level_flag)==50) CP5;
     given_cl_cand=wr_simplify_cl(g, picked_given_cl_cand, given_cl_metablock);
+    //if ((g->print_level_flag)==50) CP6;
     //wr_print_cl_literals_meta(g, picked_given_cl_cand);
     wr_process_given_cl_cleanupsubst(g);
+    //if ((g->print_level_flag)==50) CP7;
     if (given_cl_cand==NULL) {
       //printf("\nwr_activate_passive_cl returned null\n");
       if (g->alloc_err) return -1;
@@ -275,7 +303,7 @@ int wr_genloop(glb* g) {
 
     // -- check part 1 ends ---
 
-    if (wr_given_cl_subsumed(g,given_cl_cand,given_cl_metablock)) {
+    if (!(g->endgame_mode) && wr_given_cl_subsumed(g,given_cl_cand,given_cl_metablock)) {
 #ifdef DEBUG
       wr_printf("\ngiven cl is subsumed\n");
 #endif    
@@ -318,7 +346,7 @@ int wr_genloop(glb* g) {
     //if ((g->stat_given_used)>233) return; //223
     //printf("\nmetablock2 %d %d %d %d \n",*given_cl_metablock,*(given_cl_metablock+1),*(given_cl_metablock+2),*(given_cl_metablock+3));
     // optionally do backsubsumption
-    if (g->back_subsume) wr_given_cl_backsubsume(g,given_cl,given_cl_metablock);
+    if (!(g->endgame_mode) && (g->back_subsume)) wr_given_cl_backsubsume(g,given_cl,given_cl_metablock);
     // calculate resolvability: (g->tmp_resolvability_vec)
     if (given_from_hyperqueue_flag) {
       wr_calc_clause_resolvability(g,given_cl,0,1);
@@ -340,7 +368,7 @@ int wr_genloop(glb* g) {
         if (g->alloc_err) return -1;
         continue; 
       }        
-    } else {
+    } else { //if (!(g->endgame_mode)) {
       // add to active list
       //printf("\n from normal queue\n");
       given_cl_as_active=wr_add_given_cl_active_list(g,given_cl,given_cl_metablock,1,
@@ -366,42 +394,34 @@ int wr_genloop(glb* g) {
 
     // do all resolutions with the given clause
     // normal case: active loop is done inside the wr_resolve_binary_all_active    
+    /*
+    if (g->endgame_mode) {
+      printf("endgame given_cl ");
+      wr_print_clause(g,given_cl);
+      printf("\n");
+    }
+    */
     wr_resolve_binary_all_active(g,given_cl,given_cl_as_active,(g->tmp_resolvability_vec)); 
     if ((g->proof_found) && wr_enough_answers(g)) return 0;
     if (g->alloc_err) return -1;        
     // next one blocks para for endgame
     if ((g->res_arglen_limit) && !(g->res_strict_arglen_limit) && (g->res_arglen_limit)<2) {
       continue;
-    }    
-    //int tmp_para=(g->prohibit_nested_para);
-    if ((g->use_equality) && (!(g->rewrite_only_strat))) {
-      /*
-      if (g->prohibit_nested_para) {
-        if (wr_get_cl_history_tag(g,given_cl)==WR_HISTORY_TAG_PARA) {
-          // given derived by eq: then ycl should not be derived by eq
-        } else {
-          // given not derived by eq: then ycl can be derived by eq
-          (g->prohibit_nested_para)=0;
-        }
-      }
-      wr_paramodulate_from_all_active(g,given_cl,given_cl_as_active,(g->tmp_resolvability_vec));    
-      if ((g->proof_found) && wr_enough_answers(g)) return 0;
-      if (g->alloc_err) return -1;                  
-      wr_paramodulate_into_all_active(g,given_cl,given_cl_as_active,(g->tmp_resolvability_vec));    
-      if ((g->proof_found) && wr_enough_answers(g)) return 0;
-      if (g->alloc_err) return -1; 
-      */      
-      if (!(g->prohibit_nested_para) || (wr_get_cl_history_tag(g,given_cl)!=WR_HISTORY_TAG_PARA)) {
+    }       
+    if ((g->use_equality) && (!(g->rewrite_only_strat))) {  
+      if (!(g->endgame_mode) && 
+          (!(g->prohibit_nested_para) || (wr_get_cl_history_tag(g,given_cl)!=WR_HISTORY_TAG_PARA)) ) {
         wr_paramodulate_from_all_active(g,given_cl,given_cl_as_active,(g->tmp_resolvability_vec));    
-        if ((g->proof_found) && wr_enough_answers(g)) return 0;
+        if ((g->proof_found) && wr_enough_answers(g)) {
+          printf("\nrgenloop processing proof found by wr_paramodulate_from_all_active\n");
+          return 0;
+        }  
         if (g->alloc_err) return -1;                  
         wr_paramodulate_into_all_active(g,given_cl,given_cl_as_active,(g->tmp_resolvability_vec));    
         if ((g->proof_found) && wr_enough_answers(g)) return 0;
         if (g->alloc_err) return -1;          
       }      
-    }
-    //(g->prohibit_nested_para)=tmp_para;
-    
+    }       
   }
   // loop ended: either nothing to do or timeout
   if (wr_have_answers(g)) {
@@ -451,7 +471,7 @@ gptr wr_pick_given_cl(glb* g, gptr given_cl_metablock) {
     wr_calc_clause_meta(g,cl,given_cl_metablock);
     return cl;
   }
-  // no candidates for given found 
+  // fndidates for given found 
   return NULL;
 }
 
@@ -482,7 +502,8 @@ gptr wr_process_given_cl(glb* g, gptr given_cl_cand, gptr buf) {
   wr_process_given_cl_setupsubst(g,buf,1,1);
 #ifdef DEBUG
   wr_printf("\nwr_process_given_cl to do wr_build_calc_cl \n");
-#endif    
+#endif   
+  if (g->endgame_mode) (g->build_rewrite)=0; 
   given_cl=wr_build_calc_cl(g,given_cl_cand);
   if (!given_cl) return NULL;
 #ifdef DEBUG
@@ -584,9 +605,9 @@ gptr wr_add_given_cl_active_list(glb* g, gptr given_cl, gptr given_cl_metablock,
   }
   //wr_show_clactivesubsume(g);
 
-  //  store neg and pos preds to hash_neg/pos_atoms and store para terms
+  //  store neg and pos preds to hash_neg/pos_atoms and store para terms 
   wr_cl_store_res_terms(g,active_cl,resolvability);  
-  if ((g->use_equality) && (g->use_equality_strat)) {   
+  if (!(g->endgame_mode) && (g->use_equality) && (g->use_equality_strat)) {   
     wr_cl_store_para_terms(g,active_cl,resolvability);
   } 
   (g->stat_given_used)++;  // stats   

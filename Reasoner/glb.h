@@ -337,6 +337,7 @@ typedef struct {
 
   int max_proofs;
   int store_history;
+  int endgame_mode; 
 
   /*  printout configuration */
   
@@ -426,7 +427,9 @@ typedef struct {
   int stat_internlimit_discarded_para;
   int stat_given_candidates;
   int stat_given_candidates_hyper;
+  int stat_given_candidates_at_endgame; 
   int stat_given_used;  
+  int stat_given_used_at_endgame; 
   int stat_simplified;
   int stat_simplified_given;
   int stat_simplified_derived;

@@ -132,7 +132,6 @@ cJSON* wr_parse_guide_str(char* buf) {
   char *errorptr=NULL;
   int i;
 
-  //printf("\nbuf:\n%s\n",buf);
   guide=cJSON_Parse(buf);
   if (guide==NULL) {
     errorptr=(char*)cJSON_GetErrorPtr();

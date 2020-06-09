@@ -202,6 +202,7 @@ int wr_glb_init_simple(glb* g) {
  
   (g->max_proofs)=1;
   (g->store_history)=1;
+  (g->endgame_mode)=0; // set to 1 at the last phase of one run to look for contradiction directly
   //(g->cl_maxdepth)=1000000;
   //(g->cl_limitkept)=1;
   (g->sine_k_bytes)=SINE_K_VALUES_SIZE;
@@ -293,8 +294,10 @@ int wr_glb_init_simple(glb* g) {
   (g->stat_internlimit_discarded_cl)=0;
   (g->stat_internlimit_discarded_para)=0;
   (g->stat_given_candidates)=0;
+  (g->stat_given_candidates_at_endgame)=0;
   (g->stat_given_candidates_hyper)=0;
   (g->stat_given_used)=0;
+  (g->stat_given_used_at_endgame)=0;
   (g->stat_simplified)=0;
   (g->stat_simplified_given)=0;
   (g->stat_simplified_derived)=0;
@@ -688,10 +691,9 @@ int wr_glb_init_local_complex(glb* g) {
 int wr_glb_free(glb* g) {
 
   // first free subitems
- 
   wr_glb_free_shared_complex(g);
-  wr_glb_free_local_complex(g);  
-  wr_glb_free_shared_simple(g);    
+  wr_glb_free_local_complex(g);
+  wr_glb_free_shared_simple(g); 
   wr_glb_free_local_simple(g);
 
   sys_free(g); // free whole spaces
@@ -734,9 +736,8 @@ int wr_glb_free_shared_complex(glb* g) {
   wr_vec_free(g,rotp(g,g->clpickstack));  
   wr_vec_free(g,rotp(g,g->clqueue));     
   //wr_vec_free(g,rotp(g,g->clweightqueue)); 
-  wr_free_priorqueue(g,rotp(g,g->clpickpriorqueue));
+  wr_free_priorqueue(g,rotp(g,g->clpickpriorqueue)); 
   wr_free_clpick_queues(g,rotp(g,g->clpick_queues));
-
   wr_free_termhash(g,rotp(g,g->hash_pos_groundunits));
   wr_free_termhash(g,rotp(g,g->hash_neg_groundunits));
 
@@ -744,18 +745,16 @@ int wr_glb_free_shared_complex(glb* g) {
   wr_free_termhash(g,rotp(g,g->hash_neg_active_groundunits));
 
   wr_free_atomhash(g,rotp(g,g->hash_atom_occurrences));
-
   wr_clterm_hashlist_free(g,rotp(g,g->hash_neg_atoms));    
   wr_clterm_hashlist_free(g,rotp(g,g->hash_pos_atoms)); 
-  if (g->use_strong_unit_cutoff) {
-    wr_clterm_hashlist_free(g,rotp(g,g->hash_neg_units));    
-    wr_clterm_hashlist_free(g,rotp(g,g->hash_pos_units)); 
+  if (g->use_strong_unit_cutoff) {    
+    if (g->hash_neg_units) wr_clterm_hashlist_free(g,rotp(g,g->hash_neg_units));    
+    if (g->hash_pos_units) wr_clterm_hashlist_free(g,rotp(g,g->hash_pos_units)); 
   }
-  //wr_clterm_hashlist_free(g,rotp(g,g->hash_units));
+  //wr_clterm_hashlist_free(g,rotp(g,g->hash_units)); CP7
   wr_clterm_hashlist_free(g,rotp(g,g->hash_para_terms));
   wr_clterm_hashlist_free(g,rotp(g,g->hash_eq_terms));
   wr_clterm_hashlist_free(g,rotp(g,g->hash_rewrite_terms));
-  
   // prop
   if ((g->instgen_strat) || (g->propgen_strat)) {
     wr_free_prop_termhash(g,rotp(g,g->prop_hash_atoms)); 
@@ -767,7 +766,6 @@ int wr_glb_free_shared_complex(glb* g) {
   }  
   // sine
   //wr_vec_free(g,rotp(g,(g->tmp_uriinfo)));
-
   return 0;
 }  
 

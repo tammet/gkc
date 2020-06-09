@@ -738,13 +738,15 @@ void wr_clterm_hashlist_print(glb* g, vec hashvec) {
   //printf("\nhashvec len %d ptr %lx and els:\n",(int)vlen,(unsigned long int)hashvec); 
   wr_printf("\nhashvec len %d els:\n",(int)vlen);
   for(i=VEC_START;i<vlen+1;i++) {
-    if (hashvec[i]!=0) {
+    if (hashvec[i]!=0 &&
+        (rotp(g,hashvec[i]))[CLTERM_HASHNODE_LEN_POS])  {
       //printf("\ni %d hashvec[i] %d \n",i,hashvec[i]);      
       node=(rotp(g,hashvec[i]))[CLTERM_HASHNODE_NEXT_POS];
       //printf("\nhashslot i %d node %ld len %d:\n",
       //   i, node, (int)((rotp(g,hashvec[i]))[CLTERM_HASHNODE_LEN_POS]));
       wr_printf("\nhashslot %d len %d:\n",
-         i, (int)((rotp(g,hashvec[i]))[CLTERM_HASHNODE_LEN_POS]));   
+         i, (int)((rotp(g,hashvec[i]))[CLTERM_HASHNODE_LEN_POS])); 
+      //if (!(int)((rotp(g,hashvec[i]))[CLTERM_HASHNODE_LEN_POS])) continue; 
       while(node!=0) {        
         tmp=(rotp(g,node))[CLTERM_HASHNODE_PATH_POS];
         if (!tmp) {

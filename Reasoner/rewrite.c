@@ -45,6 +45,7 @@ extern "C" {
 
 //#define DEBUG
 //#undef DEBUG
+//#define TDEBUG
 
 
 /* ======= Private protos ================ */
@@ -119,8 +120,27 @@ gint wr_rewrite_term(glb* g, gint x) {
       }
 
 #ifdef DEBUG   
-      wr_printf("\n before matching yterm (left side of rewrite rule):\n");
+      wr_printf("\n before matching with rewriter:\n");
       wr_print_term(g,yterm);
+      printf(" -> ");
+
+      // get right side of the rewrite rule
+        path=wg_decode_int(db,nodeptr[CLTERM_HASHNODE_PATH_POS]); 
+        if (wg_rec_is_rule_clause(db,ycl)) {
+          yatom=wg_get_rule_clause_atom(db,ycl,0); // eq literal
+        } else {
+          yatom=encode_record(db,ycl);
+        }        
+        if (path==1) {
+          // right arg is replacement
+          b=(gint)(((gint *)(otp(db,yatom)))[RECORD_HEADER_GINTS+(g->unify_funarg2pos)]);
+        } else {
+          // left arg is replacement
+          b=(gint)(((gint *)(otp(db,yatom)))[RECORD_HEADER_GINTS+(g->unify_funarg1pos)]);
+        }
+
+
+      wr_print_term(g,b);
       wr_printf("\n and input term x:\n");
       wr_print_term(g,x);
       wr_printf("\n and vardata:\n");
@@ -152,6 +172,28 @@ gint wr_rewrite_term(glb* g, gint x) {
           // left arg is replacement
           b=(gint)(((gint *)(otp(db,yatom)))[RECORD_HEADER_GINTS+(g->unify_funarg1pos)]);
         }
+#ifdef TDEBUG   
+      wr_printf("\n successful match with rewriter:\n");
+      wr_print_term(g,yterm);
+      printf(" -> ");
+      wr_print_term(g,b);
+      wr_printf("\n and input term ");
+      wr_print_term(g,x);
+      printf("\n");
+      //wr_printf("\n and vardata:\n");
+      //wr_print_vardata(g); ;
+#endif      
+      /* 
+      if ((g->print_level_flag)==50) {
+        wr_printf("\n successful match with rewriter:\n");
+        wr_print_term(g,yterm);
+        printf(" -> ");
+        wr_print_term(g,b);
+        wr_printf("\n and input term ");
+        wr_print_term(g,x);
+        printf("\n");
+      }
+      */
         // store rewriter 
         tmp=(int)((g->rewrite_clvec)[1]);
         if (tmp<NROF_REWRITE_CLVEC_ELS-4) {

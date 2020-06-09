@@ -987,11 +987,17 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
           wr_print_term(g,term);
         }    
         wr_paramodulate_into_subterms_all_active(g,cl,cl_as_active,atom,yi,depth+1,litnr,termpath,nonanslen);
+        if (g->proof_found || g->alloc_err) break;
       }
 #endif
       
     }
   }  
+  /*
+  if (g->proof_found || g->alloc_err) {
+    printf("\nwr_paramodulate_into_subterms_all_active proceeding with proof \n");
+  }
+  */
 #ifdef PARA_INTO_ATOM  
 #else
   // do not put into hash on the atom level  
@@ -1166,6 +1172,7 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
   #endif        
         */     
         if (g->proof_found || g->alloc_err) {
+          //printf("\nwr_paramodulate_into_subterms_all_active found proof\n");
           wr_clear_varstack(g,g->varstack);
           if (wr_enough_answers(g) || g->alloc_err) return 1;   // return 1 ????
         }        

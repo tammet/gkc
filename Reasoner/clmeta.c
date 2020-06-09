@@ -174,6 +174,7 @@ int  wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length
         //wr_print_clause(g,xptr);
         is_rewrite=1;
         w=(int)((float)w/2.0); // NORMAL /2.0 TESTING *0.8
+        //w=(int)((float)w*0.9);
       }
     }
   }      
@@ -183,6 +184,9 @@ int  wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length
   } else {
     w=w+(((*length)-1)*(g->cl_length_penalty))+(((*depth)-1)*(g->cl_depth_penalty));
   }  
+
+  //if (is_rewrite) w=(int)((float)w/3.0); // NORMAL /2.0 TESTING *0.8
+
 #ifdef DEBUG  
   wr_printf("\nwr_calc_clause_weight returns weight %d and size %d depth %d length %d\n",
       w,*size,*depth,*length); 

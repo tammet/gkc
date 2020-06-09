@@ -605,7 +605,6 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
 #endif      
     }      
     //if (g->print_flag) wr_show_stats(g,1);
-
     if (res==0) {
       // proof found 
       if (g->print_flag) wr_show_stats(g,1);
@@ -633,6 +632,7 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
       break;
     }
     // no proof found here
+    // wr_show_stats(g,1);
     wr_glb_free(g); 
     if ((iter+1)>=guideres) break;      
   }
@@ -1557,7 +1557,9 @@ void wr_show_stats(glb* g, int show_local_complex) {
   //wr_printf("total seconds: %f\n",
   //  (float)(clock() - (g->allruns_start_clock)) / (float)CLOCKS_PER_SEC);
   wr_printf("stat_given_used: %d\n",g->stat_given_used);
+  wr_printf("stat_given_used_at_endgame: %d\n",g->stat_given_used_at_endgame);
   wr_printf("stat_given_candidates:   %d\n",g->stat_given_candidates); 
+  wr_printf("stat_given_candidates_at_endgame: %d\n",g->stat_given_candidates_at_endgame);
   wr_printf("stat_given_candidates_h: %d\n",g->stat_given_candidates_hyper); 
   //printf("stat_derived_cl: %d\n",g->stat_derived_cl);
   wr_printf("stat_binres_derived_cl:   %d\n",g->stat_binres_derived_cl);

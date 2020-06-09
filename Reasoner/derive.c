@@ -835,11 +835,19 @@ void wr_process_paramodulate_result
   rlen=(xatomnr+yatomnr-1)*LIT_WIDTH;
   if (rlen==0) {
     g->proof_found=1;
+    printf("\nwr_process_paramodulate_result found proof1\n");
+    printf("xcl ");
+    wr_print_clause(g,xcl);
+    printf("\nxcl_as_active ");
+    wr_print_clause(g,xcl_as_active);
+    printf("\nycl ");
+    wr_print_clause(g,ycl);
+    printf("\n");
     if (fromflag) {
-      //printf("\n fromflag %d cutpos1 %d cutpos2 %d leftflag %d\n",fromflag,cutpos1,cutpos2,leftflag);
+      printf("\n fromflag %d cutpos1 %d cutpos2 %d leftflag %d\n",fromflag,cutpos1,cutpos2,leftflag);     
       g->proof_history=wr_build_para_history(g,xcl_as_active,ycl,0,0,NULL,path,leftflag,fromflag);
     } else {
-      //printf("\n fromflag %d cutpos1 %d cutpos2 %d leftflag %d\n",fromflag,cutpos1,cutpos2,leftflag);
+      printf("\n fromflag %d cutpos1 %d cutpos2 %d leftflag %d\n",fromflag,cutpos1,cutpos2,leftflag);
       g->proof_history=wr_build_para_history(g,xcl,xcl_as_active,0,0,NULL,path,leftflag,fromflag);  
     }   
     wr_register_answer(g,NULL,g->proof_history);
@@ -876,7 +884,7 @@ void wr_process_paramodulate_result
   //}
   wr_process_resolve_result_cleanupsubst(g);  
   if (rpos==0) {
-    g->proof_found=1;  
+    g->proof_found=1; 
     if (fromflag) {
       //printf("\n fromflag %d cutpos1 %d cutpos2 %d leftflag %d\n",fromflag,cutpos1,cutpos2,leftflag);
       g->proof_history=wr_build_para_history(g,xcl_as_active,ycl,cutpos1,cutpos2,NULL,path,leftflag,fromflag);
@@ -916,50 +924,6 @@ void wr_process_paramodulate_result
     wr_printf("\nhalfbuilt res:\n");
     wr_print_halfbuilt_clause(g,rptr,rpos);
   }
-  /* 
-  tmp=wr_derived_cl_cut_and_subsume(g,rptr,rpos,NULL);
-  if (tmp<0) {
-    // clause was subsumed
-#ifdef DEBUG      
-    wr_printf("\nwr_process_paramodulate_result was subsumed with new subsumer\n");
-#endif    
-    if (g->print_derived_subsumed_cl) {
-      wr_printf("\n- subsumed derived by = ");
-      if (fromflag) {
-        wr_printf("from: ");
-      } else {
-        wr_printf("into: ");
-      } wr_print_halfbuilt_clause(g,rptr,rpos);
-    }    
-    return;    
-  } else if (tmp>0) {
-    // there were cuts
-    if (g->print_derived_precut_cl) {
-      wr_printf("\nc post-cut derived by = ");
-      if (fromflag) {
-        wr_printf("from: ");
-      } else {
-        wr_printf("into: ");
-      } 
-      wr_print_halfbuilt_clause(g,rptr,rpos);
-    }
-    wr_process_resolve_result_remove_cuts(g,rptr,&rpos,tmp);
-    (g->stat_derived_cut)++;
-    if (rpos==0) {
-      g->proof_found=1;  
-      if (fromflag) {
-        //printf("\n fromflag %d cutpos1 %d cutpos2 %d leftflag %d\n",fromflag,cutpos1,cutpos2,leftflag);
-        g->proof_history=wr_build_para_history(g,xcl_as_active,ycl,cutpos1,cutpos2,g->cut_clvec,path,leftflag,fromflag);
-      } else {
-        //printf("\n fromflag %d cutpos1 %d cutpos2 %d leftflag %d\n",fromflag,cutpos1,cutpos2,leftflag);
-        g->proof_history=wr_build_para_history(g,xcl,xcl_as_active,cutpos2,cutpos1,g->cut_clvec,path,leftflag,fromflag);  
-      }
-      wr_register_answer(g,NULL,g->proof_history);
-      //g->proof_history=wr_build_para_history(g,xcl_as_active,ycl,cutpos1,cutpos2,g->cut_clvec,path,leftflag,fromflag); 
-      return;
-    } 
-  }
-  */
 
   // --
   tmp=wr_derived_cl_cut_and_subsume(g,rptr,rpos,NULL);
@@ -991,6 +955,9 @@ void wr_process_paramodulate_result
         } else {
           wr_printf("into: ");
         } 
+        printf("\n(g->cut_clvec)[0]: %ld\n",(g->cut_clvec)[0]);
+        wr_print_clause(g,(gptr)((g->cut_clvec)[1]));
+        printf("\n");        
         wr_print_halfbuilt_clause(g,rptr,rpos);
       }
       wr_process_resolve_result_remove_cuts(g,rptr,&rpos,tmp+tmp2);

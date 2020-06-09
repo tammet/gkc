@@ -49,7 +49,12 @@ extern "C" {
 #define QUIET
 //#undef QUIET
 
+#define NORMAL_CONSTANT_ORDER
 #define EQ_ORDER_VAR_WEIGHT 10 // should be minimal value of any const/funs weight
+
+#define SUBLISTS_FIXED // if defined, important june fix used
+#define OCC_LEX_ORDER // if defined, lex ordering is based on occurrences
+#define KB_WEIGHTS_ORDER // if defined, kb weights are based on occurrences
 
 /* ======= Private protos ================ */
 
@@ -897,13 +902,17 @@ int wr_order_eqterms(glb* g, gint a, gint b, gptr vb) {
   
   wr_clear_countedvarlist(g,(g->xcountedvarlist));
   xw=wr_order_eqterms_weight_vars(g, a, (g->xcountedvarlist), vb);
-#ifdef EQORDER_DEBUG    
+#ifdef EQORDER_DEBUG   
+  printf("\nxcountedvarlist "); 
   wr_show_countedvarlist(g,(g->xcountedvarlist));
+  printf("\n");
 #endif 
   wr_clear_countedvarlist(g,(g->ycountedvarlist));
   yw=wr_order_eqterms_weight_vars(g, b, (g->ycountedvarlist), vb);
 #ifdef EQORDER_DEBUG    
+  printf("\nycountedvarlist ");
   wr_show_countedvarlist(g,(g->ycountedvarlist));
+  printf("\n");
 #endif   
   
 #ifdef EQORDER_DEBUG  
@@ -917,6 +926,7 @@ int wr_order_eqterms(glb* g, gint a, gint b, gptr vb) {
     }
 #endif   
 
+  
   if (xw>yw && wr_countedvarlist_is_subset(g,(g->ycountedvarlist),(g->xcountedvarlist))) {
     res=1;
   } else if (yw>xw && wr_countedvarlist_is_subset(g,(g->xcountedvarlist),(g->ycountedvarlist))) {
@@ -930,12 +940,13 @@ int wr_order_eqterms(glb* g, gint a, gint b, gptr vb) {
     // lexorder:
     // 1 if x is smaller than y
     // 2 if y is smaller than x
-    if (lexorder==2 && wr_countedvarlist_is_subset(g,(g->ycountedvarlist),(g->xcountedvarlist)))
+    if (lexorder==2 && wr_countedvarlist_is_subset(g,(g->ycountedvarlist),(g->xcountedvarlist))) {
        res=1; // a bigger than b (prohibits b)
-    else if (lexorder==1 && wr_countedvarlist_is_subset(g,(g->xcountedvarlist),(g->ycountedvarlist)))   
+    } else if (lexorder==1 && wr_countedvarlist_is_subset(g,(g->xcountedvarlist),(g->ycountedvarlist))) {  
        res=2; // b bigger than a (prohibits a)
-    else 
+    } else {
        res=3;
+    }   
   } else {
     res=3;
   }        
@@ -948,7 +959,30 @@ int wr_order_eqterms(glb* g, gint a, gint b, gptr vb) {
 }
 
 static int wr_order_eqterms_const_weight(glb* g, gint a) {
+#ifdef KB_WEIGHTS_ORDER
+  void* db=g->db;
+  gint dtypex=wg_get_encoded_type(db,a);
+  if (dtypex==WG_URITYPE) {    
+    
+    gint ucountx=wg_decode_uri_count(db,a);
+    gint ucountposx=ucountx >> URI_COUNT_POSCOUNT_SHIFT;
+    if (ucountposx>30000) ucountposx=30000;
+    gint ucountnegx=ucountx & URI_COUNT_NEGCOUNT_MASK;
+    if (ucountnegx>10000) ucountnegx=10000;
+    gint ucountallx=ucountposx+ucountnegx; 
+    /*
+    printf("\nx uri weight for %s ucountallx %ld id %ld: ",
+      wg_decode_unistr(db,a,WG_URITYPE),
+      ucountallx,
+      wg_decode_uri_id(db,a));
+    */  
+    return ucountallx+20;  
+  } else {
+    return 10;
+  }  
+#else
   return 10;
+#endif  
 }
 
 
@@ -1093,6 +1127,17 @@ int wr_countedvarlist_is_subset(glb* g, cvec xlist, cvec ylist) {
   int i, j, var, found;  
 
   UNUSED(g);
+
+#ifdef EQORDER_DEBUG  
+  printf("\n");
+  for(i=0; i<xlist[1]; i=i+1) {
+    printf("xlist i %d: %ld\n",i,xlist[i]);
+  }
+  printf("\n");
+  for(i=0; i<ylist[1]; i=i+1) {
+    printf("ylist i %d: %ld\n",i,ylist[i]);
+  }
+#endif
   // NULL cases are for atom knuth bendix: for para cases no NULLs here
   if (xlist==NULL) return 1; // no xlist
   if (ylist==NULL) { // no ylist
@@ -1117,7 +1162,14 @@ int wr_countedvarlist_is_subset(glb* g, cvec xlist, cvec ylist) {
     for(j=4; j<ylist[1]; j=j+2) {
       if (var==ylist[j]) {
         // var found
+#ifdef SUBLISTS_FIXED
+        // this is correct, fixed in june
+        if (xlist[i+1]>ylist[j+1]) return 0; // too many occs in xlist
+#else 
+        // this is old and incorrect
         if (xlist[i+1]>ylist[i+1]) return 0; // too many occs in xlist
+#endif        
+        
         else {
           found=1;
           break;
@@ -1185,11 +1237,14 @@ static int wr_order_eqterms_lex_order(glb* g, gint x, gint y, gptr vb) {
   ylen=get_record_len(yptr);
   // let smaller-arity funs be lex-smaller 
   // normal in May 2020
+#ifdef NORMAL_CONSTANT_ORDER  
   if (xlen<ylen) return 1;
   else if (ylen<xlen) return 2;   
+#else  
   // TESTING 
-  //if (xlen>ylen) return 1;
-  //else if (ylen>xlen) return 2;  
+  if (xlen>ylen) return 1;
+  else if (ylen>xlen) return 2;  
+#endif  
 
   // here the arities are same
   uselen=xlen;
@@ -1208,6 +1263,90 @@ static int wr_order_eqterms_lex_order(glb* g, gint x, gint y, gptr vb) {
   }      
   return 0;        
 }        
+
+/* 
+
+  returns:
+    0 if terms are lex-equal
+    1 if x is smaller than y
+    2 if y is smaller than x
+    3 if terms are not lex-comparable
+
+*/
+/*
+
+static int wr_order_eqterms_lex_order2(glb* g, gint x, gint y, gptr vb) {
+  void* db;
+  gptr xptr,yptr;
+  //int i, start, end;  
+  //int w;
+  gint encx,ency,tmp; // used by VARVAL_F
+  int xlen,ylen,uselen,ilimit,i;
+
+#ifdef EQORDER_DEBUG
+  wr_printf("wr_order_eqterms_lex_order2 called with x %ld and y %ld: ",x,y);
+  wr_print_term(g,x);
+  wr_printf("\n");
+  wr_print_term(g,y);
+  wr_printf("\n");
+#endif     
+
+  if (x==y) return 0; // equal
+  if (vb!=NULL) {
+    if (isvar(x)) x=VARVAL_F(x,vb);
+    if (isvar(y)) y=VARVAL_F(y,vb);
+    if (x==y) return 0; // equal
+  } 
+  if (isvar(x) || isvar(y)) return 3; // not comparable
+  // here none can be a var   
+  if (!isdatarec(x)) {
+    // now x has a have a simple value     
+    if (!isdatarec(y)) {
+      if (wr_order_eqterms_const_lex_smaller(g,x,y)) return 1;
+      else return 2;      
+    } else {
+      // consider function terms as lex bigger than constants
+      return 1; 
+    }
+  } else if (!isdatarec(y)) {
+    // x is a function term and y is a constant
+    return 2;
+  }
+  // x and y are both complex terms     
+  db=g->db;
+  xptr=decode_record(db,x);
+  yptr=decode_record(db,y);
+  xlen=get_record_len(xptr);
+  ylen=get_record_len(yptr);
+  // let smaller-arity funs be lex-smaller 
+  // normal in May 2020
+#ifdef NORMAL_CONSTANT_ORDER  
+  if (xlen<ylen) return 1;
+  else if (ylen<xlen) return 2;   
+#else  
+  // TESTING 
+  if (xlen>ylen) return 1;
+  else if (ylen>xlen) return 2;  
+#endif  
+
+  // here the arities are same
+  uselen=xlen;
+  if (g->unify_maxuseterms) {
+    if (((g->unify_maxuseterms)+(g->unify_firstuseterm))<uselen) 
+      uselen=(g->unify_firstuseterm)+(g->unify_maxuseterms);
+  }    
+  ilimit=RECORD_HEADER_GINTS+uselen;
+  for(i=RECORD_HEADER_GINTS+(g->unify_firstuseterm); i<ilimit; i++) {
+    encx=*(xptr+i);
+    ency=*(yptr+i);    
+    if (encx==ency) continue;
+    tmp=wr_order_eqterms_lex_order(g,encx,ency,vb);
+    if (tmp==0) continue;
+    else return tmp;   
+  }      
+  return 0;        
+}        
+*/
 
 static int wr_order_eqterms_const_lex_smaller(glb* g, gint x, gint y) {
   //if (x<y) return 1;  // TESTING
@@ -1579,11 +1718,54 @@ int wr_order_atoms_lex_order(glb* g, gint x, gint y, gptr vb) {
 }        
 
 int wr_order_atoms_const_lex_smaller(glb* g, gint x, gint y) {
-  // NORMAL block
-  
+
+#ifdef OCC_LEX_ORDER
+  void* db=g->db;
+  gint dtypex=wg_get_encoded_type(db,x);
+  gint dtypey=wg_get_encoded_type(db,y);
+  if (dtypex==WG_URITYPE && dtypey==WG_URITYPE) {    
+    
+    gint ucountx=wg_decode_uri_count(db,x);
+    gint ucountposx=ucountx >> URI_COUNT_POSCOUNT_SHIFT;
+    if (ucountposx>30000) ucountposx=30000;
+    gint ucountnegx=ucountx & URI_COUNT_NEGCOUNT_MASK;
+    if (ucountnegx>10000) ucountnegx=10000;
+    gint ucountallx=ucountposx+ucountnegx; 
+
+    gint ucounty=wg_decode_uri_count(db,y);
+    gint ucountposy=ucounty >> URI_COUNT_POSCOUNT_SHIFT;
+    if (ucountposy>30000) ucountposy=30000;
+    gint ucountnegy=ucounty & URI_COUNT_NEGCOUNT_MASK;
+    if (ucountnegy>10000) ucountnegy=10000;
+    gint ucountally=ucountposx+ucountnegy;
+    /*
+    printf("\nx uri %s ucountallx %ld id %ld: ",
+      wg_decode_unistr(db,x,WG_URITYPE),
+      ucountallx,
+      wg_decode_uri_id(db,x));
+    printf("\ny uri %s ucountally %ld id %ld: ",
+      wg_decode_unistr(db,y,WG_URITYPE),
+      ucountally,
+      wg_decode_uri_id(db,y));  
+    */
+    if (ucountallx<ucountally) {
+      return 1;
+    } else if (ucountallx>ucountally) {
+      return 0;    
+    } else if (wg_decode_uri_id(db,x)<wg_decode_uri_id(db,y)) {
+      return 1;
+    } else {
+      return 0;
+    }
+  } else {
+     if (x>y) return 1;
+      else return 0; 
+  }  
+#else
+  // NORMAL block  
   if (x>y) return 1;
   else return 0; 
-  
+#endif  
 
   // TESTING with count
   /*

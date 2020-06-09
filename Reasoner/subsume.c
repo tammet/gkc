@@ -1020,8 +1020,10 @@ gptr strongly_cut_atom(glb* g, gint xatom, vec hashvec, int usematch) {
       wr_printf("\nxatom ");
       wr_print_term(g,xatom);     
       wr_printf("\nyatom ");
-      wr_print_term(g,yatom);      
-      printf("\n");
+      wr_print_term(g,yatom);  
+      printf("\nyclause ") ;
+      wr_print_clause(g,otp(db,(otp(db,node))[CLTERM_HASHNODE_CL_POS]));   
+      printf("\nat pos %ld\n",(otp(db,node))[CLTERM_HASHNODE_PATH_POS]);
       wr_print_vardata(g);
 #endif    
       if (usematch) {
@@ -1046,6 +1048,7 @@ gptr strongly_cut_atom(glb* g, gint xatom, vec hashvec, int usematch) {
         wr_show_clqueue(g);
         wr_printf("\nqueue ended\n");
 #endif             
+        wr_clear_varstack(g,g->varstack); // !! added in june
         return ycl;                
       }
 #ifdef SCUTDEBUG

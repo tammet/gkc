@@ -433,13 +433,13 @@ int wr_cl_store_res_units(glb* g, gptr cl) {
   if (ruleflag) len = wg_count_clause_atoms(db, cl);
   else len=1;
   if (len!=1) return 0;
- 
+  
 #ifdef DEBUG
   wr_printf("ruleflag %d len %d \n",
           ruleflag,len);
 #endif  
   // loop over literals
-  for(i=0; i<len; i++) {  
+  for(i=0; i<len; i++) {   
     negflag=0;
     if (!ruleflag) {
       atom=encode_record(db,cl);      
@@ -458,7 +458,7 @@ int wr_cl_store_res_units(glb* g, gptr cl) {
       wr_clterm_hashlist_print(g,rotp(g,g->hash_pos_units));
       wr_printf("\nhash_neg_units before adding:");      
       wr_clterm_hashlist_print(g,rotp(g,g->hash_neg_units));          
-#endif 
+#endif         
 #ifdef SIMPLE_ACTIVE_SEARCH_HASH
       hash=wr_atom_funhash(g,atom);
       preflen=1;
