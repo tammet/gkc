@@ -195,11 +195,19 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
   tmp=wr_analyze_clause_list(analyze_g,db,child_db);
   //printf("\nreturned from wr_analyze_clause_list\n");
   if (!givenguide) {
-    if (guidestr!=NULL) {      
+    if (guidestr && !strncmp(guidestr,"LTBSPECIAL",10)) {
+      (dbmemsegh(db)->max_forks)=1;
+      guidebuf=make_auto_guide(analyze_g,kb_g,1);     
+      guide=wr_parse_guide_str(guidebuf); 
+      if (guide==NULL) {  return -1; } 
+      //if (guidebuf!=NULL) wr_free(g,(void*)guidebuf);
+      if (guidebuf!=NULL) { sys_free(guidebuf); guidebuf=NULL; }
+
+    } else if (guidestr!=NULL) {      
       guide=wr_parse_guide_str(guidestr); 
       if (guide==NULL) {  return -1; } 
     } else {
-      guidebuf=make_auto_guide(analyze_g,kb_g);     
+      guidebuf=make_auto_guide(analyze_g,kb_g,0);     
       guide=wr_parse_guide_str(guidebuf); 
       if (guide==NULL) {  return -1; } 
       //if (guidebuf!=NULL) wr_free(g,(void*)guidebuf);
@@ -225,6 +233,7 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
 
   maxforks=(dbmemsegh(db)->max_forks);  
   if (maxforks>64) maxforks=64;
+  if (maxforks==1) maxforks=0;
   setbuf(stdout, 0);
   for(forknr=0; forknr<maxforks; forknr++) {
     pid=fork();     
@@ -353,6 +362,7 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
 
     (g->current_run_nr)=iter;
     (g->current_fork_nr)=forkslive;
+    if (outfilename) (g->outfilename)=outfilename;
     if (iter==0) (g->allruns_start_clock)=clock();  
     guidetext=NULL;
     guideres=wr_parse_guide_section(g,guide,iter,&guidetext);  
@@ -430,7 +440,18 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
 #ifdef SHOWTIME    
     wr_printf("\nto call wr_init_active_passive_lists_from_all\n");
     show_cur_time();
-#endif    
+#endif
+
+    if (db!=child_db) {
+      //printf("\nshared database used\n");
+      (g->print_fof_conversion_proof)=0;
+      (g->store_fof_skolem_steps)=0;      
+      (g->sine_strat)=0; 
+      (g->sine_strat_used)=0;
+    } else {
+      //printf("\nshared database not used\n");
+    }
+
     // if two db-s, this will take the clauses from the shared db     
     clause_count=0;
     if (db!=child_db) {

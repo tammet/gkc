@@ -676,7 +676,6 @@ void wr_show_history(glb* g, gint history) {
   //gint anshistory;
 
   //if (!(g->store_history)) return;
-
   wr_show_result(g,history);
   return;
  
@@ -1166,7 +1165,7 @@ int wr_show_result(glb* g, gint history) {
   int sleepi;
   gint sleept, coeff, limit_low, limit_high, usecs;
   struct timeval now;
-
+  
   // selecting a timeslot for proof output  
   if ((dbmemsegh(db)->max_forks)>1) {    
     coeff=(gint)(1000000.0/((dbmemsegh(db)->max_forks))); 
@@ -1373,6 +1372,7 @@ int wr_show_result(glb* g, gint history) {
       printf("{\"error\": \"cannot open outfile to print proof %s\"}\n",(g->outfilename));               
     } else {
       fprintf(outfile,"%s",buf);
+      fflush(outfile);
       fclose(outfile);
     }  
     //if ((g->print_level_flag)>=15) {

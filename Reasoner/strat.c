@@ -53,8 +53,9 @@ extern "C" {
 #define EQ_ORDER_VAR_WEIGHT 10 // should be minimal value of any const/funs weight
 
 #define SUBLISTS_FIXED // if defined, important june fix used
-#define OCC_LEX_ORDER // if defined, lex ordering is based on occurrences
-#define KB_WEIGHTS_ORDER // if defined, kb weights are based on occurrences
+//#define OCC_LEX_ORDER // if defined, lex ordering is based on occurrences
+//#define KB_WEIGHTS_ORDER // if defined, kb weights are based on occurrences
+//#define KB_WEIGHTS_ORDER_REVERSE
 
 /* ======= Private protos ================ */
 
@@ -976,7 +977,14 @@ static int wr_order_eqterms_const_weight(glb* g, gint a) {
       ucountallx,
       wg_decode_uri_id(db,a));
     */  
-    return ucountallx+20;  
+#ifdef KB_WEIGHTS_ORDER_REVERSE    
+    ucountallx=(1000000-ucountallx);
+    if (ucountallx<=0) ucountallx=30;
+    return ucountallx+20;   
+#else
+    if (ucountallx<=0) ucountallx=30;
+    return ucountallx+20;   
+#endif    
   } else {
     return 10;
   }  

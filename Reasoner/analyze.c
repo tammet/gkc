@@ -1127,7 +1127,7 @@ query preference handling:
 
 */
 
-char* make_auto_guide(glb* g, glb* kb_g) { 
+char* make_auto_guide(glb* g, glb* kb_g, int guideparam) { 
   char *buf=NULL,*pref; 
   int i,j,pos,iterations=4,secs;
   int eq,depth,length,size; //,bigratio;
@@ -1139,7 +1139,7 @@ char* make_auto_guide(glb* g, glb* kb_g) {
     wr_show_in_stats(kb_g);
   }   
   make_sum_input_stats(g,kb_g);
-  if (!(g->outfilename)) {
+  if (!(g->outfilename) && guideparam!=1) {
     wr_show_in_summed_stats(g);
   }  
   if ((g->sin_poseq_clause_count)+(g->sin_negeq_clause_count)) {
@@ -1173,13 +1173,23 @@ char* make_auto_guide(glb* g, glb* kb_g) {
 
   buf=(char*)wr_malloc(g,50000);
   // normal "\"print_level\": 15,\n"
-  pref="{\n"
-      "\"print\":1,\n"
-      "\"print_level\": 15,\n"
-      "\"max_size\": 0,\n"
-      "\"max_depth\": 0,\n"
-      "\"max_length\": 0,\n"
-      "\"max_seconds\": 0,\n";  
+  if (guideparam==1) {
+    pref="{\n"
+        "\"print\":0,\n"
+        "\"print_level\": 0,\n"
+        "\"max_size\": 0,\n"
+        "\"max_depth\": 0,\n"
+        "\"max_length\": 0,\n"
+        "\"max_seconds\": 0,\n"; 
+  } else {
+    pref="{\n"
+        "\"print\":1,\n"
+        "\"print_level\": 15,\n"
+        "\"max_size\": 0,\n"
+        "\"max_depth\": 0,\n"
+        "\"max_length\": 0,\n"
+        "\"max_seconds\": 0,\n";  
+  }      
   pos=sprintf(buf,"%s",pref);
   if (!eq) {
     pos+=sprintf(buf+pos,"\"equality\":0,\n");
@@ -1197,6 +1207,7 @@ char* make_auto_guide(glb* g, glb* kb_g) {
   size=3;
   //smallratio=2;
   //bigratio=20;
+  if (guideparam==1) iterations=1;
   for(i=0;i<iterations;i++) {
 
     // start of a block
@@ -1925,9 +1936,10 @@ char* make_auto_guide(glb* g, glb* kb_g) {
 
   pos+=sprintf(buf+pos,"\n]}\n");
   
-  if (!(g->outfilename)) {
+  if (!(g->outfilename) && guideparam!=1) {
     wr_printf("\nauto guide:\n-----------\n%s\n",buf);
   }     
+
   //guide=wr_parse_guide_str(buf);
   //printf("Using default strategy.");
   return buf;

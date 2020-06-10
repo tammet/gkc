@@ -64,7 +64,7 @@ void wr_get_term_symbols(glb* g, gint x, cvec* uriinfo);
 int wr_sine_check_trigger_cl(glb* g, gptr cl, gint scount, float tolerance, gint common);
 int wr_sine_check_trigger_term(glb* g, gint x, gint scount, float tolerance, gint common);
 
-char* make_auto_guide(glb* g, glb* kb_g);
+char* make_auto_guide(glb* g, glb* kb_g, int guideparam);
 void make_sum_input_stats(glb* g, glb* kb_g);
 void wr_copy_sin_stats(glb* fromg, glb* tog);
 
