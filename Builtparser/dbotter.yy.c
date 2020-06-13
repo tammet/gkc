@@ -1148,7 +1148,7 @@ YY_RULE_SETUP
 case 21:
 YY_RULE_SETUP
 #line 217 "Parser/dbotter.l"
-{ BEGIN QUOTESTATE; s = elmparsestrbuf; *s++ = '#';} 
+{ BEGIN QUOTESTATE; s = elmparsestrbuf; } /* *s++ = '#';}  */
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
