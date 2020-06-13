@@ -229,6 +229,8 @@ typedef struct {
   cvec answers; // storing answer/proof pairs
   char* sine_k_values; // k-values bytestring indexed by clause id: each byte contains k 
   gint sine_k_bytes; // length of sine_k_values bytestring
+  char* backsubsume_values;
+  gint backsubsume_bytes; //
   char* sine_uri_k_values; // k-values bytestring indexed by uri id: each byte contains k 
   gint sine_uri_k_bytes; // length of sine_uri_k_values bytestring
 
@@ -271,6 +273,7 @@ typedef struct {
   //int max_forks;
   int sine_strat; // 0 if none, 1 if weak, 2 if strong
   int sine_strat_used; // 0 if not actually used, 1 if used: set automatically by analyze if sine_strat!=0
+  int sine_order_strat; // 0 if none, 1 if on
   int required_answer_nr;
   int pick_given_queue_ratio;
   int pick_given_queue_ratio_counter;
@@ -282,6 +285,7 @@ typedef struct {
   int repeat_var_weight;
   int atom_poseq_penalty;
   int use_max_ground_weight;
+  int use_max_weight;
 
 
   int cl_maxkeep_weightlimit;

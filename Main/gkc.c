@@ -1144,139 +1144,148 @@ int gkc_ltb_main(int argc, char **argv) {
   // next run over all the problems
 
   isproblemrow=0;
-  for(i=0;i<rowcount;i++) {
-    rowstr=rows[i];
-    if (!rowstr) continue;    
-    if (!strncmp("% SZS start BatchProblems",rowstr, strlen("% SZS start BatchProblems"))) {
-      isproblemrow=1;  
-      continue;
-    }
-    if (!strncmp("% SZS end BatchProblems",rowstr, strlen("% SZS end BatchProblems"))) {
-      break;
-    }
-    if (!isproblemrow || strlen(rowstr)<2) continue;      
-
-    //printf("\nproblem %d %s\n",i,rowstr);
-
-    len=strlen(rowstr);
-    if (len>900) continue;
-    seppos=0;
-    for(j=0;j<len;j++) {
-      if (rowstr[j]==' ' && !seppos) {
-        seppos=j;
-        //break;
-      }        
-      if (rowstr[j]=='\r') rowstr[j]=0; 
-      if (rowstr[j]=='\n') rowstr[j]=0;      
-    }      
-    len=strlen(rowstr);
-
-    if (!seppos) continue;
-    memcpy(probname,rowstr,seppos);
-    probname[seppos]=0;
-    memcpy(outname,rowstr+seppos+1,(len-seppos)-1);
-    outname[(len-seppos)-1]=0;
-    int k;
-    char* outnameptr=outname;
-    for(k=0;k<(len-seppos);k++) {
-      if (outnameptr[k]==' ') outnameptr++;
-      else break;
-    }
-    *outfullname=0;
-    strcat(outfullname,outfoldername); 
-    strcat(outfullname,"/");
-    strcat(outfullname,outnameptr); 
-
-    int co;
-    for(co=0;co<900;co++) probfullname[co]=0;  
-    wr_make_batch_prob_fullname(probname,probfullname,batchfilename);
-    printf("%% SZS status Started for %s\n",probfullname); 
-    fflush(stdout); 
-    int pid,stat;
-    pid=fork();      
-      
-    if (pid<0) {
-      // fork fails
-      printf("\nerror: fork fails\n");         
-      fflush(stdout);
-      wr_output_batch_prob_failure(probfullname,outfullname,"Error");
-    } else if (pid==0) {
-      // child
-      int version, globber_found=0;
-      for(version=4;version<6;version++) {
-        probfullname[200]=0;       
-        // replace * with +4 or +5
-        int ci;
-        for(co=0;co<900;co++) probfullname_copy[co]=0;
-          for(ci=0,co=0;ci<strlen(probfullname);ci++,co++) {
-          if (probfullname[ci]=='*') {
-            globber_found=1;
-            probfullname_copy[co]='+';
-            if (version==4) probfullname_copy[co+1]='4';
-            else probfullname_copy[co+1]='5';
-            co++;
-          } else {
-            probfullname_copy[co]=probfullname[ci];
-          }
-        }          
-        cmdfiles[1]=probfullname_copy;
-        fflush(stdout);
-
-        // standard part
-
-        shmptr=wg_attach_local_database(shmsize);
-        if(!shmptr) {
-          err_printf("failed to attach local database");
-          exit(1);
-        }
-        //printf("\nto call wg_import_otter_file\n");
-        err = wg_import_otter_file(shmptr,cmdfiles[1],0,&informat); 
-        //printf("\nreturned from wg_import_otter_file\n");  
-        if(!err) {
-        } else if(err<-1) {
-          wr_output_batch_prob_failure(probfullname,outfullname,"could not parse problem file"); 
-          exit(1);
-        } 
-        (dbmemsegh(shmptr)->max_forks)=1;
-        myerr = wg_run_reasoner(shmptr,2,cmdfiles,informat,outfullname,"LTBSPECIAL");                             
-        fflush(stdout);
-        if(!myerr) { 
-          printf("%% SZS status Theorem for %s\n",probfullname); 
-          printf("%% SZS status Ended for %s\n",probfullname);       
-         fflush(stdout);
-         exit(0);
-        } else {                    
-          wg_delete_local_database(shmptrlocal);
-        }  
-        fflush(stdout);   
-        if (!globber_found) break;
-      }   
-      wr_output_batch_prob_failure(probfullname,outfullname,"Timeout");
-      fflush(stdout);
-      exit(0);              
-    } else {
-      // parent
-      err=0;
-      //printf("\nwaiting for pid %d\n",pid);
-      //pid_t cpid = waitpid(pid, &stat, 0); 
-      waitpid(pid, &stat, 0);
-      if (WIFEXITED(stat)) {
-        err = WEXITSTATUS(stat);
-        //printf("Child %d terminated with status: %d\n", cpid, err); 
-      }  else {
-        wr_output_batch_prob_failure(probfullname,outfullname,"Error"); 
-      }       
-      //wait();
-
-      if (!err) {
-        rows[i]=NULL;
-      } else if (err==1) {
-        //wr_output_batch_prob_failure(probfullname,outfullname,"Error");
+  int biglooptime=1;
+  for(biglooptime=1;biglooptime<2;biglooptime=biglooptime*5) {
+    //printf("\n** big loop %d starts \n**",biglooptime);
+    isproblemrow=0;
+    for(i=0;i<rowcount;i++) {
+      rowstr=rows[i];
+      if (!rowstr) continue;    
+      if (!strncmp("% SZS start BatchProblems",rowstr, strlen("% SZS start BatchProblems"))) {
+        isproblemrow=1;  
+        continue;
       }
-      fflush(stdout);    
-   }
+      if (!strncmp("% SZS end BatchProblems",rowstr, strlen("% SZS end BatchProblems"))) {
+        break;
+      }
+      if (!isproblemrow || strlen(rowstr)<2) continue;      
+
+      //printf("\nproblem %d %s\n",i,rowstr);
+
+      len=strlen(rowstr);
+      if (len>900) continue;
+      seppos=0;
+      for(j=0;j<len;j++) {
+        if (rowstr[j]==' ' && !seppos) {
+          seppos=j;
+          //break;
+        }        
+        if (rowstr[j]=='\r') rowstr[j]=0; 
+        if (rowstr[j]=='\n') rowstr[j]=0;      
+      }      
+      len=strlen(rowstr);
+
+      if (!seppos) continue;
+      memcpy(probname,rowstr,seppos);
+      probname[seppos]=0;
+      memcpy(outname,rowstr+seppos+1,(len-seppos)-1);
+      outname[(len-seppos)-1]=0;
+      int k;
+      char* outnameptr=outname;
+      for(k=0;k<(len-seppos);k++) {
+        if (outnameptr[k]==' ') outnameptr++;
+        else break;
+      }
+      *outfullname=0;
+      strcat(outfullname,outfoldername); 
+      strcat(outfullname,"/");
+      strcat(outfullname,outnameptr); 
+
+      int co;
+      for(co=0;co<900;co++) probfullname[co]=0;  
+      wr_make_batch_prob_fullname(probname,probfullname,batchfilename);
+      //printf("%% SZS status Started for %s\n",probfullname); 
+      fflush(stdout); 
+      int pid,stat;    
+      pid=fork();            
+      if (pid<0) {
+        // fork fails
+        printf("\nerror: fork fails\n");         
+        fflush(stdout);
+        wr_output_batch_prob_failure(probfullname,outfullname,"Error");
+        continue;
+      } else if (pid==0) {
+        // child
+        int version, globber_found=0;
+        for(version=4;version<6;version++) {
+          probfullname[200]=0;       
+          // replace * with +4 or +5
+          int ci;
+          for(co=0;co<900;co++) probfullname_copy[co]=0;
+            for(ci=0,co=0;ci<strlen(probfullname);ci++,co++) {
+            if (probfullname[ci]=='*') {
+              globber_found=1;
+              probfullname_copy[co]='+';
+              if (version==4) probfullname_copy[co+1]='4';
+              else probfullname_copy[co+1]='5';
+              co++;
+            } else {
+              probfullname_copy[co]=probfullname[ci];
+            }
+          }          
+          cmdfiles[1]=probfullname_copy;
+          printf("%% SZS status Started for %s\n",cmdfiles[1]); 
+          fflush(stdout); 
+
+          // standard part
+
+          shmptr=wg_attach_local_database(shmsize);
+          if(!shmptr) {
+            err_printf("failed to attach local database");
+            exit(1);
+          }
+          //printf("\nto call wg_import_otter_file\n");
+          err = wg_import_otter_file(shmptr,cmdfiles[1],0,&informat); 
+          //printf("\nreturned from wg_import_otter_file\n");  
+          if(!err) {
+          } else if(err<-1) {
+            wr_output_batch_prob_failure(cmdfiles[1],outfullname,"could not parse problem file"); 
+            exit(1);
+          } 
+          (dbmemsegh(shmptr)->max_forks)=1;         
+          myerr = wg_run_reasoner(shmptr,2,cmdfiles,informat,outfullname,"LTBSPECIAL");                             
+          fflush(stdout);
+          if(!myerr) { 
+            printf("%% SZS status Theorem for %s\n",cmdfiles[1]); 
+            printf("%% SZS status Ended for %s\n",cmdfiles[1]);       
+          fflush(stdout);
+          exit(0);
+          } else {                    
+            wr_output_batch_prob_failure(cmdfiles[1],outfullname,"Timeout");
+            wg_delete_local_database(shmptrlocal);
+          }  
+          fflush(stdout);   
+          if (!globber_found) break;
+        }   
+        //wr_output_batch_prob_failure(cmdfiles[1],outfullname,"Timeout");
+        //fflush(stdout);
+        exit(1);              
+      } else {
+        // parent
+        err=0;
+        //printf("\nwaiting for pid %d\n",pid);
+        //pid_t cpid = waitpid(pid, &stat, 0); 
+        waitpid(-1, &stat, 0);
+        //printf("\nreceived for pid %d stat %d\n",pid,stat);
+        if (WIFEXITED(stat)) {
+          err = WEXITSTATUS(stat);
+          //printf("Child %d terminated with status: %d\n", pid,err); 
+        }  else {
+          wr_output_batch_prob_failure(cmdfiles[1],outfullname,"Error"); 
+        }       
+        //wait();
+
+        if (!err) {
+          rows[i]=NULL;
+          //printf("\nproof found for row i %d!\n",i);
+        } else if (err==1) {
+          //wr_output_batch_prob_failure(probfullname,outfullname,"Error");
+        }
+        //fflush(stdout);    
+      }
+    }  
   }        
-  free(rows);
+  //free(rows);
   return(1);  
 }
 

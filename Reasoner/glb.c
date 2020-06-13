@@ -146,6 +146,7 @@ int wr_glb_init_simple(glb* g) {
   //(g->max_forks)=4; // default 2 forks
   (g->sine_strat)=0; // 0 if none, 1 if weak, 2 if strong
   (g->sine_strat_used)=0; // 0 if not actually used, 1 if used: set automatically by analyze if sine_strat!=0
+  (g->sine_order_strat)=0; // 1 if sine order used for ordering initial clauses
   (g->required_answer_nr)=1;
   (g->pick_given_queue_ratio)=5;         // this is used for all queues to diff btw priority and simple
   (g->pick_given_queue_ratio_counter)=0; // this is not used for queues
@@ -157,6 +158,7 @@ int wr_glb_init_simple(glb* g) {
   (g->repeat_var_weight)=7; // NORMAL 7
   (g->atom_poseq_penalty)=0; // normal 0
   (g->use_max_ground_weight)=0; // normal 0
+  (g->use_max_weight)=0; // normal 1
 
   /* pre-given limits */
   (g->max_run_seconds)=0; // one run max seconds
@@ -184,7 +186,7 @@ int wr_glb_init_simple(glb* g) {
   (g->res_shortarglen_limit)=0; // max non-ans len of the shortest res argument (generalization of unit)
   (g->res_arglen_limit)=0; // if non-zero, do not resolve upon longer clauses and never para
   (g->res_strict_arglen_limit)=0; // if non-zero,  do para on units if res_arglen_limit<2
-  (g->back_subsume)=0; // 1 does not work any more
+  (g->back_subsume)=0; // 1 uses back subsumption, 0 does not
   (g->propagate)=0;    // 1 does not work any more 
   (g->use_equality_strat)=1; // general strategy
   (g->use_equality)=1; // current principle
@@ -206,6 +208,7 @@ int wr_glb_init_simple(glb* g) {
   //(g->cl_maxdepth)=1000000;
   //(g->cl_limitkept)=1;
   (g->sine_k_bytes)=SINE_K_VALUES_SIZE;
+  (g->backsubsume_bytes)=SINE_K_VALUES_SIZE;
 
   // prop
 
@@ -644,7 +647,16 @@ int wr_glb_init_local_complex(glb* g) {
     (g->sine_k_bytes)=0;
   } else {
     (g->sine_k_bytes)=SINE_K_VALUES_SIZE;
+  }    
+  (g->backsubsume_values)=sys_malloc(SINE_K_VALUES_SIZE); // bytestring allocated by malloc
+  if (!(g->backsubsume_values)) {
+    wr_printf("\nerror: cannot init backsubsume_values\n");   
+    (g->backsubsume_bytes)=0;
+  } else {
+    (g->backsubsume_bytes)=SINE_K_VALUES_SIZE;
   }  
+
+
   (g->sine_uri_k_values)=sys_malloc(SINE_K_VALUES_SIZE); // bytestring allocated by malloc
   if (!(g->sine_uri_k_values)) {
     wr_printf("\nerror: cannot init sine_uri_k_values\n");   
@@ -798,6 +810,7 @@ int wr_glb_free_local_complex(glb* g) {
   wr_vec_free(g,g->answers);
   if (g->sine_k_values) sys_free(g->sine_k_values); // bytestring
   if (g->sine_uri_k_values) sys_free(g->sine_uri_k_values); // bytestring
+  if (g->backsubsume_values) sys_free(g->backsubsume_values); // bytestring
 
   wr_str_free(g,(g->parse_skolem_prefix));
   (g->parse_skolem_prefix)=NULL;

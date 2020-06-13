@@ -36,6 +36,9 @@
 int wr_given_cl_subsumed(glb* g, gptr given_cl, gptr given_cl_metablock);
 int wr_given_cl_backsubsume(glb* g, gptr given_cl, gptr given_cl_metablock);
 
+void wr_set_cl_backsubsumed(glb* g,gptr cl);
+int wr_get_cl_backsubsumed(glb* g,gptr cl);
+
 int wr_clmetablock_can_subsume(glb* g, gptr genblock, gptr specblock);
 int wr_active_subsumed_lit(glb* g, gint atom, int negflag);
 int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucket, int subsflag);

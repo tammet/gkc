@@ -1770,9 +1770,25 @@ int wr_order_atoms_const_lex_smaller(glb* g, gint x, gint y) {
       else return 0; 
   }  
 #else
+  /*
   // NORMAL block  
   if (x>y) return 1;
   else return 0; 
+  */
+  // NEW block june
+  void* db=g->db;
+  gint dtypex=wg_get_encoded_type(db,x);
+  gint dtypey=wg_get_encoded_type(db,y);
+  if (dtypex==WG_URITYPE && dtypey==WG_URITYPE) {    
+    if (wg_decode_uri_id(db,x)<wg_decode_uri_id(db,y)) {
+        return 1;
+    } else {
+        return 0;
+    }
+  } else {
+    if (x>y) return 1;
+    else return 0; 
+  }  
 #endif  
 
   // TESTING with count

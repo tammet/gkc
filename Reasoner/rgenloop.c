@@ -137,6 +137,14 @@ int wr_genloop(glb* g) {
   //    return 0;
   //} 
   //wr_print_strat_flags(g);
+
+  if (g->back_subsume) {
+    if ((g->backsubsume_values) && (g->backsubsume_bytes)) {     
+      // setup
+      memset((g->backsubsume_values),0,(g->backsubsume_bytes));    
+    }  
+  }  
+
   for(;;) {     
     /*
     if (g->hardnesspref_strat) {
@@ -173,7 +181,7 @@ int wr_genloop(glb* g) {
     */
     if ((g->instgen_strat) &&  (int)((g->queue_termbuf)[0])<(int)((g->queue_termbuf)[1]+1000000)) {
        return 1;
-    } else if (((g->passed_ratio)>0.9) && ((g->res_arglen_limit)!=1)) {
+    } else if (((g->passed_ratio)>0.9) && !(g->endgame_mode)) {
                //&& (g->max_run_seconds)>3) {
       if (g->print_given_interval_trace) {
         wr_printf("\nfork %d: passed time ratio %.2f",g->current_fork_nr,g->passed_ratio);
@@ -182,7 +190,7 @@ int wr_genloop(glb* g) {
       (g->endgame_mode)=1;
       (g->stat_given_candidates_at_endgame)=(g->stat_given_candidates);
       (g->stat_given_used_at_endgame)=(g->stat_given_used);
-    } else if (((g->passed_ratio)>0.8) &&  (g->res_shortarglen_limit)!=1) {
+    } else if (((g->passed_ratio)>0.85) &&  (g->res_shortarglen_limit)!=1) {
       if (g->print_given_interval_trace) {
         wr_printf("\nfork %d: passed time ratio %.2f",g->current_fork_nr,g->passed_ratio);
       }
@@ -198,6 +206,16 @@ int wr_genloop(glb* g) {
         wr_printf("\nfork %d: passed time ratio %.2f",g->current_fork_nr,g->passed_ratio);      
       }
       (g->pick_given_queue_ratio)=100;
+
+      // exp_2
+      /*
+      if (!(g->hardnesspref_strat)) {
+        (g->negpref_strat)=0;
+        (g->pospref_strat)=0;
+        (g->hardnesspref_strat)=1;
+      }
+      (g->posunitpara_strat)=1;
+      */ 
     }    
 
 #ifdef DEBUG
@@ -261,7 +279,7 @@ int wr_genloop(glb* g) {
           and use that in the following
       fully subsume with active clauses: if subsumed, drop      
     */  
-    if ((g->back_subsume) && !(g->endgame_mode) && wr_blocked_clause(g,picked_given_cl_cand)) {
+    if ((g->back_subsume) && !(g->endgame_mode) && wr_get_cl_backsubsumed(g,picked_given_cl_cand)) {
       //printf("\n given is blocked\n");
       continue;
     } else if ((g->propagate) && wg_rec_is_blocked_clause(db,picked_given_cl_cand)) {     

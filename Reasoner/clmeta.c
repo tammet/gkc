@@ -83,7 +83,7 @@ int  wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length
   gint xatom=0;  
   int i;
   int w,weight,is_rewrite;
-  int max_ground_weight=0;
+  int max_ground_weight=0, max_weight=0;
   int atomdepth;
   int vc_tmp;
   int hasvars;
@@ -120,6 +120,7 @@ int  wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length
     // loop over clause elems
     xatomnr=wg_count_clause_atoms(db,xptr); 
     max_ground_weight=0;   
+    max_weight=0;
     for(i=0;i<xatomnr;i++) {
       //xmeta=wg_get_rule_clause_atom_meta(db,xptr,i);
       xatom=wg_get_rule_clause_atom(db,xptr,i);
@@ -139,7 +140,8 @@ int  wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length
         if (atomdepth > (*depth)) *depth=atomdepth;
         if (!hasvars) {
           if (weight>max_ground_weight) max_ground_weight=weight;
-        }  
+        } 
+        if (weight>max_weight) max_weight=weight; 
       }  
     }   
   }
@@ -181,6 +183,8 @@ int  wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length
   if ((g->use_max_ground_weight) && max_ground_weight) {
     w=max_ground_weight+(((*length)-1)*(g->cl_length_penalty))+(((*depth)-1)*(g->cl_depth_penalty));
     if (is_rewrite) w=(int)((float)w/2.0); // NORMAL /2.0 TESTING *0.8
+  } else if (g->use_max_weight) {
+    w=max_weight+(((*length)-1)*(g->cl_length_penalty))+(((*depth)-1)*(g->cl_depth_penalty));
   } else {
     w=w+(((*length)-1)*(g->cl_length_penalty))+(((*depth)-1)*(g->cl_depth_penalty));
   }  

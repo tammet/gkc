@@ -17,9 +17,10 @@
 # - run gprof gkc gmon.out > res.txt
 # - look at the result: less res.txt
 
-CC = gcc
+CC = gcc # clang # gcc
 #CFLAGS = -O2 -Wall -g # -Wmissing-field-initializers 
-CFLAGS = -O2 -Wall -static # -Wmissing-field-initializers 
+#CFLAGS = -O2 -Wall -static # -Wmissing-field-initializers 
+CFLAGS = -O3 -Wall -static # -Wmissing-field-initializers 
 #CFLAGS = -O2 -Wall -pg # -Wmissing-field-initializers 
 LIBS = -lm
 

@@ -257,7 +257,7 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active, cvec resol
             wr_printf("xatom: \n");
             wr_print_clause(g,xatom);
             */
-            if ((g->back_subsume) && wr_blocked_clause(g,ycl)) {
+            if ((g->back_subsume) && wr_get_cl_backsubsumed(g,ycl)) {
               /*
               wr_printf("\nCP1 blocked clause: \n");          
               wr_print_clause(g,ycl);
@@ -697,7 +697,7 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active, cvec re
               //wr_print_clause(g,xcl);
               //printf("xatom: \n");
               //wr_print_term(g,xatom);
-              if ((g->back_subsume) && wr_blocked_clause(g,ycl)) {
+              if ((g->back_subsume) && wr_get_cl_backsubsumed(g,ycl)) {
                 /*
                 wr_printf("\nCP2 blocked clause: \n");          
                 wr_print_clause(g,ycl);
@@ -1068,7 +1068,7 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
         node=wr_clterm_hashlist_next(g,hashvec,node);
         continue;
       }
-      if ((g->back_subsume) && wr_blocked_clause(g,ycl)) {
+      if ((g->back_subsume) && wr_get_cl_backsubsumed(g,ycl)) {
         node=wr_clterm_hashlist_next(g,hashvec,node);
         continue;
       }

@@ -75,7 +75,8 @@ void show_cur_time(void);
 #define SHOW_HASH_CUT_STATS
 
 #define SUBSFLAG_CLAUSE_COUNT_LIMIT 10000 // no subs with active clauses if more active clauses
-  
+#define SINEORDER  
+
 /* ======= Private protos ================ */
 
 //#define DEBUG
@@ -196,7 +197,7 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
   //printf("\nreturned from wr_analyze_clause_list\n");
   if (!givenguide) {
     if (guidestr && !strncmp(guidestr,"LTBSPECIAL",10)) {
-      (dbmemsegh(db)->max_forks)=1;
+      //(dbmemsegh(db)->max_forks)=2;
       guidebuf=make_auto_guide(analyze_g,kb_g,1);     
       guide=wr_parse_guide_str(guidebuf); 
       if (guide==NULL) {  return -1; } 
@@ -236,7 +237,8 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
   if (maxforks==1) maxforks=0;
   setbuf(stdout, 0);
   for(forknr=0; forknr<maxforks; forknr++) {
-    pid=fork();     
+    pid=fork();
+    //printf("\nfork pid %d\n",pid);     
     if (pid<0) {
       // fork fails
       printf("\nerror: fork nr %d fails with pid %d\n",forknr,pid);         
@@ -366,12 +368,12 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
     if (iter==0) (g->allruns_start_clock)=clock();  
     guidetext=NULL;
     guideres=wr_parse_guide_section(g,guide,iter,&guidetext);  
-
+    /*
     if (g->print_flag) {
       printf("\n**** run %d starts\n",iter+1);
       fflush(stdout);     
     }  
-
+    */
     // (g->cl_maxkeep_depthlimit)=10;  // TESTING
     // (g->res_shortarglen_limit)=3; // TESTING
     // (g->posunitpara_strat)=1; // TESTING
@@ -1055,16 +1057,27 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
   (g->local_clid_next)=(g->shared_clid_next);
 
   // perform sine analysis
+  //printf("\n(g->sin_clause_count)%d\n",(g->sin_clause_count));
+  if ((g->sin_clause_count) < 1000) {
+    (g->sine_order_strat)=1;
+  }
 
   if (g->sine_strat) {
     (g->sine_strat_used)=1;
     wr_analyze_sine(g,db,child_db); // this may turn off use_sine_strat
   } else {
+#ifdef SINEORDER    
+    if (g->sine_order_strat) {
+      wr_analyze_sine(g,db,child_db); // this may turn off use_sine_strat // !!! EXPERIMENT 6
+    }  
+#endif    
     (g->sine_strat_used)=0;
   }  
 
   // Reverse the order
-    
+#ifdef SINEORDER  
+  int sine_k;  
+#endif  
   if (!(g->queryfocus_strat)) {
     //printf("\nstarting to build a clause vector:\n");
     vecflag=1;
@@ -1085,10 +1098,33 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
         else if (wr_cl_is_assumption(g, rec)) weight=weight*1000;
         else weight=weight*10000;
   #else
+  #ifdef SINEORDER 
+        if (g->sine_order_strat) {
+          sine_k=wr_get_cl_sine_k(g,rec);         
+          if (!sine_k) sine_k=200;       
+        }  
+  #endif         
         if (g->cl_pick_queue_strategy) {
+          //wr_print_clause(g,rec);
+          //printf(" weight %d sine_k %d\n",weight,sine_k);
+  #ifdef SINEORDER         
+          if (g->sine_order_strat) {
+            weight=weight+(sine_k*10);          
+          }  
+  #endif        
           if (wr_cl_is_goal(g, rec)) weight=weight*1;
           else if (wr_cl_is_assumption(g, rec)) weight=weight*1000;
-          else weight=weight*10000;
+          else weight=weight*10000;         
+          //printf(" total weight %d\n",weight);
+        } else {
+          //wr_print_clause(g,rec);
+          //printf(" weight %d sine_k %d\n",weight,sine_k);
+    #ifdef SINEORDER       
+          if (g->sine_order_strat) {
+            weight=weight+(sine_k*10*10);
+          }  
+    #endif      
+          //printf(" total weight %d\n",weight);
         }
   #endif      
         (g->tmp_sort_vec)=wr_vec_store(g,g->tmp_sort_vec,j,(gint)weight);
@@ -1202,7 +1238,7 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
     }
    
     //wr_print_clause(g,rec);
-    //printf("\n");
+    //printf("sine k %ld\n",wr_get_cl_sine_k(g,rec));
     
 #ifdef DEBUG   
     wr_printf("\n next rec from db: ");
@@ -1603,8 +1639,8 @@ void wr_show_stats(glb* g, int show_local_complex) {
   wr_printf("stat_built_cl: %d\n",g->stat_built_cl); 
   wr_printf("stat_hyperres_partial_cl: %d\n",g->stat_hyperres_partial_cl);
   wr_printf("stat_made_rewriters: %d\n", g->stat_made_rewriters);
-  //wr_printf("stat_backward_subsumed: %d\n",g->stat_backward_subsumed);  
-  //wr_printf("stat_propagated_subsumed: %d\n",g->stat_propagated_subsumed);
+  wr_printf("stat_backward_subsumed: %d\n",g->stat_backward_subsumed);  
+  wr_printf("stat_propagated_subsumed: %d\n",g->stat_propagated_subsumed);
   
 #ifdef SHOW_SUBSUME_STATS  
   wr_printf("stat_clsubs_attempted:           %15d\n",g->stat_clsubs_attempted);  

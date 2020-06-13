@@ -45,7 +45,7 @@ extern "C" {
 //#undef DEBUG
 
 //#define BACKDEBUG  
-#undef BACKDEBUG
+//#undef BACKDEBUG
 
 //#define SCUTDEBUG
   
@@ -281,11 +281,12 @@ int wr_given_cl_backsubsume(glb* g, gptr given_cl, gptr given_cl_metablock) {
     for(iactive=CVEC_START; iactive<iactivelimit; iactive+=CLMETABLOCK_ELS) {
       if (given_cl_metablock!=NULL) {
         
-#ifdef BACKDEBUG          
-          wr_printf("\nspecific iactive %d :",iactive);    
-          wr_print_clause(g,(gptr)(actptr[iactive+CLMETABLOCK_CL_POS]));
+#ifdef BACKDEBUG   
+/*       
+          wr_printf("\nactptr %ld specific iactive %d :",actptr,iactive);   
+          wr_print_clause(g,rotp(g,actptr[iactive+CLMETABLOCK_CL_POS]));
           wr_printf("\n");
-          wr_print_record(g,(gptr)(gptr)(actptr[iactive+CLMETABLOCK_CL_POS]));    
+          wr_print_record(g,rotp(g,actptr[iactive+CLMETABLOCK_CL_POS]));    
           wr_printf("\nmeta addr %d\n",(int)actptr+iactive);
           wr_printf("\nmetablock1 %d %d %d %d \n",*(actptr+iactive),*(actptr+iactive+1),*(actptr+iactive+2),*(actptr+iactive+3));
           wr_printf("\n lengths   ");
@@ -321,45 +322,52 @@ int wr_given_cl_backsubsume(glb* g, gptr given_cl, gptr given_cl_metablock) {
           wr_printf("\n pref3bits ");
           wr_print_gint_hashmask(g,given_cl_metablock[CLMETABLOCK_PREF3BITS_POS]);
           wr_printf("\n");
+*/          
 #endif         
 
         (g->stat_clsubs_top_meta_attempted)++;
         if (!wr_clmetablock_can_subsume(g,given_cl_metablock,actptr+iactive)) {
           (g->stat_clsubs_top_meta_failed)++;
-#ifdef BACKDEBUG          
+#ifdef BACKDEBUG      
+/*    
           wr_printf("\n meta-detected cannot subsume \n");
-          wr_print_clause(g,(gptr)(actptr[iactive+CLMETABLOCK_CL_POS]));
+          wr_print_clause(g,rotp(g,actptr[iactive+CLMETABLOCK_CL_POS]));
           wr_printf("\n");
           wr_print_clause(g,given_cl);
           wr_printf("\n");
+*/          
 #endif    
                  
           continue;
         }
-#ifdef BACKDEBUG        
+#ifdef BACKDEBUG     
+/*   
         wr_printf("\n meta-detected CAN subsume \n");
-        wr_print_clause(g,(gptr)(actptr[iactive+CLMETABLOCK_CL_POS]));
+        wr_print_clause(g,rotp(g,actptr[iactive+CLMETABLOCK_CL_POS]));
         wr_printf("\n");
         wr_print_clause(g,given_cl);
         wr_printf("\n");
+*/        
 #endif        
       }        
  
-      cl=(gptr)(actptr[iactive+CLMETABLOCK_CL_POS]);
+      cl=rotp(g,(actptr[iactive+CLMETABLOCK_CL_POS]));
       if (cl!=NULL) {  
    
 #ifdef BACKDEBUG
+/*
         wr_printf(" *** about to try back-subsuming with active clause at pos %d nr %d:\n",
           iactive+CLMETABLOCK_CL_POS,iactive/CLMETABLOCK_ELS); 
         wr_print_clause(g,cl);
         wr_printf("\n"); 
+*/        
 #endif           
         // try to subsume
         sres=wr_subsume_cl(g,given_cl,cl,1);
         if (sres) {
           (g->stat_backward_subsumed)++;
           subsumedcount++;
-          wr_mark_clause_blocked(g,cl);
+          wr_set_cl_backsubsumed(g,cl);
           /*
           wr_printf("\n * back-subsumed: \n");
           wr_print_clause(g,cl);
@@ -377,6 +385,23 @@ int wr_given_cl_backsubsume(glb* g, gptr given_cl, gptr given_cl_metablock) {
     return 0;
   }    
 }  
+
+
+void wr_set_cl_backsubsumed(glb* g,gptr cl) {
+  gint clid;
+
+  clid=wr_get_clid(g,cl);
+  if (clid>=(g->backsubsume_bytes)) return;
+  (g->backsubsume_values)[clid]=(char)1;
+}
+
+int wr_get_cl_backsubsumed(glb* g,gptr cl) {
+  gint clid;
+
+  clid=wr_get_clid(g,cl);
+  if (clid>=(g->backsubsume_bytes)) return 0;
+  return (int)((g->backsubsume_values)[clid]);
+}
 
 
 int wr_clmetablock_can_subsume(glb* g, gptr genblock, gptr specblock) {
