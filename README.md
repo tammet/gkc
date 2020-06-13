@@ -14,9 +14,9 @@ for the systems built on top of GKC.
 
 For compiled binaries for Linux and Windows, as well as 
 instructions for running gkc, see the latest release,
-either v0.4.1 or newer:
+either v0.5.0 or newer:
 
-<https://github.com/tammet/gkc/releases/tag/v0.4.1>
+<https://github.com/tammet/gkc/releases/tag/v0.5.0>
 
 GKC is licenced under AGPL v3. The author of GKC
 is Tanel Tammet (tanel.tammet@gmail.com).
@@ -51,6 +51,9 @@ script in the top folder creating an executable `gkc.exe`
 in the fop folder. We have tested compilation under 
 the 64-bit Windows 10 with the 2017 Visual Studio C
 community edition command-line tool cl.
+
+NB! Version 0.5.0 does not support Windows compilation.
+Please see either a newer or older release for Windows.
 
 Second, to compile with a simple makefile under Linux, do
 
@@ -143,10 +146,13 @@ The following is a list of available commands as output by `./gkc -help`:
       <dump file> stores the parsed and prepared database for fast loading 
 
     additional optional parameters:
+      -parallel <number of parallel processes to use>
+        if omitted, 8 used (i.e. 8 forks created). No forks created if value is under 2.
       -mbsize <megabytes to allocate>
         if omitted, 1000 megabytes assumed
       -mbnr <shared memory database nr>
         if omitted, 1000 used
+       
 
 Input syntax
 ------------
@@ -243,15 +249,17 @@ that no limit is set.
 In case "equality": N is not set to 0, GKC uses reflexivity, paramodulation and
 demodulation with knuth-bendix ordering for handling equality.
 
-The list "strategy": [...] contains the main search strategy indicators, either
+The list "strategy": [...] contains the main search strategy indicators, default off:
 
 * "query_focus" : use a goal-oriented set-of-support strategy with binary resolution 
 * "negative_pref" : use binary resolution with negative literals preferred
 * "positive_pref" : use binary resolution with positive literals preferred
-* "hardness_pref" : use binary resolution with "hardest" literals preferred
-* "hardness_pref" : use binary resolution with "hardest" literals preferred
+* "hardness_pref" : use binary resolution with "hardest" (similar to weight) literals preferred
 * "knuthbendix_pref" : use binary resolution with knuth-bendix ordering of literals 
 * "hyper" : use hyperresolution, with negative literals preferred
+* "posunitpara": perform paramodulation from units only
+* "prohibit_nested_para": disallow paramodulation if either parent is derived by paramodulation
+* "max_ground_weight": use the weight of the heaviest ground literal as the base weight of a clause
 * "unit", "double" or "triple" : use binary unit resolution  or its generalization:
   (one of the arguments must be unit, a two-literal or three-literal clause,
    respectively. These may be added to the list in addition to the previous
@@ -260,7 +268,7 @@ The list "strategy": [...] contains the main search strategy indicators, either
 Other useful parameters:
 
 * "print": 0 or 1, where 0 prohibits almost all printing, default 1.
-* "print_level": integer determining the level of output: useful values are between 0 and 50, default 10.
+* "print_level": integer determining the level of output: useful values are between 0 and 50, default 15.
 * "print_json": 0 or 1, where 0 is default and 1 forces json output.
 * "max_size", "max_length", "max_depth", "max_weight" indicate limits on kept clauses, defaults are 0.
 * "equality" : 1 or 0, with 1 being default and 0 prohibiting equality handling.
@@ -268,6 +276,11 @@ Other useful parameters:
 * "weight_select_ratio": N indicating the ratio of picking by order derived / clause weight, default is 5.
 * "max_answers": N indicating the maximal number of proofs searched for until search stops, default is 1.
 * "reverse_clauselist": N either default 0 or 1, where 1 sets a non-standard order for input clauses.
+* "sine": input filter with N either 1 or 2 where 1 is a less restrictive (accepts more clauses) and 2 more restrictive. NB! Sine is automatically switched off if the -provekb switch is used.
+* "depth_penalty": additional penalty for clause depth, default 1
+* "length_penalty": additional penalty for clause length, default 1
+* "var_weight": weight of a variable, default 5
+* "var_weight": weight of a repeated variable, default 7
 * "query_preference": N being 0, 1, 2 or 3 indicates which parts of the problem are treated as
    goals, assumptions or axioms:
     * 0 stands for no goal/assumption preference.
@@ -275,6 +288,8 @@ Other useful parameters:
     * 2 stands for making non-included formulas assumptions
     * 3 stands for considering only the negative clauses from conjecture to be goals
 
+For "max_seconds"<2 gkc will automatically use immediate check for contradiction when a clause is derived.
+For problems with less than 1000 input clauses, gkc will use sine for input clause ordering.
 
 Architecture
 ------------

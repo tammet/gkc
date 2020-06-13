@@ -16,7 +16,7 @@ fi
 
 # add -pg switch for profiling):
 
-${CC} -O2 -Wall -Wmissing-field-initializers -static -o gkc \
+${CC} -O3 -Wall -Wmissing-field-initializers -static -o gkc \
   Main/gkc.c \
   Db/dbmem.c \
   Db/dballoc.c Db/dbdata.c Db/dblock.c Db/dbindex.c Db/dbdump.c  \
