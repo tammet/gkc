@@ -130,6 +130,40 @@ int wr_cl_is_assumption(glb* g, gptr cl) {
   return 0;
 }
 
+int wr_cl_is_extaxiom(glb* g, gptr cl) {
+  gint hist, prior, decprior;
+  gptr histptr;
+  int htype;
+
+  /*
+  wr_printf("\n wr_cl_is_assumptionl:");
+  wr_print_clause(g,cl);
+  wr_printf("\n");
+  */
+
+  hist=wr_get_history(g,cl); // !!! was wrong: hist was uninitialized
+  if (hist) {
+    htype=wg_get_encoded_type(g->db,hist);  
+    if (htype!=WG_RECORDTYPE) return 0;
+    histptr=rotp(g,hist);
+    prior=wr_get_history_record_field(g,histptr,HISTORY_PRIORITY_POS);
+    if (!prior) return 0;
+    decprior=wr_decode_priority(g,prior);
+    if (decprior==WR_HISTORY_EXTAXIOM_ROLENR) {
+
+      //wr_printf("\n");
+      //wr_print_clause(g,cl);
+      //printf(" is extaxiom!\n");
+
+      return 1;
+    } else {
+      //printf("\n not marked given\n");
+      return 0;
+    }
+  }
+  return 0;
+}
+
 int wr_is_unit_cl(glb* g, gptr cl, int ruleflag, int len) {
   void* db;  
   int i, anscount;

@@ -350,6 +350,8 @@ typedef struct {
   int print_json;
   int print_tptp;
   int print_clauses_json;
+  int print_clauses_tptp;
+  int print_proof_tptp;
   int print_level_flag;
   int print_clause_history;
   int print_history_extra;  

@@ -1555,14 +1555,29 @@ int wr_strprint_inputs(glb* g, int inputcount, char** inputs,
           //printf("\n");
           tmpptr=wg_nth(child_db,frm,2);
           if (tmpptr) {
-            bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\n %s:",inputstr);    
-            if (bpos<0) return bpos;
-            if (tmpptr && wg_isatom(child_db,tmpptr) && wg_atomstr1(child_db,tmpptr)) {
-              bpos+=snprintf((*buf)+bpos,(*blen)-bpos," [%s] ",wg_atomstr1(child_db,tmpptr)); 
+            if (g->print_proof_tptp) {              
+              if (tmpptr && wg_isatom(child_db,tmpptr) && wg_atomstr1(child_db,tmpptr)) {
+                //bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\nfof('%s', axiom, ",inputstr);
+                //bpos+=snprintf((*buf)+bpos,(*blen)-bpos," [%s] ",wg_atomstr1(child_db,tmpptr)); 
+
+                bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\nfof('%s', %s, ",
+                  inputstr,wg_atomstr1(child_db,tmpptr));
+              } else {
+                bpos+=snprintf((*buf)+bpos,(*blen)-bpos," [%s] ","input");
+              } 
+              //bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\ncnf('%s', axiom, ",inputstr);  
+              bpos=wg_print_frm_tptp(child_db,wg_nth(child_db,frm,3),buf,blen,bpos);
+              bpos+=snprintf((*buf)+bpos,(*blen)-bpos,",\n  input). ");    
             } else {
-              bpos+=snprintf((*buf)+bpos,(*blen)-bpos," [%s] ","input");
-            }   
-            bpos=wg_print_frm_tptp(child_db,wg_nth(child_db,frm,3),buf,blen,bpos);
+              bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\n %s:",inputstr);    
+              if (bpos<0) return bpos;
+              if (tmpptr && wg_isatom(child_db,tmpptr) && wg_atomstr1(child_db,tmpptr)) {
+                bpos+=snprintf((*buf)+bpos,(*blen)-bpos," [%s] ",wg_atomstr1(child_db,tmpptr)); 
+              } else {
+                bpos+=snprintf((*buf)+bpos,(*blen)-bpos," [%s] ","input");
+              }   
+              bpos=wg_print_frm_tptp(child_db,wg_nth(child_db,frm,3),buf,blen,bpos);
+            }            
           }
           n++;
         } else {
@@ -1584,14 +1599,30 @@ int wr_strprint_inputs(glb* g, int inputcount, char** inputs,
                 (*skinputcount)++;
               }  
               // print
-              bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\n %s:",atomstr);    
-              if (bpos<0) return bpos;
-              if (tmpptr && wg_isatom(child_db,tmpptr) && wg_atomstr1(child_db,tmpptr)) {                                           
-                bpos+=snprintf((*buf)+bpos,(*blen)-bpos," [sk,%s] ",inputstr); 
+              if (g->print_proof_tptp) {
+                if (tmpptr && wg_isatom(child_db,tmpptr) && wg_atomstr1(child_db,tmpptr)) {
+                  bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\nfof('%s', plain, ",atomstr);
+                  //bpos+=snprintf((*buf)+bpos,(*blen)-bpos," [%s] ",wg_atomstr1(child_db,tmpptr)); 
+
+                  //bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\nfof('%s', %s, ",
+                  //  atomstr,wg_atomstr1(child_db,tmpptr));
+                } else {
+                  bpos+=snprintf((*buf)+bpos,(*blen)-bpos," [%s] ","input");
+                } 
+                //bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\ncnf('%s', axiom, ",inputstr);  
+                bpos=wg_print_frm_tptp(child_db,wg_nth(child_db,frm,3),buf,blen,bpos);
+                bpos+=snprintf((*buf)+bpos,(*blen)-bpos,
+                  ",\n  inference(negpush_and_skolemize,[],['%s'])).",inputstr);    
               } else {
-                bpos+=snprintf((*buf)+bpos,(*blen)-bpos," [%s] ","input");
-              }   
-              bpos=wg_print_frm_tptp(child_db,wg_nth(child_db,frm,3),buf,blen,bpos);
+                bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\n %s:",atomstr);    
+                if (bpos<0) return bpos;
+                if (tmpptr && wg_isatom(child_db,tmpptr) && wg_atomstr1(child_db,tmpptr)) {                                           
+                  bpos+=snprintf((*buf)+bpos,(*blen)-bpos," [sk,%s] ",inputstr); 
+                } else {
+                  bpos+=snprintf((*buf)+bpos,(*blen)-bpos," [%s] ","input");
+                }   
+                bpos=wg_print_frm_tptp(child_db,wg_nth(child_db,frm,3),buf,blen,bpos);
+              }  
             }
             n++;
           }
@@ -1621,6 +1652,8 @@ int wr_strprint_one_history
   char orderbuf[80];
   gptr historyptr;
   int j,skfound, namelen;
+  char* rulestr;
+  char* extrastr;
 #ifdef SHOW_HISTORY_ORDER  
   int o1,o2;
 #endif
@@ -1661,6 +1694,8 @@ int wr_strprint_one_history
     name = wr_get_history_record_field(db,historyptr,HISTORY_NAME_POS);
     if (g->print_json) {
       bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\n[%s,%s [\"in\"",clns,orderbuf);         
+    } else if (g->print_proof_tptp) {
+      bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\ncnf('%s',%s ",clns,orderbuf);  
     } else {  
       if (name && wg_get_encoded_type(db,name)==WG_STRTYPE && 
          (g->print_fof_conversion_proof)) {
@@ -1668,10 +1703,15 @@ int wr_strprint_one_history
       } else {
         bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\n %s:%s [in",clns,orderbuf);
       }  
-    }  
+    }     
     //historyptr=otp(db,history);    
     //name = wr_get_history_record_field(db,historyptr,HISTORY_NAME_POS);
     if (name && wg_get_encoded_type(db,name)==WG_STRTYPE) {
+      if (g->print_proof_tptp) {
+        bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"plain, ");
+        bpos=wr_strprint_clause(g,cl,buf,blen,bpos);  
+        if (bpos<0) return bpos;
+      }
       namestr=wg_decode_str(db,name);
       if (!wr_str_guarantee_space(g,buf,blen,bpos+100+strlen(namestr))) return -1;
       if (g->print_json) bpos+=snprintf((*buf)+bpos,(*blen)-bpos,", \"%s\"",namestr);
@@ -1688,28 +1728,47 @@ int wr_strprint_one_history
             }
           }
           if (skfound) {
-            bpos+=snprintf((*buf)+bpos,(*blen)-bpos,",%s%s",namestr,SKOLEM_CLNAME_SUFFIX);
+            if (g->print_proof_tptp) {
+              bpos+=snprintf((*buf)+bpos,(*blen)-bpos,
+                ",\n  inference(cnf_transformation,[],['%s%s']))",namestr,SKOLEM_CLNAME_SUFFIX);
+            } else {
+              bpos+=snprintf((*buf)+bpos,(*blen)-bpos,",%s%s",namestr,SKOLEM_CLNAME_SUFFIX);
+            }
           } else {
-            bpos+=snprintf((*buf)+bpos,(*blen)-bpos,",%s",namestr);
+            if (g->print_proof_tptp) {
+              bpos+=snprintf((*buf)+bpos,(*blen)-bpos,
+                ",\n  inference(cnf_transformation,[],['%s']))",namestr);
+            } else {
+              bpos+=snprintf((*buf)+bpos,(*blen)-bpos,",%s",namestr);
+            }  
           }  
         } else {
           bpos+=snprintf((*buf)+bpos,(*blen)-bpos,",%s",namestr);
         }  
       } 
+    } else if (g->print_proof_tptp) {
+      bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"plain, ");
+      bpos=wr_strprint_clause(g,cl,buf,blen,bpos);  
+      if (bpos<0) return bpos;
     } else if (name && wg_get_encoded_type(db,name)==WG_INTTYPE) {
-      bpos+=snprintf((*buf)+bpos,(*blen)-bpos,",%d",(int)(wg_decode_int(db,name)));
+      if (!(g->print_proof_tptp)) {
+        bpos+=snprintf((*buf)+bpos,(*blen)-bpos,",%d",(int)(wg_decode_int(db,name)));
+      }  
     }
     if (!wr_str_guarantee_space(g,buf,blen,bpos+100)) return -1;   
-    if (g->print_history_extra) {
+    if ((g->print_history_extra) && !(g->print_proof_tptp)) {
       bpos=wr_strprint_history_extra(g,buf,blen,bpos,history);
       if (bpos<0) return bpos;
     } else {
       if (g->print_json) bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"], ");
+      else if (g->print_proof_tptp) bpos+=snprintf((*buf)+bpos,(*blen)-bpos,".");
       else bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"] ");
     }   
-    bpos=wr_strprint_clause(g,cl,buf,blen,bpos);  
-    if (bpos<0) return bpos;
-    if (g->print_json) bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"]");
+    if (!(g->print_proof_tptp)) {
+      bpos=wr_strprint_clause(g,cl,buf,blen,bpos);  
+      if (bpos<0) return bpos;
+      if (g->print_json) bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"]");
+    }
     //else bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"] ");
     return bpos;
 
@@ -1723,6 +1782,60 @@ int wr_strprint_one_history
   pos2=wr_get_history_pos2(g,dechead);
   //printf("\n dechead %d tag %d pos1 %d pos2 %d \n",dechead,tag,pos1,pos2);
   if (!wr_str_guarantee_space(g,buf,blen,bpos+100)) return -1;
+
+  if (g->print_proof_tptp) {
+    // tptp case
+    // find rule name and pos
+    pos1=HISTORY_PARENT1_POS;
+    extrastr="[]";
+    pos2=len-pos1;
+    if (pos2>2) extrastr="[then_simplify]";
+    if (tag==WR_HISTORY_TAG_RESOLVE) { rulestr="resolution"; }
+    else if (tag==WR_HISTORY_TAG_PROPAGATE) { rulestr="propagate"; }    
+    else if (tag==WR_HISTORY_TAG_FACTORIAL) { 
+      rulestr="factorization"; 
+      if (pos2>1) extrastr="[then_simplify]";
+    }
+    else if (tag==WR_HISTORY_TAG_PARA) { rulestr="paramodulation"; 
+      pos1=HISTORY_PARA_PARENT1_POS; 
+      pos2=len-pos1;
+      //printf("\npos1 %d pos2 %d len %d\n",pos1,pos2,len);
+      if (pos2>2) extrastr="[then_simplify]";
+      else extrastr="[]";
+    }
+    else if (tag==WR_HISTORY_TAG_EQUALITY_REFLEXIVE) { 
+      rulestr="reflexivity"; 
+      if (pos2>1) extrastr="[then_simplify]";
+    }
+    else if (tag==WR_HISTORY_TAG_SIMPLIFY) { rulestr="simplify"; }
+    else if (tag==WR_HISTORY_TAG_PROPINST) { rulestr="propinst"; }
+    else if (tag==WR_HISTORY_TAG_INSTGEN) { rulestr="instgen"; }
+    else if (tag==WR_HISTORY_TAG_EXTPROP) { rulestr="extprop"; }
+    else { rulestr="unknown"; }        
+
+    // print out
+    bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\ncnf('%s', plain, ",clns);
+    bpos=wr_strprint_clause(g,cl,buf,blen,bpos);  
+    if (!wr_str_guarantee_space(g,buf,blen,bpos+100)) return -1;
+    bpos+=snprintf((*buf)+bpos,(*blen)-bpos,",\n  inference(%s,%s,[",rulestr,extrastr); 
+    
+    for(i=pos1;i<len;i++) {
+      cl1=wr_get_history_record_field(g,otp(db,history),i);
+      tmp1=wg_get_assoc(db,(void *)cl1,*assoc);
+      num=(int)(gint)(wg_nth(db,tmp1,2));      
+      //snprintf(namebuf1,19,"'%d'",num);
+      bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"'%d'",num);
+      if (!wr_str_guarantee_space(g,buf,blen,bpos+100)) return -1;
+      if (i+1<len) {
+        bpos+=snprintf((*buf)+bpos,(*blen)-bpos,",");
+      }
+    }  
+    bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"]))."); 
+    return bpos;
+  }
+  
+  // non-tptp case
+
   if (tag==WR_HISTORY_TAG_RESOLVE || tag==WR_HISTORY_TAG_PROPAGATE
       || tag==WR_HISTORY_TAG_INSTGEN) {
     if (tag==WR_HISTORY_TAG_RESOLVE) {
@@ -1871,6 +1984,8 @@ int wr_strprint_one_history
     if (!wr_str_guarantee_space(g,buf,blen,bpos+100)) return -1;
     if (g->print_json) {
       bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\n[%s,%s [\"extprop\"], 0]",clns,orderbuf);       
+    } else if (g->print_clauses_tptp) {
+      bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\n %s:%s [extprop] ($false)",clns,orderbuf);  
     } else {
       bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\n %s:%s [extprop] false.",clns,orderbuf); 
     }                  

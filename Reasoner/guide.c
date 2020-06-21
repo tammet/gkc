@@ -204,6 +204,8 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr) {
         (g->use_strong_unit_cutoff)=0;
       }      
 
+      //(g->use_strong_unit_cutoff)=1;
+
     } else if (!strcmp(key,"total_seconds")) {
       //printf("\nmax_seconds %d\n", json_valueint(elem));
       (g->max_seconds)=json_valueint(elem);
@@ -255,6 +257,9 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr) {
     } else if (!strcmp(key,"equality")) {
       //printf("equality %d\n", json_valueint(elem));
       (g->use_equality_strat)=json_valueint(elem);  
+    } else if (!strcmp(key,"rewrite")) {
+      //printf("rewrite %d\n", json_valueint(elem));
+      (g->use_rewrite_terms_strat)=json_valueint(elem);    
     } else if (!strcmp(key,"weight_select_ratio")) {
       //printf("weight_select_ratio %d\n", json_valueint(elem));
       (g->pick_given_queue_ratio)=json_valueint(elem);          

@@ -111,7 +111,7 @@
 #define USE_REASONER 1
 
 /* Version number of package */
-#define VERSION "0.5.0"
+#define VERSION "0.5.1"
 
 /* Package major version */
 #define VERSION_MAJOR 0
@@ -120,7 +120,7 @@
 #define VERSION_MINOR 5
 
 /* Package revision number */
-#define VERSION_REV 0
+#define VERSION_REV 1
 
 /* Define to 1 if `lex' declares `yytext' as a `char *' by default, not a
    `char[]'. */

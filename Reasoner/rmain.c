@@ -88,7 +88,8 @@ void show_cur_time(void);
 //#define PRINTERR
 
 //#define SHOW_ADDED
-//#define WEIGHT_PREFER_GOALS_ASSUMPTIONS
+
+//#define WEIGHT_PREFER_GOALS_ASSUMPTIONS 
 
 /* ====== Functions ============== */
 
@@ -1058,9 +1059,17 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
 
   // perform sine analysis
   //printf("\n(g->sin_clause_count)%d\n",(g->sin_clause_count));
-  if ((g->sin_clause_count) < 1000) {
-    (g->sine_order_strat)=1;
-  }
+  if (!(g->sine_order_strat)) {
+    //if ((g->sin_clause_count) < 1000) {
+    //  (g->sine_order_strat)=1;
+    //}
+    // NB! june 2020
+    if (((g->sin_clause_count) < 10000) && ((g->sin_clause_count) > 100) &&
+        ((g->sin_goal_count)*2 < (g->sin_clause_count)) ) {
+      (g->sine_order_strat)=1;
+    }
+  }  
+  //printf("\n (g->sine_strat): %d  (g->sine_order_strat) %d\n",(g->sine_strat), (g->sine_order_strat));
 
   if (g->sine_strat) {
     (g->sine_strat_used)=1;
@@ -1078,7 +1087,20 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
 #ifdef SINEORDER  
   int sine_k;  
 #endif  
-  if (!(g->queryfocus_strat)) {
+
+  // NB! SWC
+ 
+  /*
+  (g->var_weight)=1; // NORMAL 5
+  (g->repeat_var_weight)=1; // NORMAL 7 
+  (g->cl_length_penalty)=200;
+  (g->sine_order_strat)=2;
+  //(g->res_shortarglen_limit)=1;
+  (g->res_arglen_limit)=1;
+  (g->use_strong_unit_cutoff)=1;
+  */
+
+  if (!(g->queryfocus_strat) || ((g->sin_clause_count) < 100000)) {
     //printf("\nstarting to build a clause vector:\n");
     vecflag=1;
     cell2=(dbmemsegh(child_db)->clauselist);
@@ -1089,22 +1111,30 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
       rec=offsettoptr(child_db,cellptr2->car); 
 
       if (1 || wr_get_cl_sine_k(g,rec)) {
+
         //printf("\nn: %d ",n);
         //wr_print_clause(g,rec); 
+
         j=(n*2)+1;  
         weight=wr_calc_clause_weight(g,rec,&size,&depth,&length); 
   #ifdef WEIGHT_PREFER_GOALS_ASSUMPTIONS      
         if (wr_cl_is_goal(g, rec)) weight=weight*1;
         else if (wr_cl_is_assumption(g, rec)) weight=weight*1000;
+        //else if (wr_cl_is_extaxiom(g, rec)) weight=weight*20000;
         else weight=weight*10000;
   #else
   #ifdef SINEORDER 
         if (g->sine_order_strat) {
-          sine_k=wr_get_cl_sine_k(g,rec);         
-          if (!sine_k) sine_k=200;       
+          sine_k=wr_get_cl_sine_k(g,rec); 
+          //if (sine_k==121) sine_k=4;        
+          //else if (!sine_k) sine_k=200; 
+          //if (sine_k) sine_k=1;
+          //else sine_k=10;            
+          if (!sine_k) sine_k=200;    
         }  
   #endif         
         if (g->cl_pick_queue_strategy) {
+
           //wr_print_clause(g,rec);
           //printf(" weight %d sine_k %d\n",weight,sine_k);
   #ifdef SINEORDER         
@@ -1112,19 +1142,38 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
             weight=weight+(sine_k*10);          
           }  
   #endif        
+          /*     
           if (wr_cl_is_goal(g, rec)) weight=weight*1;
-          else if (wr_cl_is_assumption(g, rec)) weight=weight*1000;
-          else weight=weight*10000;         
+          else if (wr_cl_is_assumption(g, rec)) weight=weight*100;
+          else weight=weight*10000;                   
+          */
+          if (wr_cl_is_goal(g, rec)) weight=weight*1;
+          else if (wr_cl_is_assumption(g, rec)) weight=weight*100;
+          //else if (wr_cl_is_extaxiom(g, rec)) weight=weight*20000;
+          else weight=weight*10000;     
+
           //printf(" total weight %d\n",weight);
+
         } else {
+
           //wr_print_clause(g,rec);
           //printf(" weight %d sine_k %d\n",weight,sine_k);
+
     #ifdef SINEORDER       
           if (g->sine_order_strat) {
             weight=weight+(sine_k*10*10);
           }  
-    #endif      
+    #endif    
+             
+          if ((g->sin_goal_count)*10 < (g->sin_clause_count)) {
+            if (wr_cl_is_goal(g, rec)) weight=weight*1;
+            else if (wr_cl_is_assumption(g, rec)) weight=weight*1;
+            //else if (wr_cl_is_extaxiom(g, rec)) weight=weight*4;
+            else weight=weight*2;
+          }
+          
           //printf(" total weight %d\n",weight);
+
         }
   #endif      
         (g->tmp_sort_vec)=wr_vec_store(g,g->tmp_sort_vec,j,(gint)weight);
@@ -1140,6 +1189,82 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
   } else {
     lastcell=(dbmemsegh(child_db)->clauselist);
   }  
+
+/*
+
+  // NB! SWC
+  if (1) { //(!(g->queryfocus_strat)) {
+    //printf("\nstarting to build a clause vector:\n");
+    vecflag=1;
+    cell2=(dbmemsegh(child_db)->clauselist);
+    lastcell=0;
+    n=0;
+    while(cell2) {
+      cellptr2=(gcell *) offsettoptr(child_db, cell2);
+      rec=offsettoptr(child_db,cellptr2->car); 
+
+      if (1 || wr_get_cl_sine_k(g,rec)) {
+
+        printf("\nn: %d ",n);
+        wr_print_clause(g,rec); 
+
+        j=(n*2)+1;  
+        weight=wr_calc_clause_weight(g,rec,&size,&depth,&length); 
+  #ifdef WEIGHT_PREFER_GOALS_ASSUMPTIONS      
+        if (wr_cl_is_goal(g, rec)) weight=weight*1;
+        else if (wr_cl_is_assumption(g, rec)) weight=weight*1000;
+        else weight=weight*10000;
+  #else
+  #ifdef SINEORDER 
+        if (g->sine_order_strat) {
+          sine_k=wr_get_cl_sine_k(g,rec);         
+          if (!sine_k) sine_k=200;       
+        }  
+  #endif         
+        if (g->cl_pick_queue_strategy) {
+
+          wr_print_clause(g,rec);
+          printf(" weight %d sine_k %d\n",weight,sine_k);
+  #ifdef SINEORDER         
+          if (g->sine_order_strat) {
+            weight=weight+(sine_k*10);          
+          }  
+  #endif        
+          if (wr_cl_is_goal(g, rec)) weight=weight*1;
+          else if (wr_cl_is_assumption(g, rec)) weight=weight*1000;
+          else weight=weight*10000;         
+
+          printf(" total weight %d\n",weight);
+
+        } else {
+
+          wr_print_clause(g,rec);
+          printf(" weight %d sine_k %d\n",weight,sine_k);
+
+    #ifdef SINEORDER       
+          if (g->sine_order_strat) {
+            weight=weight+(sine_k*10*10);
+          }  
+    #endif      
+                    
+          printf(" total weight %d\n",weight);
+
+        }
+  #endif      
+        (g->tmp_sort_vec)=wr_vec_store(g,g->tmp_sort_vec,j,(gint)weight);
+        (g->tmp_sort_vec)=wr_vec_store(g,g->tmp_sort_vec,j+1,(gint)rec);
+      }  
+      cell2=cellptr2->cdr;         
+      n++;
+    }       
+    // sort    
+    if (!(g->reverse_clauselist_strat)) {
+      wr_qsort_metaclvec(g,(g->tmp_sort_vec),0,n-1);
+    }      
+  } else {
+    lastcell=(dbmemsegh(child_db)->clauselist);
+  }  
+*/    
   
   if (!vecflag) cell=lastcell;
   else if (g->reverse_clauselist_strat) i=n-1;
@@ -1201,13 +1326,14 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
     else i=0;  
   }
   */
+  //printf("\n!!!!! SPECIAL START ****\n");
   while(1) { 
     // take rec
     if (vecflag) {
       if (g->reverse_clauselist_strat) {
         if (i<0) break;
       } else {
-        if (i>=n) break;
+        if (i>=n) break;      
       }  
       rec=(gptr)((g->tmp_sort_vec)[(i*2)+2]);
     } else {      
@@ -1228,6 +1354,7 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
       //printf("\ndropped clause by sine ");
       //wr_print_clause(g,rec);
       //printf("\n");
+      goto LOOPEND;
       if (vecflag) {
         if (g->reverse_clauselist_strat) i--;
         else i++;
@@ -1236,10 +1363,13 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
       }   
       continue;
     }
-   
-    //wr_print_clause(g,rec);
-    //printf("sine k %ld\n",wr_get_cl_sine_k(g,rec));
-    
+    /*
+    printf("\ni %d\n",i);
+    wr_print_clause(g,rec);
+    printf("weight %ld sine k %d\n",
+      (gint)((g->tmp_sort_vec)[(i*2)+1]), 
+      wr_get_cl_sine_k(g,rec));
+    */
 #ifdef DEBUG   
     wr_printf("\n next rec from db: ");
     wg_print_record(db,rec);
@@ -1267,13 +1397,25 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
       wr_printf("\nhash_pos_groundunits\n");
       wr_print_termhash(g,rotp(g,g->hash_pos_groundunits));
 #endif       
+      if ((g->res_arglen_limit)==1) {
+        if (wr_count_cl_nonans_atoms(g,rec) > 1) {
+          goto LOOPEND;
+          if (vecflag) {
+            if (g->reverse_clauselist_strat) i--;
+            else i++;
+          } else {      
+            cell=cellptr->cdr;
+          }   
+        }
+      }
 
       if (g->queryfocus_strat && wr_initial_select_active_cl(g,(gptr)rec)) {   
         // calculate resolvability: (g->tmp_resolvability_vec)
         wr_calc_clause_resolvability(g,rec,1,0);      
         given_cl=wr_process_given_cl(g,(gptr)rec, g->given_termbuf);
         if ( ((gint)given_cl==ACONST_FALSE) || ((gint)given_cl==ACONST_TRUE) ||
-             (given_cl==NULL) ) {          
+             (given_cl==NULL) ) {  
+          goto LOOPEND;             
           cell=cellptr->cdr;   
           continue;
         };
@@ -1285,6 +1427,7 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
                               g->active_termbuf,(g->tmp_resolvability_vec));                           
         if (given_cl_as_active==NULL) {
           //if (g->alloc_err) return -1;
+          goto LOOPEND;
           cell=cellptr->cdr;
           continue; 
         }    
@@ -1343,6 +1486,7 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
         given_cl=wr_process_given_cl(g,(gptr)rec,g->given_termbuf);
         if ( ((gint)given_cl==ACONST_FALSE) || ((gint)given_cl==ACONST_TRUE) ||
              (given_cl==NULL) ) {
+          goto LOOPEND;     
           cell=cellptr->cdr;    
           continue;
         }
@@ -1390,6 +1534,7 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
 #endif  
     }
     // take next element
+LOOPEND:    
     if (vecflag) {
       if (g->reverse_clauselist_strat) i--;
       else i++;

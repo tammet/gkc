@@ -43,7 +43,9 @@ under Ubuntu 16_04 and with clang under OS X Mojave:
 if the OS X compilation fails, remove the -static flag
 from compile.sh and then try again. 
 
-To compile the Windows 32-bit binary yourself, use the
+To compile the Windows 32-bit binary yourself (not possible
+for releases 0.5 and 0.5.1: take an older or newer release), 
+use the
 
     compile.bat
 
@@ -65,8 +67,8 @@ utilities. In case these two are not available, you
 can change the `makefile` for optionally compiling without
 them: check the comments in the `makefile`.
 
-Third, to compile with the autototools under Linux, first 
-rename `makefile`to something different and then do
+Third (currently unmaintained option) is to compile with the autototools under Linux,
+first rename `makefile`to something different and then do
 
     ./Bootstrap
     ./configure

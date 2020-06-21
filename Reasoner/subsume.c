@@ -937,19 +937,19 @@ int wr_derived_cl_strong_cut(glb* g, gptr rptr, int rpos, int prevcuts) {
     xatom=rptr[tmp+LIT_ATOM_POS];
     //oldcuts=cuts;
 #ifdef SCUTDEBUG     
-    wr_printf("\n i %d xatom %d xatommeta %d atom:\n",i,xatom,xatommeta);
+    printf("\n i %d xatom %d xatommeta %d atom:\n",i,xatom,xatommeta);
     wr_print_term(g,xatom);    
 #endif       
     if (wg_atom_meta_is_neg(db,xatommeta)) {
 #ifdef SCUTDEBUG      
-      wr_printf("\nneg\n");
+      printf("\nneg\n");
 #endif                
       cutter=strongly_cut_atom(g,xatom,rotp(g,g->hash_pos_units),(nongroundcount>1));
       if (cutter!=NULL) {         
 #ifdef SCUTDEBUG        
-        wr_printf("\ncutoff as neg!\n"); 
+        printf("\ncutoff as neg!\n"); 
         wr_print_term(g,xatom);
-        wr_printf("\n cutter:\n");
+        printf("\n cutter:\n");
         wr_print_clause(g,cutter);        
 #endif
         cuts++;
@@ -962,12 +962,12 @@ int wr_derived_cl_strong_cut(glb* g, gptr rptr, int rpos, int prevcuts) {
       }      
     } else {
 #ifdef SCUTDEBUG      
-      wr_printf("\npos\n");
+      printf("\npos\n");
 #endif 
       cutter=strongly_cut_atom(g,xatom,rotp(g,g->hash_neg_units),(nongroundcount>1));
       if (cutter!=NULL) {              
 #ifdef SCUTDEBUG        
-        wr_printf("\ncutoff  as pos!\n"); 
+        printf("\ncutoff  as pos!\n"); 
         wr_print_term(g,xatom);
         wr_printf("\n bucket:\n");
         wr_print_clause(g,cutter);    
@@ -997,9 +997,24 @@ gptr strongly_cut_atom(glb* g, gint xatom, vec hashvec, int usematch) {
   gint yatom=0;
   gptr ycl;
   int ures;
-  int preflen, plen;
+  int preflen, plen, iseq=0, atomlen;
+  gptr tptr;
+  gint a=0,b=0,ay,by;
   gint prefhashes[ATOM_PREFHASH_MAXLEN+1];
-
+  /*
+  if (wr_equality_atom(g,xatom)) {    
+    tptr=rotp(g,xatom);
+    atomlen=get_record_len(tptr);
+    if (atomlen>=(g->unify_firstuseterm)+3) {
+      iseq=1;
+      // take equality args (two):
+      a=tptr[RECORD_HEADER_GINTS+(g->unify_funarg1pos)];
+      b=tptr[RECORD_HEADER_GINTS+(g->unify_funarg2pos)];
+      //atype=wg_get_encoded_type(db,a);
+      //btype=wg_get_encoded_type(db,b);
+    }  
+  }
+  */
   preflen=wr_atom_calc_prefhashes(g,xatom,prefhashes);
   for(plen=0;plen<ATOM_PREFHASH_MAXLEN;plen++) {   
     if (preflen==1) {      
@@ -1034,12 +1049,13 @@ gptr strongly_cut_atom(glb* g, gint xatom, vec hashvec, int usematch) {
       
       /*
       wr_printf("after while(node!=0): \n");
-      wr_printf("ycl: \n");
-      wr_print_clause(g,ycl);                   
-      wr_printf("xcl: \n");
-      wr_print_clause(g,xcl);
-      wr_printf("xatom: \n");
-      wr_print_clause(g,xatom);
+      wr_printf("\nxatom ");
+      wr_print_term(g,xatom);     
+      wr_printf("\nyatom ");
+      wr_print_term(g,yatom);  
+      printf("\nyclause ") ;
+      wr_print_clause(g,otp(db,(otp(db,node))[CLTERM_HASHNODE_CL_POS]));   
+      printf("\nat pos %ld\n",(otp(db,node))[CLTERM_HASHNODE_PATH_POS]);
       */            
 #ifdef SCUTDEBUG        
       wr_printf("\nxatom ");
@@ -1056,11 +1072,48 @@ gptr strongly_cut_atom(glb* g, gint xatom, vec hashvec, int usematch) {
       } else {
         ures=wr_unify_term(g,xatom,yatom,1); // uniquestrflag=1            
       }  
+
+      if (!ures && iseq && wr_equality_atom(g,yatom)) {       
+        tptr=rotp(g,yatom);
+        atomlen=get_record_len(tptr);
+        if (atomlen>=(g->unify_firstuseterm)+3) {
+          wr_clear_varstack(g,g->varstack);
+          // take equality args (two):
+          ay=tptr[RECORD_HEADER_GINTS+(g->unify_funarg1pos)];
+          by=tptr[RECORD_HEADER_GINTS+(g->unify_funarg2pos)];
+          if (usematch) {
+            ures=wr_match_term(g,a,by,1);
+            if (ures) {
+              ures=wr_match_term(g,b,ay,1);
+            }
+          } else {
+            ures=wr_unify_term(g,a,by,1); // uniquestrflag=1                       
+            if (ures) {
+              ures=wr_unify_term(g,b,ay,1);
+            }
+          }
+        }  
+      }
+
 #ifdef SCUTDEBUG        
       wr_printf("unification check res: %d\n",ures);
 #endif        
       if (ures) {        
         ycl=otp(db,(otp(db,node))[CLTERM_HASHNODE_CL_POS]);
+
+        /*
+        wr_printf("\nin wr_resolve_binary_all_active after wr_process_resolve_result\n");
+        wr_printf("\nxatom\n");
+        wr_print_term(g,xatom);
+        wr_printf("\nyatom\n");
+        wr_print_term(g,yatom);
+        wr_printf(" in ycl ");
+        wr_print_clause(g,ycl);
+        wr_printf("\n!!!!! wr_resolve_binary_all_active after wr_process_resolve_result queue is\n");
+        wr_show_clqueue(g);
+        wr_printf("\nqueue ended\n");
+        */
+        
 #ifdef SCUTDEBUG                   
         wr_printf("\nin wr_resolve_binary_all_active after wr_process_resolve_result\n");
         wr_printf("\nxatom\n");

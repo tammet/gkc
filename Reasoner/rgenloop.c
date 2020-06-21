@@ -353,7 +353,15 @@ int wr_genloop(glb* g) {
       wr_printf("\n*** given %d: ",(g->stat_given_used));
       wr_print_clause(g,given_cl);   
     } else if (g->print_given_interval_trace) {
-      if ((g->stat_given_used)%GIVEN_INTERVAL_TRACE==0 && (g->stat_given_used)) {        
+      if ((g->stat_given_used)>=10000 &&
+          (g->stat_given_used)%(GIVEN_INTERVAL_TRACE*10)==0 && (g->stat_given_used)) {        
+        wr_printf("\nfork %d: %d given",g->current_fork_nr,(g->stat_given_used));
+        if (((g->queue_termbuf)[1]-1) > 0) {
+          fullness=((float)((g->queue_termbuf)[1]-1) / (float)((g->queue_termbuf)[0])); 
+          wr_printf(" filled %.0f%% ",100*fullness);
+        }
+      } else if ((g->stat_given_used)<10000 &&
+                (g->stat_given_used)%GIVEN_INTERVAL_TRACE==0 && (g->stat_given_used)) {        
         wr_printf("\nfork %d: %d given",g->current_fork_nr,(g->stat_given_used));
         if (((g->queue_termbuf)[1]-1) > 0) {
           fullness=((float)((g->queue_termbuf)[1]-1) / (float)((g->queue_termbuf)[0])); 
@@ -423,9 +431,22 @@ int wr_genloop(glb* g) {
     if ((g->proof_found) && wr_enough_answers(g)) return 0;
     if (g->alloc_err) return -1;        
     // next one blocks para for endgame
+
+   
+    //
+    // SWW
+    /*
+     if ((g->res_arglen_limit) && !(g->res_strict_arglen_limit) && (g->res_arglen_limit)<2) {
+      continue;
+    } 
+    */
+    /*
     if ((g->res_arglen_limit) && !(g->res_strict_arglen_limit) && (g->res_arglen_limit)<2) {
       continue;
     }       
+    */
+
+
     if ((g->use_equality) && (!(g->rewrite_only_strat))) {  
       if (!(g->endgame_mode) && 
           (!(g->prohibit_nested_para) || (wr_get_cl_history_tag(g,given_cl)!=WR_HISTORY_TAG_PARA)) ) {

@@ -61,6 +61,26 @@ test-driver
 tmp
 Rtest/
 Locdoc/
+Builtparser/*.y
+Examples/try*
+Examples/tmp*
+
+
+2019/
+old30weightlimit/
+okversion12june/
+version13june/
+version16junecasc/
+starexec/
+starexec2/
+starexec_benchmarks/
+Binaries/
+hl/
+geoff/
+casc/
+
+
+
 
 
 

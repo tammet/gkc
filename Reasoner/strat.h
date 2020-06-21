@@ -48,6 +48,7 @@ typedef struct {
 
 int wr_cl_is_goal(glb* g, gptr cl);
 int wr_cl_is_assumption(glb* g, gptr cl);
+int wr_cl_is_extaxiom(glb* g, gptr cl);
 
 int wr_is_unit_cl(glb* g, gptr cl, int ruleflag, int len);
 int wr_isunit_cl(glb* g, gptr cl);

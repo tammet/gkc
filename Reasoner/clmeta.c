@@ -180,13 +180,18 @@ int  wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length
       }
     }
   }      
-  if ((g->use_max_ground_weight) && max_ground_weight) {
-    w=max_ground_weight+(((*length)-1)*(g->cl_length_penalty))+(((*depth)-1)*(g->cl_depth_penalty));
-    if (is_rewrite) w=(int)((float)w/2.0); // NORMAL /2.0 TESTING *0.8
+  //if ((g->use_max_ground_weight) && max_ground_weight) {
+  //  w=max_ground_weight+(((*length)-1)*(g->cl_length_penalty))+(((*depth)-1)*(g->cl_depth_penalty));
+  //  if (is_rewrite) w=(int)((float)w/2.0); // NORMAL /2.0 TESTING *0.8
+  if ((g->use_max_ground_weight) && max_weight) {
+    w=max_weight+(((*length)-1)*(g->cl_length_penalty))+(((*depth)-1)*(g->cl_depth_penalty));
+    if (is_rewrite) w=(int)((float)w/2.0); // NORMAL /2.0 TESTING *0.8  
   } else if (g->use_max_weight) {
     w=max_weight+(((*length)-1)*(g->cl_length_penalty))+(((*depth)-1)*(g->cl_depth_penalty));
+    if (is_rewrite) w=(int)((float)w/2.0); // NORMAL /2.0 TESTING *0.8   // june 2020
   } else {
     w=w+(((*length)-1)*(g->cl_length_penalty))+(((*depth)-1)*(g->cl_depth_penalty));
+    if (is_rewrite) w=(int)((float)w/2.0); // NORMAL /2.0 TESTING *0.8   // june 2020
   }  
 
   //if (is_rewrite) w=(int)((float)w/3.0); // NORMAL /2.0 TESTING *0.8
@@ -227,12 +232,15 @@ int wr_calc_term_weight(glb* g, gint x, int depth, int* size, int* maxdepth, int
         }  
       } else return 10;  
 #else
-      *hasvars=1;
+      //*hasvars=1;
       return 10;
 #endif               
   }  
 
     // here x is a var
+
+    *hasvars=1; // fix in june 2020!!!!
+
 #ifdef WEIGHT_VARS    
     if (VARVAL_DIRECT(x,(g->varbanks))==UNASSIGNED) {
       // a new var 
