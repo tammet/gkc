@@ -261,7 +261,7 @@ The list "strategy": [...] contains the main search strategy indicators, default
 * "hyper" : use hyperresolution, with negative literals preferred
 * "posunitpara": perform paramodulation from units only
 * "prohibit_nested_para": disallow paramodulation if either parent is derived by paramodulation
-* "max_ground_weight": use the weight of the heaviest ground literal as the base weight of a clause
+* "max_ground_weight": use the weight of the heaviest literal as the base weight of a clause
 * "unit", "double" or "triple" : use binary unit resolution  or its generalization:
   (one of the arguments must be unit, a two-literal or three-literal clause,
    respectively. These may be added to the list in addition to the previous
