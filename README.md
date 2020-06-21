@@ -272,8 +272,10 @@ Other useful parameters:
 * "print": 0 or 1, where 0 prohibits almost all printing, default 1.
 * "print_level": integer determining the level of output: useful values are between 0 and 50, default 15.
 * "print_json": 0 or 1, where 0 is default and 1 forces json output.
+* "print_tptp": 1 or 0, where 1 is default and 0 forces non-tptp-style proof output
 * "max_size", "max_length", "max_depth", "max_weight" indicate limits on kept clauses, defaults are 0.
 * "equality" : 1 or 0, with 1 being default and 0 prohibiting equality handling.
+* "rewrite" : 1 or 0, with 1 being default and 0 prohibiting using equations for rewriting.
 * "max_seconds": N being an integer limit of seconds for one run, default 0 (no limit).
 * "weight_select_ratio": N indicating the ratio of picking by order derived / clause weight, default is 5.
 * "max_answers": N indicating the maximal number of proofs searched for until search stops, default is 1.
