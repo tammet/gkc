@@ -239,7 +239,10 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
   setbuf(stdout, 0);
   for(forknr=0; forknr<maxforks; forknr++) {
     pid=fork();
-    //printf("\nfork pid %d\n",pid);     
+
+    //printf("\nfork pid %d forknr %d\n",pid,forknr);
+    //fflush(stdout);
+
     if (pid<0) {
       // fork fails
       printf("\nerror: fork nr %d fails with pid %d\n",forknr,pid);         
@@ -278,12 +281,31 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
   if (pid && forkscreated) {
     // only parent performs this loop
     while(forkslive) {
+      if (!givenguide && guidestr && !strncmp(guidestr,"LTBSPECIAL",10)) {
+        //printf("\n(dbmemsegh(db)->min_strat_timeloop_nr) %ld\n",(dbmemsegh(db)->min_strat_timeloop_nr));
+        //fflush(stdout);        
+        if ((dbmemsegh(db)->min_strat_timeloop_nr)<3) {
+          alarm(60);
+        } else {  
+          alarm(200);
+        }          
+      }  
+
       cpid=waitpid(-1,&stat, 0);
+
       //printf("\nwaitpid ended for cpid %d\n",cpid);
+      //fflush(stdout);
+
       if (WIFEXITED(stat)) {
+
         //printf("\nWIFEXITED(stat) true for cpid %d\n",cpid);
+        //fflush(stdout);
+
         err = WEXITSTATUS(stat);
-        //printf("Child %d terminated with status: %d\n", cpid, err); 
+
+        //printf("Child inside subprocess checking %d terminated with status err: %d\n", cpid, err); 
+        //fflush(stdout);
+
         //printf("last_received_signal_pid: %d\n", last_received_signal_pid);
         forkslive--;  
         // remove cpid from pid array      
@@ -304,10 +326,19 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
               kill(forkpids[i], SIGKILL);
             }
           }  
-          break;
+          //break;
+          exit(0);
         }        
       }
-    }  
+      
+      //printf("\nin forkslive loop\n");
+      //fflush(stdout);
+
+    } 
+
+    //printf("\nout of forkslive loop\n");
+    //fflush(stdout);
+
   }
 #endif
 

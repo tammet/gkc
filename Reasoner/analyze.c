@@ -1128,6 +1128,7 @@ query preference handling:
 */
 
 char* make_auto_guide(glb* g, glb* kb_g, int guideparam) { 
+  void* db=g->db;
   char *buf=NULL,*pref; 
   int i,j,pos,iterations=4,secs;
   int eq,depth,length,size; //,bigratio;
@@ -1172,6 +1173,7 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
   }
 
   buf=(char*)wr_malloc(g,50000);
+  gint min_strat_timeloop_nr=0, max_strat_timeloop_nr=1000;
   // normal "\"print_level\": 15,\n"
   if (guideparam==1) {
     pref="{\n"
@@ -1181,6 +1183,9 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
         "\"max_depth\": 0,\n"
         "\"max_length\": 0,\n"
         "\"max_seconds\": 0,\n"; 
+    min_strat_timeloop_nr=(dbmemsegh(db)->min_strat_timeloop_nr);
+    max_strat_timeloop_nr=(dbmemsegh(db)->max_strat_timeloop_nr); 
+    //printf("\nminloopi %ld  maxloopi %ld\n",min_strat_timeloop_nr,max_strat_timeloop_nr);   
   } else {
     pref="{\n"
         "\"print\":1,\n"
@@ -1207,11 +1212,12 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
   size=3;
   //smallratio=2;
   //bigratio=20;
-  if (guideparam==1) iterations=1;
+  //if (guideparam==1) iterations=1;
   for(i=0;i<iterations;i++) {
-
+    if (i<min_strat_timeloop_nr) goto BLOCKEND;
+    if (i>max_strat_timeloop_nr) break;
     // start of a block
-
+    //printf("\nstrat timeloop %d starts\n",i);
     if ((g->sin_clause_count)==(g->sin_unit_clause_count) &&
         (g->sin_clause_count)==(g->sin_poseq_clause_count)+(g->sin_negeq_clause_count) ) {
 
@@ -2188,6 +2194,10 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
 
     }
 
+BLOCKEND:
+
+    //printf("\nat iteration end %d buf: \n%s\n",i,buf);
+
     // end of one block
     if (i<iterations-1) {
       pos+=sprintf(buf+pos,"\n");      
@@ -2209,8 +2219,9 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
       break;
     }
   }
-
   pos+=sprintf(buf+pos,"\n]}\n");
+  
+  //printf("\nbuf: \n%s\n",buf);
   
   if (!(g->outfilename) && guideparam!=1) {
     wr_printf("\nauto guide:\n-----------\n%s\n",buf);

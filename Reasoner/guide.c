@@ -316,9 +316,13 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr) {
     elem=elem->next;
   }
 
-  if (!runfound && guide!=NULL) {
+  if (!runfound && runnr<0 && guide!=NULL) {
     out=cJSON_Print(guide); 
     *outstr=out;    
+  } else if (!runfound && runnr>=0 && guide!=NULL) {
+    out=NULL; //cJSON_Print(guide); 
+    *outstr=NULL;    
+    return -1;
   }
 
   return runcount;
