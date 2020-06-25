@@ -227,9 +227,13 @@ int gkc_main(int argc, char **argv) {
 
   if (mbsize==0) {
 #ifdef _WIN32
-    shmsize=(gint)1000000;
+#ifdef _WIN64    
+    shmsize = (gint)5000000000; // 5 gb default for large csr 
 #else
-    shmsize = (gint)5000000000; // 5 mb default for large csr
+    shmsize=(gint)1000*(gint)1000000; // has to be small for win32    
+#endif    
+#else
+    shmsize = (gint)5000000000; // 5 gb default for large csr
 #endif        
     shmsize2 = shmsize;
   } else {
@@ -324,7 +328,7 @@ int gkc_main(int argc, char **argv) {
     printf("\nprevious memory database deleted\n");
     gkc_show_cur_time();
 #endif
-    shmptr=wg_attach_database(shmname, shmsize);
+    shmptr=wg_attach_database(shmname, shmsize);    
     if(!shmptr) {
       err_printf("failed to attach to database");
       return(1);
@@ -687,9 +691,9 @@ void usage(char *prog) {
          "\n"\
          "additional optional parameters:\n"\
          "  -parallel <nr of parallel processes to run>\n"\
-         "   if omitted, 8 worker processes and 1 parent used\n"\
+         "   UNIX only; if omitted, 8 worker processes and 1 parent used\n"\
          "  -mbsize <megabytes to allocate>\n"\
-         "   if omitted, 1000 megabytes assumed\n"\
+         "   if omitted, 5000 megabytes assumed for UNIX, 1000 for 32-bit Windows\n"\
          "  -mbnr <shared memory database nr>\n"\
          "   if omitted, 1000 used\n");
 }
@@ -1411,10 +1415,17 @@ envfolder=getenv("TPTP");
 
 void wr_output_batch_prob_failure(char* probname, char* outfullname, char* failure) {
   FILE* outfile;
+  int exists=0;
 
   printf("%% SZS status %s for %s\n",failure,probname);
   printf("%% SZS status Ended for %s\n",probname);
-  if(access(outfullname,F_OK) != -1) {
+#ifdef _WIN32
+  DWORD dwAttrib = GetFileAttributes(outfullname);
+  exists=(dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+#else  
+  if(access(outfullname,F_OK) != -1) exists=1;
+#endif    
+  if (exists) {
     // file exists
   } else {
     // file doesn't exist

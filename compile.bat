@@ -1,6 +1,6 @@
 @rem build a gkc prover under Windows
 
-cl /O2 /W2 /w34005 /Fegkc ^
+cl /O2 /W2 /w34005 /wd4477 /wd4311 /wd4133 /Fegkc ^
   Main/gkc.c ^
   Db/dbmem.c Db/dballoc.c Db/dbdata.c ^
   Db/dblock.c Db/dbindex.c Db/dbdump.c Db/dblog.c Db/dbhash.c Db/dbcompare.c ^

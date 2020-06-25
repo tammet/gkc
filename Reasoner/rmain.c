@@ -356,7 +356,9 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
     
     // child should only take some iters and pass others:
     //printf("\niter %d pid %d maxforks %d forknr %d (iter div maxforks) %d\n",iter,pid,maxforks,forknr,(iter % maxforks));
+#ifndef _WIN32   
     if (!pid && maxforks && ((iter % maxforks)!=forknr)) continue; 
+#endif    
 #ifdef DEBUG    
     //wr_printf("\n**** run %d starts\n",iter+1);    
 #endif

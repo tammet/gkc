@@ -37,9 +37,10 @@
 #include <signal.h>
 #include <unistd.h>
 */
-
+#ifndef _WIN32
 #include <unistd.h>
 #include <sys/time.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -1164,8 +1165,10 @@ int wr_show_result(glb* g, gint history) {
   FILE* outfile; 
   int sleepi;
   gint sleept, coeff, limit_low, limit_high, usecs;
-  struct timeval now;
   
+ #ifndef _WIN32 
+  struct timeval now;
+
   // selecting a timeslot for proof output  
   if ((dbmemsegh(db)->max_forks)>1) {    
     coeff=(gint)(1000000.0/((dbmemsegh(db)->max_forks))); 
@@ -1184,7 +1187,8 @@ int wr_show_result(glb* g, gint history) {
       usleep(sleept); 
     }
     //printf("\nsleepi iterations done: %d\n",sleepi);
-  }    
+  }
+#endif      
 
   // create buf for printing
   namebuf[0]=0;
