@@ -2,7 +2,7 @@
 
 # alternative to compilation with automake/make: just run 
 
-[ -z "$CC" ] && CC="cc"
+[ -z "$CC" ] && CC="gcc"
 
 if [ -z "$(which $CC 2>/dev/null)" ]; then
     echo "Error: No compiler found"
