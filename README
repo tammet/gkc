@@ -155,8 +155,8 @@ The following is a list of available commands as output by `./gkc -help`:
         if 1, use TPTP proof output format and set print_level to 15 by default
         if 0, use the simple output format and set print_level to 10 by default
         if omitted, 0 used (simple format and statistics/strategies not printed)
-      -mbsize <megabytes to allocate>
-        if omitted, 1000 megabytes assumed
+      -mbsize <megabytes to initially allocate>
+        if omitted, 5000 megabytes assumed for UNIX and Windows 64, 1000 for Windows 32
       -mbnr <shared memory database nr>
         if omitted, 1000 used  
        
