@@ -1,4 +1,9 @@
-@rem build a gkc prover under Windows
+@rem Build a gkc prover gkc.exe under Windows using the command-line C compiler cl
+
+@rem Note: 
+@rem * uses pre-built parser in the Builtparser folder, not the bison/flex combo
+@rem * configuration is set in config-w32.h
+@rem * compiler switches /w... suppress specific unnecessary warnings
 
 cl /O2 /W2 /w34005 /wd4477 /wd4311 /wd4133 /Fegkc ^
   Main/gkc.c ^

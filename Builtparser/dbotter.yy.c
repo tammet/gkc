@@ -1246,7 +1246,7 @@ case 36:
 /* rule 36 can match eol */
 YY_RULE_SETUP
 #line 259 "Parser/dbotter.l"
-{ strncpy(linebuf, yytext+1, sizeof(linebuf));
+{ strncpy(linebuf, yytext+1, sizeof(linebuf)-1);
        yyless(1);      
      }
 	YY_BREAK
@@ -2540,10 +2540,10 @@ void wg_yyottererror (parse_parm* parm, void* scanner, const char* msg) {
     }
   }
   if (parm->errmsg) return;
-  parm->errmsg=malloc(1000);
-  snprintf(parm->errmsg,900,"{\"error\": \"%s: file %s place '%s' in line %d:\n%s\"}", 
+  parm->errmsg=malloc(2000);
+  snprintf(parm->errmsg,2000,"{\"error\": \"%s: file %s place '%s' in line %d:\n%s\"}", 
           msg,parm->filename,s,wg_yyotterget_lineno(scanner),linebuf);
-  (parm->errmsg)[900]=0;
+  (parm->errmsg)[2000-1]=0;
   // printf("{\"error\": \"%s: file %s place '%s' in line %d:\n%s\"}\n", 
   //        msg,parm->filename,s,wg_yyotterget_lineno(scanner),linebuf);  
 }

@@ -137,179 +137,6 @@ void db_err_printf2(char* s1, char* s2);
 
 /* ====== Parse json ============== */
 
-/*
-int wr_import_json_file(glb* g, char* filename, char* strasfile, cvec clvec, int isincluded) {
-  void* db=g->db;
-  parse_parm  pp;
-  char* fnamestr;  
-  FILE* fp;    
-  //char* buf; 
-  int pres=1;
-  void* preprocessed=NULL;
-  void* pres2=NULL;
-  void *mpool;  
-  int tmp_comp_funs;
-  int tmp;
-
-
-  char* jbuf=NULL;
-  cJSON *jdata=NULL;
-  int clause_count=0;
-
-#ifdef DEBUG
-  DPRINTF("wr_import_json_file called\n");
-  printf("\n filename %s \n",filename);
-  printf("\n strasfile %s \n",strasfile);
-  printf("\n isincluded %d \n",isincluded);
-  (g->print_initial_parser_result)=1;
-  (g->print_generic_parser_result)=1;
-#endif    
-  
-  jdata=wr_parse_json_infile(filename,&jbuf);
-  if (jdata==NULL) {
-    if (jbuf!=NULL) free(jbuf);
-    return -1;
-  }
-  
-  // set globals for parsing
-  (g->parse_is_included_file)=isincluded;
-  (g->parse_skolem_prefix)=wr_str_new(g,100);
-  strncpy((g->parse_skolem_prefix),DEFAULT_SKOLEM_PREFIX,99);
-  //(g->parse_skolem_nr)=0;
-  (g->parse_newpred_prefix)=wr_str_new(g,100);
-  strncpy((g->parse_newpred_prefix),DEFAULT_NEWPRED_PREFIX,99);
-  //(g->parse_newpred_nr)=0;
-  (g->parse_errmsg)=NULL;
-  (g->parse_errflag)=0;
-
-  tmp_comp_funs=(g->use_comp_funs);
-  (g->use_comp_funs)=0;
-  tmp=wr_parse_injson_data(g,jdata);
-  (g->use_comp_funs)=tmp_comp_funs;
-  
-  //if (pres2==NULL) return 1;
-  //else return 0;  
-  return 0;
-}
-
-
-
-cJSON* wr_parse_json_infile(char* filename,char** guidebuf) { 
-  char* buf=NULL;
-  FILE* fp=NULL;  
-  cJSON *data=NULL;
-  int len;
-  int tmp;
-
-#ifdef _WIN32
-  if(fopen_s(&fp, filename, "rb")) {
-#else
-  if(!(fp = fopen(filename, "rb"))) {
-#endif    
-    wr_errprint2("cannot open file", filename);
-    return NULL;
-  }     
-  // get the length
-  fseek(fp, 0, SEEK_END);
-  len = ftell(fp);
-  fseek(fp, 0, SEEK_SET);
-  // read and proceed
-  buf = (char*)malloc(len + 10);
-  *guidebuf=buf;
-  if (!buf) {
-    wr_errprint2("failed to allocate memory for the guide file", filename);
-    return NULL;
-  }
-  if (fread(buf, 1, len, fp)<len) {
-    fclose(fp);
-    wr_errprint2("cannot read the guide file", filename);
-    return NULL;
-  }
-  buf[len] = '\0';
-  if (fp!=NULL) fclose(fp);
-  data=wr_parse_json_infile_str(buf);    
-
-  printf("\n json parsed");
-  return data; 
-}
-
-
-cJSON* wr_parse_json_infile_str(char* buf) {
-  cJSON *guide=NULL;
-  char *errorptr=NULL;
-
-  printf("\nbuf:\n%s\n",buf);
-  guide=cJSON_Parse(buf);
-  if (guide==NULL) {
-    errorptr=(char*)cJSON_GetErrorPtr();
-    if (errorptr!=NULL) {      
-      wr_errprint2("Incorrect json in guide before ",errorptr);
-      return NULL;
-    }
-    wr_errprint("Empty guide");
-    return NULL;
-  }
-  return guide;
-}
-
-int wr_parse_injson_data(glb* g, cJSON* jdata) {
- 
-  cJSON *elem=NULL, *run=NULL, *lit=NULL;
-  char *key, *errstr, *valuestr;
-  int valueint,i,tmp;
-  int runcount=0, runfound=0, runnr=0;
-
-  printf("\nwr_parse_injson_data called\n");
-
-  if (!json_isarray(jdata)) {
-     show_parse_error(g->db,"json input file is not an array\n");
-     return 0;
-  }
-  // here obj s an array
-  cJSON_ArrayForEach(elem,jdata) {
-    if (!json_isarray(elem)) {
-      show_parse_error(g->db,"a clause in the json input array is not an array\n");
-      return 0;
-    }
-    // here elem is an array
-    if (!json_isarray(elem->child)) {
-      wr_parse_injson_term(g,elem);
-    } else {
-      wr_parse_injson_clause(g,elem);
-    }  
-  }
-  return 0;
-}
-
-void* wr_parse_injson_clause(glb* g, cJSON* clause) {
-  cJSON *lit=NULL;
-
-  cJSON_ArrayForEach(lit,clause) {
-    if (json_isarray(lit)) {
-      wr_parse_injson_term(g,lit);
-    } else {
-      show_parse_error(g->db,"a literal in the json input clause is not an array\n");
-      return NULL;
-    }
-  } 
-  return NULL;
-}
-
-
-void* wr_parse_injson_term(glb* g, cJSON* term) {
-  cJSON *elem=NULL;
-
-  cJSON_ArrayForEach(elem,term) {
-    if (json_isarray(elem)) {
-      wr_parse_injson_term(g,elem);
-    } else {
-      printf("\nterm elem %s\n",json_valuestring(elem));
-    }
-  }
-  return NULL;
-}
-
-*/
 
 /* ====== Parse otter and tptp ============== */
 
@@ -323,7 +150,7 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, in
   void* preprocessed=NULL;
   void* pres2=NULL;
   void *mpool=NULL;  
-  int tmp_comp_funs;
+  int tmp_comp_funs,tmplen;
   
   //printf("\nstarting to read file %s \n",filename);
 #ifdef DEBUG
@@ -401,9 +228,10 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, in
 
   if (pp.errmsg) {
     (g->parse_errflag)=1;
-    (g->parse_errmsg)=malloc(strlen(pp.errmsg)+10);
+    tmplen=strlen(pp.errmsg)+10;
+    (g->parse_errmsg)=malloc(tmplen);
     if (g->parse_errmsg) {
-      strncpy(g->parse_errmsg,pp.errmsg,strlen(pp.errmsg)+2);
+      strncpy(g->parse_errmsg,pp.errmsg,tmplen);
     }  
     free(pp.errmsg);
   }
@@ -1687,6 +1515,7 @@ gint wr_parse_and_encode_otter_uri(glb* g, char *buf) {
   void* db=g->db;
   gint encoded = WG_ILLEGAL;
   struct uri_scheme_info *next = uri_scheme_table_otter;
+  int tmplen;
 
   /* Try matching to a known scheme */
   while(next->prefix) {
@@ -1694,12 +1523,14 @@ gint wr_parse_and_encode_otter_uri(glb* g, char *buf) {
       /* We have a matching URI scheme.
        * XXX: check this code for correct handling of prefix. */
       int urilen = strlen(buf);
-      char *prefix = malloc(urilen + 1);
+      tmplen=urilen + 1;
+      char *prefix = malloc(tmplen);
       char *dataptr;
 
-      if(!prefix)
-        break;
-      strncpy(prefix, buf, urilen);
+      if(!prefix) break;
+      //strncpy(prefix, buf, tmplen);
+      prefix[tmplen-1]=(char)0;
+      strcpy(prefix, buf);
 
       dataptr = prefix + urilen;
       while(--dataptr >= prefix) {

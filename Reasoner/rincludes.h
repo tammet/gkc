@@ -71,7 +71,7 @@
 #include "../cjson/cjson.h"
 #include "../Db/dbutil.h"
 #include "../Printer/dbotterprint.h"
-#include "../Test/dbtest.h"
+//#include "../Test/dbtest.h"
 
 /* ==== Global defines ==== */
 

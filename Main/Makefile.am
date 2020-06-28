@@ -19,7 +19,7 @@ jsondir=../json
 
 lib_LTLIBRARIES = libwgdb.la
 bin_PROGRAMS = gkc
-noinst_PROGRAMS = indextool
+#noinst_PROGRAMS = indextool
 pkginclude_HEADERS = $(dbdir)/dbapi.h  $(dbdir)/rdfapi.h $(dbdir)/indexapi.h
 
 # ---- extra dependencies, flags, etc -----
@@ -53,8 +53,8 @@ gkc_LDADD = libwgdb.la
 #stresstest_SOURCES = stresstest.c
 #stresstest_LDADD = libwgdb.la
 
-indextool_SOURCES = indextool.c
-indextool_LDADD = libwgdb.la
+#indextool_SOURCES = indextool.c
+#indextool_LDADD = libwgdb.la
 
 #selftest_SOURCES = selftest.c
 #selftest_LDADD = $(testdir)/libTest.la libwgdb.la

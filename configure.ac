@@ -6,14 +6,14 @@
 # ------- Initialisation -------
 
 m4_define([GKC_MAJOR], [0])
-m4_define([GKC_MINOR], [4])
-m4_define([GKC_REV], [1])
+m4_define([GKC_MINOR], [5])
+m4_define([GKC_REV], [2])
 
 # standard release
 #m4_define([GKC_VERSION],
 #  m4_defn([GKC_MAJOR]).m4_defn([GKC_MINOR]).m4_defn([GKC_REV]))
 # release candidate; fill in manually
-m4_define([GKC_VERSION], [0.4.1]))
+m4_define([GKC_VERSION], [0.5.2]))
 
 AC_CONFIG_MACRO_DIRS([m4])
 
@@ -265,7 +265,7 @@ fi
 
 AC_MSG_NOTICE([====== setting compiler flags ======])
 
-auto_cflags="-Wall"
+auto_cflags="-Wall -O3"
 
 AX_GCC_ARCHFLAG([no])
 
@@ -285,8 +285,8 @@ AC_OUTPUT([
 Makefile
 Db/Makefile
 json/Makefile
-Main/Makefile
 Parser/Makefile
 Printer/Makefile
 Reasoner/Makefile
+Main/Makefile
 ])

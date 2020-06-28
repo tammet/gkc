@@ -575,10 +575,18 @@ void wg_print_code_version(void) {
   printf("integer size: %d bytes\n", (int)(sizeof(int)));
   printf("pointer size: %d bytes\n", (int)(sizeof(int*)));
   printf("byte order: %s endian\n", (i_bytes[0]==1 ? "little" : "big"));
-  printf("compile-time features:\n"\
+#ifdef __clang__
+  printf("compiled using clang %d.%d.%d\n",__clang_major__,__clang_minor__,__clang_patchlevel__);  
+#else 
+#ifdef __GNUC__
+  printf("compiled using gcc %d.%d.%d\n",__GNUC__,__GNUC_MINOR__,__GNUC_PATCHLEVEL__);
+#endif
+#endif  
+  printf("compile-time features for the db:\n"\
     "  db checks: %s\n"\
     "  logging: %s\n"\
     "  database handle: %s\n"\
+    "  64-bit gint: %s\n"\
     "  64-bit encoded data: %s\n"\
     "  queued locks: %s\n"\
     "  chained nodes in T-tree: %s\n"\
@@ -600,6 +608,11 @@ void wg_print_code_version(void) {
 #else
   "no",
 #endif   
+#ifdef HAVE_64BIT_GINT
+  "yes",
+#else
+  "no",
+#endif
     (MEMSEGMENT_FEATURES & FEATURE_BITS_64BIT ? "yes" : "no"),
     (MEMSEGMENT_FEATURES & FEATURE_BITS_QUEUED_LOCKS ? "yes" : "no"),
     (MEMSEGMENT_FEATURES & FEATURE_BITS_TTREE_CHAINED ? "yes" : "no"),

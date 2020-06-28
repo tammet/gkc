@@ -81,19 +81,19 @@ cJSON* wr_parse_guide_file(int argc, char **argv, char** guidebuf) {
     // default case: no guide file
 
     len=strlen(DEFAULT_GUIDE);
-    buf = (char*)malloc(len + 10);
+    buf = (char*)malloc(len+10);
     *guidebuf=buf;
     if (!buf) {
       wr_errprint("failed to allocate memory for the built guide str");
       return NULL;
     }
-    strncpy(buf,DEFAULT_GUIDE,len);     
+    //strncpy(buf,DEFAULT_GUIDE,len+10);     
+    strcpy(buf,DEFAULT_GUIDE);
     guide=wr_parse_guide_str(buf);
     printf("Using default strategy.");
     return guide;
   } 
   // file case
-  
   filename=argv[2];  
 #ifdef _WIN32
   if(fopen_s(&fp, filename, "rb")) {
@@ -102,7 +102,7 @@ cJSON* wr_parse_guide_file(int argc, char **argv, char** guidebuf) {
 #endif    
     wr_errprint2("cannot open strategy file", filename);
     return NULL;
-  }     
+  }   
   // get the length
   fseek(fp, 0, SEEK_END);
   len = ftell(fp);
@@ -169,7 +169,7 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr) {
     if (key==NULL) { elem=elem->next; continue; }
     //printf("\nkey is %s\n",elem->string); 
 
-    if (!strcmp(key,"print")) {
+    if (!strncmp(key,"print",5) && strlen(key)==5) {
       //printf("print %d\n", json_valueint(elem));
       (g->print_flag)=json_valueint(elem);
     } else if (!strcmp(key,"print_json")) {
@@ -183,6 +183,14 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr) {
         (g->print_fof_conversion_proof)=0;
         (g->store_fof_source)=0;
         (g->store_fof_skolem_steps)=0;
+        (g->print_clauses_tptp)=0;
+        (g->print_proof_tptp)=0;
+      } else {
+        (g->print_fof_conversion_proof)=1;
+        (g->store_fof_source)=1;
+        (g->store_fof_skolem_steps)=1;
+        (g->print_clauses_tptp)=1;
+        (g->print_proof_tptp)=1;
       }
     } else if (!strcmp(key,"print_level")) {
       //printf("print_level %d\n", json_valueint(elem));
@@ -307,22 +315,24 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr) {
         }
         runcount=i;          
       }  
-    } 
-
-    else {
+    } else {
       wr_warn2(g,"unknown setting in the strategy: ", key);
-    }
-    
+    }    
     elem=elem->next;
   }
 
-  if (!runfound && runnr<0 && guide!=NULL) {
+  //printf("\n runfound %d runnr %d guide not null: %d \n",runfound,runnr,guide!=NULL);  
+  if (runfound && runnr<0 && guide!=NULL) {
+    out=NULL; 
+    *outstr=NULL;    
+    return -1;
+  } else if (!runfound && runnr<0 && guide!=NULL) {
     out=cJSON_Print(guide); 
     *outstr=out;    
   } else if (!runfound && runnr>=0 && guide!=NULL) {
     out=NULL; //cJSON_Print(guide); 
     *outstr=NULL;    
-    return -1;
+    //return -1;
   }
 
   return runcount;

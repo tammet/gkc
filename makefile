@@ -42,14 +42,15 @@ sources = Main/gkc.c \
   Reasoner/resolve.c Reasoner/simp.c Reasoner/strat.c Reasoner/rewrite.c Reasoner/history.c Reasoner/prob.c Reasoner/hash.c \
   Reasoner/clmeta.c Reasoner/guide.c  Reasoner/propagate.c Reasoner/init.c\
   Reasoner/analyze.c Reasoner/chains.c Reasoner/prop.c\
-  Printer/dbotterprint.c Test/dbtest.c
+  Printer/dbotterprint.c
+# Test/dbtest.c
 
 # some common headers used by many sources
 
 commonheaders = config.h \
   Db/dballoc.h Db/dbdata.h Db/dbhash.h Db/dblog.h Db/dbindex.h Db/dbcompare.h \
   Db/dblock.h Db/dbutil.h Db/dbapi.h Db/dbmpool.h Db/dbquery.h \
-  Reasoner/rincludes.h
+  Reasoner/rincludes.h Reasoner/glb.h
 
 # prebuilt parser sources are used if flex and bison are not available
 

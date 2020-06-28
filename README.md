@@ -14,9 +14,9 @@ for the systems built on top of GKC.
 
 For compiled binaries for Linux and Windows, as well as 
 instructions for running gkc, see the latest release,
-either v0.5.0 or newer:
+either v0.5.2 or newer:
 
-<https://github.com/tammet/gkc/releases/tag/v0.5.0>
+<https://github.com/tammet/gkc/releases/tag/v0.5.2>
 
 GKC is licenced under AGPL v3. The author of GKC
 is Tanel Tammet (tanel.tammet@gmail.com).
@@ -38,14 +38,12 @@ script in the top folder creating a static binary gkc
 in the top folder. This script calls gcc once,
 the result is the binary `gkc` in the top folder.
 
-We have tested compilation with gcc 5.4, clang 3.8 and clang 6.0
+We have tested compilation with gcc 5.4 and 9.3, clang 3.8 and 6.0
 under Ubuntu 16_04 and with clang under OS X Mojave: 
 if the OS X compilation fails, remove the -static flag
 from compile.sh and then try again. 
 
-To compile the Windows 32-bit binary yourself (not possible
-for releases 0.5 and 0.5.1: take an older or newer release), 
-use the
+To compile the Windows 32-bit binary yourself, use the
 
     compile.bat
 
@@ -53,9 +51,6 @@ script in the top folder creating an executable `gkc.exe`
 in the fop folder. We have tested compilation under 
 the 64-bit Windows 10 with the 2017 Visual Studio C
 community edition command-line tool cl.
-
-NB! Version 0.5.0 does not support Windows compilation.
-Please see either a newer or older release for Windows.
 
 Second, to compile with a simple makefile under Linux, do
 
@@ -67,7 +62,7 @@ utilities. In case these two are not available, you
 can change the `makefile` for optionally compiling without
 them: check the comments in the `makefile`.
 
-Third (currently unmaintained option) is to compile with the autototools under Linux,
+Third option is to compile with the autototools under Linux,
 first rename `makefile`to something different and then do
 
     ./Bootstrap
@@ -75,7 +70,7 @@ first rename `makefile`to something different and then do
     make
 
 which will first create `Makefile`
-and then use this to create an executable `Main/gkc`
+and then use this to create a dynamically linked executable `Main/gkc`
 and optionally do
 
     sudo make install
@@ -96,6 +91,8 @@ Example:
     
 GKC will automatically pick and try out several search strategies 
 one after another.
+
+Please check the Examples/Readme.md for guided examples of using gkc.
 
 In order to select options and strategies yourself, run gkc as 
 
@@ -147,13 +144,21 @@ The following is a list of available commands as output by `./gkc -help`:
       <axioms file> is like a <problem file> 
       <dump file> stores the parsed and prepared database for fast loading 
 
-    additional optional parameters:
+    additional optional parameters:      
       -parallel <number of parallel processes to use>
-        if omitted, 8 used (i.e. 8 forks created). No forks created if value is under 2.
+        if omitted, 4 used (i.e. 4 forks created) 
+        no forks created if value is under 2 or running on Windows      
+      -seconds <time limit in seconds>
+        if omitted, 0 used: no limit    
+        not available on Windows      
+      -tptp <0 or 1>        
+        if 1, use TPTP proof output format and set print_level to 15 by default
+        if 0, use the simple output format and set print_level to 10 by default
+        if omitted, 0 used (simple format and statistics/strategies not printed)
       -mbsize <megabytes to allocate>
         if omitted, 1000 megabytes assumed
       -mbnr <shared memory database nr>
-        if omitted, 1000 used
+        if omitted, 1000 used  
        
 
 Input syntax

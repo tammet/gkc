@@ -102,6 +102,19 @@ int init_shared_database(void* db, char* guidefilename) {
 #endif   
 
   wr_glb_init_simple(g);  // fills in simple values (ints, strings etc)   
+  //printf("\ndbmemsegh(db)->tptp %ld\n",dbmemsegh(db)->tptp);
+  if (dbmemsegh(db)->tptp) {
+    (g->print_tptp)=1;        
+    (g->print_fof_conversion_proof)=1;
+    (g->print_clauses_tptp)=1;
+    (g->print_proof_tptp)=1;   
+  } else {
+    (g->print_tptp)=0;        
+    (g->print_fof_conversion_proof)=0; 
+    (g->print_clauses_tptp)=0;
+    (g->print_proof_tptp)=0;
+  }
+
 #ifdef DEBUG  
   wr_printf("\ninit_shared_database returned from wr_glb_init_simple\n");
 #endif 

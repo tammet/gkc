@@ -45,7 +45,7 @@
 #define PACKAGE_NAME "GKC"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "GKC 0.5.1"
+#define PACKAGE_STRING "GKC 0.5.2"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "gkc"
@@ -91,4 +91,4 @@
 #define VERSION_MINOR 5
 
 /* Package revision number */
-#define VERSION_REV 1
+#define VERSION_REV 2

@@ -89,7 +89,8 @@ extern "C" {
 #define FLAGS_FORCE 0x1
 #define FLAGS_LOGGING 0x2
 
-#define DEFAULT_PARALLEL 8 // set to 1 for no parallel
+#define DEFAULT_PARALLEL 4 // set to 1 for no parallel
+#define DEFAULT_TPTP 0 // set to 1 for default tptp output
 #define TPTP
 
 //#define SHOWTIME
@@ -120,11 +121,13 @@ extern "C" {
 /* ======= Private protos ================ */
 
 int gkc_main(int argc, char **argv);
+void sig_handler(int signum);
 void usage(char *prog);
 gint parse_shmsize(char *arg);
 gint parse_flag(char *arg);
 int parse_memmode(char *arg);
-char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsize, int* parallel, int* retcode);
+char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsize, 
+          int* parallel, int* tptp, int* seconds, int* retcode);
 void wg_set_kb_db(void* db, void* kb);
 void segment_stats(void *db);
 void wg_show_strhash(void* db);
@@ -187,6 +190,8 @@ int gkc_main(int argc, char **argv) {
   int tmp;
   int retcode=0;
   int informat=0; // 0 if not set, 1 if tptp fof
+  int tptp=DEFAULT_TPTP; // 0 if not tptp format output
+  int seconds=0; // 0 if no time limit, other value for time limit in seconds
   //int islocaldb=0; // lreasoner sets to 1 to avoid detaching db at the end
 
   if (argc<2) {
@@ -200,9 +205,16 @@ int gkc_main(int argc, char **argv) {
   if (tmp==1) return(0);
 #endif  
 #endif
-
-  cmdfiles=parse_cmdline(argc,argv,&cmdstr,&mbnr,&mbsize,&parallel,&retcode); 
+ 
+  cmdfiles=parse_cmdline(argc,argv,&cmdstr,&mbnr,&mbsize,&parallel,&tptp,&seconds,&retcode); 
   if (retcode) return retcode;
+#ifndef _WIN32 
+  if (seconds) {
+    signal(SIGALRM,sig_handler);
+    alarm(seconds);
+  }  
+#endif  
+
   //printf("\n parsed cmdstr %s mbnr %d mbsize %d\n",cmdstr,mbnr,mbsize);
   cmdfileslen=0;
   for(i=0;i<argc;i++) {    
@@ -247,10 +259,6 @@ int gkc_main(int argc, char **argv) {
     snprintf(shmnamebuf,15,"%d",mbnr);   
     shmname=shmnamebuf;
   }
-
-  //printf("\nmbsize %d shmsize %ld shmsize2 %ld shmname %s\n",
-  //  mbsize,shmsize,shmsize2,shmname);
-
    // -prove
   
   if(!(strncmp(cmdstr,"-prove",15))) {
@@ -265,8 +273,7 @@ int gkc_main(int argc, char **argv) {
       err_printf("failed to attach local database");
       return(1);
     }
-    //islocaldb=1;
-    //printf("\nto call wg_import_otter_file\n");
+    //islocaldb=1;   
     err = wg_import_otter_file(shmptr,cmdfiles[1],0,&informat); 
     //printf("\nreturned from wg_import_otter_file\n");  
     if(!err) {
@@ -279,23 +286,10 @@ int gkc_main(int argc, char **argv) {
       //err_printf("import failed");           
       return(1); 
     }  
-
-
-    //wg_show_database(shmptr);
-    //printf("about to call wg_run_reasoner\n");
     (dbmemsegh(shmptr)->max_forks)=parallel;
+    (dbmemsegh(shmptr)->tptp)=tptp;
     err = wg_run_reasoner(shmptr,cmdfileslen,cmdfiles,informat,NULL,NULL);
-    //wg_show_database(shmptr);
-    //if(!err);
-      //printf("wg_run_reasoner finished ok.\n");
-    //else
-      //fprintf(stderr, "wg_run_reasoner finished with an error %d.\n",err);
-    //break;
-    /*
-    if (dbmemsegh(shmptrlocal)->infrm_mpool) {
-            wg_free_mpool(shmptrlocal),(dbmemsegh(shmptrlocal)->infrm_mpool));
-    }
-    */
+    if (err) printf("\nresult: proof not found.\n");
     return(0);
   }  
 
@@ -426,7 +420,7 @@ int gkc_main(int argc, char **argv) {
 #ifdef SHOWTIME
     printf("\nqrun1 to wg_import_otter_file from argv[i+1] %s\n",cmdfiles[1]);
     gkc_show_cur_time();
-#endif      
+#endif          
     err = wg_import_otter_file(shmptrlocal,cmdfiles[1],0,&informat);
     if(!err) {
       //printf("Data read from %s.\n",cmdfiles[1]);
@@ -444,30 +438,13 @@ int gkc_main(int argc, char **argv) {
     printf("\nto call wg_run_reasoner\n");
     gkc_show_cur_time();
 #endif      
-    /*
-    glb* xg=wr_glb_new_simple(shmptrlocal);
-    wr_glb_init_local_complex(xg); 
-    tmp=wr_analyze_clause_list(xg,(dbmemsegh(shmptrlocal))->clauselist);
-    wr_show_in_stats(xg);
-    return(0);
-    */
-    (dbmemsegh(shmptrlocal)->max_forks)=parallel;
+    (dbmemsegh(shmptrlocal)->max_forks)=parallel;    
     err = wg_run_reasoner(shmptrlocal,cmdfileslen,cmdfiles,informat,NULL,NULL);
-    //if(!err);
-      //printf("wg_run_reasoner finished ok.\n");
-    //else
-      //fprintf(stderr, "wg_run_reasoner finished with an error %d.\n",err);
-    //break;
 #ifdef SHOWTIME      
     printf("\nwg_run_reasoner returned\n");
     gkc_show_cur_time();
 #endif
-    //printf("\nshowing shared memory db\n"); 
-    //wr_show_database_details(NULL,shmptr,"shmptr");
-    //printf("\n-querykb exits\n");
-    //if (dbmemsegh(shmptrlocal)->infrm_mpool) {
-    //    wg_free_mpool(shmptrlocal),(dbmemsegh(shmptrlocal)->infrm_mpool));
-    //}
+    if (err) printf("\nresult: proof not found.\n");
     return(0);  
   }
 
@@ -655,6 +632,11 @@ int gkc_main(int argc, char **argv) {
   return(0);
 }
 
+void sig_handler(int signum){
+  fflush(stdout);
+  printf("\nresult: time limit, proof not found.\n");
+  exit(0);
+}
 
 
 /** usage: display command line help.
@@ -779,7 +761,7 @@ int parse_memmode(char *arg) {
  */
 
 char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsize, 
-          int* parallel, int* retcode) {
+          int* parallel, int* tptp, int* seconds, int* retcode) {
   int i,alen,nargc;
   char* arg;
   char c;
@@ -874,11 +856,60 @@ char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsiz
               return NULL;
             }
             *parallel=nr;
-          }
+          }          
         } else {
           printf("Error: missing parameter to keyword %s\n",arg);
           exit(1);
         }        
+      } else if (!(strncmp(arg,"-tptp",6))) {
+        if ((i+1)<argc) {
+          //printf("\n cmd %s param %s",arg,argv[i+1]);
+          i++;
+          if (!(sscanf(argv[i], "%d", &nr))) {
+            printf("Error: keyword %s argument must be a number, not %s\n",
+                    arg,argv[i]);
+            *retcode=1;       
+            return NULL;
+          } else {
+            //printf("\n parsed nr %d\n",nr);
+            if (nr<0) {
+              printf("Error: -tptp argument is negative\n");
+              *retcode=1;       
+            return NULL;
+            }
+            if (nr>1) {
+              printf("Error: -tptp argument: %s is too big\n",argv[i]);
+              *retcode=1;       
+              return NULL;
+            }
+            *tptp=nr;
+          }  
+        } else {
+          printf("Error: missing parameter to keyword %s\n",arg);
+          exit(1);
+        }
+      } else if (!(strncmp(arg,"-seconds",9))) {
+        if ((i+1)<argc) {
+          //printf("\n cmd %s param %s",arg,argv[i+1]);
+          i++;
+          if (!(sscanf(argv[i], "%d", &nr))) {
+            printf("Error: keyword %s argument must be a number, not %s\n",
+                    arg,argv[i]);
+            *retcode=1;       
+            return NULL;
+          } else {
+            //printf("\n parsed nr %d\n",nr);
+            if (nr<0) {
+              printf("Error: -seconds argument is negative\n");
+              *retcode=1;       
+            return NULL;
+            }            
+            *seconds=nr;
+          }  
+        } else {
+          printf("Error: missing parameter to keyword %s\n",arg);
+          exit(1);
+        }            
       } else if (!(strncmp(arg,"-prove",10)) || 
                 !(strncmp(arg,"-readkb",10)) ||
                 !(strncmp(arg,"-provekb",10)) || 
@@ -982,9 +1013,6 @@ void wg_show_strhash(void* db) {
   gint hashchain;
   // lasthashchain;
   gint type;
-  //gint offset;
-  //gint refc;
-  //int encoffset;
 
   printf("\nshowing strhash table and buckets\n");
   printf("-----------------------------------\n");
@@ -1333,18 +1361,6 @@ void wr_make_batch_axiom_fullname(char* probname, char* probfullname, char* batc
     if (probname[i]=='\r') continue;
     if (probname[i]=='\n') continue;
     probfullname[j++]=probname[i];
-    /*
-    if(probname[i]!='*') {
-      probfullname[j++]=probname[i];
-      continue;
-    }  
-    probfullname[j++]='+';
-    if(formulation==1) {
-      probfullname[j++]='1';
-    } else {
-      probfullname[j++]='2';
-    } 
-    */   
   }
   probfullname[j]=0;
 }
@@ -1365,53 +1381,10 @@ void wr_make_batch_prob_fullname(char* probname, char* probfullname, char* batch
   for(i=0;i<len;i++) {
     if (probname[i]=='\r') continue;
     if (probname[i]=='\n') continue;
-    probfullname[j++]=probname[i];
-    /*
-    if(probname[i]!='*') {
-      probfullname[j++]=probname[i];
-      continue;
-    }  
-    probfullname[j++]='+';
-    if(formulation==1) {
-      probfullname[j++]='1';
-    } else {
-      probfullname[j++]='2';
-    } 
-    */    
+    probfullname[j++]=probname[i];  
   }
   probfullname[j]=0;
 }
-
-/*
-
-envfolder=getenv("TPTP");
-#ifdef IDEBUG
-  //printf("\npathatom is\n");
-  //wg_mpool_print(db,pathatom); 
-  printf("\nTPTP env var value is %s\n",envfolder);
-  printf("\n$TPTP env var value is  %s\n",getenv("$TPTP"));
-  //wg_mpool_print(db,envfolder);
-  //printf("\nwg_atomtype(db,pathatom) %d WG_URITYPE %d\n",wg_atomtype(db,pathatom),WG_URITYPE);
-  //printf("\n");
-#endif  
-  if (wg_atomtype(db,pathatom)!=WG_URITYPE) return 0;  
-  str=wg_atomstr1(db,pathatom); 
-  if (str && str[0]=='#') str=str+1;
-  lastslash=strrchr(g->filename,'/');
-  if (lastslash!=NULL) {
-    bytes=strlen(str)+strlen(g->filename)+10;
-    str2=wg_alloc_mpool(db,mpool,bytes);
-    for(p1=(g->filename), p2=str2; p1<lastslash; p1++, p2++) {
-      *p2=*p1;
-    }
-    *p2=(char)0;    
-    strcat(str2,"/");
-    strcat(str2,str);    
-  } else {
-    str2=str;
-  }  
-
- */
 
 void wr_output_batch_prob_failure(char* probname, char* outfullname, char* failure) {
   FILE* outfile;

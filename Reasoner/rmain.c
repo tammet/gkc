@@ -358,7 +358,7 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
     //printf("\niter %d pid %d maxforks %d forknr %d (iter div maxforks) %d\n",iter,pid,maxforks,forknr,(iter % maxforks));
 #ifndef _WIN32   
     if (!pid && maxforks && ((iter % maxforks)!=forknr)) continue; 
-#endif    
+#endif        
 #ifdef DEBUG    
     //wr_printf("\n**** run %d starts\n",iter+1);    
 #endif
@@ -427,7 +427,6 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
       if (tmp>=MAX_GUIDETEXT_LEN) tmp=MAX_GUIDETEXT_LEN-2;
       memcpy(g->guidetext,guidetext,tmp+1);
     }
-   
     if (!(g->print_flag)) (g->print_level_flag)=0;
     if ((g->print_level_flag)<0) (g->print_level_flag)=default_print_level;
     if ((g->print_level_flag)==0) wr_set_no_printout(g);
@@ -440,11 +439,19 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
 
     if ((g->print_flag) && (g->print_runs)) {      
       if (guidetext!=NULL) {   
-        wr_printf("\n**** run %d fork %d starts with strategy\n",iter+1,forkslive); 
+        if (maxforks) {
+          wr_printf("\n**** run %d fork %d starts with strategy\n",iter+1,forkslive); 
+        } else {
+          wr_printf("\n**** run %d starts with strategy\n",iter+1);   
+        }
         wr_printf("%s\n",guidetext);
         free(guidetext);
-      } else {
-        wr_printf("\n**** run %d fork %d starts\n",iter+1, forkslive);
+      } else {       
+        if (maxforks) {
+          wr_printf("\n**** run %d fork %d starts with strategy\n",iter+1,forkslive); 
+        } else {
+          wr_printf("\n**** run %d starts with strategy\n",iter+1);   
+        }
       }          
     }  
 
@@ -608,11 +615,8 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
     // ok, clauses found and clause lists initialized
     //(g->kb_g)=NULL;
     //printf("\n(g->use_equality) %d (g->use_equality_strat) %d\n",(g->use_equality),(g->use_equality_strat));
-     
     //wr_show_in_stats(g);
-
-    //wr_print_clpick_queues(g,(g->clpick_queues));
-    
+    //wr_print_clpick_queues(g,(g->clpick_queues));    
     //if ((g->print_flag) && (g->print_runs)) wr_print_strat_flags(g);
 
     if (!(g->proof_found) || !(wr_enough_answers(g))) {
@@ -646,12 +650,28 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
       if (wr_have_answers(g)) {
         wr_show_result(g,g->proof_history);
       } else {
-        if ((g->print_level_flag)>5) {
-          wr_printf("\n\nfork %d: search finished without proof, result code %d.\n",g->current_fork_nr,res); 
+        if ((g->print_level_flag)>10) {  
+          if (maxforks) {        
+            wr_printf("\n\nfork %d: search finished without proof.\n",g->current_fork_nr); 
+          } else {
+            wr_printf("\n\nsearch finished without proof.\n");
+          }  
+        } else {
+          /*
+          if (maxforks) {   
+            wr_printf("\n\nfork %d: search finished without proof.\n",g->current_fork_nr);          
+          } else {
+            wr_printf("\n\nsearch finished without proof.\n");
+          } 
+          */ 
         }  
       }  
     } else if (res==2 && (g->print_runs)) {
-      wr_printf("\n\nfork %d: search terminated without proof.\n",g->current_fork_nr);        
+      if (maxforks) {
+        wr_printf("\n\nfork %d: search terminated without proof.\n",g->current_fork_nr);         
+      } else {
+        wr_printf("\n\nsearch terminated without proof.\n");    
+      }             
     } else if (res==-1) {
 #ifdef PRINTERR       
       wr_printf("\n\nfork %d: search cancelled: memory overflow.\n",g->current_fork_nr);
@@ -1121,8 +1141,6 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
   int sine_k;  
 #endif  
 
-  // NB! SWC
- 
   /*
   (g->var_weight)=1; // NORMAL 5
   (g->repeat_var_weight)=1; // NORMAL 7 
@@ -1222,144 +1240,11 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
   } else {
     lastcell=(dbmemsegh(child_db)->clauselist);
   }  
-
-/*
-
-  // NB! SWC
-  if (1) { //(!(g->queryfocus_strat)) {
-    //printf("\nstarting to build a clause vector:\n");
-    vecflag=1;
-    cell2=(dbmemsegh(child_db)->clauselist);
-    lastcell=0;
-    n=0;
-    while(cell2) {
-      cellptr2=(gcell *) offsettoptr(child_db, cell2);
-      rec=offsettoptr(child_db,cellptr2->car); 
-
-      if (1 || wr_get_cl_sine_k(g,rec)) {
-
-        printf("\nn: %d ",n);
-        wr_print_clause(g,rec); 
-
-        j=(n*2)+1;  
-        weight=wr_calc_clause_weight(g,rec,&size,&depth,&length); 
-  #ifdef WEIGHT_PREFER_GOALS_ASSUMPTIONS      
-        if (wr_cl_is_goal(g, rec)) weight=weight*1;
-        else if (wr_cl_is_assumption(g, rec)) weight=weight*1000;
-        else weight=weight*10000;
-  #else
-  #ifdef SINEORDER 
-        if (g->sine_order_strat) {
-          sine_k=wr_get_cl_sine_k(g,rec);         
-          if (!sine_k) sine_k=200;       
-        }  
-  #endif         
-        if (g->cl_pick_queue_strategy) {
-
-          wr_print_clause(g,rec);
-          printf(" weight %d sine_k %d\n",weight,sine_k);
-  #ifdef SINEORDER         
-          if (g->sine_order_strat) {
-            weight=weight+(sine_k*10);          
-          }  
-  #endif        
-          if (wr_cl_is_goal(g, rec)) weight=weight*1;
-          else if (wr_cl_is_assumption(g, rec)) weight=weight*1000;
-          else weight=weight*10000;         
-
-          printf(" total weight %d\n",weight);
-
-        } else {
-
-          wr_print_clause(g,rec);
-          printf(" weight %d sine_k %d\n",weight,sine_k);
-
-    #ifdef SINEORDER       
-          if (g->sine_order_strat) {
-            weight=weight+(sine_k*10*10);
-          }  
-    #endif      
-                    
-          printf(" total weight %d\n",weight);
-
-        }
-  #endif      
-        (g->tmp_sort_vec)=wr_vec_store(g,g->tmp_sort_vec,j,(gint)weight);
-        (g->tmp_sort_vec)=wr_vec_store(g,g->tmp_sort_vec,j+1,(gint)rec);
-      }  
-      cell2=cellptr2->cdr;         
-      n++;
-    }       
-    // sort    
-    if (!(g->reverse_clauselist_strat)) {
-      wr_qsort_metaclvec(g,(g->tmp_sort_vec),0,n-1);
-    }      
-  } else {
-    lastcell=(dbmemsegh(child_db)->clauselist);
-  }  
-*/    
   
   if (!vecflag) cell=lastcell;
   else if (g->reverse_clauselist_strat) i=n-1;
   else i=0;
-  /*
-  if (0 && (g->use_equality) && (g->rewrite_only_strat)) {
-    if (!vecflag) cell=lastcell;
-    else if (g->reverse_clauselist_strat) i=n-1;
-    else i=0;
-    while(1) { 
-      // take rec
-      if (vecflag) {
-        if (g->reverse_clauselist_strat) {
-          if (i<0) break;
-        } else {
-          if (i>=n) break;
-        }  
-        rec=(gptr)((g->tmp_sort_vec)[(i*2)+2]);
-      } else {      
-        if (!cell) break;
-        cellptr=(gcell *) offsettoptr(child_db, cell);
-        rec=offsettoptr(child_db,cellptr->car);
-      } 
-      if (g->alloc_err) {
-        wr_errprint("\nbuffer overflow, terminating\n");
-        //wr_show_stats(g,1);      
-        //exit(0);
-        return 0;
-      }           
-      clmeta=wr_calc_clause_meta(g,rec,given_cl_metablock); 
-      given_cl=wr_process_given_cl(g,(gptr)rec, g->given_termbuf);
-      if (wg_count_clause_atoms(g->db,given_cl)<2) {
-        if ( ((gint)given_cl==ACONST_FALSE) || ((gint)given_cl==ACONST_TRUE) ||
-              (given_cl==NULL) ) {          
-          cell=cellptr->cdr;   
-          continue;
-        };
-        wr_process_given_cl_setupsubst(g,g->active_termbuf,2,0); 
-        given_cl_as_active=wr_build_calc_cl(g,given_cl);
-        if (!given_cl_as_active) {
-          cell=cellptr->cdr;
-          continue; 
-        }
-        wr_process_given_cl_cleanupsubst(g); 
-        wr_sort_cl(g,given_cl_as_active);      
-        if ((g->sin_clause_count) > SUBSFLAG_CLAUSE_COUNT_LIMIT) subsflag=0;
-        else subsflag=1;
-        if (given_cl_as_active==NULL) {
-          //if (g->alloc_err) return -1;
-          cell=cellptr->cdr;
-          continue; 
-        } 
-        wr_calc_clause_resolvability(g,given_cl_as_active,0,0);
-        wr_cl_store_para_terms(g,given_cl_as_active,(g->tmp_resolvability_vec));
-      }  
-    }
-    if (!vecflag) cell=lastcell;
-    else if (g->reverse_clauselist_strat) i=n-1;
-    else i=0;  
-  }
-  */
-  //printf("\n!!!!! SPECIAL START ****\n");
+
   while(1) { 
     // take rec
     if (vecflag) {
@@ -1784,7 +1669,6 @@ void wr_set_detailed_plus_printout(glb* g) {
 void wr_show_stats(glb* g, int show_local_complex) {
   
   if (!(g->print_stats)) return;
-  
   wr_printf("\nrun %d fork %d statistics:\n",(g->current_run_nr)+1,g->current_fork_nr);
   wr_printf("----------------------------------\n");
   wr_printf("this run seconds: %f\n",

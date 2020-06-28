@@ -1219,19 +1219,45 @@ int wr_show_result(glb* g, gint history) {
     bpos+=snprintf(buf+bpos,blen-bpos,"\n{\"answers\": [\n");
   } else {
     if ((g->print_level_flag)>1) bpos+=snprintf(buf+bpos,blen-bpos,"\n");
-#ifdef TPTP
+#ifdef TPTP    
     if (!(g->print_tptp)) {
-       bpos+=snprintf(buf+bpos,blen-bpos,
-        "\nresult: proof found\nfor %s\nby run %d fork %d strat %s\n",
-        (g->filename),(g->current_run_nr)+1,g->current_fork_nr,g->guidetext);
+       if (dbmemsegh(db)->max_forks) {
+          bpos+=snprintf(buf+bpos,blen-bpos,
+            "\nresult: proof found\nfor %s\n",(g->filename));          
+          if ((g->guidetext) && *(g->guidetext)!=0) { 
+            bpos+=snprintf(buf+bpos,blen-bpos,
+              "by run %d fork %d strategy %s\n",
+              (g->current_run_nr)+1,g->current_fork_nr,g->guidetext);  
+          }    
+        } else {         
+          bpos+=snprintf(buf+bpos,blen-bpos,
+            "\nresult: proof found\nfor %s\n",(g->filename));          
+          if ((g->guidetext) && *(g->guidetext)!=0) { 
+            bpos+=snprintf(buf+bpos,blen-bpos,
+              "by run %d strategy %s\n",
+              (g->current_run_nr)+1,g->guidetext);  
+          }  
+        }    
     } else if (g->in_has_fof) {
-      bpos+=snprintf(buf+bpos,blen-bpos,
-        "\nresult: proof found\nby run %d fork %d strat %s\n%% SZS status Theorem for %s.",
-        (g->current_run_nr)+1,g->current_fork_nr,g->guidetext,g->filename);
+      if (dbmemsegh(db)->max_forks) {
+        bpos+=snprintf(buf+bpos,blen-bpos,
+          "\nresult: proof found\nby run %d fork %d strategy %s\n%% SZS status Theorem for %s.",
+          (g->current_run_nr)+1,g->current_fork_nr,g->guidetext,g->filename);
+      } else { 
+        bpos+=snprintf(buf+bpos,blen-bpos,
+          "\nresult: proof found\nby run %d strategy %s\n%% SZS status Theorem for %s.",
+          (g->current_run_nr)+1,g->guidetext,g->filename);
+      }  
     } else {
-      bpos+=snprintf(buf+bpos,blen-bpos,
-        "\nresult: proof found\nby run %d fork %d strat %s \n%% SZS status Unsatisfiable for %s.",
-        (g->current_run_nr)+1,g->current_fork_nr,g->guidetext,g->filename);
+      if (dbmemsegh(db)->max_forks) {
+        bpos+=snprintf(buf+bpos,blen-bpos,
+          "\nresult: proof found\nby run %d fork %d strategy %s \n%% SZS status Unsatisfiable for %s.",
+          (g->current_run_nr)+1,g->current_fork_nr,g->guidetext,g->filename);
+      } else {
+        bpos+=snprintf(buf+bpos,blen-bpos,
+          "\nresult: proof found\nby run %d strategy %s \n%% SZS status Unsatisfiable for %s.",
+          (g->current_run_nr)+1,g->guidetext,g->filename);
+      }          
     } 
 #else
     if (g->in_has_fof) {

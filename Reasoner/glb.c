@@ -91,7 +91,19 @@ glb* wr_glb_new_simple(void* db) {
   (g->inkb)=0;
   (g->db_offset)=0;
   (g->kb_g)=NULL;
-  wr_glb_init_simple(g);  // fills in simple values (ints, strings etc)   
+  wr_glb_init_simple(g);  // fills in simple values (ints, strings etc)  
+  //printf("\ndbmemsegh(db)->tptp %ld\n",dbmemsegh(db)->tptp);
+  if (dbmemsegh(db)->tptp) {
+    (g->print_tptp)=1;        
+    (g->print_fof_conversion_proof)=1;   
+    (g->print_clauses_tptp)=1;
+    (g->print_proof_tptp)=1;  
+  } else {
+    (g->print_tptp)=0;        
+    (g->print_fof_conversion_proof)=0; 
+    (g->print_clauses_tptp)=0;
+    (g->print_proof_tptp)=0;  
+  } 
   return g;  
 } 
 

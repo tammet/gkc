@@ -1140,7 +1140,7 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
     wr_show_in_stats(kb_g);
   }   
   make_sum_input_stats(g,kb_g);
-  if (!(g->outfilename) && guideparam!=1) {
+  if (!(g->outfilename) && guideparam!=1 && (dbmemsegh(db)->tptp)) {
     wr_show_in_summed_stats(g);
   }  
   if ((g->sin_poseq_clause_count)+(g->sin_negeq_clause_count)) {
@@ -1186,7 +1186,7 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
     min_strat_timeloop_nr=(dbmemsegh(db)->min_strat_timeloop_nr);
     max_strat_timeloop_nr=(dbmemsegh(db)->max_strat_timeloop_nr); 
     //printf("\nminloopi %ld  maxloopi %ld\n",min_strat_timeloop_nr,max_strat_timeloop_nr);   
-  } else {
+  } else if (dbmemsegh(db)->tptp) {
     pref="{\n"
         "\"print\":1,\n"
         "\"print_level\": 15,\n"
@@ -1194,7 +1194,15 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
         "\"max_depth\": 0,\n"
         "\"max_length\": 0,\n"
         "\"max_seconds\": 0,\n";  
-  }      
+  } else {
+    pref="{\n"
+        "\"print\":1,\n"
+        "\"print_level\": 10,\n"
+        "\"max_size\": 0,\n"
+        "\"max_depth\": 0,\n"
+        "\"max_length\": 0,\n"
+        "\"max_seconds\": 0,\n";  
+  }  
   pos=sprintf(buf,"%s",pref);
   if (!eq) {
     pos+=sprintf(buf+pos,"\"equality\":0,\n");
@@ -2223,7 +2231,7 @@ BLOCKEND:
   
   //printf("\nbuf: \n%s\n",buf);
   
-  if (!(g->outfilename) && guideparam!=1) {
+  if (!(g->outfilename) && guideparam!=1 && (dbmemsegh(db)->tptp)) {
     wr_printf("\nauto guide:\n-----------\n%s\n",buf);
   }     
 
