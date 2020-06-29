@@ -21,6 +21,9 @@ either v0.5.2 or newer:
 GKC is licenced under AGPL v3. The author of GKC
 is Tanel Tammet (tanel.tammet@gmail.com).
 
+See Examples/README.md for examples and a detailed guide
+of using GKC.
+
 Compiling and installing
 ------------------------
 
@@ -87,12 +90,12 @@ Simplest way to run
 
 Example:
 
-    ./gkc Examples/steam.p
+    ./gkc Examples/steam.txt
     
 GKC will automatically pick and try out several search strategies 
 one after another.
 
-Please check the Examples/Readme.md for guided examples of using gkc.
+Please check the Examples/README.md for guided examples of using gkc.
 
 In order to select options and strategies yourself, run gkc as 
 
@@ -100,7 +103,7 @@ In order to select options and strategies yourself, run gkc as
 
 Example:
 
-    ./gkc /opt/TPTP/Problems/NUM/NUM925+5.p Examples/runs.txt
+    ./gkc Examples/blocks3.txt Examples/runs.txt
 
 where
 * `problem_file_name` is a problem file in TPTP syntax, possibly containing include commands like 
@@ -166,8 +169,8 @@ Input syntax
 
 GKC reads files in both the 
 
-* TPTP first order form (fof) syntax, see Examples/steam.p and <http://www.tptp.org/TPTP/TR/TPTPTR.shtml>
-* Simple clause form syntax, see Examples/steam.txt and the description below.
+* TPTP first order form (fof) syntax, see Examples/README.md and <http://www.tptp.org/TPTP/TR/TPTPTR.shtml>
+* Simple clause form syntax, see Examples/README.md and the description below.
 
 In both cases the percentage % symbol is a line comment.
 
@@ -210,7 +213,7 @@ time limits after each batch.
 
 The strategy file is a json file like the following example,
 indicating that one single strategy should be run. For more
-examples, see query.txt, neg.txt, unit.txt, runs.txt in the Examples 
+examples, see strat.txt, multineg.txt, runs.txt in the Examples 
 folder.
 
         {
