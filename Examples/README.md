@@ -1294,24 +1294,24 @@ the previous example run
 
 will output a json structure:
 
-  {"result": "proof found",
+    {"result": "proof found",
 
-  {"answers": [
-  [
-  {"answer": "$ans(mark)."},
-  {"proof":
-  [
-  [1, ["in", "axiom"], "-father(X,Y) | -father(Z,X) | grandfather(Z,Y)."],
-  [2, ["in", "axiom"], "father(pete,mark)."],
-  [3, ["mp", 1, 2, "fromaxiom"], "-father(X,pete) | grandfather(X,mark)."],
-  [4, ["in", "axiom"], "father(john,pete)."],
-  [5, ["mp", 3, 4, "fromaxiom"], "grandfather(john,mark)."],
-  [6, ["in", "axiom"], "-grandfather(john,X) | $ans(X)."],
-  [7, ["mp", 5, 6, "fromaxiom"], "$ans(mark)."]
-  ]}
-  ]
-  ]}
-  }
+    {"answers": [
+    [
+    {"answer": "$ans(mark)."},
+    {"proof":
+    [
+    [1, ["in", "axiom"], "-father(X,Y) | -father(Z,X) | grandfather(Z,Y)."],
+    [2, ["in", "axiom"], "father(pete,mark)."],
+    [3, ["mp", 1, 2, "fromaxiom"], "-father(X,pete) | grandfather(X,mark)."],
+    [4, ["in", "axiom"], "father(john,pete)."],
+    [5, ["mp", 3, 4, "fromaxiom"], "grandfather(john,mark)."],
+    [6, ["in", "axiom"], "-grandfather(john,X) | $ans(X)."],
+    [7, ["mp", 5, 6, "fromaxiom"], "$ans(mark)."]
+    ]}
+    ]
+    ]}
+    }
 
 
 ###  Examples: arithmetic 
