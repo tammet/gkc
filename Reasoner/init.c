@@ -108,11 +108,13 @@ int init_shared_database(void* db, char* guidefilename) {
     (g->print_fof_conversion_proof)=1;
     (g->print_clauses_tptp)=1;
     (g->print_proof_tptp)=1;   
+    (g->use_comp_arithmetic)=0;
   } else {
     (g->print_tptp)=0;        
     (g->print_fof_conversion_proof)=0; 
     (g->print_clauses_tptp)=0;
     (g->print_proof_tptp)=0;
+    (g->use_comp_arithmetic)=1;
   }
 
 #ifdef DEBUG  

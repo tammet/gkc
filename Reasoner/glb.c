@@ -208,6 +208,7 @@ int wr_glb_init_simple(glb* g) {
   (g->propgen_strat)=0;
   (g->use_comp_funs_strat)=1;
   (g->use_comp_funs)=1;
+  (g->use_comp_arithmetic)=1;
   (g->use_rewrite_terms_strat)=1; // general strategy // NORMAL 1
   (g->have_rewrite_terms)=0; // do we actually have rewrite terms
   (g->use_strong_unit_cutoff)=0; // if 1, then cut off also with unification, not just with hash equality

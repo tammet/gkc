@@ -288,7 +288,20 @@ int wr_genloop(glb* g) {
     }
     //if ((g->print_level_flag)==50) CP4;
     wr_process_given_cl_setupsubst(g,g->given_termbuf,1,1); // !!!!! new try      
+    /*
+    printf("\nbefore ");
+    wr_print_clause(g,picked_given_cl_cand);
+    printf("\nhardn ");
+    wr_print_clause_hardnesses(g,picked_given_cl_cand);
+    */
+
     wr_sort_cl(g, picked_given_cl_cand);
+    /*
+    printf("\nafter ");
+    wr_print_clause(g,picked_given_cl_cand);
+    printf("\n");
+    */
+
     //if ((g->print_level_flag)==50) CP5;
     given_cl_cand=wr_simplify_cl(g, picked_given_cl_cand, given_cl_metablock);
     //if ((g->print_level_flag)==50) CP6;
@@ -382,8 +395,13 @@ int wr_genloop(glb* g) {
     if (g->print_initial_given_cl) {
       wr_print_clause_resolvability(g,given_cl);
     }  
-    //wr_print_clause_hardnesses(g,given_cl); 
-
+    /*
+    printf("\nresolvability ");
+    wr_print_clause_resolvability(g,given_cl);
+    printf("\nhardnesses    ");
+    wr_print_clause_hardnesses(g,given_cl); 
+    printf("\n");
+    */
     if (given_from_hyperqueue_flag) {
       // make an active clause from partial hyper
       //printf("\n from hyperqueue\n");

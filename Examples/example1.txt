@@ -1,0 +1,11 @@
+father(john,pete).
+father(pete,mark).
+-father(john,pete).
+
+% what this means:
+% let us want to prove a & b => a
+% if we look for contradiction, then we should
+% try to find contradiction from
+% -(a & b => a)
+% which is equivalent to
+% a & b & -a

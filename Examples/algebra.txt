@@ -1,0 +1,20 @@
+
+% A question from abstract algebra. Here m is an arbitrary binary
+% operation (similar to arithmetic multiplication) for 
+% which the following three axioms hold.
+
+m(X,i(X)) = e .   % i is an inverse function like one divided by X
+m(X,e) = X .      % e is a unit element like 1 when on the right side
+m(X,m(Y,Z)) = m(m(X,Y),Z) . % m is an associative operation
+
+% Question: is e also a unit element when it is on the left
+% side of multiplication m?
+%
+% We get the following clause by negating `forall X. m(e,X) = X`
+% as `exists X. m(e,X) != X`
+% and using an arbitrary unknown constant `c` for existentially 
+% quantified `X`.
+% In short, if the next clause gives contradiction, then it will
+% also give a contradiction for anything you can put in place of `c`.
+
+m(e,c) != c .

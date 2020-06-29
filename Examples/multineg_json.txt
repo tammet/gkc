@@ -1,0 +1,6 @@
+  
+{
+"max_answers":2,
+"print_json": 1,
+"strategy": ["negative_pref"]
+}

@@ -185,12 +185,14 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr) {
         (g->store_fof_skolem_steps)=0;
         (g->print_clauses_tptp)=0;
         (g->print_proof_tptp)=0;
+        (g->use_comp_arithmetic)=1;
       } else {
         (g->print_fof_conversion_proof)=1;
         (g->store_fof_source)=1;
         (g->store_fof_skolem_steps)=1;
         (g->print_clauses_tptp)=1;
         (g->print_proof_tptp)=1;
+        (g->use_comp_arithmetic)=0;
       }
     } else if (!strcmp(key,"print_level")) {
       //printf("print_level %d\n", json_valueint(elem));

@@ -301,7 +301,7 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active, cvec resol
             wr_printf(" in ycl ");
             wr_print_clause(g,ycl);
             wr_print_vardata(g);
-    #endif                     
+    #endif                          
             ures=wr_unify_term(g,xatom,yatom,1); // uniquestrflag=1            
     #ifdef DEBUG        
             wr_printf("unification check res: %d\n",ures);

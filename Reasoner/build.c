@@ -783,13 +783,13 @@ int wr_computable_termptr(glb* g, gptr tptr) {
     if (str[0]=='\0' || str[1]!='\0' || str[0]<42 || str[0]>62) return 0;
     if (wg_decode_uri_prefix(g->db,fun)!=NULL) return 0;
     if (str[0]=='=' && str[1]=='\0') return COMP_FUN_EQUAL;
-    /* 
-    else if (str[0]=='<') return COMP_FUN_LESS;
-    else if (str[0]=='+') return COMP_FUN_PLUS;
-    else if (str[0]=='-') return COMP_FUN_MINUS;
-    else if (str[0]=='*') return COMP_FUN_MULT;
-    else if (str[0]=='/') return COMP_FUN_DIV;
-    */
+    if (g->use_comp_arithmetic) {
+      if (str[0]=='<') return COMP_FUN_LESS;
+      else if (str[0]=='+') return COMP_FUN_PLUS;
+      else if (str[0]=='-') return COMP_FUN_MINUS;
+      else if (str[0]=='*') return COMP_FUN_MULT;
+      else if (str[0]=='/') return COMP_FUN_DIV;
+    }      
   }  
   return 0;  
 }  

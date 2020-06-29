@@ -67,6 +67,8 @@ static gint show_print_error_nr(void* db, char* errmsg, gint nr);
 static gint show_print_error_str(void* db, char* errmsg, char* str);
 */
 
+int wg_should_quote(char* s);
+
 /* ====== Functions ============== */
 
 
@@ -819,10 +821,10 @@ int wr_strprint_simpleterm_otter(glb* g, gint enc,int printlevel, char** buf, in
     //  ptrdata = (gint) wg_decode_record(db, enc);
     //  wg_print_subrecord_otter(db,(gint*)ptrdata);
     //  break;    
-    case WG_INTTYPE:      
+    case WG_INTTYPE:            
       intdata = wg_decode_int(db, enc);     
       return pos+snprintf((*buf)+pos,(*len)-pos,"%d", intdata);
-    case WG_DOUBLETYPE:
+    case WG_DOUBLETYPE:     
       doubledata = wg_decode_double(db, enc);
       return pos+snprintf((*buf)+pos,(*len)-pos,"%f", doubledata);
     case WG_STRTYPE:
@@ -837,27 +839,41 @@ int wr_strprint_simpleterm_otter(glb* g, gint enc,int printlevel, char** buf, in
         return pos+snprintf((*buf)+pos,(*len)-pos,":%s", strdata);
       }      
     case WG_URITYPE:
-      strdata = wg_decode_uri(db, enc);
+      strdata = wg_decode_uri(db, enc);     
+      /*
+      if (strchr(p,' ')!=NULL || strchr(p,'\n')!=NULL || strchr(p,'\t')!=NULL) {
+        //printf("\"%s\"",p);
+        pos+=snprintf((*buf)+pos,(*len)-pos,"\'%s\'",p);
+      */
+
       exdata = wg_decode_uri_prefix(db, enc);
       if (strdata) len1=strlen(strdata);
       if (exdata) len2=strlen(exdata);
       if (!wr_str_guarantee_space(g,buf,len,pos+len1+len2+50)) return -1;
-      if (exdata==NULL) {
+      if (exdata==NULL) {        
         if (g->print_clauses_json) {
-          if (isneg) {
+          if (isneg) {            
             return pos+snprintf((*buf)+pos,(*len)-pos,"\"-%s\"", strdata);
           } else {
             return pos+snprintf((*buf)+pos,(*len)-pos,"\"%s\"", strdata);
           }          
         } else {          
           if (isneg) {
-            return pos+snprintf((*buf)+pos,(*len)-pos,"-%s", strdata);
+            if (wg_should_quote(strdata)) {
+              return pos+snprintf((*buf)+pos,(*len)-pos,"-'%s'", strdata);
+            } else {
+              return pos+snprintf((*buf)+pos,(*len)-pos,"-%s", strdata);
+            }            
           } else {
-            return pos+snprintf((*buf)+pos,(*len)-pos,"%s", strdata);
+            if (wg_should_quote(strdata)) {
+              return pos+snprintf((*buf)+pos,(*len)-pos,"'%s'", strdata);             
+            } else {
+              return pos+snprintf((*buf)+pos,(*len)-pos,"%s", strdata);             
+            }             
             //return pos+snprintf((*buf)+pos,(*len)-pos,"%s%ld", strdata,wg_decode_uri_id(db,enc));
           }           
         }        
-      } else {
+      } else {       
         if (g->print_clauses_json) {
           if (isneg) {
             return pos+snprintf((*buf)+pos,(*len)-pos,"\"-%s:%s\"", exdata, strdata);
@@ -872,7 +888,7 @@ int wr_strprint_simpleterm_otter(glb* g, gint enc,int printlevel, char** buf, in
           }           
         }               
       }  
-    case WG_XMLLITERALTYPE:
+    case WG_XMLLITERALTYPE:     
       strdata = wg_decode_xmlliteral(db, enc);
       exdata = wg_decode_xmlliteral_xsdtype(db, enc);
       if (strdata) len1=strlen(strdata);
@@ -970,6 +986,33 @@ int wr_strprint_simpleterm_otter(glb* g, gint enc,int printlevel, char** buf, in
   }
 }
 
+int wg_should_quote(char* s) {
+  char* p;
+  char c;
+
+  if (!s) return 0;
+  if (*(s+1)==0) {
+    c=*s;
+    if (c=='=') return 0;
+    if (c=='-') return 0;
+    if (c=='+') return 0;
+    if (c=='*') return 0;
+    if (c=='/') return 0;
+    if (c=='>') return 0;
+    if (c=='<') return 0;
+  } 
+  if (*s=='=' && *(s+1)==0) return 0;
+  for(p=s; *p!=0; p++) {
+    c=*p;
+    if (c=='$') continue;
+    if (c<48) return 1;
+    if (c>57 && c<64) return 1;
+    if (c>90 && c<97) return 1;
+    if (c>122) return 1;
+  }
+  return 0;
+}
+
 int wg_nice_strprint_var(glb* g, gint i, char** buf, int *len, int pos) {
   char strbuf[80];
 
@@ -1003,7 +1046,7 @@ int wg_nice_strprint_var(glb* g, gint i, char** buf, int *len, int pos) {
     } else if (g->print_clauses_tptp) {
       snprintf(strbuf,70,"XX%d", (int)i); 
     } else {
-      snprintf(strbuf,70,"?%d", (int)i);
+      snprintf(strbuf,70,"XX%d", (int)i);
     }
   }  
   if (g->print_clauses_json) {
@@ -1101,7 +1144,7 @@ void wg_tptp_print_aux(void* db, void* ptr, int depth, int pflag) {
     */
 
     if (p!=NULL) {
-      if (strchr(p,' ')!=NULL || strchr(p,'\n')!=NULL || strchr(p,'\t')!=NULL) {
+      if (wg_should_quote(p)) {
         printf("\"%s\"",p);
       } else {
         printf("%s",p);
@@ -1111,7 +1154,7 @@ void wg_tptp_print_aux(void* db, void* ptr, int depth, int pflag) {
     }
     p=wg_atomstr2(db,ptr);
     if (p!=NULL) {
-      if (strchr(p,' ')!=NULL || strchr(p,'\n')!=NULL || strchr(p,'\t')!=NULL) {
+      if (wg_should_quote(p)) {
         printf("^^\"%s\"",p);
       } else {
         printf("^^%s",p);
@@ -1416,7 +1459,7 @@ int wg_print_subfrm_tptp(void* db, void* ptr,int depth,int pflag, int termflag, 
     //type=wg_atomtype(db,ptr);    
     p=wg_atomstr1(db,ptr);   
     if (p!=NULL) {
-      if (strchr(p,' ')!=NULL || strchr(p,'\n')!=NULL || strchr(p,'\t')!=NULL) {
+      if (wg_should_quote(p)) {
         //printf("\"%s\"",p);
         pos+=snprintf((*buf)+pos,(*len)-pos,"\'%s\'",p);
       } else {
@@ -1429,7 +1472,7 @@ int wg_print_subfrm_tptp(void* db, void* ptr,int depth,int pflag, int termflag, 
     }
     p=wg_atomstr2(db,ptr);
     if (p!=NULL) {
-      if (strchr(p,' ')!=NULL || strchr(p,'\n')!=NULL || strchr(p,'\t')!=NULL) {
+      if (wg_should_quote(p)) {
         //printf("^^\"%s\"",p);
         pos+=snprintf((*buf)+pos,(*len)-pos,"^^\"%s\"",p);
       } else {
@@ -1617,7 +1660,7 @@ int wg_print_term_tptp(void* db, void* ptr,int depth,int pflag,char** buf, int *
     */
 
     if (p!=NULL) {
-      if (strchr(p,' ')!=NULL || strchr(p,'\n')!=NULL || strchr(p,'\t')!=NULL) {
+      if (wg_should_quote(p)) {
         printf("\"%s\"",p);
       } else {
         printf("%s",p);
@@ -1627,7 +1670,7 @@ int wg_print_term_tptp(void* db, void* ptr,int depth,int pflag,char** buf, int *
     }
     p=wg_atomstr2(db,ptr);
     if (p!=NULL) {
-      if (strchr(p,' ')!=NULL || strchr(p,'\n')!=NULL || strchr(p,'\t')!=NULL) {
+      if (wg_should_quote(p)) {
         printf("^^\"%s\"",p);
       } else {
         printf("^^%s",p);

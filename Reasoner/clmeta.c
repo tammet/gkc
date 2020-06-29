@@ -55,6 +55,8 @@ extern "C" {
 /* ====== Private headers ======== */
   
 static void wr_inssort_cl(glb* g, gptr cl, int len);  
+int wr_sort_2_meta_bigger(glb* g, gint jmeta,  gint imeta, gint jatom, gint iatom);
+int wr_order_2_atoms_lex_order(glb* g, gint x, gint y, gptr vb);
 static int limit_byte(int nr);
 
 /* ====== Functions ============== */
@@ -756,13 +758,15 @@ static void wr_inssort_cl(glb* g, gptr cl, int len) {
     iatom=(gptr)(wg_get_rule_clause_atom(db,cl,i));        
     j=i-1;
     jmeta=wg_get_rule_clause_atom_meta(db,cl,j);
-    
-    while(j>=0 && !wr_sort_meta_bigger(jmeta, imeta)) {
+    jatom=(gptr)wg_get_rule_clause_atom(db,cl,j);
+
+    while(j>=0 && !(wr_sort_2_meta_bigger(g, jmeta, imeta, (gint)jatom, (gint)iatom))) {
       wg_set_rule_clause_atom_meta(db,cl,j+1,(gint)jmeta);
       jatom=(gptr)(wg_get_rule_clause_atom(db,cl,j));
       wg_set_rule_clause_atom(db,cl,j+1,(gptr)jatom);
       j--;
       jmeta=wg_get_rule_clause_atom_meta(db,cl,j);
+      jatom=(gptr)(wg_get_rule_clause_atom(db,cl,j));
     }
     wg_set_rule_clause_atom_meta(db,cl,j+1,(gint)imeta);
     wg_set_rule_clause_atom(db,cl,j+1,(gptr)iatom);   
@@ -778,13 +782,13 @@ static void wr_inssort_cl(glb* g, gptr cl, int len) {
   
 */
 
-int wr_sort_meta_bigger(gint jmeta,  gint imeta) {
+int wr_sort_meta_bigger(gint jmeta,  gint imeta) { 
   if ((jmeta&((ATOM_META_GROUND_MASK<<ATOM_META_GROUND_SHIFT)<<SMALLINTSHFT))) {
     // jmeta is ground
     if ((imeta&((ATOM_META_GROUND_MASK<<ATOM_META_GROUND_SHIFT)<<SMALLINTSHFT))) {
       // jmeta and imeta are both ground
       if (jmeta>imeta) return 1; // creates quite full meta-based ordering of ground literals
-      else return 0;
+      else return 0;           
     } else {
       // jmeta ground, imeta non-ground (here ground are bigger than non-ground)
       return 1;
@@ -798,11 +802,147 @@ int wr_sort_meta_bigger(gint jmeta,  gint imeta) {
       // imeta and jmeta both non-ground
       if  ((jmeta&(ATOM_META_CANSUBS_MASK<<SMALLINTSHFT)) > 
            (imeta&(ATOM_META_CANSUBS_MASK<<SMALLINTSHFT))) return 1;       
-      else return 0;
+      else return 0;      
     }
   }
 }
 
+
+int wr_sort_2_meta_bigger(glb* g, gint jmeta,  gint imeta, gint jatom, gint iatom) {
+  //void* db=g->db;
+  int tmp;
+
+  if ((jmeta&((ATOM_META_GROUND_MASK<<ATOM_META_GROUND_SHIFT)<<SMALLINTSHFT))) {
+    // jmeta is ground
+    if ((imeta&((ATOM_META_GROUND_MASK<<ATOM_META_GROUND_SHIFT)<<SMALLINTSHFT))) {
+      // jmeta and imeta are both ground
+      if (jmeta>imeta) return 1; // creates quite full meta-based ordering of ground literals
+      //else return 0;
+      // new part
+      else if (jmeta<imeta) return 0;
+      else if (wg_atom_meta_is_neg(db,jmeta) && 
+               !wg_atom_meta_is_neg(db,imeta))
+        return 1;       
+      else if (!wg_atom_meta_is_neg(db,jmeta) && 
+               wg_atom_meta_is_neg(db,imeta))  
+        return 0;       
+      else  {
+        tmp=wr_order_2_atoms_lex_order(g, jatom, iatom, NULL);
+        if (tmp==1) return 0;
+        else if (tmp==2) return 1;
+        else return 0;        
+      }    
+    } else {
+      // jmeta ground, imeta non-ground (here ground are bigger than non-ground)
+      return 1;
+    }
+  } else {
+    // jmeta is non-ground
+    if ((imeta&((ATOM_META_GROUND_MASK<<ATOM_META_GROUND_SHIFT)<<SMALLINTSHFT))) {
+      // jmeta non-ground, imeta is ground 
+      return 0;     
+    } else {
+      // imeta and jmeta both non-ground
+      if  ((jmeta&(ATOM_META_CANSUBS_MASK<<SMALLINTSHFT)) > 
+           (imeta&(ATOM_META_CANSUBS_MASK<<SMALLINTSHFT))) return 1;       
+      // else return 0;
+      // new part
+      else if  ((jmeta&(ATOM_META_CANSUBS_MASK<<SMALLINTSHFT)) < 
+                (imeta&(ATOM_META_CANSUBS_MASK<<SMALLINTSHFT))) return 0;
+      else if (wg_atom_meta_is_neg(db,jmeta) && 
+               !wg_atom_meta_is_neg(db,imeta))
+        return 1;
+      else if (wg_atom_meta_is_neg(db,imeta) && 
+               !wg_atom_meta_is_neg(db,jmeta))
+        return 0;  
+      else {
+        tmp=wr_order_2_atoms_lex_order(g, jatom, iatom, NULL);
+        if (tmp==1) return 0;
+        else if (tmp==2) return 1;
+        else return 0;        
+      }  
+
+    }
+  }
+}
+
+
+/* 
+
+  returns:
+    0 if terms are lex-equal
+    1 if x is smaller than y
+    2 if y is smaller than x
+    3 if terms are not lex-comparable
+
+*/
+
+
+int wr_order_2_atoms_lex_order(glb* g, gint x, gint y, gptr vb) {
+  void* db;
+  gptr xptr,yptr;
+  gint encx,ency; 
+  int xlen,ylen,uselen,ilimit,i,tmp;
+
+#ifdef EQORDER_DEBUG
+  wr_printf("wr_order_atoms_lex_order called with x %ld and y %ld: ",x,y);
+  wr_print_term(g,x);
+  wr_printf("\n");
+  wr_print_term(g,y);
+  wr_printf("\n");
+#endif     
+
+  if (x==y) return 0; // equal 
+  if (isvar(x)) {
+    if (isvar(y)) {
+      if (x<y) return 1;
+      else return 2;
+    } else {
+      return 1;
+    }
+  } else if (isvar(y)) {
+    return 2;
+  }  
+  // here none can be a var   
+  if (!isdatarec(x)) {
+    // now x has a have a simple value     
+    if (!isdatarec(y)) {
+      if (wr_order_atoms_const_lex_smaller(g,x,y)) return 1;
+      else return 2;      
+    } else {
+      // consider function terms as lex bigger than constants
+      return 1; 
+    }
+  } else if (!isdatarec(y)) {
+    // x is a function term and y is a constant
+    return 2;
+  }
+  // x and y are both complex terms     
+  db=g->db;
+  xptr=decode_record(db,x);
+  yptr=decode_record(db,y);
+  xlen=get_record_len(xptr);
+  ylen=get_record_len(yptr);
+  // let smaller-arity funs be lex-smaller
+  if (xlen<ylen) return 1;
+  else if (ylen<xlen) return 2;
+  // here the arities are same
+  uselen=xlen;
+  if (g->unify_maxuseterms) {
+    if (((g->unify_maxuseterms)+(g->unify_firstuseterm))<uselen) 
+      uselen=(g->unify_firstuseterm)+(g->unify_maxuseterms);
+  }    
+  ilimit=RECORD_HEADER_GINTS+uselen;
+  for(i=RECORD_HEADER_GINTS+(g->unify_firstuseterm); i<ilimit; i++) {
+    encx=*(xptr+i);
+    ency=*(yptr+i);    
+    if (encx==ency) continue;
+    tmp=wr_order_2_atoms_lex_order(g,encx,ency,vb);
+    if (tmp==0) continue;
+    else return tmp;   
+  }      
+  return 0;        
+}        
 
 /* 
   quicksort for a list of meta+rule vector

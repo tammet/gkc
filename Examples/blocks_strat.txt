@@ -1,0 +1,5 @@
+{
+  "max_seconds":25,
+  "strategy":["unit"],
+  "query_preference":0
+}

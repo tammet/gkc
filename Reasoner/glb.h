@@ -339,6 +339,7 @@ typedef struct {
   int use_equality; // current principle
   int use_comp_funs_strat; // general strategy
   int use_comp_funs; // current principle
+  int use_comp_arithmetic; // current principle for arithmetic
   int use_rewrite_terms_strat; // general strategy
   int have_rewrite_terms; // observation  
   int use_strong_unit_cutoff; 

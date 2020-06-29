@@ -1,0 +1,7 @@
+father(john,pete).
+father(pete,mark).
+
+% equivalent to (father(X,Y) & father(Y,Z)) => grandfather(X,Z).
+-father(X,Y) | -father(Y,Z) | grandfather(X,Z).
+
+-grandfather(john,X) | $ans(X).

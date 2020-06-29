@@ -1,0 +1,4 @@
+father(john,pete).
+father(pete,mark).
+
+-father(Y,X) | $ans(Y,X).
