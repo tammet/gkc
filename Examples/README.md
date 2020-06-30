@@ -7,7 +7,7 @@ towards more advanced use.
 
 On Linux the pre-compiled executable is called gkc, on Windows gkc.exe
 and on OS X (macOS) it is gkcosx. Please change the filename on OS X
-accordingly or just use gkcosx in the following examples instead of gkc.
+to gkc or just use gkcosx in the following examples instead of gkc.
 
 Call gkc from the command line from UNIX (i.e. Linux or OS X) like this:
 
