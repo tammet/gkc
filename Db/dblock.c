@@ -988,7 +988,9 @@ gint db_tfqueue_wlock(void * db) {
 #ifdef _WIN32
   int ts;
 #else
+#ifdef __linux__
   struct timespec ts;
+#endif  
 #endif
   gint lock, prev;
   lock_queue_node *lockp;
@@ -1100,7 +1102,9 @@ gint db_tfqueue_rlock(void * db) {
 #ifdef _WIN32
   int ts;
 #else
+#ifdef __linux__
   struct timespec ts;
+#endif    
 #endif
   gint lock, prev;
   lock_queue_node *lockp;

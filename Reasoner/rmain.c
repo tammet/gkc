@@ -48,6 +48,8 @@
 #include <sys/signal.h>
 #ifdef __linux__
 #include <sys/prctl.h>
+#else
+#include <signal.h> 
 #endif
 
 #endif

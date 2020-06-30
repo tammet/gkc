@@ -1224,7 +1224,7 @@ int wr_show_result(glb* g, gint history) {
        if (dbmemsegh(db)->max_forks) {
           bpos+=snprintf(buf+bpos,blen-bpos,
             "\nresult: proof found\nfor %s\n",(g->filename));          
-          if ((g->guidetext) && *(g->guidetext)!=0) { 
+          if (*(g->guidetext)!=0) { 
             bpos+=snprintf(buf+bpos,blen-bpos,
               "by run %d fork %d strategy %s\n",
               (g->current_run_nr)+1,g->current_fork_nr,g->guidetext);  
@@ -1232,7 +1232,7 @@ int wr_show_result(glb* g, gint history) {
         } else {         
           bpos+=snprintf(buf+bpos,blen-bpos,
             "\nresult: proof found\nfor %s\n",(g->filename));          
-          if ((g->guidetext) && *(g->guidetext)!=0) { 
+          if (*(g->guidetext)!=0) { 
             bpos+=snprintf(buf+bpos,blen-bpos,
               "by run %d strategy %s\n",
               (g->current_run_nr)+1,g->guidetext);  
