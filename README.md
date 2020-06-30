@@ -41,17 +41,18 @@ script in the top folder creating a static binary gkc
 in the top folder. This script calls gcc once,
 the result is the binary `gkc` in the top folder.
 
-We have tested compilation with gcc 5.4 and 9.3, clang 3.8 and 6.0
-under Ubuntu 16_04 and with clang under OS X Mojave: 
+We have tested compilation with gcc 5.4, 7.5 and 9.3, clang 3.8 and 6.0
+under Ubuntu 16 and 18 and with clang under OS X Mojave: 
 if the OS X compilation fails, remove the -static flag
 from compile.sh and then try again. 
 
-To compile the Windows 32-bit binary yourself, use the
+To compile the Windows binary yourself, use the
 
     compile.bat
 
 script in the top folder creating an executable `gkc.exe`
-in the fop folder. We have tested compilation under 
+in the fop folder. We have tested compilation of both 
+the 32-bit and 64-bit versions under 
 the 64-bit Windows 10 with the 2017 Visual Studio C
 community edition command-line tool cl.
 
@@ -65,8 +66,9 @@ utilities. In case these two are not available, you
 can change the `makefile` for optionally compiling without
 them: check the comments in the `makefile`.
 
-Third option is to compile with the autototools under Linux,
-first rename `makefile`to something different and then do
+Third option is to compile with the autotools under Linux:
+install `bison`, `flex`, `automake` and `libtool`, rename `makefile`
+to something different and then do
 
     ./Bootstrap
     ./configure
@@ -74,11 +76,13 @@ first rename `makefile`to something different and then do
 
 which will first create `Makefile`
 and then use this to create a dynamically linked executable `Main/gkc`
-and optionally do
+and finally do
 
     sudo make install
 
-to make gkc available on the system
+to make gkc available on the system. Unless it is alreay there, you may
+need to add `/usr/local/lib` to the environment variable `LD_LIBRARY_PATH`
+to run gkc installed by autotools. 
 
 
 Running

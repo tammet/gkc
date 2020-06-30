@@ -15,11 +15,15 @@ and from Windows like this:
 
 Try it out on a trivial problem in the Examples folder:
 
-    gkc example1.txt
+    ./gkc example1.txt
+
+Unless gkc is already in the Examples folder, first copy it there:
+
+    cp gkc Examples/
 
 You may want to send output to a file in a standard way like this:
 
-    gkc example1.txt > out.txt
+    ./gkc example1.txt > out.txt
 
 In case you have very little memory on your computer, gkc may
 complain about memory and terminate. In this case tell it to use
@@ -151,7 +155,7 @@ In case gkc does not understand the syntax of the input file it will give a json
 error indicating a culprit line and piece of input like this:
 
     {"error": "syntax error, unexpected URI, expecting '.': file example1.txt place 'as' in line 3:
-    as as ("}
+    foo bar ("}
 
 
 
@@ -707,6 +711,7 @@ Try out progressively harder versions of the blocks world problem:
     ./gkc blocks2.txt
     ./gkc blocks3.txt
     ./gkc blocks4.txt
+    ./gkc blocks5.txt
 
 All of these are modified versions of each other: some goals
 at the end of the file are commented out while one is kept.
@@ -714,14 +719,15 @@ at the end of the file are commented out while one is kept.
 Look into any of these files to see an explanation of what
 facts and rules there are and how is the task encoded.
   
-The first and second problems are easy, third should take a few seconds and
+The first and second problems are easy, third and fifth should take a few seconds,
 the fourth ca one minute. The only difference between the third and fourth
 is that the fourth asks for an actual answer, while the third only asks 
 whether an answer exists. Clearly there is room for improving the answer-finding
 efficiency of gkc!
 
-A suitable simple strategy for the third example is given in the file
-blocks_strat2.txt:
+In the advanced examples chapter we will look at guiding gkc search by using
+a strategy selection file. A suitable simple strategy for the third example 
+is given in the file blocks_strat2.txt:
 
     {
       "print_level": 10,     
@@ -730,11 +736,20 @@ blocks_strat2.txt:
       "query_preference": 2
     } 
 
-Using it as
+and for the fifth in the file blocks_strat3.txt:
+
+    {
+      "max_seconds":5,
+      "strategy":["query_focus"],
+      "query_preference":1
+    } 
+
+Using these as
 
     ./gkc blocks3.txt blocks_strat2.txt -parallel 0
+    ./gkc blocks5.txt blocks_strat3.txt -parallel 0
 
-gives us a proof in ca 50 milliseconds.
+gives us proofs in ca 50 milliseconds and 300 milliseconds, respectively.
 
 Looking at the output of the fourth we see
 that it uses a strategy {"max_seconds":25,"strategy":["unit"],"query_preference":1}
@@ -774,7 +789,7 @@ the TPTP project:
 This is not a really advanced topic, but important.
 
 A symbol cannot, by default, contain any whitespace or special characters used
-in the syntax like (, -, ~, =, comma etc.
+in the syntax like (, -, ~, =, ", comma etc. 
 
 You can put whitespace or any symbol except a single quote
 into symbols by surrounding the symbol with single quote symbols like this:
@@ -786,9 +801,9 @@ as a variable, since it still starts with a capital letter, even though
 quoted.
 
 Any symbol containing a character except an ascii letter, digit, underscore _,
-dollar $ or at-symbol @ will be printed out by surrounding it with single quotes.
+or dollar $ will be printed out by surrounding it with single quotes.
 As an exception, equality = and aritmetic expressions +, *, -, /, < will 
-not be surrounded by quotes.
+not be surrounded by quotes. 
 
 Additionally you can make a symbol variable by prefixing it with a question
 mark like this:
@@ -992,7 +1007,9 @@ Read in an axiom set into persistant shared memory like this:
 
     ./gkc -readkb steam_kb.txt
   
-which parses, converts and indexes the file steam_kb.txt, 
+which parses, converts and indexes the file steam_kb.txt, outputs
+    Data parsed into the shared memory db, starting to build indexes.
+    Db ready in shared memory.
 does not attempt to prove anything and stops.
 
 Since steam_kb.txt is a small file, loading it into memory does not really make proof
@@ -1009,11 +1026,18 @@ Observe that even for such a small problem, the proof will be found faster,
 in a few milliseconds, as opposed to ca 70 milliseconds for the original
 proof without the prepared memory database.
 
-On Windows, the same machinery has an additional requirement: the process 
-  
-    gkc -readkb steam_kb.txt
+On Windows, the same machinery has additional requirements: 
 
-does NOT stop, but hangs and waits. Shared memory database is available while the process
+First, the default amount of memory requested by gkc may be too large: run
+  
+    gkc -readkb steam_kb.txt -mbsize 1000 
+
+to ask for just 1GB of memory. Second, the process does NOT stop, but says
+
+    Shared memory kb is available while this program is running.
+    Press any key to free shared memory kb and exit . . .
+
+and waits. Shared memory database is available while the process
 is still waiting, but once it is stopped, the database is no longer available. Thus
 on Windows the machinery has to be run in two separate command line windows.
 
@@ -1449,5 +1473,25 @@ strategy file.
 
 The arithmetic syntax used by gkc does not currently conform
 to the TPTP format.
+
+### Large theory batch files
+
+Gkc is capable of time-efficiently handling a special format of 
+packaging a large number of proof tasks into a single batch run file:
+* <http://www.tptp.org/CASC/J10/Design.html#Problems>
+* <http://www.tptp.org/CASC/J10/Design.html#SystemProperties>
+contains a description of the format and specific requirements. 
+
+In order to try out a simple example, do:
+
+    mkdir out
+    ./gkc largebatch.txt out
+
+Here gkc determines automatically that the largebatch.txt
+has a specific format and should be handled as a batch of
+problems, with output files put into the out folder.
+
+This capability is only available under UNIX.
+
 
 

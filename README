@@ -21,6 +21,9 @@ either v0.5.2 or newer:
 GKC is licenced under AGPL v3. The author of GKC
 is Tanel Tammet (tanel.tammet@gmail.com).
 
+See Examples/README.md for examples and a detailed guide
+of using GKC.
+
 Compiling and installing
 ------------------------
 
@@ -38,17 +41,18 @@ script in the top folder creating a static binary gkc
 in the top folder. This script calls gcc once,
 the result is the binary `gkc` in the top folder.
 
-We have tested compilation with gcc 5.4 and 9.3, clang 3.8 and 6.0
-under Ubuntu 16_04 and with clang under OS X Mojave: 
+We have tested compilation with gcc 5.4, 7.5 and 9.3, clang 3.8 and 6.0
+under Ubuntu 16 and 18 and with clang under OS X Mojave: 
 if the OS X compilation fails, remove the -static flag
 from compile.sh and then try again. 
 
-To compile the Windows 32-bit binary yourself, use the
+To compile the Windows binary yourself, use the
 
     compile.bat
 
 script in the top folder creating an executable `gkc.exe`
-in the fop folder. We have tested compilation under 
+in the fop folder. We have tested compilation of both 
+the 32-bit and 64-bit versions under 
 the 64-bit Windows 10 with the 2017 Visual Studio C
 community edition command-line tool cl.
 
@@ -62,8 +66,9 @@ utilities. In case these two are not available, you
 can change the `makefile` for optionally compiling without
 them: check the comments in the `makefile`.
 
-Third option is to compile with the autototools under Linux,
-first rename `makefile`to something different and then do
+Third option is to compile with the autotools under Linux:
+install `bison`, `flex`, `automake` and `libtool`, rename `makefile`
+to something different and then do
 
     ./Bootstrap
     ./configure
@@ -71,11 +76,13 @@ first rename `makefile`to something different and then do
 
 which will first create `Makefile`
 and then use this to create a dynamically linked executable `Main/gkc`
-and optionally do
+and finally do
 
     sudo make install
 
-to make gkc available on the system
+to make gkc available on the system. Unless it is alreay there, you may
+need to add `/usr/local/lib` to the environment variable `LD_LIBRARY_PATH`
+to run gkc installed by autotools. 
 
 
 Running
@@ -87,12 +94,12 @@ Simplest way to run
 
 Example:
 
-    ./gkc Examples/steam.p
+    ./gkc Examples/steam.txt
     
 GKC will automatically pick and try out several search strategies 
 one after another.
 
-Please check the Examples/Readme.md for guided examples of using gkc.
+Please check the Examples/README.md for guided examples of using gkc.
 
 In order to select options and strategies yourself, run gkc as 
 
@@ -100,7 +107,7 @@ In order to select options and strategies yourself, run gkc as
 
 Example:
 
-    ./gkc /opt/TPTP/Problems/NUM/NUM925+5.p Examples/runs.txt
+    ./gkc Examples/blocks3.txt Examples/runs.txt
 
 where
 * `problem_file_name` is a problem file in TPTP syntax, possibly containing include commands like 
@@ -166,8 +173,8 @@ Input syntax
 
 GKC reads files in both the 
 
-* TPTP first order form (fof) syntax, see Examples/steam.p and <http://www.tptp.org/TPTP/TR/TPTPTR.shtml>
-* Simple clause form syntax, see Examples/steam.txt and the description below.
+* TPTP first order form (fof) syntax, see Examples/README.md and <http://www.tptp.org/TPTP/TR/TPTPTR.shtml>
+* Simple clause form syntax, see Examples/README.md and the description below.
 
 In both cases the percentage % symbol is a line comment.
 
@@ -210,7 +217,7 @@ time limits after each batch.
 
 The strategy file is a json file like the following example,
 indicating that one single strategy should be run. For more
-examples, see query.txt, neg.txt, unit.txt, runs.txt in the Examples 
+examples, see strat.txt, multineg.txt, runs.txt in the Examples 
 folder.
 
         {

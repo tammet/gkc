@@ -1004,7 +1004,7 @@ int wg_should_quote(char* s) {
   if (*s=='=' && *(s+1)==0) return 0;
   for(p=s; *p!=0; p++) {
     c=*p;
-    if (c=='$') continue;
+    if (c=='$' || c=='_') continue;
     if (c<48) return 1;
     if (c>57 && c<64) return 1;
     if (c>90 && c<97) return 1;
