@@ -23,8 +23,10 @@
  */
 #define LOCK_PROTO 1
 
-/* Encoded data is 64-bit */
-/* #undef HAVE_64BIT_GINT */
+/* Encoded data is 64-bit ?*/
+#ifdef _WIN64
+#define HAVE_64BIT_GINT 
+#endif
 
 /* Define if you have POSIX threads libraries and header files. */
 /* #undef HAVE_PTHREAD */
