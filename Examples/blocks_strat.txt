@@ -1,5 +1,5 @@
 {
-  "max_seconds":25,
   "strategy":["unit"],
-  "query_preference":0
+  "query_preference":0,
+  "print_level": 15 
 }
