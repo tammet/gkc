@@ -12,8 +12,8 @@ the main potential application these specialized methods.
 GKC itself does not contain these methods: ask the author
 for the systems built on top of GKC.
 
-For compiled binaries for Linux and Windows, as well as 
-instructions for running gkc, see the latest release,
+For compiled binaries for Linux, Windows and OS X (maxOS), 
+as well as instructions for running gkc, see the latest release,
 either v0.5.2 or newer:
 
 <https://github.com/tammet/gkc/releases/tag/v0.5.2>
@@ -29,11 +29,13 @@ Compiling and installing
 
 The GKC system consists of a single standalone executable, 
 called  `gkc` for linux/mac, `gkc.exe` for windows. 
+The pre-compiled executables are included in the
+release: for OS X (macOS) it is called `gkcosx`
 
 GKC is written in C. There are three alternative ways
 to compile gkc, from simpler to more complicated:
 
-First, to compile the Linux or OS X binary yourself, use the 
+First, to compile the Linux binary yourself, use the 
 
     compile.sh
   
@@ -42,9 +44,7 @@ in the top folder. This script calls gcc once,
 the result is the binary `gkc` in the top folder.
 
 We have tested compilation with gcc 5.4, 7.5 and 9.3, clang 3.8 and 6.0
-under Ubuntu 16 and 18 and with clang under OS X Mojave: 
-if the OS X compilation fails, remove the -static flag
-from compile.sh and then try again. 
+under Ubuntu 16 and 18. 
 
 To compile the Windows binary yourself, use the
 
@@ -56,6 +56,14 @@ the 32-bit and 64-bit versions under
 the 64-bit Windows 10 with the 2017 Visual Studio C
 community edition command-line tool cl.
 
+To compile the OS X (macOS) binary yourself, use the
+
+    compile_osx.sh
+
+script, which creates a dynamically linked version using
+clang. We have tested Apple clang version 11.0.3 
+on macOS Catalina 10.15.4.
+
 Second, to compile with a simple makefile under Linux, do
 
     make
@@ -66,7 +74,7 @@ utilities. In case these two are not available, you
 can change the `makefile` for optionally compiling without
 them: check the comments in the `makefile`.
 
-Third option is to compile with the autotools under Linux:
+The third option is to compile with the autotools under Linux:
 install `bison`, `flex`, `automake` and `libtool`, rename `makefile`
 to something different and then do
 
@@ -118,10 +126,10 @@ for the TPTP syntax and problems, see <http://www.tptp.org/>
 * `strategy_file_name` is a json-syntax file for giving options and strategies to gkc. See and use the
 example files `unit.txt`, `neg.txt`, `runs.txt` in the `Examples` folder.
 
-GKC can parse and prepare a large axiom file into a shared memory database to perform quick
-independent queries upon this pre-built base. Several shared memory databases may be present
-at the same time: use different memory database numbers for indicating which to load or use.
-The memory database can be dumped to a disk for quick loading later. 
+On Linux and Windows GKC can parse and prepare a large axiom file into a shared memory database
+to perform quick independent queries upon this pre-built base. Several shared memory databases
+may be present at the same time: use different memory database numbers for indicating which 
+to load or use. The memory database can be dumped to a disk for quick loading later. 
 
 The following is a list of available commands as output by `./gkc -help`:
     
@@ -319,8 +327,10 @@ These standard inference rules have been implemented:
 
 GKC does not currently implement any propositional inferences or instance generation.
 
-By default GKC uses multiple strategies run sequentially, with the time limit starting 
-at one second or more for each, increased 5 times once the whole batch has been perforfmed. 
+By default GKC uses multiple strategies run sequentially and/or distributed between
+several parallel processes: by default, four parallel processes on UNIX and a single
+process on Windows. By default the strategies have a time limit starting 
+at one second or more for each, increased 5 times once the whole batch has been performed. 
 The strategy selection takes into consideration the basic properties of the problem,
 in particular its approximate size. There is no interplay between different strategies.
 

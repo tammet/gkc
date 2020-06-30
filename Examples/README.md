@@ -3,7 +3,11 @@ Examples for gkc
 
 We will first give a brief introduction to gkc input and output,
 then look at several simple introductory examples and continue
-towards more advanced use.
+towards more advanced use. 
+
+On Linux the pre-compiled executable is called gkc, on Windows gkc.exe
+and on OS X (macOS) it is gkcosx. Please change the filename on OS X
+accordingly or just use gkcosx in the following examples instead of gkc.
 
 Call gkc from the command line from UNIX (i.e. Linux or OS X) like this:
 
@@ -994,6 +998,9 @@ As said before, gkc implements parallel processes using forks and only for UNIX,
 
 ###  Example: steam with a shared memory database
 
+Examples in this section behave somewhat differently on Linux and
+Windows, and do not function on OS X (maxOS): more about this below.
+
 Very large axiom sets take a long time to parse and index. In case you have many different questions
 to ask, which all use the same large axiom set, it makes sense to parse, convert and index 
 the axiom set before the questions are asked, so that each individual question does not
@@ -1040,6 +1047,10 @@ to ask for just 1GB of memory. Second, the process does NOT stop, but says
 and waits. Shared memory database is available while the process
 is still waiting, but once it is stopped, the database is no longer available. Thus
 on Windows the machinery has to be run in two separate command line windows.
+
+OS X severely restricts the size of the shared memory and it is really
+complicated to change the restriction. Hence you may simply assume the
+shared memory functionality of gkc is not available on OS X.
 
 On UNIX, once the memory database is no longer needed, delete it by doing
 
