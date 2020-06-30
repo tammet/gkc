@@ -1040,7 +1040,7 @@ gint db_tfqueue_wlock(void * db) {
 #endif
 #else
 /* XXX: add support for other platforms */
-#error This code needs Linux SYS_futex service to function
+//#error This code needs Linux SYS_futex service to function
 #endif
   }
 
@@ -1081,7 +1081,7 @@ gint db_tfqueue_wulock(void * db, gint lock) {
     futex_wake(syn_addr, 1);
 #else
 /* XXX: add support for other platforms */
-#error This code needs Linux SYS_futex service to function
+//#error This code needs Linux SYS_futex service to function
 #endif
   }
 
@@ -1157,7 +1157,7 @@ gint db_tfqueue_rlock(void * db) {
 #endif
 #else
 /* XXX: add support for other platforms */
-#error This code needs Linux SYS_futex service to function
+//#error This code needs Linux SYS_futex service to function
 #endif
     lock_queue(db);
     if(lockp->next) {
@@ -1173,7 +1173,7 @@ gint db_tfqueue_rlock(void * db) {
       futex_wake(syn_addr, 1);
 #else
 /* XXX: add support for other platforms */
-#error This code needs Linux SYS_futex service to function
+//#error This code needs Linux SYS_futex service to function
 #endif
     }
   }
@@ -1221,7 +1221,7 @@ gint db_tfqueue_rulock(void * db, gint lock) {
     futex_wake(syn_addr, 1);
 #else
 /* XXX: add support for other platforms */
-#error This code needs Linux SYS_futex service to function
+//#error This code needs Linux SYS_futex service to function
 #endif
   }
 

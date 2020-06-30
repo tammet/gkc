@@ -35,17 +35,23 @@
 #include <time.h>
 
 #ifdef _WIN32
+
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include "../Builtparser/dbparse.h"
+
 #else
+
 #include "../Parser/dbparse.h"
 #include <sys/wait.h> 
 #include <unistd.h> 
+#include <sys/signal.h>
 #ifdef __linux__
 #include <sys/prctl.h>
 #endif
+
 #endif
+
 
 #include "rincludes.h"  
 #include "../cjson/cjson.h"
