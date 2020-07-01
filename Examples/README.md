@@ -1624,12 +1624,14 @@ to the TPTP format.
 ### Large theory batch files
 
 Gkc is capable of time-efficiently handling a special format of 
-packaging a large number of proof tasks into a single batch run file:
+packaging a large number of proof tasks into a single batch run file.
+These pages contain a description of the format and specific requirements: 
+
 * [CASC J10 design: Problems](http://www.tptp.org/CASC/J10/Design.html#Problems)
 * [CASC J10 design: System properties](http://www.tptp.org/CASC/J10/Design.html#SystemProperties)
-contain a description of the format and specific requirements. 
 
-In order to try out a simple example, do:
+
+In order to try out a simple example, there is [largebatch.txt](largebatch.txt) file:
 
     mkdir out
     ./gkc largebatch.txt out
