@@ -2,8 +2,8 @@ Examples for gkc
 ================
 
 We will first give a brief introduction to gkc input and output,
-then look at several simple introductory examples and continue
-towards more advanced use. 
+then look at several simple [introductory examples](#Introductory-examples)
+and continue towards [more advanced use](#Advanced-examples). 
 
 On Linux the pre-compiled executable is called gkc, on Windows gkc.exe
 and on OS X (macOS) it is gkcosx. Please change the filename on OS X
@@ -54,6 +54,21 @@ parameter like this:
 Introductory examples
 ---------------------
 
+Topics covered:
+* [Example 1: basics](#Example-1:-basics)
+* [Example 2: answers](#Example-2:-answers)
+* [Example 3: rules](#Example-3:-rules)
+* [Example 4: indefinite answers](#Example-4:-indefinite-answers)
+* [Example 5: more rules](#Example-5:-more-rules)
+* [Example 6: equalities and functions](#Example-6:equalities-and-functions)
+* [Example 7: grandfather with functions](#Example-7:grandfather-with-functions)
+* [Example 8: equalities used in proof](#Example-8:equalities-used-in-proof)
+* [Example 9: reflexivity used in proof](#Example-9:-reflexivity-used-in-proof)
+* [Example 10: multiple answers](#Example-10:-multiple-answers)
+* [Example: algebra](#Example:-algebra)
+* [Example: an unprovable problem](#Example:-an-unprovable-problem)
+* [Example: a hard problem](#Example:-a-hard-problem)
+* [Examples: medium-hard blocks world problems](#Examples:medium-hard-blocks-world-problems)
 
 These simple examples explain the input, output and basic
 functioning of gkc. Run these yourself like
@@ -61,11 +76,11 @@ functioning of gkc. Run these yourself like
     ./gkc example1.txt
 
 The simple logical language used in these examples is inspired
-by the Otter syntax <https://www.cs.unm.edu/~mccune/otter/>. 
+by the [Otter syntax](https://www.cs.unm.edu/~mccune/otter/). 
 Gkc can also use other, richer input languages: more about these later.
 
 
-### Example 1:
+### Example 1: basics
 
 This is a really trivial example.
 
@@ -139,10 +154,10 @@ it indicates the fact / rule was derived from ordinary axioms, not a specially m
 
 The [simp, 1, 2,fromaxiom] means the same as the [mp,...] above, just a specially simple case.
 
-The wiki page <https://en.wikipedia.org/wiki/Resolution_(logic)> is a good short intro to the general principles
-of the derivation rules with the course materials of Geoff Sutcliffe <http://lambda.ee/w/images/0/06/Geoffreasoningnotes.pdf> 
-being a suitable continuation towards deeper understanding. However, the following examples are understandable 
-without in-depth theoretical background.
+The [Resolution (logic) wiki page](https://en.wikipedia.org/wiki/Resolution_(logic)) 
+is a good short intro to the general principles of the derivation rules with the 
+[course materials of Geoff Sutcliffe](http://lambda.ee/w/images/0/06/Geoffreasoningnotes.pdf) 
+being a suitable continuation towards deeper understanding. However, the following examples are understandable without in-depth theoretical background.
 
 Try to modify the file example1.txt by removing the statement `-father(john,pete).` and
 run gkc again. After ca one second gkc will stop and output
@@ -163,7 +178,7 @@ error indicating a culprit line and piece of input like this:
 
 
 
-###  Example 2
+###  Example 2: answers
 
 Like example 1, but we want to find a concrete person as an answer: we use the special
 "$ans" predicate for this. Observe the "answer: $ans(pete). " line in the output
@@ -214,7 +229,7 @@ It is possible to force gkc to give more answers than just one: more
 about that later.
 
 
-### Example 3
+### Example 3: rules
 
 Now we add a grandfather rule and ask for a grandchild of John.
 
@@ -245,7 +260,7 @@ Output:
      7: [mp, 5, 6, fromaxiom] $ans(mark).
 
 
-###  Example 4 
+###  Example 4: indefinite answers
 
 Let us make it unclear which sons pete actually has:
 
@@ -288,7 +303,7 @@ the N.0 is simplified to N, as in the previous examples.
 
 I.e. literals in a clause are numbered 0, 1, 2, etc and the number 0 is not added to the step number.
 
-###  Example 5 
+###  Example 5: more rules
 
 To make matters a bit more complicated, we add an ancestor rule 
 and look for ancestors of mark.
@@ -322,7 +337,7 @@ Output:
      5: [mp, 3, 4, fromaxiom] $ans(pete).
 
 
-###  Example 6
+###  Example 6: equalities and functions
 
 Now we reformulate the whole thing with equalities and functions! 
 
@@ -367,7 +382,7 @@ not said who the father of mark actually is! The functions like `father`
 do not have to be defined on all the possible objects, they can be partially
 known and partially unknown.
 
-###  Example 7
+###  Example 7: grandfather with functions
 
 Returning to asking about grandfathers, this time using equalities
 and functions. Again, notice that the proof does not use equalities, just functions.
@@ -404,7 +419,7 @@ Again, father of mark is unknown (undefined) in our example, as well as the
 father of the father of mark. 
 
 
-###  Example 8
+###  Example 8: equalities used in proof
 
 Next we ask very concretely whether the father of the father of john is mark.
 Here the proof actually does use equalities, but only for simplification.
@@ -455,7 +470,7 @@ pete using the equality at step 2,
 giving -=(father(pete),mark), which then contradicts the step 3.
 
 
-###  Example 9
+###  Example 9: reflexivity used in proof
 
 We will ask the same question as in the previous example, but this time
 using the $ans predicate to find a grandfather of john. 
@@ -494,7 +509,7 @@ Here the proof uses the reflexivity rule `r=` which is basically the
 standard property of equality: `X=X'.
 
 
-###  Example 10 
+###  Example 10: multiple answers
 
 Now let us look at how to get several answers, not just one.
 We will also introduce mothers and a mother-side grandfather
@@ -699,7 +714,7 @@ is useful to avoid very long runs.
 
 ###  Examples: medium-hard blocks world problems 
 
-Blocks world <https://en.wikipedia.org/wiki/Blocks_world>
+[Blocks world](https://en.wikipedia.org/wiki/Blocks_world)
 is a classic family of toy problems: there is a robot arm
 able to lift single blocks and to put them on top of other blocks.
 
@@ -729,7 +744,7 @@ is that the fourth asks for an actual answer, while the third only asks
 whether an answer exists. Clearly there is room for improving the answer-finding
 efficiency of gkc!
 
-In the advanced examples chapter we will look at guiding gkc search by using
+In the [advanced examples chapter](#Advanced-examples)we will look at guiding gkc search by using
 a strategy selection file. A suitable simple strategy for the third example 
 is given in the file blocks_strat2.txt:
 
@@ -770,23 +785,33 @@ to get the proof in ca eight seconds:
     ./gkc blocks4.txt blocks_strat.txt -parallel 0
 
 There is a lot of interesting research on the topic of
-improving blocks world planning: 
-<https://ai.dmi.unibas.ch/_files/teaching/hs12/search-opt-seminar/slides/08_blocks_world_revisited.pdf>
+[improving blocks world planning](https://ai.dmi.unibas.ch/_files/teaching/hs12/search-opt-seminar/slides/08_blocks_world_revisited.pdf).
 
 
 Advanced examples
 -----------------
 
 
-Next we will look at richer input languages and more advanced capabilities
-of gkc. 
+Next we will look at richer input languages and more advanced capabilities of gkc. 
+
+Topics considered:
+* [Whitespace, variables, numbers, encodings](#Whitespace,-variables,-numbers,-encodings)
+* [Included files and mixing simple syntax with fof and cnf syntax](#Included-files-and-mixing-simple-syntax-with-fof-and-cnf-syntax)
+* [Example: steam](#Example:-steam)
+* [Example: steam with a shared memory database](#Example:-steam-with-a-shared-memory-database)
+* [Example: steam with the TPTP format output](#Example:-steam-with-the-TPTP-format-output)
+* [Telling gkc what is actually the question clause in input](#Telling-gkc-what-is-actually-the-question-clause-in-input)
+* [Directing the prover and changing the settings](#Directing-the-prover-and-changing-the-settings)
+* [Example: json output](#Example:-json-output)
+* [Examples: arithmetic](#Examples:-arithmetic)
+* [Large theory batch files](#Large-theory-batch-files)
 
 Several examples will use the fof (first order formula) syntax used by
 the TPTP project:
 
-* TPTP project: <http://www.tptp.org/>
-* fof syntax: <http://tptp.org/TPTP/TR/TPTPTR.shtml#FormulaeSection>
-* fof example: <http://www.tptp.org/cgi-bin/SeeTPTP?Category=Problems&Domain=SYN&File=SYN000+1.p>
+* [TPTP project](http://www.tptp.org/)
+* [fof syntax](http://tptp.org/TPTP/TR/TPTPTR.shtml#FormulaeSection)
+* [fof example](http://www.tptp.org/cgi-bin/SeeTPTP?Category=Problems&Domain=SYN&File=SYN000+1.p)
 
 ### Whitespace, variables, numbers, encodings 
 
@@ -830,6 +855,61 @@ as constants.
 Gkc is agnostic towards using different character encodings: it uses
 c-strings, i.e. 0-terminated byte sequences and does not care about encodings.
 
+
+### Included files and mixing simple syntax with fof and cnf syntax
+
+Problems may contain several include statements like
+
+    include('Axioms/GEO004+2.ax').
+    include('steam_kb.txt').
+
+in which case the included path is searched sequentially from the following
+locations until found:
+* in the folder of the input problem path,
+* in the folder indicated by the environment variable TPTP,
+* in the folder /opt/TPTP.
+
+When an included file is found, its contents are treated as if they were a part of the
+main problem file. The include file may again contain includes. When an include file
+is not found, gkc will output an error and stop.
+
+The fof and cnf syntax described in the following section can be mixed with the
+simple syntax as in example13.txt:
+
+    include('steam_kb.txt'). % this is an include statement
+
+    fof(a1, axiom, ( ! [X] : (wolf(X) => dangerous(X)))). % this is fof
+    cnf(a2, axiom, (~dangerous(X) | ~good(X))). % this is cnf
+
+    good(X). % this is a simple syntax (saying that everything is good)
+
+Running ./gkc example13.txt will output:
+
+    result: proof found
+    for example13.txt
+    by run 3 fork 2 strategy {"max_seconds":1,"strategy":["unit"],"query_preference":1}
+
+    proof:
+    1: [in,a1, axiom] -wolf(X) | dangerous(X).
+    2: [in,a2, axiom] -good(XX0) | -dangerous(XX0).
+    3: [in, axiom] good(XX0).
+    4: [simp, 2, 3, fromaxiom] -dangerous(X).
+    5: [in,$imp::pel47_1_2, extaxiom] wolf($sk7).
+    6: [mp, 1.1, 4, 5, fromaxiom] false
+
+where `[in,$imp::pel47_1_2, extaxiom]` indicates that the statement with the
+name `pel47_1_2` was in one of the imported files. 
+
+For a search strategy with a setting "query_preference": 2, 
+gkc treats imported axioms as having a bit lower priorities
+than the statements in the main file. For all the other strategies being
+imported or not does not make a difference, although in the general case the order of clauses
+may sometimes cause minor unpredictable differences in proof search.
+
+The example also shows that when printing clauses, gkc does not generally use the same variable
+names as in the input file. Expect it to prefer variable names X,Y,Z,U,V,W (optionally
+followed by a number) in the printout. For input clauses the variables are sometimes
+printed as XXN for some number N.
 
 ###  Example: steam 
 
@@ -881,7 +961,7 @@ The second statement is existentially quantified (? symbol) and will be converte
     wolf($sk7).
 
 where $sk7 is a new constant invented by gkc which should not occur in any other formula in the problem:
-this procedure is called `Skolemization` <https://en.wikipedia.org/wiki/Skolem_normal_form> .
+this procedure is called [Skolemization](https://en.wikipedia.org/wiki/Skolem_normal_form).
 Gkc always uses the $sk prefix for such constants and functions, using a new number N for each
 new one. The original formula is assumed not to contain $skN form symbols.
 
@@ -1020,8 +1100,8 @@ which parses, converts and indexes the file steam_kb.txt, outputs
 does not attempt to prove anything and stops.
 
 Since steam_kb.txt is a small file, loading it into memory does not really make proof
-search noticeably faster. Large axiom sets like CSR002+5.ax in TPTP 
-<http://www.tptp.org/cgi-bin/SeeTPTP?Category=Axioms&File=CSR002+5.ax>
+search noticeably faster. Large axiom sets like 
+[CSR002+5.ax in TPTP](http://www.tptp.org/cgi-bin/SeeTPTP?Category=Axioms&File=CSR002+5.ax)
 contain several million statements: parsing and indexing this file takes ca 30
 seconds for gkc.
 
@@ -1081,7 +1161,7 @@ thus avoiding the prolonged parsing/converting/indexing process of reading
 a large file of statements.
 
 As a base technology for both the shared memory database and 
-its internal representation of data gkc uses <http://whitedb.org>.
+its internal representation of data gkc uses [Whitedb](http://whitedb.org).
 
 
 ###  Example: steam with the TPTP format output
@@ -1489,9 +1569,9 @@ to the TPTP format.
 
 Gkc is capable of time-efficiently handling a special format of 
 packaging a large number of proof tasks into a single batch run file:
-* <http://www.tptp.org/CASC/J10/Design.html#Problems>
-* <http://www.tptp.org/CASC/J10/Design.html#SystemProperties>
-contains a description of the format and specific requirements. 
+* [CASC J10 design: Problems](http://www.tptp.org/CASC/J10/Design.html#Problems)
+* [CASC J10 design: System properties](http://www.tptp.org/CASC/J10/Design.html#SystemProperties)
+contain a description of the format and specific requirements. 
 
 In order to try out a simple example, do:
 
