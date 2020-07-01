@@ -1,0 +1,6 @@
+include('steam_kb.txt'). % this is an include statement
+
+fof(a1, axiom, ( ! [X] : (wolf(X) => dangerous(X)))). % this is fof
+cnf(a2, axiom, (~dangerous(Y) | ~good(Y))). % this is cnf
+
+good(Z). % this is a simple syntax (saying that everything is good)
