@@ -697,8 +697,8 @@ given time is out.
 ### Example with a hard problem
 
 As an example of a small but a really hard problem for gkc which is
-nevertheless actually provable, try the fof-format problem LCL876+1
-from the TPTP collection:
+nevertheless actually provable, try the fof-format problem 
+[example12.txt](example12.txt) (LCL876+1 from the TPTP collection):
 
     ./gkc example12.txt
   
