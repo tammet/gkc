@@ -21,7 +21,7 @@ either v0.5.2 or newer:
 GKC is licenced under AGPL v3. The author of GKC
 is Tanel Tammet (tanel.tammet@gmail.com).
 
-See Examples/README.md for examples and a detailed guide
+See (Examples/README.md) for examples and a detailed guide
 of using GKC.
 
 Compiling and installing
@@ -340,8 +340,8 @@ the selection relatively uniformly over these categories of derived clauses and 
 descendants: axioms, external axioms, assumptions and goals. 
 
 GKC is implemented in C. The data representation machinery is built upon a shared 
-memory graph database Whitedb, enabling it to solve multiple different queries in
-parallel processeses without a need to repeatedly parse or load the large
+memory graph database [Whitedb] (http://whitedb.org), enabling it to solve multiple
+different queries in parallel processeses without a need to repeatedly parse or load the large
 parsed knowledge base from the disk.
 
 An interesting aspect of GKC is the pervasive use of hash indexes, 
