@@ -351,7 +351,7 @@ Importantly, two different constants are not considered inequal
 by default (think of the constants as labels on objects: there could
 be several different labels on one object):
 
-   a!=b.
+    a!=b.
 
 does not give a contradiction.
 
@@ -1505,7 +1505,7 @@ gives a contradiction, while a comparison of a floating point 2.0 and integer 2 
 On the other hand, adding integer 1 to a floating point 1.0 gives a floating point 2.0
 and the following input gives a contradiction:
 
-   2.0!=1.0+1.
+    2.0!=1.0+1.
 
 Both of the following comparison operations also produce a contradiction:
 
