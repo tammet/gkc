@@ -21,7 +21,7 @@ Try it out on a trivial problem in the Examples folder:
 
     ./gkc example1.txt
 
-Unless gkc is already in the Examples folder, first copy it there:
+Unless gkc is already in the Examples folder, you may want to copy it there:
 
     cp gkc Examples/
 
