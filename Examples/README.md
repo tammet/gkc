@@ -744,8 +744,8 @@ Try out progressively harder versions of the blocks world problem:
 All of these are modified versions of each other: some goals
 at the end of the file are commented out while one is kept.
 
-Look into any of these files to see an explanation of what
-facts and rules there are and how is the task encoded.
+Look into any of these files (say, [blocks1.txt](blocks1.txt))
+to see an explanation of what facts and rules there are and how is the task encoded.
   
 The first and second problems are easy, third and fifth should take a few seconds,
 the fourth ca one minute. The only difference between the third and fourth
@@ -933,7 +933,7 @@ Gkc will first convert the complex formulas to a simple clause form (properly ca
 clause normal form) used in the previous examples. The statements we had in these
 examples are called `clauses`. 
 
-The first part of the steam.txt file contains comments describing the problem.
+The first part of the [steam.txt](steam.txt) file contains comments describing the problem.
 The rest contains full first order formulas like 
 
     fof(pel47_1_1,axiom,
