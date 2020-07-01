@@ -347,7 +347,15 @@ of john and there can be no other fathers. If you also gave
 father(john)=lucas this would make gkc to conclude that
 pete and lucas are the same object, i.e. pete=lucas.
 
-Notice that the proof found does not use equalities, just functions.
+Importantly, two different constants are not considered inequal
+by default (think of the constants as labels on objects: there could
+be several different labels on one object):
+
+   a!=b.
+
+does not give a contradiction.
+
+Notice that the following proof does not use equalities, just functions.
 
 Input file example6.txt:
 
@@ -1102,7 +1110,7 @@ which parses, converts and indexes the file steam_kb.txt, outputs
 
     Data parsed into the shared memory db, starting to build indexes.
     Db ready in shared memory.
-    
+
 does not attempt to prove anything and stops.
 
 Since steam_kb.txt is a small file, loading it into memory does not really make proof
@@ -1464,7 +1472,49 @@ like in
   
 otherwise the whole expression will be parsed as a single variable X*2.
 
-Given input file arithmetic1.txt:
+First, a trivial example arithmetic0.txt:
+
+    1=2.
+
+As expected, gkc produces output:
+
+    result: proof found
+    for arithmetic0.txt
+    by run 1 fork 0 strategy {"max_seconds":1,"strategy":["unit"],"query_preference":1}
+
+    proof:
+    1: [in, axiom] =(1,2).
+    2: [simp, 1, fromaxiom] false
+
+Observe that although it is obvious that 1!=2, ordinary non-numeric constants may
+be equal even if different: 
+
+    a=b.
+    1=b.
+
+does not lead to a contradiction!
+
+Equality also works as expected when comparing floating point numbers:
+
+    2.01!=2.01.
+
+gives a contradiction, while a comparison of a floating point 2.0 and integer 2 does not:
+
+    2.0!=2.
+
+On the other hand, adding integer 1 to a floating point 1.0 gives a floating point 2.0
+and the following input gives a contradiction:
+
+   2.0!=1.0+1.
+
+Both of the following comparison operations also produce a contradiction:
+
+    <(2,2.0).
+    <(2.0,2).
+
+Next we will take up rules and calculations.
+
+Given an input file arithmetic1.txt:
 
     p(1).
     -p(X) | p(1+X).
