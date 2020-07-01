@@ -1099,8 +1099,10 @@ Read in an axiom set into persistant shared memory like this:
     ./gkc -readkb steam_kb.txt
   
 which parses, converts and indexes the file steam_kb.txt, outputs
+
     Data parsed into the shared memory db, starting to build indexes.
     Db ready in shared memory.
+    
 does not attempt to prove anything and stops.
 
 Since steam_kb.txt is a small file, loading it into memory does not really make proof
