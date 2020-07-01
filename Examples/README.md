@@ -1622,6 +1622,40 @@ strategy file.
 The arithmetic syntax used by gkc does not currently conform
 to the TPTP format. 
 
+While gkc and other provers can - in theory - find a solution to any
+pure first order logic problem, given enough time and memory, they
+cannot, in principle, find solutions to all arithmetic problems.
+
+As a simple practical example, gkc is unable to find that
+
+    -p(5).
+    p(2+X).
+
+is contradictory. This would require either solving the equation 5=2+X or
+generating an ever-grpowing set of numberic instances of clauses, none
+of which gkc currently attempts.
+
+However, for the last example one can construct a number-generating
+clause set - which essentially forces the creation of numeric 
+instances - like this:
+
+    -p(5).
+    n(0).
+    -n(X) | n(1+X).
+    -n(X) | p(2+X).
+
+leading to a proof
+
+    1: [in, axiom] n(+(1,X)) | -n(X).
+    2: [in, axiom] n(0).
+    3: [mp, 1.1, 2, fromaxiom] n(1).
+    4: [mp, 3, 1.1, fromaxiom] n(2).
+    5: [mp, 4, 1.1, fromaxiom] n(3).
+    6: [in, axiom] p(+(2,X)) | -n(X).
+    7: [in, axiom] -p(5).
+    8: [mp, 5, 6.1, 7, fromaxiom] false
+
+
 ### Large theory batch files
 
 Gkc is capable of time-efficiently handling a special format of 
