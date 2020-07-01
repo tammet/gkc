@@ -181,9 +181,9 @@ Input syntax
 
 GKC reads files in both the 
 
-* TPTP first order form (fof) syntax, see Examples/README.md and 
-  <http://www.tptp.org/TPTP/TR/TPTPTR.shtml>
-* Simple clause form syntax, see Examples/README.md and the description below.
+* TPTP first order form (fof) syntax, see [Examples/README.md](Examples/README.md) and 
+  the [TPTP docs](http://www.tptp.org/TPTP/TR/TPTPTR.shtml)
+* Simple clause form syntax, see [Examples/README.md](Examples/README.md) and the description below.
 
 In both cases the percentage % symbol is a line comment.
 
