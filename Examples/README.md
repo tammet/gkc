@@ -55,6 +55,7 @@ Introductory examples
 ---------------------
 
 Topics covered:
+
 * [Example 1 for basics](#Example-1-for-basics)
 * [Example 2 for answers](#Example-2-for-answers)
 * [Example 3 for rules](#Example-3-for-rules)
@@ -598,7 +599,7 @@ last line at the end:
 essentially indicating that the required number of different proofs (3) were not found.  
 
 
-###  Example for algebra
+###  Example algebra
 
 Next we will take a question from abstract algebra,
 axiomatized wholly by equalities: the file algebra.txt contains
@@ -651,7 +652,7 @@ The [=, 1, 2.0.3, fromaxiom] means that the clause at step 1 was used to replace
 (numbering 0,1,2,...) of the 0th atom of a clause at step 2 using equality.
 
 
-###  Example for an unprovable problem
+###  Example with an unprovable problem
 
 A simple clause set 
 
@@ -797,13 +798,13 @@ Next we will look at richer input languages and more advanced capabilities of gk
 Topics considered:
 * [Whitespace, variables, numbers, encodings](#Whitespace,-variables,-numbers,-encodings)
 * [Included files and mixing simple syntax with fof and cnf syntax](#Included-files-and-mixing-simple-syntax-with-fof-and-cnf-syntax)
-* [Example: steam](#Example:-steam)
-* [Example: steam with a shared memory database](#Example:-steam-with-a-shared-memory-database)
-* [Example: steam with the TPTP format output](#Example:-steam-with-the-TPTP-format-output)
+* [Example with steam](#Example-with-steam)
+* [Example for steam with a shared memory database](#Example-for--steam-with-a-shared-memory-database)
+* [Example for steam with the TPTP format output](#Example-for-steam-with-the-TPTP-format-output)
 * [Telling gkc what is actually the question clause in input](#Telling-gkc-what-is-actually-the-question-clause-in-input)
 * [Directing the prover and changing the settings](#Directing-the-prover-and-changing-the-settings)
-* [Example: json output](#Example:-json-output)
-* [Examples: arithmetic](#Examples:-arithmetic)
+* [Example with json output](#Example-with-json-output)
+* [Examples with arithmetic](#Examples-with-arithmetic)
 * [Large theory batch files](#Large-theory-batch-files)
 
 Several examples will use the fof (first order formula) syntax used by
@@ -911,7 +912,7 @@ names as in the input file. Expect it to prefer variable names X,Y,Z,U,V,W (opti
 followed by a number) in the printout. For input clauses the variables are sometimes
 printed as XXN for some number N.
 
-###  Example: steam 
+###  Example with steam 
 
 The steam.txt file contains a classic "Schubert's Steamroller" puzzle taken from
 TPTP and written in fof syntax with connectives like implication =>, quantifiers forall ! [X] ..,
@@ -1076,7 +1077,7 @@ The proofs found by different strategies are likely also somewhat different.
 As said before, gkc implements parallel processes using forks and only for UNIX, i.e. Linux and OS X.
 
 
-###  Example: steam with a shared memory database
+###  Example for steam with a shared memory database
 
 Examples in this section behave somewhat differently on Linux and
 Windows, and do not function on OS X (maxOS): more about this below.
@@ -1164,7 +1165,7 @@ As a base technology for both the shared memory database and
 its internal representation of data gkc uses [Whitedb](http://whitedb.org).
 
 
-###  Example: steam with the TPTP format output
+###  Example for steam with the TPTP format output
 
 The simple output format used in all the previous examples does not directly contain
 the original input formulas of the fof language of TPTP and the steps in conversion, 
@@ -1381,7 +1382,7 @@ Other useful parameters, to be used outside the "strategy": [...] list:
 
 For "max_seconds"<2 gkc will automatically use immediate check for contradiction when a clause is derived. 
 
-### Example: json output 
+### Example with json output 
 
 Json output in gkc is experimental and will not always produce a correct result.
 Gkc will produce json output if the strategy file contains a setting
@@ -1429,7 +1430,7 @@ will output a json structure:
     }
 
 
-###  Examples: arithmetic 
+###  Examples for arithmetic 
 
 Gkc supports integer and floating point arithmetic, but only in
 a fairly limited and experimental way: do not be surprised if
@@ -1563,7 +1564,7 @@ the `-tptp 1` parameter or the `"print_tptp": 1` given in the
 strategy file. 
 
 The arithmetic syntax used by gkc does not currently conform
-to the TPTP format.
+to the TPTP format. 
 
 ### Large theory batch files
 
