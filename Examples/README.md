@@ -799,7 +799,7 @@ Topics considered:
 * [Whitespace variables numbers encodings](#Whitespace-variables-numbers-encodings)
 * [Included files and mixing simple syntax with fof and cnf syntax](#Included-files-and-mixing-simple-syntax-with-fof-and-cnf-syntax)
 * [Example for TPTP fof syntax with steam](#Example-for-TPTP-fof-syntax-with-steam)
-* [Example for steam with a shared memory database](#Example-for--steam-with-a-shared-memory-database)
+* [Example for steam with a shared memory database](#Example-for-steam-with-a-shared-memory-database)
 * [Example for steam with the TPTP format output](#Example-for-steam-with-the-TPTP-format-output)
 * [Telling gkc what is actually the question clause in input](#Telling-gkc-what-is-actually-the-question-clause-in-input)
 * [Directing the prover and changing the settings](#Directing-the-prover-and-changing-the-settings)
