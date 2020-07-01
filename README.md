@@ -21,7 +21,7 @@ either v0.5.2 or newer:
 GKC is licenced under AGPL v3. The author of GKC
 is Tanel Tammet (tanel.tammet@gmail.com).
 
-See (Examples/README.md) for examples and a detailed guide
+See [Examples/README.md](Examples/README.md) for examples and a detailed guide
 of using GKC.
 
 Compiling and installing
