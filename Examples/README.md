@@ -55,7 +55,7 @@ Introductory examples
 ---------------------
 
 Topics covered:
-* [Example 1: basics](#Example-1:-basics)
+* [Example 1: basics](#Example-1%3A-basics)
 * [Example 2: answers](#Example-2:-answers)
 * [Example 3: rules](#Example-3:-rules)
 * [Example 4: indefinite answers](#Example-4:-indefinite-answers)
