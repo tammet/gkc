@@ -340,7 +340,7 @@ the selection relatively uniformly over these categories of derived clauses and 
 descendants: axioms, external axioms, assumptions and goals. 
 
 GKC is implemented in C. The data representation machinery is built upon a shared 
-memory graph database [Whitedb] (http://whitedb.org), enabling it to solve multiple
+memory graph database [Whitedb](http://whitedb.org), enabling it to solve multiple
 different queries in parallel processeses without a need to repeatedly parse or load the large
 parsed knowledge base from the disk.
 
