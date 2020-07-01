@@ -796,7 +796,7 @@ Advanced examples
 Next we will look at richer input languages and more advanced capabilities of gkc. 
 
 Topics considered:
-* [Whitespace, variables, numbers, encodings](#Whitespace,-variables,-numbers,-encodings)
+* [Whitespace variables numbers encodings](#Whitespace-variables-numbers-encodings)
 * [Included files and mixing simple syntax with fof and cnf syntax](#Included-files-and-mixing-simple-syntax-with-fof-and-cnf-syntax)
 * [Example with steam](#Example-with-steam)
 * [Example for steam with a shared memory database](#Example-for--steam-with-a-shared-memory-database)
@@ -814,7 +814,7 @@ the TPTP project:
 * [fof syntax](http://tptp.org/TPTP/TR/TPTPTR.shtml#FormulaeSection)
 * [fof example](http://www.tptp.org/cgi-bin/SeeTPTP?Category=Problems&Domain=SYN&File=SYN000+1.p)
 
-### Whitespace, variables, numbers, encodings 
+### Whitespace variables numbers encodings 
 
 This is not a really advanced topic, but important.
 
@@ -1430,7 +1430,7 @@ will output a json structure:
     }
 
 
-###  Examples for arithmetic 
+###  Examples with arithmetic 
 
 Gkc supports integer and floating point arithmetic, but only in
 a fairly limited and experimental way: do not be surprised if
