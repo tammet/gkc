@@ -351,7 +351,7 @@ Importantly, two different constants are not considered inequal
 by default (think of the constants as labels on objects: there could
 be several different labels on one object):
 
-    a!=b.
+    a=b.
 
 does not give a contradiction.
 
