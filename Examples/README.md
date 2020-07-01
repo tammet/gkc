@@ -888,9 +888,9 @@ simple syntax as in example13.txt:
     include('steam_kb.txt'). % this is an include statement
 
     fof(a1, axiom, ( ! [X] : (wolf(X) => dangerous(X)))). % this is fof
-    cnf(a2, axiom, (~dangerous(X) | ~good(X))). % this is cnf
+    cnf(a2, axiom, (~dangerous(Y) | ~good(Y))). % this is cnf
 
-    good(X). % this is a simple syntax (saying that everything is good)
+    good(Z). % this is a simple syntax (saying that everything is good)
 
 Running ./gkc example13.txt will output:
 
