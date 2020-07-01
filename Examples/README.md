@@ -118,7 +118,8 @@ Notice that each statement in the input file is terminated with a period sign.
 Minus sign - means negation. I.e. -father(john,pete) means 
 `john is NOT the father of pete`.
 
-Percentage character % is a line comment. 
+Percentage character % is a line comment. Multi-line comments `/* .... */`
+can be used as well. 
 
 The order of statements in the file is not really important, although it may cause minor
 and essentially unpredictable differences in search behaviour. Essentially, gkc
