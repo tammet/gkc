@@ -43,8 +43,8 @@ script in the top folder creating a static binary gkc
 in the top folder. This script calls gcc once,
 the result is the binary `gkc` in the top folder.
 
-We have tested compilation with gcc 5.4, 7.5 and 9.3, clang 3.8 and 6.0
-under Ubuntu 16 and 18. 
+We have tested compilation with gcc 5.4, 7.5 and 9.3, 
+clang 3.8 and 6.0 under Ubuntu 16 and 18. 
 
 To compile the Windows binary yourself, use the
 
@@ -181,7 +181,8 @@ Input syntax
 
 GKC reads files in both the 
 
-* TPTP first order form (fof) syntax, see Examples/README.md and <http://www.tptp.org/TPTP/TR/TPTPTR.shtml>
+* TPTP first order form (fof) syntax, see Examples/README.md and 
+  <http://www.tptp.org/TPTP/TR/TPTPTR.shtml>
 * Simple clause form syntax, see Examples/README.md and the description below.
 
 In both cases the percentage % symbol is a line comment.
