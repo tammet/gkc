@@ -798,7 +798,7 @@ Next we will look at richer input languages and more advanced capabilities of gk
 Topics considered:
 * [Whitespace variables numbers encodings](#Whitespace-variables-numbers-encodings)
 * [Included files and mixing simple syntax with fof and cnf syntax](#Included-files-and-mixing-simple-syntax-with-fof-and-cnf-syntax)
-* [Example with steam](#Example-with-steam)
+* [Example for TPTP fof syntax with steam](#Example-for-TPTP-fof-syntax-with-steam)
 * [Example for steam with a shared memory database](#Example-for--steam-with-a-shared-memory-database)
 * [Example for steam with the TPTP format output](#Example-for-steam-with-the-TPTP-format-output)
 * [Telling gkc what is actually the question clause in input](#Telling-gkc-what-is-actually-the-question-clause-in-input)
@@ -912,7 +912,7 @@ names as in the input file. Expect it to prefer variable names X,Y,Z,U,V,W (opti
 followed by a number) in the printout. For input clauses the variables are sometimes
 printed as XXN for some number N.
 
-###  Example with steam 
+###  Example for TPTP fof syntax with steam 
 
 The steam.txt file contains a classic "Schubert's Steamroller" puzzle taken from
 TPTP and written in fof syntax with connectives like implication =>, quantifiers forall ! [X] ..,
