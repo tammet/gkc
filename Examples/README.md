@@ -916,7 +916,10 @@ printed as XXN for some number N.
 
 The steam.txt file contains a classic "Schubert's Steamroller" puzzle taken from
 TPTP and written in fof syntax with connectives like implication =>, quantifiers forall ! [X] ..,
-exists ? [X] ... etc.
+exists ? [X] ... etc. 
+See the official [fof syntax](http://tptp.org/TPTP/TR/TPTPTR.shtml#FormulaeSection) and
+[fof example](http://www.tptp.org/cgi-bin/SeeTPTP?Category=Problems&Domain=SYN&File=SYN000+1.p)
+in [TPTP](http://www.tptp.org).
 
 Gkc will first convert the complex formulas to a simple clause form (properly called
 clause normal form) used in the previous examples. The statements we had in these
