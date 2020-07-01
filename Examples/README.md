@@ -686,7 +686,7 @@ and you will see that for some strategies
 gkc terminates very quickly, while for others it runs until the
 given time is out.
 
-### Example for a hard problem
+### Example with a hard problem
 
 As an example of a small but a really hard problem for gkc which is
 nevertheless actually provable, try the fof-format problem LCL876+1
