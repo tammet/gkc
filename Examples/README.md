@@ -55,20 +55,20 @@ Introductory examples
 ---------------------
 
 Topics covered:
-* [Example 1: basics](#Example-1&#x3A;-basics)
-* [Example 2: answers](#Example-2:-answers)
-* [Example 3: rules](#Example-3:-rules)
-* [Example 4: indefinite answers](#Example-4:-indefinite-answers)
-* [Example 5: more rules](#Example-5:-more-rules)
-* [Example 6: equalities and functions](#Example-6:equalities-and-functions)
-* [Example 7: grandfather with functions](#Example-7:grandfather-with-functions)
-* [Example 8: equalities used in proof](#Example-8:equalities-used-in-proof)
-* [Example 9: reflexivity used in proof](#Example-9:-reflexivity-used-in-proof)
-* [Example 10: multiple answers](#Example-10:-multiple-answers)
-* [Example: algebra](#Example:-algebra)
-* [Example: an unprovable problem](#Example:-an-unprovable-problem)
-* [Example: a hard problem](#Example:-a-hard-problem)
-* [Examples: medium-hard blocks world problems](#Examples:medium-hard-blocks-world-problems)
+* [Example 1 for basics](#Example-1-for-basics)
+* [Example 2 for answers](#Example-2-for-answers)
+* [Example 3 for rules](#Example-3-for-rules)
+* [Example 4 for indefinite answers](#Example-4-for-indefinite-answers)
+* [Example 5 for more rules](#Example-5-for-more-rules)
+* [Example 6 for equalities and functions](#Example-6-for-equalities-and-functions)
+* [Example 7 for grandfather with functions](#Example-7-for-grandfather-with-functions)
+* [Example 8 for equalities used in proof](#Example-8-for-equalities-used-in-proof)
+* [Example 9 for reflexivity used in proof](#Example-9-for-reflexivity-used-in-proof)
+* [Example 10 for multiple answers](#Example-10-for-multiple-answers)
+* [Example algebra](#Example-algebra)
+* [Example with an unprovable problem](#Example-with-an-unprovable-problem)
+* [Example with a hard problem](#Example-with-a-hard-problem)
+* [Examples with medium-hard blocks world problems](#Examples-with-medium-hard-blocks-world-problems)
 
 These simple examples explain the input, output and basic
 functioning of gkc. Run these yourself like
@@ -80,7 +80,7 @@ by the [Otter syntax](https://www.cs.unm.edu/~mccune/otter/).
 Gkc can also use other, richer input languages: more about these later.
 
 
-### Example 1: basics
+### Example 1 for basics
 
 This is a really trivial example.
 
@@ -178,7 +178,7 @@ error indicating a culprit line and piece of input like this:
 
 
 
-###  Example 2: answers
+###  Example 2 for answers
 
 Like example 1, but we want to find a concrete person as an answer: we use the special
 "$ans" predicate for this. Observe the "answer: $ans(pete). " line in the output
@@ -229,7 +229,7 @@ It is possible to force gkc to give more answers than just one: more
 about that later.
 
 
-### Example 3: rules
+### Example 3 for rules
 
 Now we add a grandfather rule and ask for a grandchild of John.
 
@@ -260,7 +260,7 @@ Output:
      7: [mp, 5, 6, fromaxiom] $ans(mark).
 
 
-###  Example 4: indefinite answers
+###  Example 4 for indefinite answers
 
 Let us make it unclear which sons pete actually has:
 
@@ -303,7 +303,7 @@ the N.0 is simplified to N, as in the previous examples.
 
 I.e. literals in a clause are numbered 0, 1, 2, etc and the number 0 is not added to the step number.
 
-###  Example 5: more rules
+###  Example 5 for more rules
 
 To make matters a bit more complicated, we add an ancestor rule 
 and look for ancestors of mark.
@@ -337,7 +337,7 @@ Output:
      5: [mp, 3, 4, fromaxiom] $ans(pete).
 
 
-###  Example 6: equalities and functions
+###  Example 6 for equalities and functions
 
 Now we reformulate the whole thing with equalities and functions! 
 
@@ -382,7 +382,7 @@ not said who the father of mark actually is! The functions like `father`
 do not have to be defined on all the possible objects, they can be partially
 known and partially unknown.
 
-###  Example 7: grandfather with functions
+###  Example 7 for grandfather with functions
 
 Returning to asking about grandfathers, this time using equalities
 and functions. Again, notice that the proof does not use equalities, just functions.
@@ -419,7 +419,7 @@ Again, father of mark is unknown (undefined) in our example, as well as the
 father of the father of mark. 
 
 
-###  Example 8: equalities used in proof
+###  Example 8 for equalities used in proof
 
 Next we ask very concretely whether the father of the father of john is mark.
 Here the proof actually does use equalities, but only for simplification.
@@ -470,7 +470,7 @@ pete using the equality at step 2,
 giving -=(father(pete),mark), which then contradicts the step 3.
 
 
-###  Example 9: reflexivity used in proof
+###  Example 9 for reflexivity used in proof
 
 We will ask the same question as in the previous example, but this time
 using the $ans predicate to find a grandfather of john. 
@@ -509,7 +509,7 @@ Here the proof uses the reflexivity rule `r=` which is basically the
 standard property of equality: `X=X'.
 
 
-###  Example 10: multiple answers
+###  Example 10 for multiple answers
 
 Now let us look at how to get several answers, not just one.
 We will also introduce mothers and a mother-side grandfather
@@ -598,7 +598,7 @@ last line at the end:
 essentially indicating that the required number of different proofs (3) were not found.  
 
 
-###  Example: algebra
+###  Example for algebra
 
 Next we will take a question from abstract algebra,
 axiomatized wholly by equalities: the file algebra.txt contains
@@ -651,7 +651,7 @@ The [=, 1, 2.0.3, fromaxiom] means that the clause at step 1 was used to replace
 (numbering 0,1,2,...) of the 0th atom of a clause at step 2 using equality.
 
 
-###  Example: an unprovable problem
+###  Example for an unprovable problem
 
 A simple clause set 
 
@@ -685,7 +685,7 @@ and you will see that for some strategies
 gkc terminates very quickly, while for others it runs until the
 given time is out.
 
-### Example: a hard problem
+### Example for a hard problem
 
 As an example of a small but a really hard problem for gkc which is
 nevertheless actually provable, try the fof-format problem LCL876+1
@@ -712,7 +712,7 @@ Using a time limit like
   
 is useful to avoid very long runs.
 
-###  Examples: medium-hard blocks world problems 
+###  Examples with medium-hard blocks world problems 
 
 [Blocks world](https://en.wikipedia.org/wiki/Blocks_world)
 is a classic family of toy problems: there is a robot arm
