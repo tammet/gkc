@@ -1622,17 +1622,18 @@ strategy file.
 The arithmetic syntax used by gkc does not currently conform
 to the TPTP format. 
 
-While gkc and other provers can - in theory - find a solution to any
-pure first order logic problem, given enough time and memory, they
-cannot, in principle, find solutions to all arithmetic problems.
+While gkc and other provers can - in an ideal world without time and memory restrictions - 
+find a solution to any pure first order logic problem which has a solution, they
+cannot, in principle (for a number of reasons!) find solutions to all arithmetic 
+problems which have a solution.
 
-As a simple practical example, gkc is unable to find that
+As a trivial practical example gkc is unable to find that
 
     -p(5).
     p(2+X).
 
 is contradictory. This would require either solving the equation 5=2+X or
-generating an ever-grpowing set of numberic instances of clauses, none
+generating an ever-growing set of numberic instances of clauses, none
 of which gkc currently attempts.
 
 However, for the last example one can construct a number-generating
