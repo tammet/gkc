@@ -491,6 +491,8 @@ typedef struct _db_memsegment_header {
   gint cl_count; /** initially 0 finally, nr of clauses */
   gint max_forks; /** initially 1, set by cmd line switches */
   gint tptp; /** initially 0, set by cmd line switches */
+  gint json; /** initially 0, set by cmd line switches */
+  gint convert;  /** initially 0, set by cmd line switches */
   gint min_strat_timeloop_nr; /** initially 0, set by LTB batch only */
   gint max_strat_timeloop_nr; /** initially 1000, set by by LTB batch only */
 #ifdef SINE

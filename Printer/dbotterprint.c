@@ -504,7 +504,7 @@ int wr_strprint_clause_otter(glb* g, gptr rec, int printlevel, char** buf, int *
 int wr_strprint_rule_clause_otter(glb* g, gint* rec,int printlevel, char** buf, int *len, int pos) {
   void* db=g->db;
   gint meta, enc, encx, ency;
-  int i, clen; //, isneg;
+  int i, clen, isneg;
   gptr tptr;
   
   if (!wr_str_guarantee_space(g,buf,len,pos+10)) return -1;
@@ -538,9 +538,9 @@ int wr_strprint_rule_clause_otter(glb* g, gint* rec,int printlevel, char** buf, 
     meta=wg_get_rule_clause_atom_meta(db,rec,i);
     enc=wg_get_rule_clause_atom(db,rec,i);
     if (!wr_str_guarantee_space(g,buf,len,pos+10)) return -1;
-    //isneg=0;
+    isneg=0;
     if (g->print_clauses_json) {
-      //if (wg_atom_meta_is_neg(db,meta)) isneg=1;  
+      if (wg_atom_meta_is_neg(db,meta)) isneg=1;  
     } else if (g->print_clauses_tptp) {
       if (wr_equality_atom(g,enc)) {
         tptr=rotp(g,enc);      
@@ -567,7 +567,11 @@ int wr_strprint_rule_clause_otter(glb* g, gint* rec,int printlevel, char** buf, 
       if (wg_atom_meta_is_neg(db,meta)) pos+=snprintf((*buf)+pos,(*len)-pos,"-");
     }    
     if (wg_get_encoded_type(db, enc)==WG_RECORDTYPE) {   
-      pos=wr_strprint_term_otter(g,enc,printlevel,buf,len,pos);
+      if (g->print_clauses_json) {
+        pos=wr_strprint_atom_otter(g,enc,printlevel,buf,len,pos,isneg);
+      } else {  
+        pos=wr_strprint_term_otter(g,enc,printlevel,buf,len,pos);
+      }  
       if (pos<0) return pos;
     } else {  
       pos=wr_strprint_simpleterm_otter(g,enc,printlevel,buf,len,pos,0);

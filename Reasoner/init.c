@@ -116,6 +116,14 @@ int init_shared_database(void* db, char* guidefilename) {
     (g->print_proof_tptp)=0;
     (g->use_comp_arithmetic)=1;
   }
+  if (dbmemsegh(db)->json) {
+    (g->print_json)=1; 
+    (g->print_clauses_json)=1;
+    if (g->print_tptp) {
+      wr_errprint("do not set both tptp and json output parameters at the same time");    
+      return -1;
+    }
+  }  
 
 #ifdef DEBUG  
   wr_printf("\ninit_shared_database returned from wr_glb_init_simple\n");

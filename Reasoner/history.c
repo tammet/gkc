@@ -1216,7 +1216,7 @@ int wr_show_result(glb* g, gint history) {
   // here we have some results
   if (g->print_json) {
     bpos+=snprintf(buf+bpos,blen-bpos,"\n{\"result\": \"proof found\",\n");
-    bpos+=snprintf(buf+bpos,blen-bpos,"\n{\"answers\": [\n");
+    bpos+=snprintf(buf+bpos,blen-bpos,"\n\"answers\": [\n");
   } else {
     if ((g->print_level_flag)>1) bpos+=snprintf(buf+bpos,blen-bpos,"\n");
 #ifdef TPTP    
@@ -1275,7 +1275,7 @@ int wr_show_result(glb* g, gint history) {
   for(ansnr=2; ansnr<((g->answers)[1]); ansnr+=2) {
     // loop over all proofs 
     if (g->print_json) {
-      bpos+=snprintf(buf+bpos,blen-bpos,"[\n");
+      bpos+=snprintf(buf+bpos,blen-bpos,"{\n");
     } else {
       //bpos+=snprintf(buf+bpos,blen-bpos,"\n");
     }
@@ -1286,7 +1286,7 @@ int wr_show_result(glb* g, gint history) {
         return -1;
       }  
       if (g->print_json) {
-        bpos+=snprintf(buf+bpos,blen-bpos,"{\"answer\": ");
+        bpos+=snprintf(buf+bpos,blen-bpos,"\"answer\": ");
         ans=(gptr)((g->answers)[ansnr]);
         bpos=wr_strprint_clause(g,ans,&buf,&blen,bpos);
         if (bpos<0) return bpos;
@@ -1294,7 +1294,7 @@ int wr_show_result(glb* g, gint history) {
           if (buf) wr_free(g,buf);
           return -1;
         }  
-        bpos+=snprintf(buf+bpos,blen-bpos,"},");
+        bpos+=snprintf(buf+bpos,blen-bpos,",\n");
       } else {
         bpos+=snprintf(buf+bpos,blen-bpos,"\n\nanswer: ");
         ans=(gptr)((g->answers)[ansnr]);
@@ -1315,9 +1315,10 @@ int wr_show_result(glb* g, gint history) {
     if (mpool==NULL) {
       if (buf) wr_free(g,buf);
       return -1;
+    }      
+    if (!(g->print_json)) {
+      bpos+=snprintf(buf+bpos,blen-bpos,"\n");
     }  
-    
-    bpos+=snprintf(buf+bpos,blen-bpos,"\n");
     //if (!wr_hist_print(g,histstr,"\nproof:\n")) return -1;
     assoc=NULL;
     clnr=1;
@@ -1377,14 +1378,19 @@ int wr_show_result(glb* g, gint history) {
       return -1;
     }  
     if (g->print_json) {
-      bpos+=snprintf(buf+bpos,blen-bpos,"\n]}\n]\n"); // end one answer/proof struct
+      //printf("\n(g->answers)[1] %ld, ansnr %d\n",(g->answers)[1],ansnr);
+      if (ansnr+2 < (g->answers)[1]) {
+        bpos+=snprintf(buf+bpos,blen-bpos,"\n]},\n"); // end one answer/proof struct, while more coming
+      } else {  
+        bpos+=snprintf(buf+bpos,blen-bpos,"\n]}\n"); // end one answer/proof struct, no more coming
+      }  
     } 
 
     if (mpool) wg_free_mpool(db,mpool); 
   }
   if (g->print_json) {
     bpos+=snprintf(buf+bpos,blen-bpos,"]}\n"); // end all answers
-    bpos+=snprintf(buf+bpos,blen-bpos,"}\n");
+    //bpos+=snprintf(buf+bpos,blen-bpos,"}\n");
   } else {
 #ifdef TPTP      
     if (!(g->print_tptp)) {
@@ -1437,7 +1443,7 @@ int wr_strprint_flat_history(glb* g, void* mpool, char** buf, int* blen, int bpo
   //printf("\nwr_strprint_flat_history starts\n");
   namebuf[0]=0;
   if (g->print_json) {
-    bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"{\"proof\":\n[");
+    bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\"proof\":\n[");
   }
   // get and show inputs
   skinputcount=0;
@@ -2064,7 +2070,7 @@ int wr_strprint_one_history
   } else if (tag==WR_HISTORY_TAG_PARA) {
     if (!wr_str_guarantee_space(g,buf,blen,bpos+100)) return -1;
     if (g->print_json) {
-      bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"%s,%s [\"=\", ",clns,orderbuf);  
+      bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\n[%s,%s [\"=\", ",clns,orderbuf);  
     } else {
       bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\n %s:%s [=, ",clns,orderbuf); 
     }       
@@ -2144,7 +2150,7 @@ int wr_strprint_one_history
   } else if (tag==WR_HISTORY_TAG_SIMPLIFY) {
     if (!wr_str_guarantee_space(g,buf,blen,bpos+100)) return -1;
     if (g->print_json) {
-      bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"[%s,%s [\"simp\", ",clns,orderbuf);  
+      bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\n[%s,%s [\"simp\", ",clns,orderbuf);  
     } else {
       bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"\n %s:%s [simp, ",clns,orderbuf);
     }          

@@ -470,7 +470,7 @@ int wr_genloop(glb* g) {
           (!(g->prohibit_nested_para) || (wr_get_cl_history_tag(g,given_cl)!=WR_HISTORY_TAG_PARA)) ) {
         wr_paramodulate_from_all_active(g,given_cl,given_cl_as_active,(g->tmp_resolvability_vec));    
         if ((g->proof_found) && wr_enough_answers(g)) {
-          printf("\nrgenloop processing proof found by wr_paramodulate_from_all_active\n");
+          //printf("\nrgenloop processing proof found by wr_paramodulate_from_all_active\n");
           return 0;
         }  
         if (g->alloc_err) return -1;                  

@@ -37,6 +37,7 @@
 #endif
 
 typedef ptrdiff_t wg_int;
+typedef ptrdiff_t gint;
 
 /* ====== data structures ======== */
 
@@ -83,6 +84,7 @@ void* wg_mklist3(void* db, void* mpool, void* x1, void* x2, void* x3);
 void* wg_mklist4(void* db, void* mpool, void* x1, void* x2, void* x3, void* x4);
 void* wg_appendlist(void* db, void* mpool, void* arg1, void* arg2);
 void* wg_reverselist(void* db, void* mpool, void* arg1);
+void* wg_inplace_reverselist(void* db, void* mpool, void* arg1);
 
 void* wg_first(void* db, void* ptr);
 void* wg_rest(void* db, void *ptr);
@@ -91,11 +93,22 @@ void* wg_nth(void* db, void *ptr, int n);
 int wg_list_len(void* db, void *ptr);
 int wg_listtreecount(void* db, void *ptr);
 
+void* wg_list_memberuri(void* db, void* list, void* el);
+
 void* wg_add_assoc(void* db, void* mpool, void* el1, void* el2, void* alist);
 void* wg_get_assoc(void* db, void* el1, void* alist);
 
+void* wg_get_keyval(void* db, void* key, void* keyval);
+void* wg_get_keystrval(void* db, char* str, void* keyval);
+
 int wg_isatom(void* db, void* ptr);
 void* wg_mkatom(void* db, void* mpool, int type, char* str1, char* str2);
+
+void* wg_mkatom_len(void* db, void* mpool, int type, char* str1, char* str2, int len1, int len2);
+void* wg_mkatom_int(void* db, void* mpool, gint num);
+void* wg_mkatom_int2(void* db, void* mpool, double num);
+void* wg_mkatom_double(void* db, void* mpool, double num);
+
 void* wg_mkrecatom(void* db, void* mpool, wg_int rec);
 int wg_atomtype(void* db, void* ptr);
 char* wg_atomstr1(void* db, void* ptr);
@@ -124,6 +137,7 @@ void* wg_makelogimp(void* db, void* mpool);
 void* wg_makelogeqv(void* db, void* mpool);
 void* wg_makelogall(void* db, void* mpool);
 void* wg_makelogexists(void* db, void* mpool);
+void* wg_makeatomeq(void* db, void* mpool);
 void* wg_makelog_conn(void* db, void* mpool, char* str);
 
 void* wg_mpool_copy(void* db, void* mpool, void* ptr);

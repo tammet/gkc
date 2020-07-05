@@ -89,7 +89,7 @@
 
 //static void otter_escaped_str(void *db, char *iptr, char *buf, int buflen);
 
-static int wr_show_parse_error(glb* g, char* format, ...);
+//static int wr_show_parse_error(glb* g, char* format, ...);
 //static int show_parse_error(void* db, char* format, ...);
 //static int show_parse_warning(void* db, char* format, ...);
 
@@ -127,8 +127,8 @@ int wr_is_tptp_fof_clause(void* db, void* cl);
 int wr_is_tptp_import_clause(void* db, void* cl);
 
 
-void* wr_preprocess_tptp_cnf_clause(glb* g, void* mpool, void* cl);
-void* wr_preprocess_tptp_fof_clause(glb* g, void* mpool, void* cl, void* clname);
+//void* wr_preprocess_tptp_cnf_clause(glb* g, void* mpool, void* cl);
+//void* wr_preprocess_tptp_fof_clause(glb* g, void* mpool, void* cl, void* clname);
 void* wr_process_tptp_import_clause(glb* g, void* mpool, void* cl);
 
 void db_err_printf2(char* s1, char* s2);
@@ -1570,7 +1570,7 @@ static int show_parse_error(void* db, char* msg) {
 }
 */
 
-static int wr_show_parse_error(glb* g, char* format, ...) {
+int wr_show_parse_error(glb* g, char* format, ...) {
   //void* db=g->db;
   int tmp1,tmp2;
   va_list args;

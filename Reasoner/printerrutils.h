@@ -137,4 +137,6 @@ void wr_exiterr(glb* g, char* errstr1);
 void wr_exiterr2(glb* g, char* errstr1, char* errstr2);
 void wr_exiterr2int(glb* g, char* errstr, int n);
 
+void wg_show_db_error(void* db);
+
 #endif

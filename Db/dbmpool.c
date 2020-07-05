@@ -387,6 +387,30 @@ void* wg_reverselist(void* db, void* mpool, void* arg1) {
   return res;
 }
 
+void* wg_inplace_reverselist(void* db, void* mpool, void* arg1) {
+  //void *res=NULL;
+  void *head;
+  void *prevNode, *curNode;
+
+  if (!arg1) return arg1;
+  head=arg1;
+  prevNode=arg1;
+  curNode=wg_rest(db,head);
+  head=wg_rest(db,head);
+  //prevNode->next = NULL;
+  *((gint*)prevNode+1)=(gint)NULL;  
+  while(head != NULL) {    
+    //head = head->next;
+    head=wg_rest(db,head);
+    //curNode->next = prevNode;
+    *((gint*)curNode+1)=(gint)prevNode;   
+    prevNode=curNode;
+    curNode=head;
+  }
+  //*((gint*)arg1)=prevNode;  
+  return prevNode;
+}
+
 // ------------- get pair parts ----------------
 
 void* wg_first(void* db, void* ptr) {
@@ -424,6 +448,23 @@ int wg_listtreecount(void* db, void *ptr) {
     return 1;
 }
 
+
+void* wg_list_memberuri(void* db, void* list, void* el) {
+  void* listel;
+  char* elstr;
+
+  if (list==NULL) return NULL;
+  elstr=wg_atomstr1(db,el);
+  for (; list!=NULL; list=wg_rest(db,list)) {
+    listel=wg_first(db,list);
+    if (!wg_isatom(db,listel)) continue;
+    if (wg_atomtype(db,listel)!=WG_URITYPE) continue;
+    if (!strcmp(elstr,wg_atomstr1(db,listel))) return list;
+  }
+  return NULL;
+}  
+
+
 // ----------- assoc -------------------
 
 
@@ -444,6 +485,41 @@ void* wg_get_assoc(void* db, void* el1, void* alist) {
 
     if (wg_ispair(db,tmp)) {
       if (el1==wg_first(db,tmp)) return tmp;
+    }
+  }
+  return NULL;
+}
+
+
+// ----------- json struct -------------------
+
+
+void* wg_get_keyval(void* db, void* key, void* keyval) {
+  void *str;
+
+  if (!keyval || !key) return NULL;
+  str=wg_atomstr1(db,key);
+  return wg_get_keystrval(db,str,keyval);
+}
+
+void* wg_get_keystrval(void* db, char* str, void* keyval) {
+  void *part, *tmp, *el;
+
+  if (!keyval || !str) return NULL; 
+  for(part=wg_rest(db,keyval); wg_ispair(db,part); part=wg_rest(db,part)) {
+    el=wg_first(db,part);
+    tmp=wg_rest(db,part);
+    if (!strcmp(wg_atomstr1(db,el),str)) {      
+      if (wg_ispair(db,tmp)) {
+        return wg_first(db,tmp);
+      } else {
+        return NULL;
+      }
+    }
+    if (wg_ispair(db,tmp)) {
+      part=tmp;
+    } else {
+      return NULL;
     }
   }
   return NULL;
@@ -491,6 +567,106 @@ void* wg_mkatom(void* db, void* mpool, int type, char* str1, char* str2) {
   }
   return ptr;
 }
+
+
+void* wg_mkatom_len(void* db, void* mpool, int type, char* str1, char* str2, int len1, int len2) {
+  char* ptr;
+  char* curptr;
+  int i,size=2;
+
+  //printf("\nstr1 %s %s len %d %d\n",str1,str2,len1,len2);
+  if (str1!=NULL) size=size+len1;
+  size++;
+  if (str2!=NULL) size=size+len2;
+  size++;
+  ptr=(char*)(wg_alloc_mpool(db,mpool,size));
+  if (ptr==NULL) {
+    show_mpool_error(db,"cannot create an atom in mpool");
+    return NULL;
+  }
+  ptr++; // shift one pos right to set address last byte 1
+  curptr=ptr;
+  *curptr=(char)type;
+  curptr++;
+  if (str1!=NULL) {
+    for(i=0;i<len1;i++) {
+      if(!(*curptr++ = *str1++)) break;           
+    }    
+  } else {
+    *curptr=(char)0;
+    curptr++;
+  }
+  if (str2!=NULL) {
+    for(i=0;i<len2;i++) {
+      if(!(*curptr++ = *str2++)) break;    
+    }     
+  } else {
+    *curptr=(char)0;
+    curptr++;
+  }
+  return ptr;
+}
+
+
+void* wg_mkatom_int(void* db, void* mpool, gint num) {
+  char* ptr;
+  char* curptr;
+  int size=2;
+  char buf[40];
+  int len1;
+  char* str1;
+
+  //printf("\nint %ld\n",num);
+  len1=snprintf(buf,38,"%ld",num)+1;
+  str1=buf;
+  size=size+len1;
+  size++;  
+  size++;
+  ptr=(char*)(wg_alloc_mpool(db,mpool,size));
+  if (ptr==NULL) {
+    show_mpool_error(db,"cannot create an atom in mpool");
+    return NULL;
+  }
+  ptr++; // shift one pos right to set address last byte 1
+  curptr=ptr;
+  (*curptr)=(char)WG_INTTYPE;
+  curptr++;
+  while((*curptr++ = *str1++));
+  (*curptr)=(char)0;
+  curptr++;  
+  return ptr;
+}
+
+
+void* wg_mkatom_double(void* db, void* mpool, double num) {
+  char* ptr;
+  char* curptr;
+  int size=2;
+  char buf[40];
+  int len1;
+  char* str1;
+
+  //printf("\ndouble2c %lf\n",num);  
+  len1=snprintf(buf,38,"%f",num)+1;
+  str1=buf;
+  size=size+len1;
+  size++;  
+  size++;
+  ptr=(char*)(wg_alloc_mpool(db,mpool,size));
+  if (ptr==NULL) {
+    show_mpool_error(db,"cannot create an atom in mpool");
+    return NULL;
+  }
+  ptr++; // shift one pos right to set address last byte 1
+  curptr=ptr;
+  (*curptr)=(char)WG_DOUBLETYPE;
+  curptr++;
+  while((*curptr++ = *str1++));
+  (*curptr)=(char)0;
+  curptr++;  
+  return ptr;  
+}
+
 
 void* wg_mkrecatom(void* db, void* mpool, gint rec) {
   char* ptr;
@@ -651,6 +827,10 @@ void* wg_makelogall(void* db, void* mpool) {
 
 void* wg_makelogexists(void* db, void* mpool) {
   return wg_makelog_conn(db,mpool,"exists");
+}
+
+void* wg_makeatomeq(void* db, void* mpool) {
+  return wg_makelog_conn(db,mpool,"=");
 }
 
 void* wg_makelog_conn(void* db, void* mpool, char* str) {

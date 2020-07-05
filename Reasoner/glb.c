@@ -104,6 +104,10 @@ glb* wr_glb_new_simple(void* db) {
     (g->print_clauses_tptp)=0;
     (g->print_proof_tptp)=0;  
   } 
+  if (dbmemsegh(db)->json) {
+    (g->print_json)=1; 
+    (g->print_clauses_json)=1;    
+  }
   return g;  
 } 
 

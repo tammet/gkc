@@ -175,6 +175,9 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr) {
     } else if (!strcmp(key,"print_json")) {
       //printf("print_level %d\n", json_valueint(elem));
       (g->print_json)=json_valueint(elem);     
+      if (json_valueint(elem)) {
+        (g->print_clauses_json)=1;
+      }
     } else if (!strcmp(key,"print_tptp")) {
       //printf("print_tptp %d\n", json_valueint(elem));
       (g->print_tptp)=json_valueint(elem);   

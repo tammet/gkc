@@ -73,7 +73,7 @@ static void wr_set_low_printout(glb* g);
 static void wr_set_normal_printout(glb* g);
 static void wr_set_medium_printout(glb* g);
 
-static void wg_show_db_error(void* db);
+//static void wg_show_db_error(void* db);
 //void wr_set_detailed_printout(glb* g);  
 
 void show_cur_time(void);
@@ -1905,8 +1905,8 @@ void wr_print_active_clauses(glb* g)  {
 
 
 }
-
-static void wg_show_db_error(void* db) {
+/*
+void wg_show_db_error(void* db) {
   int err;
   char* msg;
   //char* errmsg;
@@ -1927,6 +1927,7 @@ static void wg_show_db_error(void* db) {
   else msg="unknown db error";
   printf("\n{\"error\": \"uncaught db library error: %s\"}\n",msg);
 }
+*/
 
 #ifdef __cplusplus
 }

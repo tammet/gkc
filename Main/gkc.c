@@ -68,6 +68,7 @@ extern "C" {
 #include "../Reasoner/init.h"
 #include "../Reasoner/analyze.h"
 #include "../Db/dbapi.h"
+#include "../Parser/jsparse.h"
 #endif
 
 #ifndef _WIN32
@@ -127,7 +128,7 @@ gint parse_shmsize(char *arg);
 gint parse_flag(char *arg);
 int parse_memmode(char *arg);
 char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsize, 
-          int* parallel, int* tptp, int* seconds, int* retcode);
+          int* parallel, int* tptp, int* json, int* convert, int* seconds, int* retcode);
 void wg_set_kb_db(void* db, void* kb);
 void segment_stats(void *db);
 void wg_show_strhash(void* db);
@@ -137,6 +138,8 @@ void gkc_show_cur_time(void);
 void initial_printf(char* s);
 void err_printf(char* s);
 void err_printf2(char* s1, char* s2);
+
+int wg_import_data_file(void *db, char* filename, int iskb, int* informat, int askpolarity, int* askinfo);
 
 #ifndef _WIN32
 int gkc_ltb_main(int argc, char **argv);
@@ -191,8 +194,12 @@ int gkc_main(int argc, char **argv) {
   int retcode=0;
   int informat=0; // 0 if not set, 1 if tptp fof
   int tptp=DEFAULT_TPTP; // 0 if not tptp format output
+  int json=0;
+  int convert=0;
   int seconds=0; // 0 if no time limit, other value for time limit in seconds
   //int islocaldb=0; // lreasoner sets to 1 to avoid detaching db at the end
+  int askinfo=0;
+  int askpolarity=1;
 
   if (argc<2) {
     usage(argv[0]);
@@ -206,8 +213,12 @@ int gkc_main(int argc, char **argv) {
 #endif  
 #endif
  
-  cmdfiles=parse_cmdline(argc,argv,&cmdstr,&mbnr,&mbsize,&parallel,&tptp,&seconds,&retcode); 
+  cmdfiles=parse_cmdline(argc,argv,&cmdstr,&mbnr,&mbsize,&parallel,&tptp,&json,&convert,&seconds,&retcode); 
   if (retcode) return retcode;
+  if (tptp && json) {
+    err_printf("do not set both -tptp and -json output parameters at the same time");    
+    return 0;
+  }
 #ifndef _WIN32 
   if (seconds) {
     signal(SIGALRM,sig_handler);
@@ -274,7 +285,8 @@ int gkc_main(int argc, char **argv) {
       return(1);
     }
     //islocaldb=1;   
-    err = wg_import_otter_file(shmptr,cmdfiles[1],0,&informat); 
+    //err = wg_import_otter_file(shmptr,cmdfiles[1],0,&informat); 
+    err = wg_import_data_file(shmptr,cmdfiles[1],0,&informat,askpolarity,&askinfo);
     //printf("\nreturned from wg_import_otter_file\n");  
     if(!err) {
       //printf("Data read from %s.\n",cmdfiles[1]);
@@ -288,6 +300,8 @@ int gkc_main(int argc, char **argv) {
     }  
     (dbmemsegh(shmptr)->max_forks)=parallel;
     (dbmemsegh(shmptr)->tptp)=tptp;
+    (dbmemsegh(shmptr)->json)=json;
+    (dbmemsegh(shmptr)->convert)=convert;
     err = wg_run_reasoner(shmptr,cmdfileslen,cmdfiles,informat,NULL,NULL);
     if (err) printf("\nresult: proof not found.\n");
     return(0);
@@ -331,7 +345,8 @@ int gkc_main(int argc, char **argv) {
     printf("\nto wg_import_otter_file %s\n",cmdfiles[1]);
     gkc_show_cur_time();
 #endif      
-    err = wg_import_otter_file(shmptr,cmdfiles[1],1,&informat);
+    //err = wg_import_otter_file(shmptr,cmdfiles[1],1,&informat);
+    err = wg_import_data_file(shmptr,cmdfiles[1],0,&informat,askpolarity,&askinfo);
 #ifdef SHOWTIME       
     printf("\nexited wg_import_otter_file\n");
     gkc_show_cur_time();
@@ -421,7 +436,8 @@ int gkc_main(int argc, char **argv) {
     printf("\nqrun1 to wg_import_otter_file from argv[i+1] %s\n",cmdfiles[1]);
     gkc_show_cur_time();
 #endif          
-    err = wg_import_otter_file(shmptrlocal,cmdfiles[1],0,&informat);
+    //err = wg_import_otter_file(shmptrlocal,cmdfiles[1],0,&informat);
+    err = wg_import_data_file(shmptrlocal,cmdfiles[1],0,&informat,askpolarity,&askinfo);        
     if(!err) {
       //printf("Data read from %s.\n",cmdfiles[1]);
     } else if(err<-1) {
@@ -438,7 +454,10 @@ int gkc_main(int argc, char **argv) {
     printf("\nto call wg_run_reasoner\n");
     gkc_show_cur_time();
 #endif      
-    (dbmemsegh(shmptrlocal)->max_forks)=parallel;    
+    (dbmemsegh(shmptrlocal)->max_forks)=parallel; 
+    (dbmemsegh(shmptrlocal)->tptp)=tptp;
+    (dbmemsegh(shmptrlocal)->json)=json;
+    (dbmemsegh(shmptrlocal)->convert)=convert;    
     err = wg_run_reasoner(shmptrlocal,cmdfileslen,cmdfiles,informat,NULL,NULL);
 #ifdef SHOWTIME      
     printf("\nwg_run_reasoner returned\n");
@@ -562,7 +581,8 @@ int gkc_main(int argc, char **argv) {
     printf("\nto wg_import_otter_file %s\n",cmdfiles[1]);
     gkc_show_cur_time();
 #endif      
-    err = wg_import_otter_file(shmptr,cmdfiles[1],1,&informat);
+    //err = wg_import_otter_file(shmptr,cmdfiles[1],1,&informat);
+    err = wg_import_data_file(shmptr,cmdfiles[1],0,&informat,askpolarity,&askinfo);
 #ifdef SHOWTIME       
     printf("\nexited wg_import_otter_file\n");
     gkc_show_cur_time();
@@ -677,7 +697,13 @@ void usage(char *prog) {
          "  -mbsize <megabytes to allocate>\n"\
          "   if omitted, 5000 megabytes assumed for UNIX, 1000 for 32-bit Windows\n"\
          "  -mbnr <shared memory database nr>\n"\
-         "   if omitted, 1000 used\n");
+         "   if omitted, 1000 used\n"\
+         "  -tptp <0 or 1>\n"\
+         "   if omitted or 0, simple output format (default), if 1, tptp output format\n"\
+         "  -json <0 or 1>\n"\
+         "   if omitted or 0, simple output format (default),  if 1, json output format\n"\
+         "  -convert <0 or 1>\n"\
+         "   if omitted or 0, search for proof, if 1, convert only\n");
 }
 
 /** Handle the user-supplied database size (or pick a reasonable
@@ -761,7 +787,7 @@ int parse_memmode(char *arg) {
  */
 
 char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsize, 
-          int* parallel, int* tptp, int* seconds, int* retcode) {
+          int* parallel, int* tptp, int* json, int* convert, int* seconds, int* retcode) {
   int i,alen,nargc;
   char* arg;
   char c;
@@ -888,6 +914,60 @@ char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsiz
           printf("Error: missing parameter to keyword %s\n",arg);
           exit(1);
         }
+      } else if (!(strncmp(arg,"-json",6))) {
+        if ((i+1)<argc) {
+          //printf("\n cmd %s param %s",arg,argv[i+1]);
+          i++;
+          if (!(sscanf(argv[i], "%d", &nr))) {
+            printf("Error: keyword %s argument must be a number, not %s\n",
+                    arg,argv[i]);
+            *retcode=1;       
+            return NULL;
+          } else {
+            //printf("\n parsed nr %d\n",nr);
+            if (nr<0) {
+              printf("Error: -json argument is negative\n");
+              *retcode=1;       
+            return NULL;
+            }
+            if (nr>1) {
+              printf("Error: -json argument: %s is too big\n",argv[i]);
+              *retcode=1;       
+              return NULL;
+            }
+            *json=nr;
+          }  
+        } else {
+          printf("Error: missing parameter to keyword %s\n",arg);
+          exit(1);
+        }  
+      } else if (!(strncmp(arg,"-convert",9))) {
+        if ((i+1)<argc) {
+          //printf("\n cmd %s param %s",arg,argv[i+1]);
+          i++;
+          if (!(sscanf(argv[i], "%d", &nr))) {
+            printf("Error: keyword %s argument must be a number, not %s\n",
+                    arg,argv[i]);
+            *retcode=1;       
+            return NULL;
+          } else {
+            //printf("\n parsed nr %d\n",nr);
+            if (nr<0) {
+              printf("Error: -convert argument is negative\n");
+              *retcode=1;       
+            return NULL;
+            }
+            if (nr>1) {
+              printf("Error: -convert argument: %s is too big\n",argv[i]);
+              *retcode=1;       
+              return NULL;
+            }
+            *convert=nr;
+          }  
+        } else {
+          printf("Error: missing parameter to keyword %s\n",arg);
+          exit(1);
+        }        
       } else if (!(strncmp(arg,"-seconds",9))) {
         if ((i+1)<argc) {
           //printf("\n cmd %s param %s",arg,argv[i+1]);
@@ -1084,6 +1164,21 @@ void err_printf2(char* s1, char* s2) {
   printf("{\"error\": \"%s %s\"}\n",s1,s2);
 }
 
+
+/* =========== data file reading top level ========= */
+
+int wg_import_data_file(void *db, char* filename, int iskb, int* informat, int askpolarity, int* askinfo) {
+  int err;
+
+  if (wg_is_jsfile(db,filename)) {
+    err=wg_import_js_file(db,filename,iskb,informat,askpolarity,askinfo);
+  } else {
+    err=wg_import_otter_file(db,filename,iskb,informat);
+  }
+  return err;
+}
+
+
 /*
 
 ============= TPTP LTB handling ==============
@@ -1128,6 +1223,8 @@ int gkc_ltb_main(int argc, char **argv) {
   char* cmdfiles[2];
   int err,isproblemrow;
   int myerr;  
+  int askinfo=0;
+  int askpolarity=1;
 
   if (argc<3) {
     return(0);
@@ -1273,7 +1370,8 @@ int gkc_ltb_main(int argc, char **argv) {
           (dbmemsegh(shmptr)->min_strat_timeloop_nr)=bigloopi; 
           (dbmemsegh(shmptr)->max_strat_timeloop_nr)=bigloopi; 
           //printf("\nto call wg_import_otter_file\n");
-          err = wg_import_otter_file(shmptr,cmdfiles[1],0,&informat); 
+          //err = wg_import_otter_file(shmptr,cmdfiles[1],0,&informat); 
+          err = wg_import_data_file(shmptr,cmdfiles[1],0,&informat,askpolarity,&askinfo);
           //printf("\nreturned from wg_import_otter_file\n");  
           if(!err) {
           } else if(err<-1) {

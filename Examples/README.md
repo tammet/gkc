@@ -827,8 +827,8 @@ the TPTP project:
 
 This is not a really advanced topic, but important.
 
-A symbol cannot, by default, contain any whitespace or special characters used
-in the syntax like (, -, ~, =, ", comma etc. 
+A normal symbol must not contain any whitespace or non-alphanumeric characters
+like (, -, ~, =, ", dollar $, comma etc: however, undercore _ is allowed.
 
 You can put whitespace or any symbol except a single quote
 into symbols by surrounding the symbol with single quote symbols like this:

@@ -49,6 +49,12 @@
 #define MKWGVAR(pp,x)     (wg_mkatom(((parse_parm*)pp)->db,((parse_parm*)pp)->mpool,WG_VARTYPE,x,NULL))
 #define MKWGNIL NULL
 
+#define MKWGURILEN(pp,x,l)  (wg_mkatom_len(((parse_parm*)pp)->db,((parse_parm*)pp)->mpool,WG_URITYPE,x,NULL,l,0))
+#define MKWGSTRINGLEN(pp,x,l)  (wg_mkatom_len(((parse_parm*)pp)->db,((parse_parm*)pp)->mpool,WG_STRTYPE,x,NULL,l,0))
+#define MKWGINTDIRECT(pp,x)     (wg_mkatom_int(((parse_parm*)(pp))->db,((parse_parm*)(pp))->mpool,(x)))
+#define MKWGDOUBLEDIRECT(pp,x)   (wg_mkatom_double(((parse_parm*)(pp))->db,((parse_parm*)(pp))->mpool,(x)))
+
+#define PARSE_NESTING_DEPTH 256
 
 // ---- reeentrant ----
 
@@ -63,6 +69,44 @@ typedef struct parse_parm_s {
   void* mpool;      // mpool pointer
   char* foo;        // if NULL, use input from stdin, else from buf (str case)
   char* errmsg;     // if not NULL, resulted in error
+
+  // for json
+  int depth;        // for parsing json
+  
+  int formulanr;     // nr of formula in the list being processed
+  char* formulaname; // name of formula
+  char* formularole; // role of formula
+
+  void* jsonnull;    // pre-built atom for json null
+  void* jsonstruct;  // pre-built atom for struct list prefix
+  void* jsontrue;    // pre-built atom for json true: same as logical true
+  void* jsonfalse;   // pre-built atom for json true: same as logical true
+  void* jsonempty;   // pre-built atom for json empty list []
+
+  void* logfof;    // json preparation inserts this as top level
+  void* logtrue;    // json preparation inserts this as a connective for clausifier
+  void* logfalse;   // ...
+  void* logneg; 
+  void* logand;
+  void* logor;
+  void* logimp;
+  void* logeqv;
+  void* logall;
+  void* logexists; // ..
+  void* logask;
+  void* atomeq;    // json preparation inserts this as an eq predicate for clausifier  
+
+  void* freevars;  // json preparation collects a list of freevars  
+  void* nullvars;   // json preparation creates a list of vars replacing nulls   
+  void* boundvars;  // json preparation keeps list of lists of quantifier-bound vars
+  int freevarsnr; // length of the previous list
+  int nullvarsnr; // one less than the nr used for next var created
+
+  int askpolarity;
+  int askinfo;
+
+  void* nests[PARSE_NESTING_DEPTH]; // stack for pure json parsing
+
 } parse_parm;
 
 #define YYSTYPE         char*

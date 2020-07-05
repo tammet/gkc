@@ -47,6 +47,9 @@
 #define PARSER_GOAL_ROLENR 1
 #define PARSER_EXTAXIOM_ROLENR 12
 
+#define VARDATALEN 1000
+#define IMPORTED_NAME_PREFIX "$imp::"
+
 #define STORE_SOURCE_FRM 
 #define STORE_SKOLEM_STEPS
 #define SKOLEM_CLNAME_SUFFIX "_$sk"
@@ -71,5 +74,10 @@ gint wr_parse_and_encode_otter_uri(glb* g, char *buf);
 
 gint wr_print_parseres(glb* g, gint x);
 
+void* wr_preprocess_tptp_cnf_clause(glb* g, void* mpool, void* cl);
+void* wr_preprocess_tptp_fof_clause(glb* g, void* mpool, void* cl, void* clname);
+void* wr_process_tptp_import_clause(glb* g, void* mpool, void* cl);
+
+int wr_show_parse_error(glb* g, char* format, ...);
 
 #endif

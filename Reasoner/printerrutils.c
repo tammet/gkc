@@ -223,6 +223,29 @@ void wr_exiterr2int(glb* g, char* errstr, int n) {
   exit(1);
 }
 
+
+void wg_show_db_error(void* db) {
+  int err;
+  char* msg;
+  //char* errmsg;
+  
+  err=dbmemsegh(db)->errflag;
+  if (!err) return;
+  if (err==DB_MEMORY_ALLOC_ERROR) msg="DB_MEMORY_ALLOC_ERROR";
+  else if (err==DB_MEMORY_ALLOC_ERROR2) msg="DB_MEMORY_ALLOC_ERROR2";
+  else if (err==DB_IO_ERROR) msg="DB_IO_ERROR";
+  else if (err==DB_IO_ERROR2) msg="DB_IO_ERROR2";
+  else if (err==DB_LOG_ERROR) msg="DB_LOG_ERROR";
+  else if (err==DB_MPOOL_ERROR) msg="DB_MPOOL_ERROR";
+  else if (err==DB_MPOOL_ERROR2) msg="B_MPOOL_ERROR2";
+  else if (err==DB_DATA_ERROR) msg="B_DATA_ERROR";
+  else if (err==DB_DATA_ERROR2) msg="DB_DATA_ERROR2";
+  else if (err==DB_DATA_ERROR3) msg="DB_DATA_ERROR3";
+  else if (err==DB_DATA_ERROR4) msg="DB_DATA_ERROR4";
+  else msg="unknown db error";
+  printf("\n{\"error\": \"uncaught db library error: %s\"}\n",msg);
+}
+
 #ifdef __cplusplus
 }
 #endif
