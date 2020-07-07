@@ -62,6 +62,7 @@ int wr_strprint_prop_clause_otter(glb* g, gint* rec,int printlevel, char** buf, 
 int wr_strprint_atom_otter(glb* g, gint rec, int printlevel,char** buf, int *len, int pos, int isneg);
 int wr_strprint_term_otter(glb* g, gint rec,int printlevel, char** buf, int *len, int pos);
 int wr_strprint_simpleterm_otter(glb* g, gint enc,int printlevel, char** buf, int *len, int pos, int isneg);
+int wg_should_quote(char* s);
 int wg_nice_strprint_var(glb* g, gint i, char** buf, int *len, int pos);
 
 void wg_tptp_print(void* db, void* ptr);

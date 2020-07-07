@@ -54,7 +54,7 @@
 
 //#define IDEBUG
 
-#define DPRINTF(...) 
+//#define DPRINTF(...) 
 
 #define UNUSED(x) (void)(x);
 
@@ -536,14 +536,14 @@ int wr_yajl_parse_file(glb* g, parse_parm* pp, char* filename,
   char errbuf[110];
 
   // try  
-  void* db=g->db;
+  //void* db=g->db;
   //char* fnamestr;  
   //FILE* fp;    
   //char* buf; 
   //int pres=1;
   void* preprocessed=NULL;
   void* pres2=NULL;   
-  int tmp_comp_funs;
+  int tmp_comp_funs=(g->use_comp_funs);
   // try
 
   UNUSED(g);
@@ -578,15 +578,11 @@ int wr_yajl_parse_file(glb* g, parse_parm* pp, char* filename,
   lines=1;
   for (;;lines++) {     
     bytes = wg_getline(&line, &len, file);    
-
-    printf("\nline %d read %d bytes\n",lines,bytes);
-    printf("\n|%s|\n",line);
-
+    //printf("\nline %d read %d bytes\n",lines,bytes);
+    //printf("\n|%s|\n",line);
     rd=(size_t)bytes;
     if (bytes<=0) {
-
-      printf("\nline %d bytes %d feof(file) %d\n",lines,bytes,feof(file));
-
+      //printf("\nline %d bytes %d feof(file) %d\n",lines,bytes,feof(file));
       if (!feof(file)) {
         json_err_printf2("error reading from",filename);
         //printf("\nerror reading from %s\n", filename);
@@ -595,12 +591,9 @@ int wr_yajl_parse_file(glb* g, parse_parm* pp, char* filename,
       }     
       break;
     } else {      
-
-      printf("\nusing line |%s|\n",line);
-
+      printf("\nstreaming %d using line |%s|\n",streaming,line);
       // read file data, now pass to parser
       stat = yajl_parse(hand, line, rd);
-
       // try
       if (streaming) {
         if (pp->result!=NULL) {
@@ -615,8 +608,6 @@ int wr_yajl_parse_file(glb* g, parse_parm* pp, char* filename,
         if (pres2==NULL) return 1;
         // try
       }
-
-
       if (stat != yajl_status_ok) break;
     }
   }    
@@ -759,12 +750,19 @@ void* wr_preprocess_json_clauselist
   void* resultlist=NULL;
   int clnr=0;
   //char namebuf[1000];
-  //char rolebuf[100];
+  //char rolebuf[100];  
 #ifdef DEBUG  
   printf("wr_preprocess_json_clauselist starting with clauselist\n");  
   wg_mpool_print(db,clauselist);
   printf("\n");
 #endif       
+
+  // setup temporary buffer for conversion printing: this is updated as needed
+  //printf("\n(dbmemsegh(db)->convert) %ld (dbmemsegh(db)->tptp) %d\n",(dbmemsegh(db)->convert),(dbmemsegh(db)->tptp));
+  if (dbmemsegh(db)->convert) {
+    if (g->tmp_printbuf) sys_free(g->tmp_printbuf);
+    (g->tmp_printbuf)=malloc(1000); // this is dynamically increased
+  }  
 
   // loop over clauses
 
@@ -797,12 +795,7 @@ void* wr_preprocess_json_clauselist
       printf("\nclause nr %d:",clnr);    
       wg_mpool_print(db,cl); 
       printf("\n");   
-  #endif    
-
-      printf("\nclause nr %d:",clnr);    
-      wg_mpool_print(db,cl); 
-      printf("\n");
-
+  #endif          
       if (!clnr && wg_isatom(db,cl) && wg_atomtype(db,cl)==WG_URITYPE &&
             !strcmp("formulas",wg_atomstr1(db,cl)) ) {
         clnr--;      
@@ -979,9 +972,10 @@ void* wr_process_json_formula(glb* g,parse_parm* pp, void* cl) {
   //void* logconn;
   void *preres=NULL; 
   void *origcl, *res, *name, *role, *content, *tmp;
-  char* rolestr;
+  char *namestr=NULL, *rolestr=NULL;
+  int blen=990,bpos=0;
   char namebuf[16];
-  char rolebuf[16];
+  char rolebuf[16];  
 
 #ifdef DEBUG
   printf("\nwr_process_json_formula called\n");
@@ -1001,7 +995,7 @@ void* wr_process_json_formula(glb* g,parse_parm* pp, void* cl) {
   origcl=cl;
   if (cl==NULL) {
     preres=NULL;  
-  } else {
+  } else {   
     // process keyval
     if (wg_ispair(db,cl) && wg_first(db,cl)==(pp->jsonstruct)) {
       name=wg_get_keystrval(db, "name", cl);
@@ -1011,7 +1005,10 @@ void* wr_process_json_formula(glb* g,parse_parm* pp, void* cl) {
         wr_show_jsparse_error(g,pp,"formula name and role must be strings");
         return NULL;     
       } else {
-        if (name) pp->formulaname=wg_atomstr1(db,name);
+        if (name) {
+          namestr=wg_atomstr1(db,name);
+          pp->formulaname=namestr;
+        }  
         if (role) {
           rolestr=wg_atomstr1(db,role);          
           pp->formularole=rolestr;                         
@@ -1123,6 +1120,33 @@ void* wr_process_json_formula(glb* g,parse_parm* pp, void* cl) {
   wg_mpool_print(db,preres);
   printf("\n");
 #endif  
+  /*
+  printf("\nbefore wr_preprocess_tptp_fof_clause\n");
+  wg_mpool_print(db,preres);
+  printf("\n");
+  */
+  if ((dbmemsegh(db)->convert) && (dbmemsegh(db)->tptp)) {
+    bpos=0;   
+    if (!namestr) {     
+      sprintf(namebuf,"frm_%d",pp->formulanr);
+      namestr=namebuf;
+    }
+    if (!rolestr) {
+      rolestr="axiom";
+    }
+    if (namestr && wg_should_quote(namestr)) {
+      bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,"fof('%s',%s,",namestr,rolestr);
+    } else {
+      bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,"fof(%s,%s,",namestr,rolestr);
+    }  
+    bpos=wg_print_frm_tptp(db,wg_nth(db,preres,3),&(g->tmp_printbuf),&blen,bpos); 
+    if (!wr_str_guarantee_space(g,&(g->tmp_printbuf),&blen,bpos+100)) {
+      if (g->tmp_printbuf) wr_free(g,(g->tmp_printbuf));
+      return NULL;
+    }
+    bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,").\n");
+    printf("%s",(g->tmp_printbuf));
+  }
 
   preres=wr_preprocess_tptp_fof_clause(g,mpool,preres,NULL);
 
@@ -1899,7 +1923,7 @@ void* wr_js_parse_clauselist(glb* g,void* mpool,cvec clvec,void* clauselist) {
       }    
     }
   } // end clause list loop 
-  DPRINTF("\nwr_js_parse_clauselist ending\n");
+  //DPRINTF("\nwr_js_parse_clauselist ending\n");
   //free(vardata); // if taken from mpool, not freed
   return resultlist;
 }  
@@ -2021,7 +2045,7 @@ void* wr_js_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
     if (wg_atomtype(db,fun)==WG_ANONCONSTTYPE && 
         !strcmp(wg_atomstr1(db,fun),"not") &&
         wg_atomstr2(db,fun)==NULL) {
-      DPRINTF("detected negation");
+      //DPRINTF("detected negation");
       isneg=1;            
       tmpptr=wg_rest(db,lit);    
       if (!wg_ispair(db,tmpptr)) {          

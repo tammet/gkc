@@ -393,7 +393,8 @@ typedef struct {
   gint  tmp_unify_occcheck; // occcheck necessity in unification (changes)
   gint  tmp_unify_do_occcheck;
   gint  tmp_rewrites; // count of rewrites during one clause simplification
-  
+  char* tmp_printbuf; // temporary buffer for printing, malloced as needed
+
   /* build control: changed in code */
   
   int  build_rewrite; // current switch: to rewrite or not during building

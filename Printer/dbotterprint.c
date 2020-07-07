@@ -67,8 +67,6 @@ static gint show_print_error_nr(void* db, char* errmsg, gint nr);
 static gint show_print_error_str(void* db, char* errmsg, char* str);
 */
 
-int wg_should_quote(char* s);
-
 /* ====== Functions ============== */
 
 
@@ -1443,12 +1441,12 @@ int wg_print_subfrm_tptp(void* db, void* ptr,int depth,int pflag, int termflag, 
   int varcount;
 
   //printf("\nwg_print_subfrm_tptp called\n"); 
-
   if (!wg_str_guarantee_space(db,buf,len,pos+1000)) {
     wg_printerr_tptp(db,"wg_print_subfrm_tptp cannot guarantee buffer space"); 
     if (buf) sys_free(buf);
     return -1;
   }
+  
   /*
   printf("\npos before2: %d",pos);
   pos+=snprintf((*buf)+pos,(*len)-pos,"efg");

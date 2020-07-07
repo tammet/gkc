@@ -272,6 +272,8 @@ int wr_glb_init_simple(glb* g) {
   
   /* tmp variables */
 
+  (g->tmp_printbuf)=NULL;
+
   /* dynamically changed limits: initialized to cl_maxkeep_* */
 
   (g->cl_keep_weightlimit)=0;
@@ -749,7 +751,7 @@ int wr_glb_free_shared_simple(glb* g) {
 int wr_glb_free_local_simple(glb* g) {
   
   //str_freeref(g,&(g->info)); 
-
+  if (g->tmp_printbuf) free(g->tmp_printbuf);
   return 0;  
 }  
 

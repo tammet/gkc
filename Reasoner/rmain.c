@@ -1319,7 +1319,7 @@ int wr_print_all_clauses(glb* g, void* child_db) {
   gptr historyptr;
   char* namestr;
   char* priorstr;
-  gint priority,decprior;
+  gint priority,decprior,enctype;
   
   cell2=(dbmemsegh(child_db)->clauselist);
   n=0;
@@ -1372,19 +1372,25 @@ int wr_print_all_clauses(glb* g, void* child_db) {
     else if (decprior==WR_HISTORY_GOAL_ROLENR) priorstr="negated_conjecture"; 
     else priorstr="axiom";
 
-    nameflag=0;  
-    if (name && wg_get_encoded_type(db,name)==WG_STRTYPE) {   
-      namestr=wg_decode_str(db,name);
-      if (strncmp(namestr,"cl_",3)) {
-        strncpy(namebuf,namestr,1000);
-        namebuf[990]=(char)0;
-        nameflag=1;
-        //printf("\ncp namestr %s\n",namestr);
-      }
-    } else {
-      snprintf(namebuf,19,"cl_%d",clnr);
-      namestr="";
-    }   
+    nameflag=0; // if this is 1, original name is used
+    namestr=NULL;
+    enctype=0;
+    if (name) {
+      // check for json only: original name or not
+      enctype=wg_get_encoded_type(db,name);
+      if (enctype==WG_URITYPE || enctype==WG_STRTYPE) {       
+        namestr=wg_decode_str(db,name);
+        if (namestr[0] && strncmp(namestr,"cl_",3)) {
+          // name is NOT cl_, i.e. it is originally present: invent a cl_-prefixed name            
+          nameflag=1;          
+        }                 
+      }     
+    }
+    if (!namestr || !namestr[0]) {
+      sprintf(namebuf,"cl_%d",clnr);
+      namestr=namebuf;
+    }  
+    //printf("\nnamebuf %s namestr %s nameflag %d enctype %ld\n",namebuf,namestr,nameflag,enctype);
     objflag=0;
     if (g->print_json) {
       if ((nameflag && namestr[0]) && (decprior && decprior!=WR_HISTORY_AXIOM_ROLENR)) {
@@ -1422,11 +1428,15 @@ int wr_print_all_clauses(glb* g, void* child_db) {
       if (clnr!=1) {
         bpos+=snprintf(buf+bpos,blen-bpos,"\n");
       } 
-      bpos+=snprintf(buf+bpos,blen-bpos,"cnf('%s',%s,",namebuf,priorstr);
+      if (nameflag && wg_should_quote(namestr)) {
+        bpos+=snprintf(buf+bpos,blen-bpos,"cnf('%s',%s,",namestr,priorstr);
+      } else {
+        bpos+=snprintf(buf+bpos,blen-bpos,"cnf(%s,%s,",namestr,priorstr);
+      }
       bpos=wr_strprint_clause(g,rec,&buf,&blen,bpos);
       if (bpos<0) return -1;
       if (!wr_str_guarantee_space(g,&buf,&blen,bpos+100)) {
-      if (buf) wr_free(g,buf);
+        if (buf) wr_free(g,buf);
         return -1;
       }
       bpos+=snprintf(buf+bpos,blen-bpos,").");   

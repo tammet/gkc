@@ -286,6 +286,10 @@ int gkc_main(int argc, char **argv) {
     }
     //islocaldb=1;   
     //err = wg_import_otter_file(shmptr,cmdfiles[1],0,&informat); 
+    (dbmemsegh(shmptr)->max_forks)=parallel;
+    (dbmemsegh(shmptr)->tptp)=tptp;
+    (dbmemsegh(shmptr)->json)=json;
+    (dbmemsegh(shmptr)->convert)=convert;
     err = wg_import_data_file(shmptr,cmdfiles[1],0,&informat,askpolarity,&askinfo);
     //printf("\nreturned from wg_import_otter_file\n");  
     if(!err) {
@@ -297,11 +301,7 @@ int gkc_main(int argc, char **argv) {
     } else {
       //err_printf("import failed");           
       return(1); 
-    }  
-    (dbmemsegh(shmptr)->max_forks)=parallel;
-    (dbmemsegh(shmptr)->tptp)=tptp;
-    (dbmemsegh(shmptr)->json)=json;
-    (dbmemsegh(shmptr)->convert)=convert;
+    }      
     if (convert) {
       err = wg_run_converter(shmptr,cmdfileslen,cmdfiles,informat,NULL,NULL);
     } else {
@@ -441,6 +441,10 @@ int gkc_main(int argc, char **argv) {
     gkc_show_cur_time();
 #endif          
     //err = wg_import_otter_file(shmptrlocal,cmdfiles[1],0,&informat);
+    (dbmemsegh(shmptrlocal)->max_forks)=parallel; 
+    (dbmemsegh(shmptrlocal)->tptp)=tptp;
+    (dbmemsegh(shmptrlocal)->json)=json;
+    (dbmemsegh(shmptrlocal)->convert)=convert; 
     err = wg_import_data_file(shmptrlocal,cmdfiles[1],0,&informat,askpolarity,&askinfo);        
     if(!err) {
       //printf("Data read from %s.\n",cmdfiles[1]);
@@ -457,11 +461,7 @@ int gkc_main(int argc, char **argv) {
 #ifdef SHOWTIME
     printf("\nto call wg_run_reasoner\n");
     gkc_show_cur_time();
-#endif      
-    (dbmemsegh(shmptrlocal)->max_forks)=parallel; 
-    (dbmemsegh(shmptrlocal)->tptp)=tptp;
-    (dbmemsegh(shmptrlocal)->json)=json;
-    (dbmemsegh(shmptrlocal)->convert)=convert; 
+#endif         
     if (convert) {
       err = wg_run_converter(shmptrlocal,cmdfileslen,cmdfiles,informat,NULL,NULL);
     } else {
