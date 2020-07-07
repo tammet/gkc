@@ -302,8 +302,12 @@ int gkc_main(int argc, char **argv) {
     (dbmemsegh(shmptr)->tptp)=tptp;
     (dbmemsegh(shmptr)->json)=json;
     (dbmemsegh(shmptr)->convert)=convert;
-    err = wg_run_reasoner(shmptr,cmdfileslen,cmdfiles,informat,NULL,NULL);
-    if (err) printf("\nresult: proof not found.\n");
+    if (convert) {
+      err = wg_run_converter(shmptr,cmdfileslen,cmdfiles,informat,NULL,NULL);
+    } else {
+      err = wg_run_reasoner(shmptr,cmdfileslen,cmdfiles,informat,NULL,NULL);
+      if (err) printf("\n{\"result\": \"proof not found\"}\n");
+    }      
     return(0);
   }  
 
@@ -457,13 +461,17 @@ int gkc_main(int argc, char **argv) {
     (dbmemsegh(shmptrlocal)->max_forks)=parallel; 
     (dbmemsegh(shmptrlocal)->tptp)=tptp;
     (dbmemsegh(shmptrlocal)->json)=json;
-    (dbmemsegh(shmptrlocal)->convert)=convert;    
-    err = wg_run_reasoner(shmptrlocal,cmdfileslen,cmdfiles,informat,NULL,NULL);
+    (dbmemsegh(shmptrlocal)->convert)=convert; 
+    if (convert) {
+      err = wg_run_converter(shmptrlocal,cmdfileslen,cmdfiles,informat,NULL,NULL);
+    } else {
+      err = wg_run_reasoner(shmptrlocal,cmdfileslen,cmdfiles,informat,NULL,NULL);
+      if (err) printf("\n{\"result\": \"proof not found\"}\n");
+    }     
 #ifdef SHOWTIME      
     printf("\nwg_run_reasoner returned\n");
     gkc_show_cur_time();
-#endif
-    if (err) printf("\nresult: proof not found.\n");
+#endif   
     return(0);  
   }
 
@@ -654,7 +662,7 @@ int gkc_main(int argc, char **argv) {
 
 void sig_handler(int signum){
   fflush(stdout);
-  printf("\nresult: time limit, proof not found.\n");
+  printf("\n{\"result\": \"time limit, proof not found\"}\n");  
   exit(0);
 }
 
@@ -1170,8 +1178,12 @@ void err_printf2(char* s1, char* s2) {
 int wg_import_data_file(void *db, char* filename, int iskb, int* informat, int askpolarity, int* askinfo) {
   int err;
 
-  if (wg_is_jsfile(db,filename)) {
-    err=wg_import_js_file(db,filename,iskb,informat,askpolarity,askinfo);
+  if (wg_is_jsfile(db,filename)) {   
+    if (wg_is_js_streaming_file(db,filename)) {
+      err=wg_import_js_file(db,filename,iskb,informat,askpolarity,askinfo,1);
+    } else {
+      err=wg_import_js_file(db,filename,iskb,informat,askpolarity,askinfo,0);
+    }  
   } else {
     err=wg_import_otter_file(db,filename,iskb,informat);
   }

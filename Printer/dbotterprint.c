@@ -1048,9 +1048,9 @@ int wg_nice_strprint_var(glb* g, gint i, char** buf, int *len, int pos) {
     if (g->print_clauses_json) {
       snprintf(strbuf,70,"%d", (int)i);
     } else if (g->print_clauses_tptp) {
-      snprintf(strbuf,70,"XX%d", (int)i); 
+      snprintf(strbuf,70,"X%d", (int)i);       
     } else {
-      snprintf(strbuf,70,"XX%d", (int)i);
+      snprintf(strbuf,70,"X%d", (int)i);
     }
   }  
   if (g->print_clauses_json) {

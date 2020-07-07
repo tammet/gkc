@@ -89,7 +89,7 @@ static int wr_show_jsparse_error(glb* g, parse_parm* pp, char* format, ...);
 
 
 int wg_import_js_file(void *db, char* filename, int iskb, int* informat,
-        int askpolarity, int* askinfo) {  
+        int askpolarity, int* askinfo, int streaming) {  
   glb* g;
   int res;
 
@@ -101,7 +101,7 @@ int wg_import_js_file(void *db, char* filename, int iskb, int* informat,
   (g->parser_print_level)=0;
   (g->print_initial_parser_result)=0;
   (g->print_generic_parser_result)=1;
-  res=wr_import_js_file(g,filename,NULL,NULL,iskb,askpolarity,askinfo);
+  res=wr_import_js_file(g,filename,NULL,NULL,iskb,askpolarity,askinfo,streaming);
   if (g->parse_errmsg) {
     printf("%s\n",(g->parse_errmsg));
     sys_free(g->parse_errmsg);
@@ -134,7 +134,7 @@ int wg_import_js_file(void *db, char* filename, int iskb, int* informat,
 
 
 int wr_import_js_file(glb* g, char* filename, char* strasfile, cvec clvec, int isincluded,
-      int askpolarity, int* askinfo) {
+      int askpolarity, int* askinfo, int streaming) {
   void* db=g->db;
   parse_parm  pp;
   //char* fnamestr;  
@@ -227,7 +227,7 @@ int wr_import_js_file(glb* g, char* filename, char* strasfile, cvec clvec, int i
     printf("\nreading from file %s\n",filename);
     wr_yajl_parse_file(g,&pp,filename, 
       clvec, isincluded,
-      askpolarity, askinfo, mpool);   
+      askpolarity, askinfo, mpool, streaming);   
   } else {
     // input from string      
     pp.filename="string";
@@ -273,6 +273,16 @@ int wg_is_jsfile(void* db,char* filename) {
   return 0;
 }
 
+int wg_is_js_streaming_file(void* db,char* filename) {
+  char* suff;
+
+  UNUSED(db);
+  if (!filename) return 0;  
+  suff=strrchr(filename,'.');
+  if (suff==NULL) return 0;
+  if (!strncmp(suff,".jss",strlen(".jss"))) return 1;
+  return 0;
+}
 
 
 
@@ -513,7 +523,7 @@ static yajl_callbacks callbacks = {
 
 int wr_yajl_parse_file(glb* g, parse_parm* pp, char* filename,
       cvec clvec, int isincluded,
-      int askpolarity, int* askinfo, void* mpool) {
+      int askpolarity, int* askinfo, void* mpool, int streaming) {
   yajl_handle hand;
   FILE *file;
   yajl_status stat;
@@ -592,19 +602,19 @@ int wr_yajl_parse_file(glb* g, parse_parm* pp, char* filename,
       stat = yajl_parse(hand, line, rd);
 
       // try
-      
-      if (pp->result!=NULL) {
-        preprocessed=wr_preprocess_json_clauselist(g,pp,clvec,pp->result,isincluded,1);
-        //preprocessed=wr_clausify_clauselist(g,mpool,clvec,pp.result);
-        pres2=wr_js_parse_clauselist(g,mpool,clvec,preprocessed);
+      if (streaming) {
+        if (pp->result!=NULL) {
+          preprocessed=wr_preprocess_json_clauselist(g,pp,clvec,pp->result,isincluded,1);
+          //preprocessed=wr_clausify_clauselist(g,mpool,clvec,pp.result);
+          pres2=wr_js_parse_clauselist(g,mpool,clvec,preprocessed);
+        }
+        *askinfo=pp->askinfo;
+        //wg_free_mpool(db,mpool);
+        (g->use_comp_funs)=tmp_comp_funs; 
+        //if (pres || pres2==NULL) return 1;
+        if (pres2==NULL) return 1;
+        // try
       }
-      *askinfo=pp->askinfo;
-      //wg_free_mpool(db,mpool);
-      (g->use_comp_funs)=tmp_comp_funs; 
-      //if (pres || pres2==NULL) return 1;
-      if (pres2==NULL) return 1;
-      // try
-      
 
 
       if (stat != yajl_status_ok) break;

@@ -40,6 +40,8 @@ void sig_usr(int signo, siginfo_t *sinfo, void *context);
 */
 
 int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfilename, char* guidestr);
+int wg_run_converter(void *db, int argc, char **argv, int informat, char* outfilename, char* guidestr);
+int wr_print_all_clauses(glb* g, void* child_db);
 /*
 int wg_run_reasoner_onestrat(
   void* db, int pid, char* outfilename, int iter, cJSON *guide, int givenguide, char *guidebuf, char* filename,

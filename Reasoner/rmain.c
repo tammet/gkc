@@ -731,305 +731,158 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
   return res;  
 } 
 
+int wg_run_converter(void *db, int argc, char **argv, int informat, char* outfilename, char* guidestr) {
+  glb* g;    // our g (globals)
+  glb* kb_g; // our copy of the g (globals) of the external shared db 
+  glb* rglb=NULL; // ptr to g (globals) of the external shared db 
+  void* kb_db;
+  void* child_db;   
+  int tmp;  
+  int clause_count=0; 
+  char* guidebuf=NULL;
+  cJSON *guide=NULL;
+  //char* guidetext;
+  //int givenguide=0;
+  //glb* analyze_g;
+  char* filename=NULL;  
 
-/*  
-int wg_run_reasoner_onestrat(
-  void* db, int pid, char* outfilename, int iter, cJSON *guide, int givenguide, char *guidebuf, char* filename,
-  void* kb_db, void *child_db, glb *kb_g, glb *rglb, glb* analyze_g, int* guideres)  {
+  /*
+  guide=NULL;  
+  guidetext=NULL;
+  givenguide=0;
+  */
+  filename=argv[1];
 
-  glb* g;
-  int res=1;
-  int default_print_level=10;
-  int tmp,propres;
-  int clause_count=0;
-  char* guidetext;
-  int exit_on_proof=1; // set to 0 to clean memory and not call exit at end
-
-
-    g=wr_glb_new_simple(db);
-    // copy analyze_g stats to g for easier handling
-    wr_copy_sin_stats(analyze_g,g);    
-
-    if (kb_g!=NULL) {
-      (g->kb_g)=kb_g; // points to the copy of globals of the external kb
-    }  
-    if (g==NULL) {
-      wr_errprint("cannot allocate enough memory during reasoner initialization");
-      if (guidebuf!=NULL) free(guidebuf);
-      if (guide!=NULL) cJSON_Delete(guide);
-      sys_free(g); 
-      return -1;
-    }   
+  // kb_db is set to parent db
+  kb_db=db_get_kb_db(db);
+  if (kb_db) {
+    // separate child_db and kb_db
+    // from now one var db will point to the parent, i.e. kb_db
 #ifdef DEBUG
-    wr_printf("\nnow db is %ld and child_db is %ld \n",(gint)db,(gint)child_db);
+    wr_printf("\nseparate child_db and kb_db\n");
 #endif    
-    (g->child_db)=child_db;
-    (g->db)=db;
-
-    (g->current_run_nr)=iter;
-    if (iter==0) (g->allruns_start_clock)=clock();  
-    guidetext=NULL;
-    *guideres=wr_parse_guide_section(g,guide,iter,&guidetext);
-    if (*guideres<0) {
-      // error in guide requiring stop      
-      if (guidebuf!=NULL) free(guidebuf);
-      if (guide!=NULL) cJSON_Delete(guide);
-      sys_free(g);
-      return -1;
-    }
-   
-    if (!(g->print_flag)) (g->print_level_flag)=0;
-    if ((g->print_level_flag)<0) (g->print_level_flag)=default_print_level;
-    if ((g->print_level_flag)==0) wr_set_no_printout(g);
-    else if ((g->print_level_flag)<=10) wr_set_tiny_printout(g);
-    else if ((g->print_level_flag)<=15) wr_set_low_printout(g);
-    else if ((g->print_level_flag)<=20) wr_set_normal_printout(g);
-    else if ((g->print_level_flag)<=30) wr_set_medium_printout(g);
-    else if ((g->print_level_flag)<=50) wr_set_detailed_printout(g);    
-    else wr_set_detailed_plus_printout(g);
-
-    if ((g->print_flag) && (g->print_runs)) {      
-      if (guidetext!=NULL) {   
-        wr_printf("\n**** run %d pid %d starts with strategy\n",iter+1,pid); 
-        wr_printf("%s\n",guidetext);
-        free(guidetext);
-      } else {
-        wr_printf("\n**** run %d pid %d starts\n",iter+1,pid);
-      }          
-    }  
-
-    (g->cl_keep_weightlimit)=(g->cl_maxkeep_weightlimit);
-    (g->cl_keep_sizelimit)=(g->cl_maxkeep_sizelimit);
-    (g->cl_keep_depthlimit)=(g->cl_maxkeep_depthlimit);
-    (g->cl_keep_lengthlimit)=(g->cl_maxkeep_lengthlimit);   
-    tmp=wr_glb_init_shared_complex(g); // creates and fills in shared tables, substructures, etc: 0.03 secs
-    if (tmp) {
-      wr_errprint("cannot init shared complex datastructures");
-      if (guidebuf!=NULL) free(guidebuf);
-      if (guide!=NULL) cJSON_Delete(guide); 
-      wr_glb_free_shared_complex(g);
-      sys_free(g);
-      return -1; 
-    }  
-    tmp=wr_glb_init_local_complex(g); // creates and fills in local tables, substructures, etc: fast
-    if (tmp) {
-      wr_errprint("cannot init local complex datastructures");
-      if (guidebuf!=NULL) free(guidebuf);
-      if (guide!=NULL) cJSON_Delete(guide); 
-      wr_glb_free_shared_complex(g);
-      wr_glb_free_local_complex(g);
-      sys_free(g);
-      return -1; 
-    }   
-    strncpy((g->filename),filename,MAX_FILENAME_LEN);
-    if (outfilename) (g->outfilename)=outfilename;    
-#ifdef SHOWTIME    
-    wr_printf("\nto call wr_init_active_passive_lists_from_all\n");
-    show_cur_time();
-#endif    
-    // if two db-s, this will take the clauses from the shared db     
-    clause_count=0;
-    if (db!=child_db) {
-      // two separate db-s
-#ifdef DEBUG
-      wr_printf("\n *** separate (local) child kb found, using\n");
-#endif      
-      // analyze local clauses; have to temporarily replace g->db to child
-     
-      //tmp_db=g->db;
-      //g->db=child_db;
-      
-      //tmp=wr_analyze_clause_list2(g,tmp_db,(dbmemsegh(g->child_db))->clauselist);
-
-      //tmp=wr_analyze_clause_list(g,db,child_db);
-      //
-      //if (!givenguide) {
-      //  make_auto_guide(g);
-      //  guide=wr_parse_guide_str(buf);
-      //}  
-
-      //g->db=tmp_db;
-
-      // wr_show_in_stats(g);  // show local stats
-      // wr_show_in_stats(rglb); // show global stats
-#ifdef DEBUG
-      wr_printf("\n** input stats for local g ****** \n");
-      show_cur_time();
-      wr_show_in_stats(g);
-      wr_printf("\n"); 
-      //exit(0);
-#endif
-      if (!(g->queryfocus_strat)) {
-        // for non-queryfocus_strat read the clauses from the 
-        // external shared mem db and do not use the
-        // indexes present there
-        //printf("\n(g->initial_cl_list) is %ld\n",(gint)((r_kb_g(g))->initial_cl_list));
-#ifdef DEBUG 
-        wr_printf("\n**** starting to read from the external shared mem kb\n");
-#endif              
-        clause_count+=wr_init_active_passive_lists_from_one(g,db,db);        
-        (g->kb_g)=NULL;        
-      } else {
-        // queryfocus case
-
-        //CP0
-        //printf("\n (g->in_goal_count %d\n",(g->in_goal_count));
-
-        // if no goals, set negative-or-ans-into passive initialization strat
-        if (!(g->in_goal_count)) {
-          (g->queryfocusneg_strat)=1;
-        } else {
-          (g->queryfocusneg_strat)=0;
-        }
-       /// ----
-      }
-      // if no equality, do not initialize indexes and do not try to use
-      
-      if (!(g->in_poseq_clause_count) && !(rglb->in_poseq_clause_count)) (g->use_equality)=0;
-      else (g->use_equality)=(g->use_equality_strat);
-      
-      // if two db-s, this will take the clauses from the local db:
-#ifdef DEBUG 
-      wr_printf("\n**** starting to read from the local db kb\n");
-#endif      
-      clause_count+=wr_init_active_passive_lists_from_one(g,db,child_db);      
-    } else {
-      // one single db      
-#ifdef DEBUG 
-        wr_printf("\n external kb NOT found\n");      
-        wr_printf("\n** starting to calc input stats for g ****** \n");
-        show_cur_time();
-#endif          
-        //tmp=wr_analyze_clause_list(g,db,db);
-        //if (!tmp) return -1;
-#ifdef DEBUG
-        wr_printf("\n** input stats for g ****** \n");
-        show_cur_time();
-        wr_show_in_stats(g);
-        wr_printf("\n");   
-#endif           
-
-      // if no goals, set negative-or-ans-into passive initialization strat
-      if (!(g->in_goal_count)) {
-        (g->queryfocusneg_strat)=1;
-      } else {
-        (g->queryfocusneg_strat)=0;
-      }
-      // if no equality, do not initialize indexes and do not try to use
-      
-      if (!(g->in_poseq_clause_count)) (g->use_equality)=0;
-      else (g->use_equality)=(g->use_equality_strat);
-      
-      /// ----
+    //have_shared_kb=1;
+    child_db=db;
+    db=kb_db;    
+    rglb=db_rglb(db); // this is the internal g of db
+    kb_g=sys_malloc(sizeof(glb)); // this is a new malloced g
+    // copy rglb stuff to g
+    memcpy(kb_g,rglb,sizeof(glb));
+    // now kb_g should contain the same things as rglb
+    // set the db ptr of kb_g to the shared db
+    (kb_g->db)=kb_db; 
 #ifdef DEBUG       
-      wr_printf("\n**** starting to read from the single local db\n");      
-#endif     
-      clause_count=wr_init_active_passive_lists_from_one(g,db,db);      
-    } 
-
-#ifdef SHOWTIME     
-    wr_printf("\nreturned from wr_init_active_passive_lists_from_all\n");
+    wr_printf("\n** input stats for kb_g ****** \n");
     show_cur_time();
+    wr_show_in_stats(kb_g);
+    wr_printf("\n");
+#endif   
+  } else {
+    // just one single db 
+#ifdef DEBUG
+    printf("\njust one single db \n");
+#endif 
+    //have_shared_kb=0;
+    child_db=db;
+    kb_db=db;
+    kb_g=NULL;
+  }
+  /*
+  analyze_g=wr_glb_new_simple(db);
+  if (kb_g!=NULL) {
+    (analyze_g->kb_g)=kb_g; // points to the copy of globals of the external kb
+  }
+  (analyze_g->child_db)=child_db;
+  (analyze_g->db)=db; 
+  (analyze_g->varbanks)=wr_vec_new(analyze_g,NROF_VARBANKS*NROF_VARSINBANK);
+  (analyze_g->varstack)=wr_cvec_new(analyze_g,NROF_VARBANKS*NROF_VARSINBANK); 
+  (analyze_g->varstack)[1]=2; // first free elem  
+  (analyze_g->in_has_fof)=informat;
+  if (outfilename) (analyze_g->outfilename)=outfilename;
+  //printf("\nto call wr_analyze_clause_list\n");
+  //tmp=wr_analyze_clause_list(analyze_g,db,child_db);
+  //printf("\nreturned from wr_analyze_clause_list\n");
+  if (!givenguide) {
+    guide=NULL;  
+  }    
+  */
+
+  g=wr_glb_new_simple(db);
+  // copy analyze_g stats to g for easier handling
+  //wr_copy_sin_stats(analyze_g,g);    
+
+  if (kb_g!=NULL) {
+    (g->kb_g)=kb_g; // points to the copy of globals of the external kb
+  }  
+  if (g==NULL) {
+    wr_errprint("cannot allocate enough memory during reasoner initialization");
+    if (guidebuf!=NULL) free(guidebuf);
+    if (guide!=NULL) cJSON_Delete(guide);
+    sys_free(g); 
+    return -1;
+  }   
+#ifdef DEBUG
+  wr_printf("\nnow db is %ld and child_db is %ld \n",(gint)db,(gint)child_db);
 #endif    
-    if (clause_count<0) {
-      // error
-      wr_printf("\nError initializing clause lists.\n");
-      wr_glb_free(g);
-      return 10;
-    } else if (!clause_count) {
-      // no clauses found
-      wr_printf("\nNo clauses found.\n");
-      wr_glb_free(g);
-      return 10;
-    }
-    // ok, clauses found and clause lists initialized
-    //(g->kb_g)=NULL;
-    //printf("\n(g->use_equality) %d (g->use_equality_strat) %d\n",(g->use_equality),(g->use_equality_strat));
-     
-    //wr_show_in_stats(g);
-
-    //wr_print_clpick_queues(g,(g->clpick_queues));
-    
-    //if ((g->print_flag) && (g->print_runs)) wr_print_strat_flags(g);
-
-    if (!(g->proof_found) || !(wr_enough_answers(g))) {
-      res=wr_genloop(g);
-      //printf("\ngenloop ended\n");
-      //printf("\n prop_hash_clauses:\n");  
-      //wr_print_prop_clausehash(g,rotp(g,g->prop_hash_clauses));  
-
-      if (res>0 && !(res==1 && wr_have_answers(g)) &&
-          ((g->instgen_strat) || (g->propgen_strat))) {
-        propres=wr_prop_solve_current(g);
-        if (propres==2) {
-          res=0;
-        } 
-      }      
-    } else {
-      res=0;
-    }
-    if (res>=0 && !(g->parse_errflag) && !(g->alloc_err) && db && (dbmemsegh(db)->errflag)) {
-      wg_show_db_error(db);
-      res=0-2;
-    }
-
-    //printf("\nwr_genloop exited, showing database details\n");
-    //wr_show_database_details(g,NULL,"local g");
-    //printf("\n res is %d\n",res);
-    if (res==0) {
-      //wr_printf("\n\nProof found.\n"); 
-      wr_show_result(g,g->proof_history);
-    } else if (res==1) {
-      if (wr_have_answers(g)) {
-        wr_show_result(g,g->proof_history);
-      } else {
-        if ((g->print_level_flag)>5) {
-          wr_printf("\n\nSearch finished without proof, result code %d.\n",res); 
-        }  
-      }  
-    } else if (res==2 && (g->print_runs)) {
-      wr_printf("\n\nSearch terminated without proof.\n");        
-    } else if (res==-1) {
-#ifdef PRINTERR       
-      wr_printf("\n\nSearch cancelled: memory overflow.\n");
-#endif      
-    } else if (res<0) {
-#ifdef PRINTERR       
-      wr_printf("\n\nSearch cancelled, error code %d.\n",res);
-#endif      
-    }      
-    //if (g->print_flag) wr_show_stats(g,1);
-
-    if (res==0) {
-      // proof found 
-      if (g->print_flag) wr_show_stats(g,1);
-      if (exit_on_proof) {
-#ifdef SHOWTIME       
-        wr_printf("\nexiting\n");
-        show_cur_time();  
-#endif              
-        if (outfilename) {
-          wr_glb_free(g);
-          return(0);
-        } else {
-          wr_glb_free(g); // ???? added while splitting fun
-          return(0);
-        }  
-      }
-#ifdef SHOWTIME       
-      wr_printf("\nto call wr_glb_free\n");
-      show_cur_time();  
-#endif            
-      wr_glb_free(g);
-#ifdef SHOWTIME       
-      wr_printf("\nwr_glb_free returns\n");
-      show_cur_time(); 
-#endif      
-      return 20;
-    }
-  return res;  
+  (g->child_db)=child_db;
+  (g->db)=db;
+  if (outfilename) (g->outfilename)=outfilename;
+  (g->allruns_start_clock)=clock();  
+ 
+  wr_set_tiny_printout(g);
+  tmp=wr_glb_init_shared_complex(g); // creates and fills in shared tables, substructures, etc: 0.03 secs
+  if (tmp) {
+    wr_errprint("cannot init shared complex datastructures");
+    if (guidebuf!=NULL) free(guidebuf);
+    if (guide!=NULL) cJSON_Delete(guide); 
+    wr_glb_free_shared_complex(g);
+    sys_free(g);
+    return -1; 
+  }  
+  tmp=wr_glb_init_local_complex(g); // creates and fills in local tables, substructures, etc: fast
+  if (tmp) {
+    wr_errprint("cannot init local complex datastructures");
+    if (guidebuf!=NULL) free(guidebuf);
+    if (guide!=NULL) cJSON_Delete(guide); 
+    wr_glb_free_shared_complex(g);
+    wr_glb_free_local_complex(g);
+    sys_free(g);
+    return -1; 
+  }   
+  strncpy((g->filename),filename,MAX_FILENAME_LEN);
+  if (outfilename) (g->outfilename)=outfilename;    
+  (g->print_fof_conversion_proof)=0;
+  (g->store_fof_skolem_steps)=0;   
+  // if two db-s, this will take the clauses from the shared db     
+  clause_count=0;
+  if (db!=child_db) {
+    // two separate db-s
+#ifdef DEBUG
+    wr_printf("\n *** separate (local) child kb found, using\n");
+#endif         
+    clause_count=wr_print_all_clauses(g,child_db);    
+  } else {
+    // one single db      
+#ifdef DEBUG 
+      wr_printf("\n external kb NOT found\n");      
+#endif                
+    clause_count=wr_print_all_clauses(g,db);      
+  }    
+  if (clause_count<0) {
+    // error
+    wr_errprint("error initializing clause lists");     
+  } else if (!clause_count) {
+    // no clauses found
+    wr_errprint("no clauses found");     
+  }
+  // final cleanup
+  wr_glb_free(g); 
+  if (guidebuf!=NULL) free(guidebuf);
+  if (guide!=NULL) cJSON_Delete(guide);  
+  return 0;  
 } 
-*/
+
+
 
 int wg_import_otter_file(void *db, char* filename, int iskb, int* informat) {  
   glb* g;
@@ -1052,19 +905,6 @@ int wg_import_otter_file(void *db, char* filename, int iskb, int* informat) {
     wg_show_db_error(db);
     res=1;
   }
-  /*
-  if (res==1) {  
-    if (0) { //} ((g->print_flag) &&  (g->print_level_flag)) {
-      db_printf("No clauses generated by parser.\n");  
-    }
-  } else {
-    //wg_mpool_print(db,pres2);
-    if (0) { //((g->print_flag) && (g->print_generic_parser_result)>0) {    
-      db_printf("\nGeneric parser result:\n");
-      //wr_print_db_otter(g,(g->print_clause_detaillevel));
-    }  
-  } 
-  */
   if (g->in_has_fof) *informat=1;
   sys_free(g); // no complex values given to glb elements
   //dprintf("wg_import_otterfile ends with res\n",res); 
@@ -1148,16 +988,6 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
 #ifdef SINEORDER  
   int sine_k;  
 #endif  
-
-  /*
-  (g->var_weight)=1; // NORMAL 5
-  (g->repeat_var_weight)=1; // NORMAL 7 
-  (g->cl_length_penalty)=200;
-  (g->sine_order_strat)=2;
-  //(g->res_shortarglen_limit)=1;
-  (g->res_arglen_limit)=1;
-  (g->use_strong_unit_cutoff)=1;
-  */
 
   if (!(g->queryfocus_strat) || ((g->sin_clause_count) < 100000)) {
     //printf("\nstarting to build a clause vector:\n");
@@ -1288,10 +1118,10 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
         cell=cellptr->cdr;
       }   
       continue;
-    }
+    }      
     /*
     printf("\ni %d\n",i);
-    wr_print_clause(g,rec);
+      wr_print_clause(g,rec);
     printf("weight %ld sine k %d\n",
       (gint)((g->tmp_sort_vec)[(i*2)+1]), 
       wr_get_cl_sine_k(g,rec));
@@ -1474,7 +1304,146 @@ LOOPEND:
   return rules_found+facts_found;
 }
 
+int wr_print_all_clauses(glb* g, void* child_db) {
+  void* db=child_db;
+  void *rec=NULL; 
+  gcell *cellptr2; 
+  gint cell2;
+  int i,n;  
+  char namebuf[1000];  
+  //char orderbuf[80];
+  char* buf;
+  int blen, bpos;
+  gint history, name;
+  int objflag, nameflag, clnr;
+  gptr historyptr;
+  char* namestr;
+  char* priorstr;
+  gint priority,decprior;
+  
+  cell2=(dbmemsegh(child_db)->clauselist);
+  n=0;
+  while(cell2) {
+    cellptr2=(gcell *) offsettoptr(child_db, cell2);   
+    if (cellptr2->car) {
+      (g->tmp_sort_vec)=wr_vec_store(g,g->tmp_sort_vec,n+1,(gint)(cellptr2->car)); 
+    }  
+    /*
+    rec=offsettoptr(child_db,cellptr2->car);
+    wr_print_clause(g,rec);
+    printf("\n");
+    */
+    cell2=cellptr2->cdr;      
+    n++;
+  } 
+  if (!n) return 0;  
+   // create buf for printing
+  //namebuf[0]=0;
+  blen=1000;
+  bpos=0;
+  buf=wr_malloc(g,blen);
+  if (buf==NULL) {   
+    return -1;
+  }   
+  if (g->print_json) {
+    printf("[\"formulas\",");
+  }
+  clnr=0;
+  for(i=n; i; i--) {   
+    clnr++;
+    cell2=(g->tmp_sort_vec)[i];   
+    rec=offsettoptr(child_db,cell2);
 
+    bpos=0;  
+    if (!wr_str_guarantee_space(g,&buf,&blen,bpos+100)) {
+      if (buf) wr_free(g,buf);
+      return -1;
+    }
+    
+    history=wr_get_history(g,rec);
+    //len=wg_get_record_len(db,otp(db,history));
+    historyptr=otp(db,history);    
+    name = wr_get_history_record_field(g,historyptr,HISTORY_NAME_POS);
+    priority = wr_get_history_record_field(db,historyptr,HISTORY_PRIORITY_POS);
+    decprior=wr_decode_priority(g,priority);
+     
+    if (decprior==WR_HISTORY_AXIOM_ROLENR) priorstr="axiom";
+    else if (decprior==WR_HISTORY_ASSUMPTION_ROLENR) priorstr="assumption";   
+    else if (decprior==WR_HISTORY_GOAL_ROLENR) priorstr="negated_conjecture"; 
+    else priorstr="axiom";
+
+    nameflag=0;  
+    if (name && wg_get_encoded_type(db,name)==WG_STRTYPE) {   
+      namestr=wg_decode_str(db,name);
+      if (strncmp(namestr,"cl_",3)) {
+        strncpy(namebuf,namestr,1000);
+        namebuf[990]=(char)0;
+        nameflag=1;
+        //printf("\ncp namestr %s\n",namestr);
+      }
+    } else {
+      snprintf(namebuf,19,"cl_%d",clnr);
+      namestr="";
+    }   
+    objflag=0;
+    if (g->print_json) {
+      if ((nameflag && namestr[0]) && (decprior && decprior!=WR_HISTORY_AXIOM_ROLENR)) {
+        bpos+=snprintf(buf+bpos,blen-bpos,"\n{\"name\":\"%s\",\"role\":\"%s\",\"formula\":",namestr,priorstr);
+        objflag=1;
+      } else if (nameflag && namestr[0]) {
+        bpos+=snprintf(buf+bpos,blen-bpos,"\n{\"name\":\"%s\",\"formula\":",namestr);
+        objflag=1;
+      } else if (decprior && decprior!=WR_HISTORY_AXIOM_ROLENR) {
+        bpos+=snprintf(buf+bpos,blen-bpos,"\n{\"role\":\"%s\",\"formula\":",priorstr);
+        objflag=1;
+      }
+      if (!wr_str_guarantee_space(g,&buf,&blen,bpos+100)) {
+        if (buf) wr_free(g,buf);
+        return -1;        
+      }     
+      if (!objflag) {        
+        bpos+=snprintf(buf+bpos,blen-bpos,"\n");
+      }       
+      bpos=wr_strprint_clause(g,rec,&buf,&blen,bpos);  
+      if (bpos<0) return -1;       
+      if (!wr_str_guarantee_space(g,&buf,&blen,bpos+100)) {
+        if (buf) wr_free(g,buf);
+        return -1;        
+      }
+      if (objflag) {        
+        bpos+=snprintf(buf+bpos,blen-bpos,"}");
+      } else {
+        //bpos+=snprintf(buf+bpos,blen-bpos,"\n");
+      }
+      if (i>1) {
+        bpos+=snprintf(buf+bpos,blen-bpos,",");
+      }
+    } else if (g->print_proof_tptp) {
+      if (clnr!=1) {
+        bpos+=snprintf(buf+bpos,blen-bpos,"\n");
+      } 
+      bpos+=snprintf(buf+bpos,blen-bpos,"cnf('%s',%s,",namebuf,priorstr);
+      bpos=wr_strprint_clause(g,rec,&buf,&blen,bpos);
+      if (bpos<0) return -1;
+      if (!wr_str_guarantee_space(g,&buf,&blen,bpos+100)) {
+      if (buf) wr_free(g,buf);
+        return -1;
+      }
+      bpos+=snprintf(buf+bpos,blen-bpos,").");   
+    } else {      
+      bpos=wr_strprint_clause(g,rec,&buf,&blen,bpos);
+      if (bpos<0) return -1;
+      bpos+=snprintf(buf+bpos,blen-bpos,"\n");  
+    }  
+    printf("%s",buf);
+  }
+  if (g->print_json) {
+    printf("\n]\n");
+  } else if (g->print_proof_tptp) {
+    printf("\n");
+  }
+  return n;       
+}
 
 /* ------------------------
 

@@ -46,18 +46,19 @@
 //#define MPOOL_JSON_FALSE "$gk_false$" // use logical false instead
 
 int wg_import_js_file(void *db, char* filename, int iskb, int* informat,
-        int askpolarity, int* askinfo);
+        int askpolarity, int* askinfo, int streaming);
 
 int wr_import_js_file(glb* g, char* filename, char* strasfile, cvec clvec, int isincluded,
-      int askpolarity, int* askinfo);
+      int askpolarity, int* askinfo, int streaming);
 
 int wr_yajl_parse_file(glb* g, parse_parm* pp, char* filename,
       cvec clvec, int isincluded,
-      int askpolarity, int* askinfo, void* mpool);
+      int askpolarity, int* askinfo, void* mpool, int streaming);
 
 int wr_yajl_parse_string(glb* g, parse_parm* pp, char* strasfile);
 
 int wg_is_jsfile(void* db,char* filename);
+int wg_is_js_streaming_file(void* db,char* filename);
 int wg_getline(unsigned char **restrict line, size_t *restrict len, FILE *restrict fp);
 
 void* wr_preprocess_json_clauselist
