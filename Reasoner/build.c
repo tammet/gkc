@@ -730,6 +730,75 @@ int wr_answer_lit(glb* g, gint atom) {
 
 /* ----------------
 
+ true and false clauses:
+
+ return 0 if unknown, 1 if true, -1 if false
+
+  ------------------- */
+
+
+
+int wr_prop_truefalsity_clause(glb* g, gptr cl) { 
+  int i,len,falsecount=0;
+  gint atom;
+  if (wg_rec_is_rule_clause(g->db,cl)) {
+    len=wg_count_clause_atoms(g->db,cl);
+    for(i=0;i<len;i++) {
+      atom=wg_get_rule_clause_atom(g->db,cl,i);
+      if (wr_answer_lit(g,atom)) {
+        falsecount++;
+        continue;
+      }        
+      if (wr_special_prop_lit(g,wg_get_rule_clause_atom(g->db,cl,i),"$true")) {
+        if (wg_atom_meta_is_neg(g->db,wg_get_rule_clause_atom_meta(g->db,cl,i))) {
+          falsecount++;
+        } else {
+          return 1;          
+        }
+      } else if (wr_special_prop_lit(g,wg_get_rule_clause_atom(g->db,cl,i),"$false")) {
+        if (wg_atom_meta_is_neg(g->db,wg_get_rule_clause_atom_meta(g->db,cl,i))) {
+          return 1;
+        } else {
+          falsecount++;
+        }
+      }
+    }
+    if (len==falsecount) return -1;
+    else return 0;
+  } else {
+    if (wr_special_prop_lit(g,rpto(g,cl),"$true")) return 1;
+    if (wr_special_prop_lit(g,rpto(g,cl),"$false")) return -1;
+    return 0;    
+  }
+}  
+
+int wr_special_prop_lit(glb* g, gint atom, char* argstr) {
+  gptr tptr;
+  gint fun;
+  char *str;
+  tptr=rotp(g,atom);
+  fun=tptr[RECORD_HEADER_GINTS+(g->unify_funpos)];
+  if (wg_get_encoded_type(g->db,fun)==WG_URITYPE) {    
+    str = wg_decode_uri(g->db,fun);    
+    if (str[0]=='$' && str[1]=='p' && str[2]=='r' && str[3]=='\0' &&
+        wg_decode_uri_prefix(g->db,fun)==NULL) {
+      fun=tptr[RECORD_HEADER_GINTS+(g->unify_funpos)+1];
+      if (wg_get_encoded_type(g->db,fun)!=WG_URITYPE &&
+          wg_get_encoded_type(g->db,fun)!=WG_ANONCONSTTYPE) return 0;
+      str = wg_decode_uri(g->db,fun);    
+      if (!strcmp(str,argstr)) {       
+        return 1;  
+      } else {
+        return 0;
+      }  
+    }
+    else return 0;
+  }  
+  return 0;  
+}  
+
+/* ----------------
+
  equality atom
 
   ------------------- */

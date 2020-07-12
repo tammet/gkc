@@ -462,7 +462,7 @@ int wr_glb_init_simple(glb* g) {
 */
 
 int wr_glb_init_shared_complex(glb* g) {     
-  
+ 
   // first NULL all vars
   
   (g->initial_cl_list)=0;

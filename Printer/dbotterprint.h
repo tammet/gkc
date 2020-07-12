@@ -63,6 +63,10 @@ int wr_strprint_atom_otter(glb* g, gint rec, int printlevel,char** buf, int *len
 int wr_strprint_term_otter(glb* g, gint rec,int printlevel, char** buf, int *len, int pos);
 int wr_strprint_simpleterm_otter(glb* g, gint enc,int printlevel, char** buf, int *len, int pos, int isneg);
 int wg_should_quote(char* s);
+int wg_contains_quote(char* s);
+int wg_contains_dquote(char* s);
+int wg_print_quoted(char** buf, int len, int pos, char* s);
+int wg_print_dquoted(char** buf, int len, int pos, char* s, int negflag);
 int wg_nice_strprint_var(glb* g, gint i, char** buf, int *len, int pos);
 
 void wg_tptp_print(void* db, void* ptr);
@@ -79,12 +83,25 @@ int wg_print_subfrm_tptp(void* db, void* rec,int depth, int pflag, int termflag,
 
 int wg_print_term_tptp(void* db, void* rec,int depth, int pflag, char** buf, int *len, int pos);
 int wg_print_simpleterm_tptp(void* db, void* rec,int printlevel, char** buf, int *len, int pos, int isneg);
-
 int wg_print_nice_var_tptp(void* db, gint i, char** buf, int *len, int pos);
+
+int wg_print_frm_json(void* db, void* ptr, char** buf, int *len, int pos); 
+int wg_print_subfrm_json(void* db, void* rec,int depth, int pflag, 
+                         int termflag, char** buf, int *len, int pos, int negflag);
+int wg_print_cnf_tptp(void* db, void* ptr, char** buf, int *len, int pos);
+int wg_print_subcnf_tptp(void* db, void* ptr,int depth,int pflag, int termflag, char** buf, int *len, int pos);
+
+int wg_print_term_json(void* db, void* rec,int depth, int pflag, char** buf, int *len, int pos);
+int wg_print_simpleterm_json(void* db, void* rec,int printlevel, char** buf, int *len, int pos, int isneg);
+int wg_print_nice_var_json(void* db, gint i, char** buf, int *len, int pos);
+
+int wg_list_is_term(void* db, void* lst);
+
 int wg_str_guarantee_space(void* db, char** stradr, int* strlenadr, int needed);
 void wg_str_free(void* db, char* str);
 void wg_str_freeref(void* db, char** strref);
 int wg_print_tptp_json(void* db); 
 void wg_printerr_tptp(void* db, char* str);
+void wg_printerr_json(void* db, char* str);
 
 #endif

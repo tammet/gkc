@@ -95,7 +95,7 @@ int wr_genloop(glb* g) {
   gint given_cl_metablock[CLMETABLOCK_ELS];
   clock_t curclock;
   float run_seconds,total_seconds,fullness; // passed_ratio
-  int given_from_hyperqueue_flag;
+  int given_from_hyperqueue_flag,tmp;
 
 #ifndef USE_RES_TERMS  
   gint ipassive;
@@ -324,14 +324,23 @@ int wr_genloop(glb* g) {
     wr_calc_clause_meta(g,given_cl_cand,given_cl_metablock);
     // -- check part 1 starts ---
     if ((gint)given_cl_cand==ACONST_FALSE) {
-      wr_printf("\nggiven_cl_cand is ACONST_FALSE\n");
+      wr_printf("\ngiven_cl_cand is ACONST_FALSE\n");
       continue;
     }
     if ((gint)given_cl_cand==ACONST_TRUE) {
       wr_printf("\ngiven_cl_cand is ACONST_TRUE\n");
       continue;
     }
-
+    tmp=wr_prop_truefalsity_clause(g,given_cl_cand);
+    if (tmp==1) {        
+      continue;
+    } else if (tmp==(0-1)) {       
+      g->proof_found=1;
+      g->proof_history=wr_get_history(g,given_cl_cand);
+      wr_register_answer(g,NULL,g->proof_history);
+      if (wr_enough_answers(g)) { return 0; }
+      else { continue; }  
+    }     
     // -- check part 1 ends ---
 
     if (!(g->endgame_mode) && wr_given_cl_subsumed(g,given_cl_cand,given_cl_metablock)) {
@@ -354,6 +363,7 @@ int wr_genloop(glb* g) {
       //printf("\ngiven cl is ACONST_TRUE\n");
       continue;
     }
+
     // -- check part 2 ends ---
 #ifdef RECORD_HISTORY_ORDER
     wr_set_history_record_given_order(g,

@@ -51,7 +51,6 @@
 
 //#define DEBUG
 //#undef DEBUG
-
 //#define IDEBUG
 
 //#define DPRINTF(...) 
@@ -128,7 +127,7 @@ int wg_import_js_file(void *db, char* filename, int iskb, int* informat,
   (g->print_clauses_json)=1;
   sys_free(g); // no complex values given to glb elements
 
-  dprintf("wg_import_otterfile ends with res\n"); 
+  //dprintf("wg_import_otterfile ends with res\n"); 
   return res;  
 }
 
@@ -143,7 +142,7 @@ int wr_import_js_file(glb* g, char* filename, char* strasfile, cvec clvec, int i
   //int pres=1;
   void* preprocessed=NULL;
   void* pres2=NULL;
-  void *mpool;  
+  void *mpool;
   int i,tmp_comp_funs;
   
 #ifdef DEBUG
@@ -223,8 +222,7 @@ int wr_import_js_file(glb* g, char* filename, char* strasfile, cvec clvec, int i
     //if (fnamestr && fnamestr[0]=='#') fnamestr=fnamestr+1;
 #ifdef DEBUG
     printf("\nreading from file %s\n",filename);
-#endif       
-    printf("\nreading from file %s\n",filename);
+#endif          
     wr_yajl_parse_file(g,&pp,filename, 
       clvec, isincluded,
       askpolarity, askinfo, mpool, streaming);   
@@ -244,15 +242,13 @@ int wr_import_js_file(glb* g, char* filename, char* strasfile, cvec clvec, int i
   wg_mpool_print(db,pp.result);
   printf("\n");
 #endif
-
-  printf("\njson parser result:\n");    
-  wg_mpool_print(db,pp.result);
-  printf("\n");
-
   if (pp.result!=NULL) {
-    preprocessed=wr_preprocess_json_clauselist(g,&pp,clvec,pp.result,isincluded,0);
+    preprocessed=wr_preprocess_json_clauselist(g,&pp,clvec,pp.result,isincluded,streaming);
     //preprocessed=wr_clausify_clauselist(g,mpool,clvec,pp.result);
-    pres2=wr_js_parse_clauselist(g,mpool,clvec,preprocessed);
+    if (!(dbmemsegh(db)->convert)) {
+      // not needed for conversion only
+      pres2=wr_js_parse_clauselist(g,mpool,clvec,preprocessed);
+    }  
   }
   *askinfo=pp.askinfo;
   wg_free_mpool(db,mpool);
@@ -524,6 +520,7 @@ static yajl_callbacks callbacks = {
 int wr_yajl_parse_file(glb* g, parse_parm* pp, char* filename,
       cvec clvec, int isincluded,
       int askpolarity, int* askinfo, void* mpool, int streaming) {
+  void *db=g->db; 
   yajl_handle hand;
   FILE *file;
   yajl_status stat;
@@ -532,19 +529,9 @@ int wr_yajl_parse_file(glb* g, parse_parm* pp, char* filename,
   size_t len;        
   int bytes;
   int lines, i, endfound=0;
+  void *streamlist=NULL;   
   yajlTestMemoryContext memCtx;  
-  char errbuf[110];
-
-  // try  
-  //void* db=g->db;
-  //char* fnamestr;  
-  //FILE* fp;    
-  //char* buf; 
-  //int pres=1;
-  void* preprocessed=NULL;
-  void* pres2=NULL;   
-  int tmp_comp_funs=(g->use_comp_funs);
-  // try
+  char errbuf[110];   
 
   UNUSED(g);
   // memory allocation debugging: allocate a structure which collects
@@ -590,27 +577,19 @@ int wr_yajl_parse_file(glb* g, parse_parm* pp, char* filename,
         //endfound=1;
       }     
       break;
-    } else {      
-      printf("\nstreaming %d using line |%s|\n",streaming,line);
+    } else {            
       // read file data, now pass to parser
+      if (streaming) {        
+        (pp->result)=NULL; // clear result
+      }  
       stat = yajl_parse(hand, line, rd);
-      // try
-      if (streaming) {
-        if (pp->result!=NULL) {
-          preprocessed=wr_preprocess_json_clauselist(g,pp,clvec,pp->result,isincluded,1);
-          //preprocessed=wr_clausify_clauselist(g,mpool,clvec,pp.result);
-          pres2=wr_js_parse_clauselist(g,mpool,clvec,preprocessed);
-        }
-        *askinfo=pp->askinfo;
-        //wg_free_mpool(db,mpool);
-        (g->use_comp_funs)=tmp_comp_funs; 
-        //if (pres || pres2==NULL) return 1;
-        if (pres2==NULL) return 1;
-        // try
-      }
+      if (streaming && (pp->result!=NULL)) {       
+        streamlist=wg_mkpair(db,mpool,(pp->result),streamlist);         
+      }          
       if (stat != yajl_status_ok) break;
     }
-  }    
+  }     
+  if (streaming) (pp->result)=wg_inplace_reverselist(db,mpool,streamlist);  
   stat = yajl_complete_parse(hand);
   if ((stat != yajl_status_ok) && !endfound) {
     str =  yajl_get_error(hand, 0, line, rd);
@@ -748,6 +727,7 @@ void* wr_preprocess_json_clauselist
   void *cl; //, *clname, *clrole;
   void* resultclause=NULL;
   void* resultlist=NULL;
+  void* tmp;
   int clnr=0;
   //char namebuf[1000];
   //char rolebuf[100];  
@@ -758,19 +738,59 @@ void* wr_preprocess_json_clauselist
 #endif       
 
   // setup temporary buffer for conversion printing: this is updated as needed
-  //printf("\n(dbmemsegh(db)->convert) %ld (dbmemsegh(db)->tptp) %d\n",(dbmemsegh(db)->convert),(dbmemsegh(db)->tptp));
+  //printf("\n(dbmemsegh(db)->convert) %ld (dbmemsegh(db)->tptp) %d\n",
+  //(dbmemsegh(db)->convert),(dbmemsegh(db)->tptp));
   if (dbmemsegh(db)->convert) {
-    if (g->tmp_printbuf) sys_free(g->tmp_printbuf);
-    (g->tmp_printbuf)=malloc(1000); // this is dynamically increased
+    if (!(g->tmp_printbuf)) {
+      (g->tmp_printbuf)=malloc(1000); // this is dynamically increased later
+    }  
   }  
+  if (!clauselist) {
+    wr_show_jsparse_error(g,pp,"no data given");
+    return NULL;
+  }
+  // detect if an annotated list of formulas:
+  // if yes, pick out the "formulas" key value  
+  if (wg_ispair(db,clauselist) && wg_first(db,clauselist)==(pp->jsonstruct)) {
+    tmp=wg_get_keystrval(db, "logic", clauselist);   
+    if (!tmp) {
+      wr_show_jsparse_error(g,pp,"no 'logic' key or no data given as value");
+      return NULL;      
+    } 
+    clauselist=tmp;
+  }
 
   // loop over clauses
 
-  if (streaming) {
-    cl=clauselist;
+
+  for(lpart=clauselist,clnr=0;wg_ispair(db,lpart);lpart=wg_rest(db,lpart),clnr++) {
+    if (g->parse_errflag) break;
+    cl=wg_first(db,lpart);
+#ifdef DEBUG    
+    printf("\nclause nr %d:",clnr);    
+    wg_mpool_print(db,cl); 
+    printf("\n");   
+#endif         
+    /*
+    if (!clnr && wg_isatom(db,cl) && wg_atomtype(db,cl)==WG_URITYPE &&
+          !strcmp("formulas",wg_atomstr1(db,cl)) ) {
+      clnr--;      
+      continue;
+    }
+    */
+    pp->formulanr=clnr+1;
+    if (wg_isatom(db,cl) && wg_atomtype(db,cl)!=WG_URITYPE) {
+      if (cl==(pp->logtrue)) continue;
+      if (cl!=(pp->logfalse)) {
+        wr_show_jsparse_error(g,pp,"not a proper formula at top level");
+        break;
+      } else {
+        // make a falsehood        
+      }
+    }   
     if (wr_is_json_import_clause(db,cl)) {
       // tptp import clause 
-      wr_process_json_import_clause(g,mpool,cl);
+      wr_process_json_import_clause(g,mpool,cl,clvec);
       resultclause=NULL;
     } else {      
       resultclause=wr_process_json_formula(g,pp,cl);      
@@ -780,59 +800,15 @@ void* wr_preprocess_json_clauselist
     wg_mpool_print(db,resultclause); 
     printf("\n\n"); 
 #endif
-    printf("\nin wr_preprocess_json_clauselist resultclause:\n");
-    wg_mpool_print(db,resultclause); 
-    printf("\n\n");
     if (resultclause!=NULL) {
       resultlist=wg_mkpair(db,mpool,resultclause,resultlist);  
     }  
-  } else {
+  } // end clause list loop 
+  //free(vardata); // if taken from mpool, not freed
 
-    for(lpart=clauselist,clnr=0;wg_ispair(db,lpart);lpart=wg_rest(db,lpart),clnr++) {
-      if (g->parse_errflag) break;
-      cl=wg_first(db,lpart);
-  #ifdef DEBUG    
-      printf("\nclause nr %d:",clnr);    
-      wg_mpool_print(db,cl); 
-      printf("\n");   
-  #endif          
-      if (!clnr && wg_isatom(db,cl) && wg_atomtype(db,cl)==WG_URITYPE &&
-            !strcmp("formulas",wg_atomstr1(db,cl)) ) {
-        clnr--;      
-        continue;
-      }
-      pp->formulanr=clnr+1;
-      if (wg_isatom(db,cl) && wg_atomtype(db,cl)!=WG_URITYPE) {
-        if (cl==(pp->logtrue)) continue;
-        if (cl!=(pp->logfalse)) {
-          wr_show_jsparse_error(g,pp,"not a proper formula at top level");
-          break;
-        } else {
-          // make a falsehood        
-        }
-      }   
-      if (wr_is_json_import_clause(db,cl)) {
-        // tptp import clause 
-        wr_process_json_import_clause(g,mpool,cl);
-        resultclause=NULL;
-      } else {      
-        resultclause=wr_process_json_formula(g,pp,cl);      
-      } 
-  #ifdef DEBUG
-      printf("\nin wr_preprocess_json_clauselist resultclause:\n");
-      wg_mpool_print(db,resultclause); 
-      printf("\n\n"); 
-  #endif
-      if (resultclause!=NULL) {
-        resultlist=wg_mkpair(db,mpool,resultclause,resultlist);  
-      }  
-    } // end clause list loop 
-    //free(vardata); // if taken from mpool, not freed
-
-    if (g->parse_errflag) {
-      //printf("\n%s\n",g->parse_errmsg);
-      return NULL;
-    }
+  if (g->parse_errflag) {
+    //printf("\n%s\n",g->parse_errmsg);
+    return NULL;
   }
 
 #ifdef DEBUG
@@ -840,7 +816,7 @@ void* wr_preprocess_json_clauselist
   wg_mpool_print(db,resultlist); 
   printf("\n\n");  
 #endif
-  
+   
   resultlist=wg_inplace_reverselist(db,mpool,resultlist);
   return resultlist;
 }  
@@ -858,7 +834,7 @@ int wr_is_json_import_clause(void* db, void* cl) {
 }
 
 
-void* wr_process_json_import_clause(glb* g, void* mpool, void* cl) {
+void* wr_process_json_import_clause(glb* g, void* mpool, void* cl, cvec clvec) {
   void* db=g->db;
   void* pathatom;
   char* str;
@@ -872,6 +848,7 @@ void* wr_process_json_import_clause(glb* g, void* mpool, void* cl) {
   char* p1;
   char* p2;
   char* str2;
+  int askinfo=0;
   //int tmp;
  
 #ifdef IDEBUG
@@ -958,7 +935,8 @@ void* wr_process_json_import_clause(glb* g, void* mpool, void* cl) {
 #ifdef IDEBUG
   printf("\nfilename %s\n",filename);
 #endif   
-  wr_import_otter_file(g,filename,NULL,NULL,1);  
+  wr_import_js_file(g,filename,NULL,clvec,0,0, &askinfo, 0);
+  //wr_import_otter_file(g,filename,NULL,NULL,1);  
   return NULL;
 }
 
@@ -1000,7 +978,7 @@ void* wr_process_json_formula(glb* g,parse_parm* pp, void* cl) {
     if (wg_ispair(db,cl) && wg_first(db,cl)==(pp->jsonstruct)) {
       name=wg_get_keystrval(db, "name", cl);
       role=wg_get_keystrval(db, "role", cl);
-      content=wg_get_keystrval(db, "content", cl);      
+      content=wg_get_keystrval(db, "logic", cl);      
       if((name && !wg_isatom(db,name)) || (role && !wg_isatom(db,role))) {
         wr_show_jsparse_error(g,pp,"formula name and role must be strings");
         return NULL;     
@@ -1014,21 +992,21 @@ void* wr_process_json_formula(glb* g,parse_parm* pp, void* cl) {
           pp->formularole=rolestr;                         
         }  
         if (role && strcmp(rolestr,"axiom") && strcmp(rolestr,"assumption") &&
+            strcmp(rolestr,"hypothesis") &&
             strcmp(rolestr,"conjecture") && strcmp(rolestr,"negated_conjecture")  &&
-            strcmp(rolestr,"question") &&
-            strcmp(rolestr,"ask")) {
+            strcmp(rolestr,"question")) {
+            //strcmp(rolestr,"ask")) {
           wr_show_jsparse_error(g,pp,"unknown role value used");  
         } else if (content) {
           cl=content;
         } else {
-          wr_show_jsparse_error(g,pp,"json object has no content key value");        
+          wr_show_jsparse_error(g,pp,"json object has no logic key value");        
         }
       }
     }
     // process logic
     if (!(g->parse_errflag)) {
       preres=wr_process_json_formula_aux(g,pp,cl); 
-      //printf("\nrole %ld and rolestr %s\n",(gint)role,rolestr); 
       if (preres) {
         if (role && !strcmp(rolestr,"question")) {
 
@@ -1086,7 +1064,7 @@ void* wr_process_json_formula(glb* g,parse_parm* pp, void* cl) {
   }
 
   if (!name) {
-    sprintf(namebuf,"cl_%d",pp->formulanr);
+    sprintf(namebuf,"frm_%d",pp->formulanr);
     name=wg_mkatom(db,mpool,WG_URITYPE,namebuf,NULL);
   }   
   if (!role) {
@@ -1133,6 +1111,8 @@ void* wr_process_json_formula(glb* g,parse_parm* pp, void* cl) {
     }
     if (!rolestr) {
       rolestr="axiom";
+    } else if (!strcmp(rolestr,"question")) {
+      rolestr="negated_conjecture";
     }
     if (namestr && wg_should_quote(namestr)) {
       bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,"fof('%s',%s,",namestr,rolestr);
@@ -1175,7 +1155,8 @@ void* wr_process_json_formula_aux(glb* g, parse_parm* pp, void* cl) {
   void *res, *head, *logconn, *newlogconn;
   void *r1, *r2, *r1el; 
   void *r1proc, *r2proc;
-  void *content; // *name, 
+  void *content; // *name,
+  char* str; 
   int isneg,isreverse;
 
 #ifdef DEBUG
@@ -1183,17 +1164,18 @@ void* wr_process_json_formula_aux(glb* g, parse_parm* pp, void* cl) {
   wg_mpool_print(db,cl);
   printf("\n");
 #endif
+
   if (cl==NULL) {
     return NULL;
   } 
   // process keyval
   if (wg_ispair(db,cl) && wg_first(db,cl)==(pp->jsonstruct)) {
     //name=wg_get_keystrval(db, "name", cl);
-    content=wg_get_keystrval(db, "content", cl);
+    content=wg_get_keystrval(db, "logic", cl);
     if (content) {
       return wr_process_json_formula_aux(g,pp,content);
     } else {
-      wr_show_jsparse_error(g,pp,"json object has no content key value");
+      wr_show_jsparse_error(g,pp,"json object has no logic key value");
       return NULL;
     }
   }
@@ -1204,8 +1186,26 @@ void* wr_process_json_formula_aux(glb* g, parse_parm* pp, void* cl) {
     if (cl==pp->jsonnull) {
       wr_show_jsparse_error(g,pp,"null can be used only inside an atom, not at the formula level");
       return NULL;
-    }
-    preres=wr_process_json_term(g,pp,cl,1,0);     
+    }   
+    // negated atom?        
+    if ((wg_atomtype(db,cl)==WG_URITYPE && cl!=pp->logfalse && cl!=pp->logtrue) &&
+        ((wg_atomstr1(db,cl))[0]=='-' ||
+         (wg_atomstr1(db,cl))[0]=='~')) {                      
+      if (wg_atomstr1(db,cl)[1]=='-' || (wg_atomstr1(db,cl))[0]=='~') {
+        wr_show_jsparse_error(g,pp,
+          "double negation character like -- or ~~ prohibited in logical symbols");
+        return NULL;
+      }
+      r1=wg_mkatom(db,mpool,WG_URITYPE,(wg_atomstr1(db,cl)+1),NULL);            
+      cl=wg_mklist2(db,mpool,pp->logneg,r1);
+      if (!r1 || !cl) {
+        wr_show_jsparse_error(g,pp,"cannot process neg atom: memory overflow");
+        return NULL;
+      }    
+      preres=wr_process_json_formula_aux(g,pp,cl);      
+    } else {
+      preres=wr_process_json_term(g,pp,cl,1,0);
+    }    
   } else {
     // get main parts
     head=wg_first(db,cl);       
@@ -1222,6 +1222,22 @@ void* wr_process_json_formula_aux(glb* g, parse_parm* pp, void* cl) {
     if (head==NULL) {
       wr_show_jsparse_error(g,pp,"null value at the head of a logical list");
       return NULL;
+    } else if (wg_isatom(db,head) && !strcmp("and",wg_atomstr1(db,head)) && !r1) {
+      preres=wg_makelogfalse(db,mpool);          
+    } else if (wg_isatom(db,head) && !strcmp("or",wg_atomstr1(db,head)) && !r1) {
+      preres=wg_makelogtrue(db,mpool); 
+    } else if (wr_json_is_eq_op(g,r1el) && head && wg_ispair(db,r2)) {      
+      str=wg_atomstr1(db,r1el);
+      if (*str!='=') {
+        preres=wg_mklist2(db,mpool,
+                wg_makelogneg(db,mpool), 
+                wg_mklist3(db,mpool,
+                  wg_makeatomeq(db,mpool),
+                  head,
+                  wg_first(db,r2)));
+      } else {
+        preres=wg_mklist3(db,mpool,r1el,head,wg_first(db,r2));
+      }                            
     } else if (wg_isatom(db,head) &&
                (!strcmp("not",wg_atomstr1(db,head)) ||
                 !strcmp("-",wg_atomstr1(db,head)) ||
@@ -1280,7 +1296,7 @@ void* wr_process_json_formula_aux(glb* g, parse_parm* pp, void* cl) {
         wr_show_jsparse_error(g,pp,"too many arguments for forall connective");
         return NULL;
       }
-      (pp->boundvars)=wg_mkpair(db,mpool,r1el,(pp->boundvars));    
+      (pp->boundvars)=wg_mkpair(db,mpool,r1el,(pp->boundvars));             
       r2proc=wr_process_json_formula_aux(g,pp,wg_first(db,r2));
       (pp->boundvars)=wg_rest(db,(pp->boundvars));
       if (r2proc==NULL) return NULL;
@@ -1302,7 +1318,11 @@ void* wr_process_json_formula_aux(glb* g, parse_parm* pp, void* cl) {
       if (wg_isatom(db,logconn) && !strcmp("<=",wg_atomstr1(db,logconn))) isreverse=1;
       else isreverse=0;
       preres=wr_json_unflatten_logic(g,pp,preres,logconn,newlogconn,!isneg,isreverse);      
-    } else {
+    } else if (wg_ispair(db,head)) {     
+      newlogconn=MKWGURILEN(pp,"or",2);
+      preres=wg_mkpair(db,mpool,newlogconn,cl); 
+      preres=wr_process_json_formula_aux(g,pp,preres);      
+    } else {     
       preres=wr_process_json_term(g,pp,cl,1,0);
     }
   }
@@ -1339,11 +1359,11 @@ void* wr_process_json_term(glb* g, parse_parm* pp, void* cl, int atomlevel, int 
   // process keyval
   if (wg_ispair(db,cl) && wg_first(db,cl)==(pp->jsonstruct)) {
     //name=wg_get_keystrval(db, "name", cl);
-    content=wg_get_keystrval(db, "content", cl);
+    content=wg_get_keystrval(db, "logic", cl);
     if (content) {
       return wr_process_json_term(g,pp,content,atomlevel,pos);
     } else {
-      wr_show_jsparse_error(g,pp,"json object has no content key value");
+      wr_show_jsparse_error(g,pp,"json object has no logic key value");
       return NULL;
     }
   }
@@ -1384,7 +1404,7 @@ void* wr_process_json_term(glb* g, parse_parm* pp, void* cl, int atomlevel, int 
         if (!found) (pp->freevars)=wg_mkpair(db,mpool,cl,(pp->freevars));
       }
       preres=cl;
-    } else {
+    } else {      
       preres=cl;
     }     
   } else {
@@ -1415,7 +1435,7 @@ void* wr_process_json_term(glb* g, parse_parm* pp, void* cl, int atomlevel, int 
       if (!a1 || !a2) return NULL;
       if (!strcmp("=",wg_atomstr1(db,r1el)))  {
         //preres=wg_mklist3(db,mpool,pp->eq,a1,a2);
-        CP1
+        //CP1
         *((gint*)cl)=(gint)(pp->atomeq);
         *((gint*)r1)=(gint)a1;
         *((gint*)r2)=(gint)a2;        
@@ -1462,8 +1482,8 @@ void* wr_process_json_term(glb* g, parse_parm* pp, void* cl, int atomlevel, int 
           return NULL;
         }
       }
-      //return preres; 
-    } else if (!wg_isatom(db,head)) {
+      //return preres;       
+    } else if (!wg_isatom(db,head)) {      
       wr_show_jsparse_error(g,pp,"atom must not start with a list");
       return NULL;
     } else if (wg_atomtype(db,head)!=WG_URITYPE) {
@@ -1472,6 +1492,7 @@ void* wr_process_json_term(glb* g, parse_parm* pp, void* cl, int atomlevel, int 
     } else if ((wg_atomstr1(db,head))[0]=='\0') {
       wr_show_jsparse_error(g,pp,"atom must not start with an empty string");
       return NULL;
+      
     } else if (atomlevel && 
                 ( (wg_atomstr1(db,head))[0]=='-' ||
                   (wg_atomstr1(db,head))[0]=='~' )) {  
@@ -1501,7 +1522,25 @@ void* wr_process_json_term(glb* g, parse_parm* pp, void* cl, int atomlevel, int 
   }
   return preres;
 }
-
+/*
+void* wg_make_nested_conn(void* db, void* mpool, void* op, void* cl) {
+  void* tmp;
+  int len;
+  len=wg_list_len(db,cl);
+  if (len==0) {
+    return wg_mkpair(db,mpool,op,NULL); 
+  } else if (len==1) {
+    return wg_first(db,cl);
+  } else if (len==2) {
+    return wg_mkpair(db,mpool,op,cl);    
+  } else {
+    return wg_mklist3(db,mpool,
+                      op,
+                      wg_first(db,cl),
+                      wg_make_nested_conn(db,mpool,op,wg_rest(db,cl))); 
+  }
+}
+*/
 void* wr_json_list_logconn(glb* g, parse_parm* pp, void* cl) {
   void* db=g->db;
   void* part;
@@ -1572,6 +1611,24 @@ int wr_json_is_connective(glb* g,void* ptr) {
   if (!strcmp("<~>",str)) return 1;
   if (!strcmp("~|",str)) return 1;
   if (!strcmp("~&",str)) return 1;
+  
+  //if (!strcmp("=",str)) return 1;
+  //if (!strcmp("!=",str)) return 1;
+
+  return 0;  
+}
+
+
+int wr_json_is_eq_op(glb* g,void* ptr) {
+  void* db=g->db;
+  char* str;
+
+  if (!wg_isatom(db,ptr) || wg_atomtype(db,ptr)!=WG_URITYPE) return 0; 
+  str=wg_atomstr1(db,ptr);
+  if (!strcmp("=",str)) return 1;
+  if (!strcmp("~=",str)) return 1;
+  if (!strcmp("-=",str)) return 1;
+  if (!strcmp("!=",str)) return 1;
   
   //if (!strcmp("=",str)) return 1;
   //if (!strcmp("!=",str)) return 1;

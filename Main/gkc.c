@@ -128,7 +128,8 @@ gint parse_shmsize(char *arg);
 gint parse_flag(char *arg);
 int parse_memmode(char *arg);
 char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsize, 
-          int* parallel, int* tptp, int* json, int* convert, int* seconds, int* retcode);
+          int* parallel, int* tptp, int* json, int* convert, int* clausify, 
+          int* seconds, int* retcode);
 void wg_set_kb_db(void* db, void* kb);
 void segment_stats(void *db);
 void wg_show_strhash(void* db);
@@ -196,6 +197,7 @@ int gkc_main(int argc, char **argv) {
   int tptp=DEFAULT_TPTP; // 0 if not tptp format output
   int json=0;
   int convert=0;
+  int clausify=0;
   int seconds=0; // 0 if no time limit, other value for time limit in seconds
   //int islocaldb=0; // lreasoner sets to 1 to avoid detaching db at the end
   int askinfo=0;
@@ -213,7 +215,8 @@ int gkc_main(int argc, char **argv) {
 #endif  
 #endif
  
-  cmdfiles=parse_cmdline(argc,argv,&cmdstr,&mbnr,&mbsize,&parallel,&tptp,&json,&convert,&seconds,&retcode); 
+  cmdfiles=parse_cmdline(argc,argv,&cmdstr,&mbnr,&mbsize,&parallel,
+                         &tptp,&json,&convert,&clausify,&seconds,&retcode); 
   if (retcode) return retcode;
   if (tptp && json) {
     err_printf("do not set both -tptp and -json output parameters at the same time");    
@@ -290,6 +293,7 @@ int gkc_main(int argc, char **argv) {
     (dbmemsegh(shmptr)->tptp)=tptp;
     (dbmemsegh(shmptr)->json)=json;
     (dbmemsegh(shmptr)->convert)=convert;
+    (dbmemsegh(shmptr)->clausify)=clausify;
     err = wg_import_data_file(shmptr,cmdfiles[1],0,&informat,askpolarity,&askinfo);
     //printf("\nreturned from wg_import_otter_file\n");  
     if(!err) {
@@ -301,8 +305,10 @@ int gkc_main(int argc, char **argv) {
     } else {
       //err_printf("import failed");           
       return(1); 
-    }      
-    if (convert) {
+    }   
+    if (convert && !clausify) {
+      return 0;
+    } else if (clausify) {
       err = wg_run_converter(shmptr,cmdfileslen,cmdfiles,informat,NULL,NULL);
     } else {
       err = wg_run_reasoner(shmptr,cmdfileslen,cmdfiles,informat,NULL,NULL);
@@ -445,6 +451,7 @@ int gkc_main(int argc, char **argv) {
     (dbmemsegh(shmptrlocal)->tptp)=tptp;
     (dbmemsegh(shmptrlocal)->json)=json;
     (dbmemsegh(shmptrlocal)->convert)=convert; 
+    (dbmemsegh(shmptrlocal)->clausify)=clausify;
     err = wg_import_data_file(shmptrlocal,cmdfiles[1],0,&informat,askpolarity,&askinfo);        
     if(!err) {
       //printf("Data read from %s.\n",cmdfiles[1]);
@@ -461,8 +468,10 @@ int gkc_main(int argc, char **argv) {
 #ifdef SHOWTIME
     printf("\nto call wg_run_reasoner\n");
     gkc_show_cur_time();
-#endif         
-    if (convert) {
+#endif   
+    if (convert && !clausify) {     
+      return 0; 
+    } else if (clausify) {
       err = wg_run_converter(shmptrlocal,cmdfileslen,cmdfiles,informat,NULL,NULL);
     } else {
       err = wg_run_reasoner(shmptrlocal,cmdfileslen,cmdfiles,informat,NULL,NULL);
@@ -795,7 +804,8 @@ int parse_memmode(char *arg) {
  */
 
 char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsize, 
-          int* parallel, int* tptp, int* json, int* convert, int* seconds, int* retcode) {
+          int* parallel, int* tptp, int* json, int* convert, int* clausify,
+          int* seconds, int* retcode) {
   int i,alen,nargc;
   char* arg;
   char c;
@@ -894,88 +904,7 @@ char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsiz
         } else {
           printf("Error: missing parameter to keyword %s\n",arg);
           exit(1);
-        }        
-      } else if (!(strncmp(arg,"-tptp",6))) {
-        if ((i+1)<argc) {
-          //printf("\n cmd %s param %s",arg,argv[i+1]);
-          i++;
-          if (!(sscanf(argv[i], "%d", &nr))) {
-            printf("Error: keyword %s argument must be a number, not %s\n",
-                    arg,argv[i]);
-            *retcode=1;       
-            return NULL;
-          } else {
-            //printf("\n parsed nr %d\n",nr);
-            if (nr<0) {
-              printf("Error: -tptp argument is negative\n");
-              *retcode=1;       
-            return NULL;
-            }
-            if (nr>1) {
-              printf("Error: -tptp argument: %s is too big\n",argv[i]);
-              *retcode=1;       
-              return NULL;
-            }
-            *tptp=nr;
-          }  
-        } else {
-          printf("Error: missing parameter to keyword %s\n",arg);
-          exit(1);
-        }
-      } else if (!(strncmp(arg,"-json",6))) {
-        if ((i+1)<argc) {
-          //printf("\n cmd %s param %s",arg,argv[i+1]);
-          i++;
-          if (!(sscanf(argv[i], "%d", &nr))) {
-            printf("Error: keyword %s argument must be a number, not %s\n",
-                    arg,argv[i]);
-            *retcode=1;       
-            return NULL;
-          } else {
-            //printf("\n parsed nr %d\n",nr);
-            if (nr<0) {
-              printf("Error: -json argument is negative\n");
-              *retcode=1;       
-            return NULL;
-            }
-            if (nr>1) {
-              printf("Error: -json argument: %s is too big\n",argv[i]);
-              *retcode=1;       
-              return NULL;
-            }
-            *json=nr;
-          }  
-        } else {
-          printf("Error: missing parameter to keyword %s\n",arg);
-          exit(1);
-        }  
-      } else if (!(strncmp(arg,"-convert",9))) {
-        if ((i+1)<argc) {
-          //printf("\n cmd %s param %s",arg,argv[i+1]);
-          i++;
-          if (!(sscanf(argv[i], "%d", &nr))) {
-            printf("Error: keyword %s argument must be a number, not %s\n",
-                    arg,argv[i]);
-            *retcode=1;       
-            return NULL;
-          } else {
-            //printf("\n parsed nr %d\n",nr);
-            if (nr<0) {
-              printf("Error: -convert argument is negative\n");
-              *retcode=1;       
-            return NULL;
-            }
-            if (nr>1) {
-              printf("Error: -convert argument: %s is too big\n",argv[i]);
-              *retcode=1;       
-              return NULL;
-            }
-            *convert=nr;
-          }  
-        } else {
-          printf("Error: missing parameter to keyword %s\n",arg);
-          exit(1);
-        }        
+        }             
       } else if (!(strncmp(arg,"-seconds",9))) {
         if ((i+1)<argc) {
           //printf("\n cmd %s param %s",arg,argv[i+1]);
@@ -997,7 +926,15 @@ char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsiz
         } else {
           printf("Error: missing parameter to keyword %s\n",arg);
           exit(1);
-        }            
+        }     
+      } else if (!(strncmp(arg,"-tptp",5))) {
+        *tptp=1;       
+      } else if (!(strncmp(arg,"-json",5))) {
+        *json=1;       
+      } else if (!(strncmp(arg,"-convert",8))) {
+        *convert=1;               
+      } else if (!(strncmp(arg,"-clausify",9))) {
+        *clausify=1;  
       } else if (!(strncmp(arg,"-prove",10)) || 
                 !(strncmp(arg,"-readkb",10)) ||
                 !(strncmp(arg,"-provekb",10)) || 

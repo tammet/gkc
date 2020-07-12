@@ -831,6 +831,7 @@ int wr_strprint_simpleterm_otter(glb* g, gint enc,int printlevel, char** buf, in
       return pos+snprintf((*buf)+pos,(*len)-pos,"%f", doubledata);
     case WG_STRTYPE:
       strdata = wg_decode_str(db, enc);
+      if (!wr_str_guarantee_space(g,buf,len,pos+strlen(strdata)+50)) return -1;
       if (g->print_clauses_json) {
         if (isneg) {
           return pos+snprintf((*buf)+pos,(*len)-pos,"\"-:%s\"", strdata);
@@ -851,23 +852,40 @@ int wr_strprint_simpleterm_otter(glb* g, gint enc,int printlevel, char** buf, in
       exdata = wg_decode_uri_prefix(db, enc);
       if (strdata) len1=strlen(strdata);
       if (exdata) len2=strlen(exdata);
-      if (!wr_str_guarantee_space(g,buf,len,pos+len1+len2+50)) return -1;
+      if (!wr_str_guarantee_space(g,buf,len,pos+len1+len2+100)) return -1;
       if (exdata==NULL) {        
         if (g->print_clauses_json) {
-          if (isneg) {            
-            return pos+snprintf((*buf)+pos,(*len)-pos,"\"-%s\"", strdata);
+          if (isneg) {          
+            if (wg_contains_dquote(strdata)) {                        
+              pos+=wg_print_dquoted(buf,*len,pos,strdata,1);                
+              return pos;
+            } else {    
+              return pos+snprintf((*buf)+pos,(*len)-pos,"\"-%s\"", strdata);
+            }  
           } else {
-            return pos+snprintf((*buf)+pos,(*len)-pos,"\"%s\"", strdata);
+            if (wg_contains_dquote(strdata)) {                       
+              pos+=wg_print_dquoted(buf,*len,pos,strdata,0);                          
+              return pos;
+            } else {  
+              return pos+snprintf((*buf)+pos,(*len)-pos,"\"%s\"", strdata);
+            }  
           }          
         } else {          
           if (isneg) {
-            if (wg_should_quote(strdata)) {
+            if (wg_contains_quote(strdata)) {    
+              pos+=snprintf((*buf)+pos,(*len)-pos,"-");        
+              pos+=wg_print_quoted(buf,*len,pos,strdata); 
+              return pos;
+            } else if (wg_should_quote(strdata)) {
               return pos+snprintf((*buf)+pos,(*len)-pos,"-'%s'", strdata);
             } else {
               return pos+snprintf((*buf)+pos,(*len)-pos,"-%s", strdata);
             }            
           } else {
-            if (wg_should_quote(strdata)) {
+            if (wg_contains_quote(strdata)) {           
+              pos+=wg_print_quoted(buf,*len,pos,strdata); 
+              return pos;
+            } else if (wg_should_quote(strdata)) {
               return pos+snprintf((*buf)+pos,(*len)-pos,"'%s'", strdata);             
             } else {
               return pos+snprintf((*buf)+pos,(*len)-pos,"%s", strdata);             
@@ -1014,6 +1032,72 @@ int wg_should_quote(char* s) {
   }
   return 0;
 }
+
+int wg_contains_quote(char* s) {
+  if (!s) return 0;  
+  for(; *s!=0; s++) {
+    if ((*s)=='\'') return 1;   
+  }
+  return 0;
+}
+
+int wg_contains_dquote(char* s) {
+  if (!s) return 0;  
+  for(; *s!=0; s++) {
+    if ((*s)=='"') return 1;   
+  }
+  return 0;
+}
+
+int wg_print_quoted(char** buf, int len, int pos, char* s) {
+  char c;
+  int i;
+
+  //printf("\n len %d str %s\n",len,s);
+  if (!s || !buf || !len || len<2) return 0;    
+  *((*buf)+pos)='\'';
+  for(i=1; *s!=0; s++, i++) {
+    c=*s;
+    if (c=='\'') {
+      *((*buf)+pos+i)='\\';
+      i++;
+    }     
+    *((*buf)+pos+i)=c;   
+    if ((i+pos)>=len) return i;
+  }  
+  *((*buf)+pos+i)='\'';
+  i++;
+  //printf("\n i %d\n",i);
+  return i;
+}
+
+int wg_print_dquoted(char** buf, int len, int pos, char* s, int negflag) {
+  char c;
+  int i;
+
+  //printf("\n len %d str %s\n",len,s);
+  if (!s || !buf || !len || len<2) return 0;    
+  *((*buf)+pos)='"';
+  if (negflag) {
+    pos++;
+    *((*buf)+pos)='-';
+  }  
+  for(i=1; *s!=0; s++, i++) {
+    c=*s;
+    if (c=='"') {
+      *((*buf)+pos+i)='\\';
+      i++;
+    }     
+    *((*buf)+pos+i)=c;   
+    if ((i+pos)>=len) return i;
+  }  
+  *((*buf)+pos+i)='"';
+  i++;
+  //printf("\n i %d\n",i);
+  if (negflag) return i+1;
+  else return i;
+}
+
 
 int wg_nice_strprint_var(glb* g, gint i, char** buf, int *len, int pos) {
   char strbuf[80];
@@ -1412,7 +1496,7 @@ int wg_print_atom_tptp(void* db, gint rec, int printlevel,char** buf, int *len, 
 
 int wg_print_frm_tptp(void* db, void* ptr, char** buf, int *len, int pos) {  
   int p;
-  p=wg_print_subfrm_tptp(db,ptr,0,0,0,buf,len,pos);
+  p=wg_print_subfrm_tptp(db,ptr,0,0,0,buf,len,pos);  
   //printf("\nwg_print_frm_tptp calcs p: %d\n",p);
   return p;
 }
@@ -1427,7 +1511,7 @@ int wg_print_subfrm_tptp(void* db, void* ptr,int depth,int pflag, int termflag, 
 #ifdef DEBUG  
   printf("print_term called"); 
 #endif   
-  //int type;
+  int type;
   char* p;
   int count;
   int ppflag=0;
@@ -1458,30 +1542,63 @@ int wg_print_subfrm_tptp(void* db, void* ptr,int depth,int pflag, int termflag, 
     pos+=snprintf((*buf)+pos,(*len)-pos,"()");
     return pos;
   } else if (wg_isatom(db,ptr)) {
-    //type=wg_atomtype(db,ptr);    
+    type=wg_atomtype(db,ptr);    
     p=wg_atomstr1(db,ptr);   
-    if (p!=NULL) {
-      if (wg_should_quote(p)) {
-        //printf("\"%s\"",p);
-        pos+=snprintf((*buf)+pos,(*len)-pos,"\'%s\'",p);
-      } else {
-        //printf("%s",p);
-        pos+=snprintf((*buf)+pos,(*len)-pos,"%s",p);
+    if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1; 
+    switch (type) {
+      /*
+      case 0: printf("_:"); break;
+      case WG_NULLTYPE: printf("n:"); break;
+      case WG_RECORDTYPE: 
+        printf("r:"); 
+        wg_print_record(db, ((gint*)(offsettoptr((db),(wg_atomrec(db,ptr))))));
+        printf(" ");
+        break;
+      */  
+      case WG_INTTYPE: pos+=snprintf((*buf)+pos,(*len)-pos,"%s",p); break;
+      case WG_DOUBLETYPE: pos+=snprintf((*buf)+pos,(*len)-pos,"%s",p); break;
+      /*
+      case WG_STRTYPE: printf("s:"); break;
+      case WG_XMLLITERALTYPE: printf("x:"); break;
+      case WG_URITYPE: printf("u:"); break;
+      case WG_BLOBTYPE: printf("b:"); break;
+      case WG_CHARTYPE: printf("c:"); break;
+      case WG_FIXPOINTTYPE: printf("f:"); break;
+      case WG_DATETYPE: printf("date:"); break;
+      case WG_TIMETYPE: printf("time:"); break;
+      case WG_ANONCONSTTYPE: printf("a:"); break;
+      case WG_VARTYPE: printf("?:"); break;
+      */
+      default: {          
+        if (p!=NULL) {
+          if (wg_contains_quote(p)) {            
+            pos+=wg_print_quoted(buf,*len,pos,p); 
+          } else if (wg_should_quote(p)) {
+            //printf("\"%s\"",p);
+            pos+=snprintf((*buf)+pos,(*len)-pos,"\'%s\'",p);
+          } else {
+            //printf("%s",p);
+            pos+=snprintf((*buf)+pos,(*len)-pos,"%s",p);
+          }
+        } else {
+          //printf("\'\'");
+          pos+=snprintf((*buf)+pos,(*len)-pos,"\' \'" );
+        }
+        p=wg_atomstr2(db,ptr);
+        if (p!=NULL) {
+          if (wg_contains_quote(p)) {   
+            pos+=snprintf((*buf)+pos,(*len)-pos,"^^");         
+            pos+=wg_print_quoted(buf,*len,pos,p); 
+          } else if (wg_should_quote(p)) {
+            //printf("^^\"%s\"",p);
+            pos+=snprintf((*buf)+pos,(*len)-pos,"^^\"%s\"",p);
+          } else {
+            //printf("^^%s",p);
+            pos+=snprintf((*buf)+pos,(*len)-pos,"^^%s",p);
+          }
+        }
       }
-    } else {
-      //printf("\'\'");
-      pos+=snprintf((*buf)+pos,(*len)-pos,"\' \'" );
-    }
-    p=wg_atomstr2(db,ptr);
-    if (p!=NULL) {
-      if (wg_should_quote(p)) {
-        //printf("^^\"%s\"",p);
-        pos+=snprintf((*buf)+pos,(*len)-pos,"^^\"%s\"",p);
-      } else {
-        //printf("^^%s",p);
-        pos+=snprintf((*buf)+pos,(*len)-pos,"^^%s",p);
-      }
-    }
+    }   
     return pos;
   } else {    
 
@@ -1604,6 +1721,181 @@ int wg_print_subfrm_tptp(void* db, void* ptr,int depth,int pflag, int termflag, 
   return pos;
 }
 
+int wg_print_cnf_tptp(void* db, void* ptr, char** buf, int *len, int pos) {  
+  int p;
+  p=wg_print_subcnf_tptp(db,ptr,0,0,0,buf,len,pos);  
+  //printf("\nwg_print_frm_tptp calcs p: %d\n",p);
+  return p;
+}
+
+
+int wg_print_subcnf_tptp(void* db, void* ptr,int depth,int pflag, int termflag, char** buf, int *len, int pos) {
+  int type;
+  char* p;
+  int count;
+  int ppflag=0;
+  int i;
+  void *curptr;
+  void *op;
+  int lstlen;
+  char* symb;  
+
+  //printf("\nwg_print_subfrm_tptp called\n"); 
+  if (!wg_str_guarantee_space(db,buf,len,pos+1000)) {
+    wg_printerr_tptp(db,"wg_print_subcnf_tptp cannot guarantee buffer space"); 
+    if (buf) sys_free(buf);
+    return -1;
+  }
+   
+  if (ptr==NULL) {
+    //printf("()");
+    pos+=snprintf((*buf)+pos,(*len)-pos,"()");
+    return pos;
+  } else if (wg_isatom(db,ptr)) {
+    type=wg_atomtype(db,ptr);    
+    p=wg_atomstr1(db,ptr);        
+    switch (type) {    
+      case WG_INTTYPE: pos+=snprintf((*buf)+pos,(*len)-pos,"%s",p); break;
+      case WG_DOUBLETYPE: pos+=snprintf((*buf)+pos,(*len)-pos,"%s",p); break;
+      /*
+      case WG_STRTYPE: printf("s:"); break;
+      case WG_XMLLITERALTYPE: printf("x:"); break;
+      case WG_URITYPE: printf("u:"); break;
+      case WG_BLOBTYPE: printf("b:"); break;
+      case WG_CHARTYPE: printf("c:"); break;
+      case WG_FIXPOINTTYPE: printf("f:"); break;
+      case WG_DATETYPE: printf("date:"); break;
+      case WG_TIMETYPE: printf("time:"); break;
+      case WG_ANONCONSTTYPE: printf("a:"); break;
+      case WG_VARTYPE: printf("?:"); break;
+      */
+      default: {          
+        if (p!=NULL) {
+          if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
+          if (wg_contains_quote(p)) {            
+            pos+=wg_print_quoted(buf,*len,pos,p); 
+          } else if (wg_should_quote(p)) {
+            //printf("\"%s\"",p);
+            pos+=snprintf((*buf)+pos,(*len)-pos,"\'%s\'",p);
+          } else {
+            //printf("%s",p);
+            pos+=snprintf((*buf)+pos,(*len)-pos,"%s",p);
+          }
+        } else {
+          //printf("\'\'");
+          pos+=snprintf((*buf)+pos,(*len)-pos,"\' \'" );
+        }
+        p=wg_atomstr2(db,ptr);
+        if (p!=NULL) {
+          if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
+          if (wg_contains_quote(p)) {   
+            pos+=snprintf((*buf)+pos,(*len)-pos,"^^");         
+            pos+=wg_print_quoted(buf,*len,pos,p); 
+          } else if (wg_should_quote(p)) {
+            //printf("^^\"%s\"",p);
+            pos+=snprintf((*buf)+pos,(*len)-pos,"^^\"%s\"",p);
+          } else {
+            //printf("^^%s",p);
+            pos+=snprintf((*buf)+pos,(*len)-pos,"^^%s",p);
+          }
+        }
+      }
+    }   
+    return pos;
+  } else {    
+
+    op=wg_first(db,ptr);
+    lstlen=wg_list_len(db,ptr);   
+    if (pflag && wg_listtreecount(db,ptr)>10) ppflag=1;
+    if (!termflag &&
+       wg_isatom(db,op) && 
+       (wg_atomtype(db,op)==WG_ANONCONSTTYPE || wg_atomtype(db,op)==WG_URITYPE) &&
+       wg_atomstr1(db,op) &&
+       (wg_atomstr1(db,op))[0]=='=' &&
+       !(wg_atomstr1(db,op))[1]) {
+      // equality predicate
+      pos+=snprintf((*buf)+pos,(*len)-pos,"(");
+      pos=wg_print_subcnf_tptp(db,wg_nth(db,ptr,1),depth+1,0,1,buf,len,pos);
+      if (pos<0) return pos;
+      if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
+      pos+=snprintf((*buf)+pos,(*len)-pos," = ");
+      pos=wg_print_subcnf_tptp(db,wg_nth(db,ptr,2),depth+1,0,1,buf,len,pos);
+      if (pos<0) return pos;
+      if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
+      pos+=snprintf((*buf)+pos,(*len)-pos,")");
+      return pos;
+    } else if (!termflag && wg_islogconnective(db,op)) {
+      //printf("@");
+      //pos+=snprintf((*buf)+pos,(*len)-pos,"@");
+        
+      // special handling of connective printing 
+      if (wg_islogneg(db,op)) {
+        pos+=snprintf((*buf)+pos,(*len)-pos,"~");
+        pos=wg_print_subcnf_tptp(db,wg_nth(db,ptr,1),depth+1,0,termflag,buf,len,pos);
+        if (pos<0) return pos; 
+      } else if (wg_islogor(db,op)) {
+        symb=" | ";       
+        //pos+=snprintf((*buf)+pos,(*len)-pos,"(");
+        pos=wg_print_subcnf_tptp(db,wg_nth(db,ptr,1),depth+1,0,termflag,buf,len,pos);
+        if (pos<0) return pos;
+        if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;        
+        pos+=snprintf((*buf)+pos,(*len)-pos,"%s",symb);        
+        pos=wg_print_subcnf_tptp(db,wg_nth(db,ptr,2),depth+1,0,termflag,buf,len,pos);
+        if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1; 
+        //pos+=snprintf((*buf)+pos,(*len)-pos,")");
+        if (pos<0) return pos;        
+      }
+      return pos;   
+    } 
+    // normal term printing
+    for(curptr=ptr, count=0;curptr!=NULL && !wg_isatom(db,curptr);curptr=wg_rest(db,curptr), count++) {
+      if (count>0) {
+        // tail of list
+        if (ppflag) {
+          //printf("\n");
+          pos+=snprintf((*buf)+pos,(*len)-pos,"\n");
+          if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
+          for(i=0;i<depth;i++) {
+            //printf(" ");
+            pos+=snprintf((*buf)+pos,(*len)-pos," ");
+            if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
+          }  
+        }        
+        pos=wg_print_subcnf_tptp(db,wg_first(db,curptr),depth+1,0,1,buf,len,pos);
+        if (pos<0) return pos;
+        if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
+        if ((count+1)<lstlen) {
+          // not the last element
+          //printf(",");
+          pos+=snprintf((*buf)+pos,(*len)-pos,",");
+        }
+      } else {
+        // header of list
+        pos=wg_print_subcnf_tptp(db,wg_first(db,curptr),depth+1,0,1,buf,len,pos);
+        if (pos<0) return pos;
+        if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
+        //printf ("(");
+        pos+=snprintf((*buf)+pos,(*len)-pos,"(");
+      }      
+    }
+    if (wg_isatom(db,curptr)) {
+      //printf(" . ");
+      pos+=snprintf((*buf)+pos,(*len)-pos," . ");
+      pos=wg_print_subcnf_tptp(db,curptr,depth+1,pflag,1,buf,len,pos);
+      if (pos<0) return pos;
+      if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
+    }
+    //printf (")");
+    if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
+    pos+=snprintf((*buf)+pos,(*len)-pos,")");
+    if (ppflag) {
+      //printf("\n");
+      pos+=snprintf((*buf)+pos,(*len)-pos,"\n");
+    }
+  }
+  return pos;
+}
+
 int wg_print_term_tptp(void* db, void* ptr,int depth,int pflag,char** buf, int *len, int pos) {
   /*
   gptr recptr;
@@ -1661,7 +1953,8 @@ int wg_print_term_tptp(void* db, void* ptr,int depth,int pflag,char** buf, int *
     p=wg_atomstr1(db,ptr); 
     */
 
-    if (p!=NULL) {
+    if (p!=NULL) {      
+      if (!wg_str_guarantee_space(db,buf,len,pos+strlen(p)+1000)) return -1; 
       if (wg_should_quote(p)) {
         printf("\"%s\"",p);
       } else {
@@ -1672,6 +1965,7 @@ int wg_print_term_tptp(void* db, void* ptr,int depth,int pflag,char** buf, int *
     }
     p=wg_atomstr2(db,ptr);
     if (p!=NULL) {
+      if (!wg_str_guarantee_space(db,buf,len,pos+strlen(p)+1000)) return -1;
       if (wg_should_quote(p)) {
         printf("^^\"%s\"",p);
       } else {
@@ -1741,180 +2035,412 @@ int wg_print_term_tptp(void* db, void* ptr,int depth,int pflag,char** buf, int *
 }
 
 
-/** Print a single, encoded value or a subrecord
- *  
- */
-/*
-int wg_print_simpleterm_tptp(void* db, void* ptr,int printlevel, char** buf, int *len, int pos, int isneg) {
-  int intdata;
-  char *strdata, *exdata;
-  double doubledata;
-  char strbuf[80];
-  int len1=0,len2=0;
 
+
+// =========== json printing ================
+
+
+
+int wg_print_frm_json(void* db, void* ptr, char** buf, int *len, int pos) {  
+  int p;
+  p=wg_print_subfrm_json(db,ptr,0,0,0,buf,len,pos,0);
+  //printf("\nwg_print_frm_json calcs p: %d\n",p);
+  return p;
+}
+
+
+int wg_print_subfrm_json(void* db, void* ptr,int depth,int pflag, 
+                         int termflag, char** buf, int *len, int pos, int negflag) {
+  /*
+  gptr recptr;
+  gint  enc;
+  int i, clen;
+  */
 #ifdef DEBUG  
-  printf("simpleterm called with enc %d and type %d \n",(int)enc,wg_get_encoded_type(db,enc)); 
-#endif  
-  strbuf[0]=(char)0;
-  if (!wg_str_guarantee_space(db,buf,len,pos+50)) return -1;
-  switch(wg_get_encoded_type(db, enc)) {
-    case WG_NULLTYPE:
-      return pos+snprintf((*buf)+pos,(*len)-pos,"NULL");      
-    //case WG_RECORDTYPE:
-    //  ptrdata = (gint) wg_decode_record(db, enc);
-    //  wg_print_subrecord_otter(db,(gint*)ptrdata);
-    //  break;    
-    case WG_INTTYPE:      
-      intdata = wg_decode_int(db, enc);     
-      return pos+snprintf((*buf)+pos,(*len)-pos,"%d", intdata);
-    case WG_DOUBLETYPE:
-      doubledata = wg_decode_double(db, enc);
-      return pos+snprintf((*buf)+pos,(*len)-pos,"%f", doubledata);
-    case WG_STRTYPE:
-      strdata = wg_decode_str(db, enc);
-      if (wg_print_tptp_json(db)) {
-        if (isneg) {
-          return pos+snprintf((*buf)+pos,(*len)-pos,"\"-:%s\"", strdata);
-        } else {
-          return pos+snprintf((*buf)+pos,(*len)-pos,"\":%s\"", strdata);
-        }  
-      } else {
-        return pos+snprintf((*buf)+pos,(*len)-pos,":%s", strdata);
-      }      
-    case WG_URITYPE:
-      strdata = wg_decode_uri(db, enc);
-      exdata = wg_decode_uri_prefix(db, enc);
-      if (strdata) len1=strlen(strdata);
-      if (exdata) len2=strlen(exdata);
-      if (!wg_str_guarantee_space(db,buf,len,pos+len1+len2+50)) return -1;
-      if (exdata==NULL) {
-        if (wg_print_tptp_json(db)) {
-          if (isneg) {
-            return pos+snprintf((*buf)+pos,(*len)-pos,"\"-%s\"", strdata);
-          } else {
-            return pos+snprintf((*buf)+pos,(*len)-pos,"\"%s\"", strdata);
-          }          
-        } else {          
-          if (isneg) {
-            return pos+snprintf((*buf)+pos,(*len)-pos,"-%s", strdata);
-          } else {
-            return pos+snprintf((*buf)+pos,(*len)-pos,"%s", strdata);
-            //return pos+snprintf((*buf)+pos,(*len)-pos,"%s%ld", strdata,wg_decode_uri_id(db,enc));
-          }           
-        }        
-      } else {
-        if (wg_print_tptp_json(db)) {
-          if (isneg) {
-            return pos+snprintf((*buf)+pos,(*len)-pos,"\"-%s:%s\"", exdata, strdata);
-          } else {
-            return pos+snprintf((*buf)+pos,(*len)-pos,"\"%s:%s\"", exdata, strdata);
-          }          
-        } else {
-          if (isneg) {
-            return pos+snprintf((*buf)+pos,(*len)-pos,"-%s:%s", exdata, strdata);
-          } else {
-            return pos+snprintf((*buf)+pos,(*len)-pos,"%s:%s", exdata, strdata);
-          }           
-        }               
-      }  
-    case WG_XMLLITERALTYPE:
-      strdata = wg_decode_xmlliteral(db, enc);
-      exdata = wg_decode_xmlliteral_xsdtype(db, enc);
-      if (strdata) len1=strlen(strdata);
-      if (exdata) len2=strlen(exdata);
-      if (!wg_str_guarantee_space(db,buf,len,pos+len1+len2+50)) return -1;
-      if (wg_print_tptp_json(db)) {
-        if (isneg) {
-          return pos+snprintf((*buf)+pos,(*len)-pos,"\"-x:%s:%s\"", exdata, strdata);
-        } else {
-          return pos+snprintf((*buf)+pos,(*len)-pos,"\"x:%s:%s\"", exdata, strdata);
-        }        
-      } else {
-        if (isneg) {
-          return pos+snprintf((*buf)+pos,(*len)-pos,"-x:%s:%s", exdata, strdata);
-        } else {
-          return pos+snprintf((*buf)+pos,(*len)-pos,"x:%s:%s", exdata, strdata);
-        }        
-      }          
-    case WG_CHARTYPE:
-      intdata = wg_decode_char(db, enc);    
-      if (wg_print_tptp_json(db)) {
-        if (isneg) {
-          return pos+snprintf((*buf)+pos,(*len)-pos,"\"-%c\"", (char) intdata);
-        } else {
-          return pos+snprintf((*buf)+pos,(*len)-pos,"\"%c\"", (char) intdata);
-        }        
-      } else {
-        if (isneg) {
-          return pos+snprintf((*buf)+pos,(*len)-pos,"-%c", (char) intdata);
-        } else {
-          return pos+snprintf((*buf)+pos,(*len)-pos,"%c", (char) intdata);
-        }        
-      }       
-    case WG_DATETYPE:
-      intdata = wg_decode_date(db, enc);
-      wg_strf_iso_datetime(db,intdata,0,strbuf);
-      strbuf[10]=0;
-      if (!wg_str_guarantee_space(db,buf,len,pos+50)) return -1;
-      if (wg_print_tptp_json(db)) {
-        if (isneg) {
-          return pos+snprintf((*buf)+pos,(*len)-pos,"\"-d:%s\"",strbuf);
-        } else {
-          return pos+snprintf((*buf)+pos,(*len)-pos,"\"d:%s\"",strbuf);
-        }        
-      } else {
-        if (isneg) {
-          return pos+snprintf((*buf)+pos,(*len)-pos,"-d:%s",strbuf);
-        } else {
-          return pos+snprintf((*buf)+pos,(*len)-pos,"d:%s",strbuf);
-        }         
-      }      
-    case WG_TIMETYPE:
-      intdata = wg_decode_time(db, enc);
-      wg_strf_iso_datetime(db,1,intdata,strbuf);  
-      if (wg_print_tptp_json(db)) {
-        if (isneg) {
-          return pos+snprintf((*buf)+pos,(*len)-pos,"\"-t:%s\"",strbuf);
-        } else {
-          return pos+snprintf((*buf)+pos,(*len)-pos,"\"t:%s\"",strbuf);
-        }        
-      } else {
-        if (isneg) {
-          return pos+snprintf((*buf)+pos,(*len)-pos,"-t:%s",strbuf);
-        } else {
-          return pos+snprintf((*buf)+pos,(*len)-pos,"t:%s",strbuf);
-        }        
-      }             
-    case WG_VARTYPE:
-      intdata = wg_decode_var(db, enc);
-      return wg_print_nice_var_tptp(db,intdata,buf,len,pos);
-    case WG_ANONCONSTTYPE:
-      strdata = wg_decode_anonconst(db, enc);
-      if (strdata) len1=strlen(strdata);
-      if (!wg_str_guarantee_space(db,buf,len,pos+len1+50)) return -1;      
-      if (wg_print_tptp_json(db)) {
-        if (isneg) {
-          return pos+snprintf((*buf)+pos,(*len)-pos,"\"-%s\"",strbuf);
-        } else {
-          return pos+snprintf((*buf)+pos,(*len)-pos,"\"%s\"",strbuf);
-        }        
-      } else {
-        if (isneg) {
-          return pos+snprintf((*buf)+pos,(*len)-pos,"-!%s",strbuf);
-        } else {
-          return pos+snprintf((*buf)+pos,(*len)-pos,"!%s",strbuf);
-        }       
-      } 
-    default:
-      if (wg_print_tptp_json(db)) {
-        return pos+snprintf((*buf)+pos,(*len)-pos,"\"$unknown_type\"");
-      } else {
-        return pos+snprintf((*buf)+pos,(*len)-pos,"<unsupported type>");
-      }
-      
+  printf("print_term called"); 
+#endif   
+  //int type;
+  char *p;
+  int count;
+  int ppflag=0;
+  int i;
+  void *curptr;
+  void *op;
+  int lstlen, type;
+  char* symb;
+  void* varlst;
+  void* varptr;
+  int varcount;
+
+  //printf("\nwg_print_subfrm_json called\n"); 
+  if (!wg_str_guarantee_space(db,buf,len,pos+1000)) {
+    wg_printerr_json(db,"wg_print_subfrm_json cannot guarantee buffer space"); 
+    if (buf) sys_free(buf);
+    return -1;
   }
+  
+  /*
+  printf("\npos before2: %d",pos);
+  pos+=snprintf((*buf)+pos,(*len)-pos,"efg");
+  printf("\npos after2: %d",pos);
+  return pos;
+  */
+  if (ptr==NULL) {
+    //printf("()");
+    pos+=snprintf((*buf)+pos,(*len)-pos,"[]");
+    return pos;
+  } else if (wg_isatom(db,ptr)) {
+    type=wg_atomtype(db,ptr); 
+    p=wg_atomstr1(db,ptr); 
+    //p2=wg_atomstr2(db,ptr);  
+    if (!wg_str_guarantee_space(db,buf,len,pos+strlen(p)+1000)) return -1; 
+    switch (type) {
+      /*
+      case 0: printf("_:"); break;
+      case WG_NULLTYPE: printf("n:"); break;
+      case WG_RECORDTYPE: 
+        printf("r:"); 
+        wg_print_record(db, ((gint*)(offsettoptr((db),(wg_atomrec(db,ptr))))));
+        printf(" ");
+        break;
+      */  
+      case WG_INTTYPE: pos+=snprintf((*buf)+pos,(*len)-pos,"%s",p); break;
+      case WG_DOUBLETYPE: pos+=snprintf((*buf)+pos,(*len)-pos,"%s",p); break;
+      /*
+      case WG_STRTYPE: printf("s:"); break;
+      case WG_XMLLITERALTYPE: printf("x:"); break;
+      case WG_URITYPE: printf("u:"); break;
+      case WG_BLOBTYPE: printf("b:"); break;
+      case WG_CHARTYPE: printf("c:"); break;
+      case WG_FIXPOINTTYPE: printf("f:"); break;
+      case WG_DATETYPE: printf("date:"); break;
+      case WG_TIMETYPE: printf("time:"); break;
+      case WG_ANONCONSTTYPE: printf("a:"); break;
+      case WG_VARTYPE: printf("?:"); break;
+      */
+      default: {        
+        if (p==NULL) {     
+          pos+=snprintf((*buf)+pos,(*len)-pos,"\"\"" );                
+        } else if (!strncmp(p,"$true",5)) {
+          if (negflag) pos+=snprintf((*buf)+pos,(*len)-pos,"false");
+          else pos+=snprintf((*buf)+pos,(*len)-pos,"true");
+        } else if (!strncmp(p,"$false",6)) {
+          if (negflag) pos+=snprintf((*buf)+pos,(*len)-pos,"true");
+          else pos+=snprintf((*buf)+pos,(*len)-pos,"false");
+        } else if (wg_contains_dquote(p)) { 
+          if (negflag) {                  
+            pos+=wg_print_dquoted(buf,*len,pos,p,1);        
+          } else {
+            pos+=wg_print_dquoted(buf,*len,pos,p,0); 
+          }  
+        } else {
+          if (negflag) {
+            pos+=snprintf((*buf)+pos,(*len)-pos,"\"~%s\"",p);
+          } else {
+            pos+=snprintf((*buf)+pos,(*len)-pos,"\"%s\"",p);
+          }  
+        }
+      }
+    }    
+    return pos;   
+    // -- old ---
+    /*
+    p=wg_atomstr1(db,ptr);   
+    if (p!=NULL) {     
+      pos+=snprintf((*buf)+pos,(*len)-pos,"\"%s\"",p);      
+    } else {
+      //printf("\'\'");
+      pos+=snprintf((*buf)+pos,(*len)-pos,"\"\"" );
+    }
+    p=wg_atomstr2(db,ptr);
+    if (p!=NULL) {    
+      pos+=snprintf((*buf)+pos,(*len)-pos,"\"^^%s\"",p);      
+    }    
+    return pos;
+    */
+  } else {    
+
+    op=wg_first(db,ptr);
+    lstlen=wg_list_len(db,ptr);   
+    if (pflag && wg_listtreecount(db,ptr)>10) ppflag=1;
+    if (!termflag &&
+       wg_isatom(db,op) && 
+       (wg_atomtype(db,op)==WG_ANONCONSTTYPE || wg_atomtype(db,op)==WG_URITYPE) &&
+       wg_atomstr1(db,op) &&
+       (wg_atomstr1(db,op))[0]=='=' &&
+       !(wg_atomstr1(db,op))[1]) {
+      // equality predicate
+      pos+=snprintf((*buf)+pos,(*len)-pos,"[");
+      pos=wg_print_subfrm_json(db,wg_nth(db,ptr,1),depth+1,0,1,buf,len,pos,0);
+      if (pos<0) return pos;
+      if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
+      pos+=snprintf((*buf)+pos,(*len)-pos,", \"=\", ");
+      pos=wg_print_subfrm_json(db,wg_nth(db,ptr,2),depth+1,0,1,buf,len,pos,0);
+      if (pos<0) return pos;
+      if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
+      pos+=snprintf((*buf)+pos,(*len)-pos,"]");
+      return pos;
+    } else if (!termflag && wg_islogconnective(db,op)) {
+      //printf("@");
+      //pos+=snprintf((*buf)+pos,(*len)-pos,"@");
+        
+      // special handling of connective printing 
+      if (wg_islogneg(db,op)) {              
+        if (lstlen==2 && wg_list_is_term(db,wg_nth(db,ptr,1))) {
+          // add neg to first el of the ptr list
+          pos=wg_print_subfrm_json(db,wg_nth(db,ptr,1),depth+1,0,termflag,buf,len,pos,1);
+          if (pos<0) return pos; 
+        } else {
+          // write neg as a separate op
+          pos+=snprintf((*buf)+pos,(*len)-pos,"[\"~\", ");
+          pos=wg_print_subfrm_json(db,wg_nth(db,ptr,1),depth+1,0,termflag,buf,len,pos,0);
+          if (pos<0) return pos; 
+          if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
+          pos+=snprintf((*buf)+pos,(*len)-pos,"]");
+        }
+      } else if (wg_islogor(db,op) || wg_islogand(db,op) 
+                 || wg_islogimp(db,op) || wg_islogeqv(db,op)) {
+        if (wg_islogor(db,op)) symb=", \"|\", ";
+        if (wg_islogand(db,op)) symb=", \"&\", ";
+        if (wg_islogimp(db,op)) symb=", \"=>\", ";
+        if (wg_islogeqv(db,op)) symb=", \"<=>\", ";
+        pos+=snprintf((*buf)+pos,(*len)-pos,"[");
+        pos=wg_print_subfrm_json(db,wg_nth(db,ptr,1),depth+1,0,termflag,buf,len,pos,0);
+        if (pos<0) return pos;
+        if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;        
+        pos+=snprintf((*buf)+pos,(*len)-pos,"%s",symb);        
+        pos=wg_print_subfrm_json(db,wg_nth(db,ptr,2),depth+1,0,termflag,buf,len,pos,0);
+        if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1; 
+        pos+=snprintf((*buf)+pos,(*len)-pos,"]");
+        if (pos<0) return pos;        
+      } else if (wg_islogall(db,op) || wg_islogexists(db,op)) {
+        if (wg_islogall(db,op)) symb="\"forall\"";
+        if (wg_islogexists(db,op)) symb="\"exists\"";      
+        pos+=snprintf((*buf)+pos,(*len)-pos,"[");
+        pos+=snprintf((*buf)+pos,(*len)-pos,"%s, ",symb); 
+        pos+=snprintf((*buf)+pos,(*len)-pos,"[");
+        varlst=wg_nth(db,ptr,1);
+        for(varptr=varlst, varcount=0;
+            varptr!=NULL && !wg_isatom(db,varlst);
+            varptr=wg_rest(db,varptr), varcount++) {
+          pos=wg_print_subfrm_json(db,wg_first(db,varptr),depth+1,0,1,buf,len,pos,0);
+          if (pos<0) return pos;
+          if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
+          if (wg_rest(db,varptr)) {
+            pos+=snprintf((*buf)+pos,(*len)-pos,",");
+          }    
+        }      
+        pos+=snprintf((*buf)+pos,(*len)-pos,"], ");
+        pos=wg_print_subfrm_json(db,wg_nth(db,ptr,2),depth+1,0,termflag,buf,len,pos,0);
+        if (pos<0) return pos;
+        if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;              
+        pos+=snprintf((*buf)+pos,(*len)-pos,"]");
+        if (pos<0) return pos;
+      } 
+      return pos;   
+    } 
+    // normal term printing
+    for(curptr=ptr, count=0;curptr!=NULL && !wg_isatom(db,curptr);curptr=wg_rest(db,curptr), count++) {
+      if (count>0) {
+        // tail of list
+        if (ppflag) {
+          //printf("\n");
+          pos+=snprintf((*buf)+pos,(*len)-pos,"\n");
+          if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
+          for(i=0;i<depth;i++) {
+            //printf(" ");
+            pos+=snprintf((*buf)+pos,(*len)-pos," ");
+            if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
+          }  
+        }        
+        pos=wg_print_subfrm_json(db,wg_first(db,curptr),depth+1,0,1,buf,len,pos,0);
+        if (pos<0) return pos;
+        if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
+        if ((count+1)<lstlen) {
+          // not the last element
+          //printf(",");
+          pos+=snprintf((*buf)+pos,(*len)-pos,",");
+        }
+      } else {
+        // header of list
+        if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
+        //printf ("(");
+        pos+=snprintf((*buf)+pos,(*len)-pos,"[");
+        pos=wg_print_subfrm_json(db,wg_first(db,curptr),depth+1,0,1,buf,len,pos,negflag);
+        if (pos<0) return pos;
+        if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
+        //printf ("(");
+        if (lstlen>1) {
+          // not a single element
+          pos+=snprintf((*buf)+pos,(*len)-pos,",");        
+        }  
+      }      
+    }
+    if (wg_isatom(db,curptr)) {
+      //printf(" . ");
+      pos+=snprintf((*buf)+pos,(*len)-pos," . ");
+      pos=wg_print_subfrm_json(db,curptr,depth+1,pflag,1,buf,len,pos,0);
+      if (pos<0) return pos;
+      if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
+    }
+    //printf (")");
+    if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
+    pos+=snprintf((*buf)+pos,(*len)-pos,"]");
+    if (ppflag) {
+      //printf("\n");
+      pos+=snprintf((*buf)+pos,(*len)-pos,"\n");
+    }
+  }
+  return pos;
+}
+
+int wg_print_term_json(void* db, void* ptr,int depth,int pflag,char** buf, int *len, int pos) {
+  /*
+  gptr recptr;
+  gint  enc;
+  int i, clen;
+  */
+#ifdef DEBUG  
+  printf("print_term called"); 
+#endif   
+  int type;
+  char* p;
+  int count;
+  int ppflag=0;
+  int i;
+  void *curptr;
+
+  if (ptr==NULL) {
+    printf("[]");
+  } else if (wg_isatom(db,ptr)) {
+    type=wg_atomtype(db,ptr);
+    switch (type) {
+      case 0: printf("_:"); break;
+      case WG_NULLTYPE: printf("n:"); break;
+      case WG_RECORDTYPE: 
+        printf("r:"); 
+        wg_print_record(db, ((gint*)(offsettoptr((db),(wg_atomrec(db,ptr))))));
+        printf(" ");
+        break;
+      case WG_INTTYPE: printf("i:"); break;
+      case WG_DOUBLETYPE: printf("d:"); break;
+      case WG_STRTYPE: printf("s:"); break;
+      case WG_XMLLITERALTYPE: printf("x:"); break;
+      case WG_URITYPE: printf("u:"); break;
+      case WG_BLOBTYPE: printf("b:"); break;
+      case WG_CHARTYPE: printf("c:"); break;
+      case WG_FIXPOINTTYPE: printf("f:"); break;
+      case WG_DATETYPE: printf("date:"); break;
+      case WG_TIMETYPE: printf("time:"); break;
+      case WG_ANONCONSTTYPE: printf("a:"); break;
+      case WG_VARTYPE: printf("?:"); break;
+      default: printf("!:");
+    }    
+    p=wg_atomstr1(db,ptr);
+    /*
+    if (type==WG_ANONCONSTTYPE || type==WG_URITYPE) {
+      for(i=0; *p!='\0'; i++, p++) {
+        printf(" i%d%c ",i,*p);
+      }
+      printf(" t1:%d at %d",(int)*p,(int)p);
+      p++;
+      printf(" t2:%d at %d",(int)*p,(int)p);
+    }  
+    p=wg_atomstr2(db,ptr);
+    printf(" compp:%d at %d",100,(int)p);
+    p=wg_atomstr1(db,ptr); 
+    */
+
+    if (p!=NULL) {      
+      printf("\"%s\"",p);      
+    } else {
+      printf("\"\"");
+    }
+    p=wg_atomstr2(db,ptr);
+    if (p!=NULL) {
+      printf("\"^^%s\"",p);      
+    }
+  } else {    
+    if (pflag && wg_listtreecount(db,ptr)>10) ppflag=1;
+    printf ("[");
+    for(curptr=ptr, count=0;curptr!=NULL && !wg_isatom(db,curptr);curptr=wg_rest(db,curptr), count++) {
+      if (count>0) {
+        if (ppflag) {
+          printf("\n");
+          for(i=0;i<depth;i++) printf(" ");
+        }
+        printf(" ");
+      }
+      wg_print_term_json(db,wg_first(db,curptr),depth+1,0,buf,len,pos);
+    }
+    if (wg_isatom(db,curptr)) {
+      printf(" . ");
+      wg_print_term_json(db,curptr,depth+1,ppflag,buf,len,pos);
+    }
+    printf ("]");
+    if (ppflag) printf("\n");
+  }
+  return pos;
+}
+
+int wg_list_is_term(void* db, void* lst) {
+  void *el, *ptr;
+  int i; //, type;;
+
+  if (!lst || !wg_ispair(db,lst)) return 0;
+  ptr=lst;
+  for(i=0; ptr && wg_ispair(db,ptr); i++, ptr=wg_rest(db,ptr)) {   
+    el=wg_first(db,ptr);
+    if (wg_islogconnective(db,el)) return 0;
+    if (!i) {      
+      // first el should be symbol
+      if (!wg_isatom(db,el) || wg_atomtype(db,el)!=WG_URITYPE) {
+        return 0;
+      }      
+    }    
+  }
+  return 1;
+}
+/*
+int int wg_islogconnective(void* db, void* ptr) {
+  char* str;
+
+  if (!wg_isatom(db,ptr) || wg_atomtype(db,ptr)!=WG_ANONCONSTTYPE) return 0; 
+  str=wg_atomstr1(db,ptr);
+  if (!strcmp("not",str)) return 1;
+  if (!strcmp("and",str)) return 1;
+  if (!strcmp("or",str)) return 1;
+  if (!strcmp("imp",str)) return 1;
+  if (!strcmp("eqv",str)) return 1;
+  if (!strcmp("all",str)) return 1;
+  if (!strcmp("exists",str)) return 1;
+  return 0;  
 }
 */
+/*
+int wg_list_is_formula_list(void* db, void* lst) {
+  void *el, *ptr;
+  int i; //, type;;
+
+  if (!lst || !wg_ispair(db,lst)) return 0;
+  ptr=lst;
+  for(i=0; ptr && wg_ispair(db,ptr); i++, ptr=wg_rest(db,ptr)) {
+    el=wg_first(db,ptr);
+    if (wg_islogconnective(db,el)) return 0;
+    if (!i) {
+      // first el should be symbol
+      if (!wg_isatom(db,ptr) || wg_atomtype(db,ptr)!=WG_URITYPE) {
+        return 0;
+      }      
+    }    
+  }
+  return 1;
+}
+*/
+
+// ============ end json printing ==============
+
+
 int wg_print_nice_var_tptp(void* db, gint i, char** buf, int *len, int pos) {
   char strbuf[80];
 
@@ -2013,27 +2539,16 @@ int wg_print_tptp_json(void* db) {
   return 0;
 }
 
+
+/* ------------ errors ---------------- */
+
+
 void wg_printerr_tptp(void* db, char* str) {
   printf("\nERROR while printing: %s\n",str);
   return;
 }
 
-/* ------------ errors ---------------- */
-/*
-
-static gint show_print_error(void* db, char* errmsg) {
-  printf("wg otterprint error: %s\n",errmsg);
-  return -1;
+void wg_printerr_json(void* db, char* str) {
+  printf("\nERROR while printing: %s\n",str);
+  return;
 }
-
-
-static gint show_print_error_nr(void* db, char* errmsg, gint nr) {
-  printf("wg parser error: %s %d\n", errmsg, (int) nr);
-  return -1;
-}
-
-static gint show_print_error_str(void* db, char* errmsg, char* str) {
-  printf("wg parser error: %s %s\n",errmsg,str);
-  return -1;
-}
-*/

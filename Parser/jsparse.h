@@ -38,7 +38,7 @@
 #define MPOOL_STRUCT_PREFSTR "$gk_struct$"
 #define MPOOL_JSON_NULL "$gk_null$"
 #define MPOOL_JSON_EMPTY "$gk_empty$"
-#define MPOOL_NULLVAR_PREFIX "nvar"
+#define MPOOL_NULLVAR_PREFIX "Nvar"
 #define MPOOL_JSON_FOF "fof"
 #define MPOOL_JSON_ASK "ask"
 
@@ -71,11 +71,12 @@ int wr_is_json_fof_clause(void* db, void* cl);
 int wr_is_json_import_clause(void* db, void* cl);
 void* wr_preprocess_json_cnf_clause(glb* g, void* mpool, void* cl);
 void* wr_preprocess_json_fof_clause(glb* g, void* mpool, void* cl);
-void* wr_process_json_import_clause(glb* g, void* mpool, void* cl);
+void* wr_process_json_import_clause(glb* g, void* mpool, void* cl, cvec clvec);
 
 void* wr_process_json_formula(glb* g,parse_parm* pp, void* cl);
 void* wr_process_json_formula_aux(glb* g, parse_parm* pp, void* cl);
 void* wr_process_json_term(glb* g, parse_parm* pp, void* ptr, int atomlevel, int pos);
+void* wg_make_nested_conn(void* db, void* mpool, void* op, void* cl);
 
 void* wr_json_list_logconn(glb* g, parse_parm* pp, void* cl);
 void* wr_json_translate_connective(glb* g,parse_parm* pp,void* ptr);
@@ -88,6 +89,7 @@ void* wr_json_make_nullvar(glb* g, parse_parm* pp);
 
 int wr_json_is_atomlist(void* db,void* ptr);
 int wr_json_is_connective(glb* g,void* ptr);
+int wr_json_is_eq_op(glb* g,void* ptr);
 int wr_json_equal_atoms(glb* g,void* a1, void* a2);
 
 void* wr_json_process_if_then(glb* g, parse_parm* pp, void* ptr);
