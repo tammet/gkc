@@ -71,9 +71,10 @@
 %token RIMP
 %token NOR
 %token NAND
+%token AT
 
 
-%left '&' NAND '|' NOR IMP RIMP EQV NEQV
+%left '&' NAND '|' NOR IMP RIMP EQV NEQV AT
 %left '?' '!' 
 %left '-' '~'
 
@@ -225,7 +226,18 @@ connlog:
                                             MKWGPAIR(
                                               PP,
                                               $1,
-                                              MKWGNIL))); }                                     
+                                              MKWGNIL))); }  
+                                                                                 
+         | log AT log   %prec AT    { $$ = MKWGPAIR(
+                                          PP,
+                                          MKWGCONST(PP,"@"),
+                                          MKWGPAIR(
+                                            PP,
+                                            $3,                                                     
+                                            MKWGPAIR(
+                                              PP,
+                                              $1,
+                                              MKWGNIL))); }                                      
 
          | log EQV log    %prec EQV    { $$ = MKWGPAIR(
                                           PP,

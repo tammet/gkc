@@ -124,6 +124,7 @@ int wg_islogimp(void* db, void* ptr);
 int wg_islogeqv(void* db, void* ptr);
 int wg_islogall(void* db, void* ptr);
 int wg_islogexists(void* db, void* ptr);
+int wg_islogat(void* db, void* ptr);
 int wg_islogconnective(void* db, void* ptr);
 int wg_islog_conn(void* db, void* ptr, char* str);
 int wg_islog_uri(void* db, void* ptr, char* str);
@@ -138,6 +139,7 @@ void* wg_makelogeqv(void* db, void* mpool);
 void* wg_makelogall(void* db, void* mpool);
 void* wg_makelogexists(void* db, void* mpool);
 void* wg_makeatomeq(void* db, void* mpool);
+void* wg_makelogat(void* db, void* mpool);
 void* wg_makelog_conn(void* db, void* mpool, char* str);
 
 void* wg_mpool_copy(void* db, void* mpool, void* ptr);

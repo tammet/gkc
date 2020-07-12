@@ -1008,7 +1008,7 @@ void* wr_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
 #endif      
     if (!wg_ispair(db,lit)) { issimple=0; continue; }
     fun=wg_first(db,lit);
-    if (wg_atomtype(db,fun)==WG_ANONCONSTTYPE && !strcmp(wg_atomstr1(db,fun),"not")) { issimple=0; continue; }
+    if (wg_atomtype(db,fun)==WG_ANONCONSTTYPE && !strcmp(wg_atomstr1(db,fun),"not")) { issimple=0; continue; }    
     for(termpart=lit;wg_ispair(db,termpart);termpart=wg_rest(db,termpart)) {
       subterm=wg_first(db,termpart);
 #ifdef DEBUG        
@@ -1241,8 +1241,15 @@ void* wr_parse_atom(glb* g,void* mpool,void* term, int isneg, int issimple, char
     wg_mpool_print(db,term); 
     printf("\n");
 #endif    
-    if (!wg_ispair(db,term)) {
+    if (!wg_ispair(db,term)) {      
       DPRINTF("term nr %d is primitive \n",termnr); 
+      // convert some primitives to others
+      if (!termnr && wg_atomstr1(db,term) && wg_atomstr1(db,term)[0]=='$') {
+        if (!strcmp("$less",wg_atomstr1(db,term))) {
+          term=wg_mkatom(db,mpool,WG_URITYPE,"<",NULL);
+        }
+      }     
+      // conversion ends
       tmpres2=wr_parse_primitive(g,mpool,term,vardata,termnr);    
       if (!tmpres2 || tmpres2==WG_ILLEGAL) {
         //wg_delete_record(db,record); // might leak memory
@@ -1318,6 +1325,19 @@ void* wr_parse_term(glb* g,void* mpool,void* term, char** vardata) {
 #endif    
     if (!wg_ispair(db,term)) {
       DPRINTF("term nr %d is primitive \n",termnr); 
+      // convert some primitives to others
+      if (!termnr && wg_atomstr1(db,term) && wg_atomstr1(db,term)[0]=='$') {
+        if (!strcmp("$plus",wg_atomstr1(db,term))) {
+          term=wg_mkatom(db,mpool,WG_URITYPE,"+",NULL);
+        } else if (!strcmp("$difference",wg_atomstr1(db,term))) {
+          term=wg_mkatom(db,mpool,WG_URITYPE,"-",NULL);        
+        } else if (!strcmp("$product",wg_atomstr1(db,term))) {
+          term=wg_mkatom(db,mpool,WG_URITYPE,"*",NULL);        
+        } else if (!strcmp("$quotient",wg_atomstr1(db,term))) {
+          term=wg_mkatom(db,mpool,WG_URITYPE,"/",NULL);
+        }
+      }     
+      // conversion ends
       tmpres2=wr_parse_primitive(g,mpool,term,vardata,termnr);    
       if (tmpres2==WG_ILLEGAL) { 
         //wg_delete_record(db,record); // might leak memory !!
@@ -1492,7 +1512,7 @@ gint wr_parse_primitive(glb* g,void* mpool,void* atomptr, char** vardata, int po
       default: 
         ret=wg_encode_null(db,NULL);
     }      
-  }
+  } 
   return ret;
 }
 

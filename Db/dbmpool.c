@@ -751,6 +751,10 @@ int wg_islogexists(void* db, void* ptr) {
   return wg_islog_conn(db,ptr,"exists");
 }
 
+int wg_islogat(void* db, void* ptr) {
+  return wg_islog_conn(db,ptr,"@");
+}
+
 /*
 int wg_islogterm(void* db, void* ptr) {
   void* fun;
@@ -776,6 +780,7 @@ int wg_islogconnective(void* db, void* ptr) {
   if (!strcmp("eqv",str)) return 1;
   if (!strcmp("all",str)) return 1;
   if (!strcmp("exists",str)) return 1;
+  //if (!strcmp("@",str)) return 1;
   return 0;  
 }
 
@@ -827,6 +832,10 @@ void* wg_makelogall(void* db, void* mpool) {
 
 void* wg_makelogexists(void* db, void* mpool) {
   return wg_makelog_conn(db,mpool,"exists");
+}
+
+void* wg_makelogat(void* db, void* mpool) {
+  return wg_makelog_conn(db,mpool,"@");
 }
 
 void* wg_makeatomeq(void* db, void* mpool) {

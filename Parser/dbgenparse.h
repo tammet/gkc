@@ -94,6 +94,7 @@ typedef struct parse_parm_s {
   void* logall;
   void* logexists; // ..
   void* logask;
+  void* logat;
   void* atomeq;    // json preparation inserts this as an eq predicate for clausifier  
 
   void* freevars;  // json preparation collects a list of freevars  

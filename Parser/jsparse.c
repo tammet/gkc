@@ -197,6 +197,7 @@ int wr_import_js_file(glb* g, char* filename, char* strasfile, cvec clvec, int i
   pp.logeqv=wg_makelogeqv(db,mpool);
   pp.logall=wg_makelogall(db,mpool);
   pp.logexists=wg_makelogexists(db,mpool); 
+  pp.logat=wg_makelogat(db,mpool); 
   pp.atomeq=wg_makeatomeq(db,mpool); 
 
   pp.logask=wg_mkatom(db,mpool,WG_URITYPE,MPOOL_JSON_ASK,NULL); 
@@ -790,7 +791,12 @@ void* wr_preprocess_json_clauselist
     }   
     if (wr_is_json_import_clause(db,cl)) {
       // tptp import clause 
-      wr_process_json_import_clause(g,mpool,cl,clvec);
+      if ((dbmemsegh(db)->convert) && (dbmemsegh(db)->tptp)) {
+        // do not import when converting
+        printf("\ninclude('%s').\n",wg_atomstr1(db,wg_nth(db,cl,1)));        
+      } else {
+        wr_process_json_import_clause(g,mpool,cl,clvec);
+      }  
       resultclause=NULL;
     } else {      
       resultclause=wr_process_json_formula(g,pp,cl);      
@@ -935,8 +941,11 @@ void* wr_process_json_import_clause(glb* g, void* mpool, void* cl, cvec clvec) {
 #ifdef IDEBUG
   printf("\nfilename %s\n",filename);
 #endif   
-  wr_import_js_file(g,filename,NULL,clvec,0,0, &askinfo, 0);
-  //wr_import_otter_file(g,filename,NULL,NULL,1);  
+  if (wg_is_jsfile(db,filename)) {
+    wr_import_js_file(g,filename,NULL,clvec,1,0, &askinfo, 0);
+  } else {
+    //wr_import_otter_file(g,filename,NULL,clvec,1);  
+  }
   return NULL;
 }
 
@@ -1611,6 +1620,7 @@ int wr_json_is_connective(glb* g,void* ptr) {
   if (!strcmp("<~>",str)) return 1;
   if (!strcmp("~|",str)) return 1;
   if (!strcmp("~&",str)) return 1;
+  if (!strcmp("@",str)) return 1;
   
   //if (!strcmp("=",str)) return 1;
   //if (!strcmp("!=",str)) return 1;
@@ -1660,6 +1670,7 @@ void* wr_json_translate_connective(glb* g,parse_parm* pp,void* ptr) {
   if (!strcmp("<~>",str)) return pp->logeqv;
   if (!strcmp("~|",str)) return pp->logor;
   if (!strcmp("~&",str)) return pp->logand;
+  if (!strcmp("@",str)) return pp->logat;
 
   if (!strcmp("ask",str)) return pp->logask;   
   //if (!strcmp("=",str)) return NULL;

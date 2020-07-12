@@ -1011,7 +1011,7 @@ void oldremove_wr_push_cl_clpick_queues(glb* g, gint queues_offset, gptr cl, int
          (g->queryfocus_strat),(g->cl_pick_queue_strategy),weight);
   wr_print_clause(g,cl);
 #endif
-
+   
   // start pushing
 
   queues=rotp(g,queues_offset);

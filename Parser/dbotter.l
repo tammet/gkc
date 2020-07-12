@@ -174,6 +174,12 @@ ID       [a-zA-Z][a-zA-Z0-9_:+\-*/<>]*
               return NOR; 
 	    }
 
+"@"   {
+              parseprintf( "an @: %s", yytext);
+              *yylval=yytext;	      
+              return AT; 
+	    }      
+
 
 {DIGIT}+    { parseprintf( "An integer: %s (%d)\n",yytext,atoi(yytext));	           
               *yylval=yytext;              

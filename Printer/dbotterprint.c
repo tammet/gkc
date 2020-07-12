@@ -726,12 +726,30 @@ int wr_strprint_atom_otter(glb* g, gint rec, int printlevel,char** buf, int *len
     if (wg_get_encoded_type(db, enc)==WG_RECORDTYPE) {
       pos=wr_strprint_term_otter(g,enc,printlevel,buf,len,pos);
       if (pos<0) return pos;
-    } else {  
-      if (isneg && (i<=((g->unify_firstuseterm)))) {
-        pos=wr_strprint_simpleterm_otter(g, enc,printlevel,buf,len,pos,1);
+    } else {         
+      if ((g->print_clauses_tptp) && (i<=((g->unify_firstuseterm))) &&
+          wg_get_encoded_type(db,enc)==WG_URITYPE &&
+          wg_decode_uri(db,enc) && strlen(wg_decode_uri(db,enc))==1) {
+        if (!strcmp(wg_decode_uri(db,enc),"<")) {         
+          if (isneg) {
+            pos+=snprintf((*buf)+pos,(*len)-pos,"~$less");           
+          } else {
+            pos+=snprintf((*buf)+pos,(*len)-pos,"$less");            
+          }       
+        } else {          
+          if (isneg && (i<=((g->unify_firstuseterm)))) {
+            pos=wr_strprint_simpleterm_otter(g, enc,printlevel,buf,len,pos,1);
+          } else {
+            pos=wr_strprint_simpleterm_otter(g, enc,printlevel,buf,len,pos,0);
+          }
+        }
       } else {
-        pos=wr_strprint_simpleterm_otter(g, enc,printlevel,buf,len,pos,0);
-      }      
+        if (isneg && (i<=((g->unify_firstuseterm)))) {
+          pos=wr_strprint_simpleterm_otter(g, enc,printlevel,buf,len,pos,1);
+        } else {
+          pos=wr_strprint_simpleterm_otter(g, enc,printlevel,buf,len,pos,0);
+        }
+      }            
       if (pos<0) return pos;
     }       
     if (!wr_str_guarantee_space(g,buf,len,pos+10)) return -1;
@@ -779,7 +797,24 @@ int wr_strprint_term_otter(glb* g, gint rec,int printlevel, char** buf, int *len
       pos=wr_strprint_term_otter(g,enc,printlevel,buf,len,pos);
       if (pos<0) return pos;
     } else {  
-      pos=wr_strprint_simpleterm_otter(g, enc,printlevel,buf,len,pos,0);
+      if ((g->print_clauses_tptp) && wg_get_encoded_type(db,enc)==WG_URITYPE &&
+          wg_decode_str(db,enc) && strlen(wg_decode_str(db,enc))==1) {
+        if (!strcmp(wg_decode_str(db,enc),"+")) {
+          pos+=snprintf((*buf)+pos,(*len)-pos,"$sum");
+        } else if (!strcmp(wg_decode_str(db,enc),"*")) {
+          pos+=snprintf((*buf)+pos,(*len)-pos,"$product");
+        } else if (!strcmp(wg_decode_str(db,enc),"-")) {
+          pos+=snprintf((*buf)+pos,(*len)-pos,"$sum");
+        } else if (!strcmp(wg_decode_str(db,enc),"/")) {
+          pos+=snprintf((*buf)+pos,(*len)-pos,"$quotient");
+        } else if (!strcmp(wg_decode_str(db,enc),"<")) {
+          pos+=snprintf((*buf)+pos,(*len)-pos,"$less");  
+        } else {
+          pos=wr_strprint_simpleterm_otter(g, enc,printlevel,buf,len,pos,0);
+        }
+      } else {
+        pos=wr_strprint_simpleterm_otter(g, enc,printlevel,buf,len,pos,0);
+      }      
       if (pos<0) return pos;
     }           
     if (!wr_str_guarantee_space(g,buf,len,pos+10)) return -1;
@@ -1622,7 +1657,7 @@ int wg_print_subfrm_tptp(void* db, void* ptr,int depth,int pflag, int termflag, 
       if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
       pos+=snprintf((*buf)+pos,(*len)-pos,")");
       return pos;
-    } else if (!termflag && wg_islogconnective(db,op)) {
+    } else if (!termflag && (wg_islogconnective(db,op) || wg_islogat(db,op))) {
       //printf("@");
       //pos+=snprintf((*buf)+pos,(*len)-pos,"@");
         
@@ -1632,11 +1667,12 @@ int wg_print_subfrm_tptp(void* db, void* ptr,int depth,int pflag, int termflag, 
         pos=wg_print_subfrm_tptp(db,wg_nth(db,ptr,1),depth+1,0,termflag,buf,len,pos);
         if (pos<0) return pos; 
       } else if (wg_islogor(db,op) || wg_islogand(db,op) 
-                 || wg_islogimp(db,op) || wg_islogeqv(db,op)) {
+                 || wg_islogimp(db,op) || wg_islogeqv(db,op) || wg_islogat(db,op)) {
         if (wg_islogor(db,op)) symb=" | ";
         if (wg_islogand(db,op)) symb=" & ";
         if (wg_islogimp(db,op)) symb=" => ";
         if (wg_islogeqv(db,op)) symb=" <=> ";
+        if (wg_islogat(db,op)) symb=" @ ";
         pos+=snprintf((*buf)+pos,(*len)-pos,"(");
         pos=wg_print_subfrm_tptp(db,wg_nth(db,ptr,1),depth+1,0,termflag,buf,len,pos);
         if (pos<0) return pos;
@@ -1824,7 +1860,7 @@ int wg_print_subcnf_tptp(void* db, void* ptr,int depth,int pflag, int termflag, 
       if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
       pos+=snprintf((*buf)+pos,(*len)-pos,")");
       return pos;
-    } else if (!termflag && wg_islogconnective(db,op)) {
+    } else if (!termflag && (wg_islogconnective(db,op) || wg_islogat(db,op))) {
       //printf("@");
       //pos+=snprintf((*buf)+pos,(*len)-pos,"@");
         
@@ -2180,7 +2216,7 @@ int wg_print_subfrm_json(void* db, void* ptr,int depth,int pflag,
       if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
       pos+=snprintf((*buf)+pos,(*len)-pos,"]");
       return pos;
-    } else if (!termflag && wg_islogconnective(db,op)) {
+    } else if (!termflag && (wg_islogconnective(db,op) || wg_islogat(db,op))) {
       //printf("@");
       //pos+=snprintf((*buf)+pos,(*len)-pos,"@");
         
@@ -2199,11 +2235,12 @@ int wg_print_subfrm_json(void* db, void* ptr,int depth,int pflag,
           pos+=snprintf((*buf)+pos,(*len)-pos,"]");
         }
       } else if (wg_islogor(db,op) || wg_islogand(db,op) 
-                 || wg_islogimp(db,op) || wg_islogeqv(db,op)) {
+                 || wg_islogimp(db,op) || wg_islogeqv(db,op) || wg_islogat(db,op)) {
         if (wg_islogor(db,op)) symb=", \"|\", ";
         if (wg_islogand(db,op)) symb=", \"&\", ";
         if (wg_islogimp(db,op)) symb=", \"=>\", ";
         if (wg_islogeqv(db,op)) symb=", \"<=>\", ";
+        if (wg_islogat(db,op)) symb=", \"@\", ";
         pos+=snprintf((*buf)+pos,(*len)-pos,"[");
         pos=wg_print_subfrm_json(db,wg_nth(db,ptr,1),depth+1,0,termflag,buf,len,pos,0);
         if (pos<0) return pos;
