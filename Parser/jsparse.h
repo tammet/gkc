@@ -47,7 +47,9 @@
 
 int wg_import_js_file(void *db, char* filename, int iskb, int* informat,
         int askpolarity, int* askinfo, int streaming);
-
+int wg_import_js_string(void *db, char* instr, int iskb, int* informat,
+        int askpolarity, int* askinfo, int streaming);
+        
 int wr_import_js_file(glb* g, char* filename, char* strasfile, cvec clvec, int isincluded,
       int askpolarity, int* askinfo, int streaming);
 
@@ -73,7 +75,7 @@ void* wr_preprocess_json_cnf_clause(glb* g, void* mpool, void* cl);
 void* wr_preprocess_json_fof_clause(glb* g, void* mpool, void* cl);
 void* wr_process_json_import_clause(glb* g, void* mpool, void* cl, cvec clvec);
 
-void* wr_process_json_formula(glb* g,parse_parm* pp, void* cl);
+void* wr_process_json_formula(glb* g,parse_parm* pp, void* cl, int isincluded);
 void* wr_process_json_formula_aux(glb* g, parse_parm* pp, void* cl);
 void* wr_process_json_term(glb* g, parse_parm* pp, void* ptr, int atomlevel, int pos);
 void* wg_make_nested_conn(void* db, void* mpool, void* op, void* cl);

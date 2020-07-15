@@ -131,6 +131,8 @@ gint wg_init_db_memsegment_with_kb(void* db, gint key, gint size, void* kb) {
   dbh->convert=0;
   dbh->min_strat_timeloop_nr=0;
   dbh->max_strat_timeloop_nr=1000;
+  dbh->parse_skolem_nr=0;
+  dbh->parse_newpred_nr=0;
   //printf("\n in wg_init_db_memsegment_with_kb  dbh->kb_db is %d\n",(int)dbh->kb_db);
 #endif
 #ifdef CHECK

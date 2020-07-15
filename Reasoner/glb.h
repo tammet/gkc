@@ -138,6 +138,7 @@ typedef struct {
   gint db_offset;       /**< offset of the db ptr */
   gint inkb;            /**< 1 if g struct is inside shared kb, 0 otherwise */
   void* kb_g;            /**< if external shared mem kb_db is present, then the g ptr inside kb_db, else NULL */ 
+  void* local_db;        /** this will be set to local db in any case in rmain.c */  
   char* filename;       /**< input filename */
   char* outfilename;       /**< output filename */
 
@@ -257,9 +258,9 @@ typedef struct {
 
   int parse_is_included_file;
   char* parse_skolem_prefix;  
-  int parse_skolem_nr;
+  //int parse_skolem_nr; // moved to dballoc.h
   char* parse_newpred_prefix; 
-  int parse_newpred_nr; 
+  //int int parse_newpred_nr; // moved to dballoc.h
   char* parse_errmsg;
   int parse_errflag;
   

@@ -64,7 +64,8 @@ extern int wg_yyotterdebug;
     NEQV = 274,
     RIMP = 275,
     NOR = 276,
-    NAND = 277
+    NAND = 277,
+    AT = 278
   };
 #endif
 

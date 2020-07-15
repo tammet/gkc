@@ -59,7 +59,7 @@
 #define MAX_URI_SCHEME 10
 #define VARDATALEN 1000
 #define MARK_IMPORTED_NAMES
-#define IMPORTED_NAME_PREFIX "$imp::"
+#define IMPORTED_NAME_PREFIX "$inc_"
 
 //#define DEBUG
 //#undef DEBUG
@@ -199,6 +199,10 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, in
     pp.errmsg=NULL;
   } else {
     // input from string
+    if (!strasfile) {
+      db_err_printf2("empty string given as input",strasfile);
+      return 1;
+    }  
     fnamestr="string";    
     pp.db=db;
     pp.filename=fnamestr;
@@ -223,8 +227,8 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, in
   wg_yyotterset_extra(&pp, pp.yyscanner);
   pres=wg_yyotterparse(&pp, pp.yyscanner);   
   wg_yyotterlex_destroy(pp.yyscanner);     
-  //printf("\nwg_yyotterparse finished\n");   
-  DPRINTF("result: %d pp.result %s\n",pres,(char*)pp.result); 
+  //printf("\nwg_yyotterparse finished\n");     
+  //printf("\nresult: %d pp.result %s\n",pres,(char*)pp.result);
 
   if (pp.errmsg) {
     (g->parse_errflag)=1;
@@ -1174,7 +1178,7 @@ void* wr_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
     } else if (!strcmp("axiom",rolestr) && 
              //  (g->parse_is_included_file) &&
              namestr!=NULL &&
-             !strncmp(namestr,IMPORTED_NAME_PREFIX,strlen(IMPORTED_NAME_PREFIX)) ) {  
+             !strncmp(namestr,IMPORTED_NAME_PREFIX,strlen(IMPORTED_NAME_PREFIX)) ) {        
       rolenr=PARSER_EXTAXIOM_ROLENR;   
     } else {
       rolenr=PARSER_AXIOM_ROLENR; 

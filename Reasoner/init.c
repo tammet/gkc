@@ -67,10 +67,10 @@ int init_shared_database(void* db, char* guidefilename) {
   int tmp;
   char* guidebuf=NULL;
   cJSON *guide=NULL;
-  char* argvbuf[4];
+  //char* argvbuf[4];
   char* guidetext;
   int guideres=0;
-
+  
 #ifdef DEBUG
   wr_printf("\ninit_shared_database starts\n");
 #endif    
@@ -103,6 +103,7 @@ int init_shared_database(void* db, char* guidefilename) {
 
   wr_glb_init_simple(g);  // fills in simple values (ints, strings etc)   
   //printf("\ndbmemsegh(db)->tptp %ld\n",dbmemsegh(db)->tptp);
+
   if (dbmemsegh(db)->tptp) {
     (g->print_tptp)=1;        
     (g->print_fof_conversion_proof)=1;
@@ -130,9 +131,9 @@ int init_shared_database(void* db, char* guidefilename) {
 #endif 
 
   if (guidefilename!=NULL) {
-    argvbuf[2]=guidefilename;
+    //argvbuf[2]=guidefilename;
     wr_printf("\n");
-    guide=wr_parse_guide_file(3,argvbuf,&guidebuf);
+    guide=wr_parse_guide_file(guidefilename,&guidebuf);
     if (guide==NULL) {
       if (guidebuf!=NULL) free(guidebuf);
       return -1;

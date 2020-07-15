@@ -496,6 +496,8 @@ typedef struct _db_memsegment_header {
   gint clausify;  /** initially 0, set by cmd line switches */
   gint min_strat_timeloop_nr; /** initially 0, set by LTB batch only */
   gint max_strat_timeloop_nr; /** initially 1000, set by by LTB batch only */
+  int parse_skolem_nr;
+  int parse_newpred_nr;
 #ifdef SINE
 
 #endif

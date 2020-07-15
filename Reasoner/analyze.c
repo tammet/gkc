@@ -1136,8 +1136,8 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
   int tmp;
 
   if (kb_g &&  !(g->outfilename)) {
-    wr_printf("\nglobal stats:\n");
-    wr_show_in_stats(kb_g);
+    //wr_printf("\nglobal stats:\n");
+    //wr_show_in_stats(kb_g);
   }   
   make_sum_input_stats(g,kb_g);
   if (!(g->outfilename) && guideparam!=1 && (dbmemsegh(db)->tptp)) {

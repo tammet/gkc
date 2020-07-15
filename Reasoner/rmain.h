@@ -39,8 +39,10 @@
 void sig_usr(int signo, siginfo_t *sinfo, void *context);
 */
 
-int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfilename, char* guidestr);
-int wg_run_converter(void *db, int argc, char **argv, int informat, char* outfilename, char* guidestr);
+int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,  
+                    char* outfilename, char* guidestr);
+int wg_run_converter(void *db, char* inputname, char* stratfile, int informat, 
+                     char* outfilename, char* guidestr);                    
 int wr_print_all_clauses(glb* g, void* child_db);
 /*
 int wg_run_reasoner_onestrat(
@@ -48,6 +50,7 @@ int wg_run_reasoner_onestrat(
   void* kb_db, void *child_db, glb *kb_g, glb *rglb, glb* analyze_g, int* guideres);
 */
 int wg_import_otter_file(void *db, char* filename, int iskb, int* informat);
+int wg_import_otter_string(void *db, char* instr, int iskb, int* informat);
 int wg_import_prolog_file(void *db, char* filename);
 glb* wg_init_reasoner(void *db, int argc, char **argv);
 int wr_init_active_passive_lists_from_one(glb* g, void* db, void* kb_db);

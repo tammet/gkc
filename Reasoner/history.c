@@ -1168,10 +1168,9 @@ int wr_show_result(glb* g, gint history) {
   
  #ifndef _WIN32 
   struct timeval now;
-
   // selecting a timeslot for proof output  
-  if ((dbmemsegh(db)->max_forks)>1) {    
-    coeff=(gint)(1000000.0/((dbmemsegh(db)->max_forks))); 
+  if ((dbmemsegh(g->local_db)->max_forks)>1) {    
+    coeff=(gint)(1000000.0/((dbmemsegh(g->local_db)->max_forks))); 
     sleept=1000;
     limit_low=(g->current_fork_nr)*coeff;
     limit_high=((g->current_fork_nr)+1)*coeff;
@@ -1198,7 +1197,6 @@ int wr_show_result(glb* g, gint history) {
   if (buf==NULL) {   
     return -1;
   }   
-
   if (!wr_str_guarantee_space(g,&buf,&blen,bpos+100)) {
     if (buf) wr_free(g,buf);
     return -1;
@@ -1206,24 +1204,27 @@ int wr_show_result(glb* g, gint history) {
   if (((g->answers)[1])<=2) {
     // no results
     if (g->print_json) {
-      bpos+=snprintf(buf+bpos,blen-bpos,"\n{\"result\": \"unknown\"}\n");
+      bpos+=snprintf(buf+bpos,blen-bpos,"{\"result\": \"unknown\"}\n");
     } else {
-      bpos+=snprintf(buf+bpos,blen-bpos,"\nresult: unknown\n");
+      bpos+=snprintf(buf+bpos,blen-bpos,"result: unknown\n");
     }  
     if (buf) wr_free(g,buf);
     return 0;
   } 
   // here we have some results
   if (g->print_json) {
-    bpos+=snprintf(buf+bpos,blen-bpos,"\n{\"result\": \"proof found\",\n");
+    bpos+=snprintf(buf+bpos,blen-bpos,"{\"result\": \"proof found\",\n");
     bpos+=snprintf(buf+bpos,blen-bpos,"\n\"answers\": [\n");
   } else {
-    if ((g->print_level_flag)>1) bpos+=snprintf(buf+bpos,blen-bpos,"\n");
+    if (((g->print_level_flag)>1) &&
+        (g->required_answer_nr)>1) {
+        bpos+=snprintf(buf+bpos,blen-bpos,"\n");
+    }        
 #ifdef TPTP    
     if (!(g->print_tptp)) {
-       if (dbmemsegh(db)->max_forks) {
+       if (dbmemsegh(g->local_db)->max_forks) {
           bpos+=snprintf(buf+bpos,blen-bpos,
-            "\nresult: proof found\nfor %s\n",(g->filename));          
+            "result: proof found\nfor %s\n",(g->filename));          
           if (*(g->guidetext)!=0) { 
             bpos+=snprintf(buf+bpos,blen-bpos,
               "by run %d fork %d strategy %s\n",
@@ -1231,7 +1232,7 @@ int wr_show_result(glb* g, gint history) {
           }    
         } else {         
           bpos+=snprintf(buf+bpos,blen-bpos,
-            "\nresult: proof found\nfor %s\n",(g->filename));          
+            "result: proof found\nfor %s\n",(g->filename));          
           if (*(g->guidetext)!=0) { 
             bpos+=snprintf(buf+bpos,blen-bpos,
               "by run %d strategy %s\n",
@@ -1239,31 +1240,31 @@ int wr_show_result(glb* g, gint history) {
           }  
         }    
     } else if (g->in_has_fof) {
-      if (dbmemsegh(db)->max_forks) {
+      if (dbmemsegh(g->local_db)->max_forks) {
         bpos+=snprintf(buf+bpos,blen-bpos,
-          "\nresult: proof found\nby run %d fork %d strategy %s\n%% SZS status Theorem for %s.",
+          "result: proof found\nby run %d fork %d strategy %s\n%% SZS status Theorem for %s.",
           (g->current_run_nr)+1,g->current_fork_nr,g->guidetext,g->filename);
       } else { 
         bpos+=snprintf(buf+bpos,blen-bpos,
-          "\nresult: proof found\nby run %d strategy %s\n%% SZS status Theorem for %s.",
+          "result: proof found\nby run %d strategy %s\n%% SZS status Theorem for %s.",
           (g->current_run_nr)+1,g->guidetext,g->filename);
       }  
     } else {
-      if (dbmemsegh(db)->max_forks) {
+      if (dbmemsegh(g->local_db)->max_forks) {
         bpos+=snprintf(buf+bpos,blen-bpos,
-          "\nresult: proof found\nby run %d fork %d strategy %s \n%% SZS status Unsatisfiable for %s.",
+          "result: proof found\nby run %d fork %d strategy %s \n%% SZS status Unsatisfiable for %s.",
           (g->current_run_nr)+1,g->current_fork_nr,g->guidetext,g->filename);
       } else {
         bpos+=snprintf(buf+bpos,blen-bpos,
-          "\nresult: proof found\nby run %d strategy %s \n%% SZS status Unsatisfiable for %s.",
+          "result: proof found\nby run %d strategy %s \n%% SZS status Unsatisfiable for %s.",
           (g->current_run_nr)+1,g->guidetext,g->filename);
       }          
     } 
 #else
     if (g->in_has_fof) {
-      bpos+=snprintf(buf+bpos,blen-bpos,"\nresult: proof found for %s.",g->filename);
+      bpos+=snprintf(buf+bpos,blen-bpos,"result: proof found for %s.",g->filename);
     } else {
-      bpos+=snprintf(buf+bpos,blen-bpos,"\nresult: proof found for %s.",g->filename);
+      bpos+=snprintf(buf+bpos,blen-bpos,"result: proof found for %s.",g->filename);
     }      
 #endif    
     if ((g->required_answer_nr)<2) {

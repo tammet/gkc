@@ -116,13 +116,15 @@ void sig_usr(int signo, siginfo_t *sinfo, void *context){
 */
 #endif
 
-int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfilename, char* guidestr) {
+int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,  
+                    char* outfilename, char* guidestr) {
   glb* g;    // our g (globals)
   glb* kb_g; // our copy of the g (globals) of the external shared db 
   glb* rglb=NULL; // ptr to g (globals) of the external shared db 
   void* kb_db;
   void* child_db;
   //void* tmp_db;
+  void* local_db; // this will be set to the local db copy in all cases
   int res=1;
   int default_print_level=10;
   int iter,guideres=0,tmp,propres;
@@ -138,18 +140,19 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
   int forkslive=0, forkscreated=0, maxforks=2, forknr, err, cpid, i;
   int forkpids[64];
 
-  if (argc<3) {
+
+  if (!stratfile) {
     //guide=wr_parse_guide_file(argc,argv,&guidebuf);  
     givenguide=0;  
   } else {
-    guide=wr_parse_guide_file(argc,argv,&guidebuf);
+    guide=wr_parse_guide_file(stratfile,&guidebuf);
     givenguide=1;
   }  
   if (guide==NULL && givenguide) {
     if (guidebuf!=NULL) free(guidebuf);
     return -1;
   }
-  filename=argv[1];
+  filename=inputname;
 #ifdef SHOWTIME
   //wr_printf("Guide parsed.\n");
   //wr_printf("\ndb is %d \n",(int)((gint)db));
@@ -162,7 +165,8 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
     // from now one var db will point to the parent, i.e. kb_db
 #ifdef DEBUG
     wr_printf("\nseparate child_db and kb_db\n");
-#endif    
+#endif      
+    local_db=db;    
     //have_shared_kb=1;
     child_db=db;
     db=kb_db;    
@@ -186,6 +190,7 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
     printf("\njust one single db \n");
 #endif 
     //have_shared_kb=0;
+    local_db=db;    
     child_db=db;
     kb_db=db;
     kb_g=NULL;
@@ -241,7 +246,9 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
   sa.sa_sigaction = sig_usr;
   */                        
 
-  maxforks=(dbmemsegh(db)->max_forks);  
+  maxforks=(dbmemsegh(local_db)->max_forks); 
+  //printf("\ndbmemsegh(db)->max_forks %ld dbmemsegh(local_db)->max_forks %ld\n",
+  //      dbmemsegh(db)->max_forks, dbmemsegh(local_db)->max_forks); 
   if (maxforks>64) maxforks=64;
   if (maxforks==1) maxforks=0;
   setbuf(stdout, 0);
@@ -349,7 +356,6 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
 
   }
 #endif
-
   for(iter=0; 1; iter++) { 
     // check if this process needs to run this iter
     // two forks case:
@@ -385,6 +391,31 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
     */
 
     g=wr_glb_new_simple(db);
+    // init local_db
+    (g->local_db)=local_db;
+    // copy memsegh guiding stuff to g
+    if (dbmemsegh(local_db)->tptp) {
+      (g->print_tptp)=1;        
+      (g->print_fof_conversion_proof)=1;
+      (g->print_clauses_tptp)=1;
+      (g->print_proof_tptp)=1;   
+      (g->use_comp_arithmetic)=0;
+    } else {
+      (g->print_tptp)=0;        
+      (g->print_fof_conversion_proof)=0; 
+      (g->print_clauses_tptp)=0;
+      (g->print_proof_tptp)=0;
+      (g->use_comp_arithmetic)=1;
+    }
+    if (dbmemsegh(local_db)->json) {
+      (g->print_json)=1; 
+      (g->print_clauses_json)=1;
+      if (g->print_tptp) {
+        wr_errprint("do not set both tptp and json output parameters at the same time");    
+        return -1;
+      }
+    }   
+
     // copy analyze_g stats to g for easier handling
     wr_copy_sin_stats(analyze_g,g);    
 
@@ -403,6 +434,7 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
 #endif    
     (g->child_db)=child_db;
     (g->db)=db;
+    (g->local_db)=local_db;
 
     (g->current_run_nr)=iter;
     (g->current_fork_nr)=forkslive;
@@ -461,8 +493,7 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
           wr_printf("\n**** run %d starts with strategy\n",iter+1);   
         }
       }          
-    }  
-
+    }    
     (g->cl_keep_weightlimit)=(g->cl_maxkeep_weightlimit);
     (g->cl_keep_sizelimit)=(g->cl_maxkeep_sizelimit);
     (g->cl_keep_depthlimit)=(g->cl_maxkeep_depthlimit);
@@ -486,8 +517,12 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
       sys_free(g);
       return -1; 
     }   
-    strncpy((g->filename),filename,MAX_FILENAME_LEN);
-    if (outfilename) (g->outfilename)=outfilename;    
+    if (filename) {
+      strncpy((g->filename),filename,MAX_FILENAME_LEN);
+    } else {
+      strcpy((g->filename),"input_text");
+    }  
+    if (outfilename) (g->outfilename)=outfilename;  
 #ifdef SHOWTIME    
     wr_printf("\nto call wr_init_active_passive_lists_from_all\n");
     show_cur_time();
@@ -502,7 +537,6 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
     } else {
       //printf("\nshared database not used\n");
     }
-
     // if two db-s, this will take the clauses from the shared db     
     clause_count=0;
     if (db!=child_db) {
@@ -570,7 +604,7 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
 #endif      
       clause_count+=wr_init_active_passive_lists_from_one(g,db,child_db);      
     } else {
-      // one single db      
+      // one single db    
 #ifdef DEBUG 
         wr_printf("\n external kb NOT found\n");      
         wr_printf("\n** starting to calc input stats for g ****** \n");
@@ -731,7 +765,8 @@ int wg_run_reasoner(void *db, int argc, char **argv, int informat, char* outfile
   return res;  
 } 
 
-int wg_run_converter(void *db, int argc, char **argv, int informat, char* outfilename, char* guidestr) {
+int wg_run_converter(void *db, char* inputname, char* stratfile, int informat, 
+                     char* outfilename, char* guidestr) {
   glb* g;    // our g (globals)
   glb* kb_g; // our copy of the g (globals) of the external shared db 
   glb* rglb=NULL; // ptr to g (globals) of the external shared db 
@@ -751,8 +786,11 @@ int wg_run_converter(void *db, int argc, char **argv, int informat, char* outfil
   guidetext=NULL;
   givenguide=0;
   */
-  filename=argv[1];
-
+  filename=inputname;
+  if (!filename) {
+    wr_errprint("input is not given");
+    return -1;
+  }  
   // kb_db is set to parent db
   kb_db=db_get_kb_db(db);
   if (kb_db) {
@@ -809,8 +847,8 @@ int wg_run_converter(void *db, int argc, char **argv, int informat, char* outfil
 
   g=wr_glb_new_simple(db);
   // copy analyze_g stats to g for easier handling
-  //wr_copy_sin_stats(analyze_g,g);    
-
+  //wr_copy_sin_stats(analyze_g,g);     
+ 
   if (kb_g!=NULL) {
     (g->kb_g)=kb_g; // points to the copy of globals of the external kb
   }  
@@ -849,7 +887,10 @@ int wg_run_converter(void *db, int argc, char **argv, int informat, char* outfil
     sys_free(g);
     return -1; 
   }   
-  strncpy((g->filename),filename,MAX_FILENAME_LEN);
+  if (filename)
+    strncpy((g->filename),filename,MAX_FILENAME_LEN);
+  else
+    strncpy((g->filename),"input_text",MAX_FILENAME_LEN); 
   if (outfilename) (g->outfilename)=outfilename;    
   (g->print_fof_conversion_proof)=0;
   (g->store_fof_skolem_steps)=0;   
@@ -905,6 +946,34 @@ int wg_import_otter_file(void *db, char* filename, int iskb, int* informat) {
     wg_show_db_error(db);
     res=1;
   }
+  if (g->in_has_fof) *informat=1;
+  sys_free(g); // no complex values given to glb elements
+  //dprintf("wg_import_otterfile ends with res\n",res); 
+  return res;  
+}
+
+
+int wg_import_otter_string(void *db, char* instr, int iskb, int* informat) {  
+  glb* g;
+  int res;
+
+  //db_printf("wg_import_otter_strings starts for string %s\n",instr); 
+
+  g=wr_glb_new_simple(db); // no complex values given to glb elements 
+  if (g==NULL) return 1;   
+  (g->parser_print_level)=0;
+  (g->print_initial_parser_result)=0;
+  (g->print_generic_parser_result)=1;
+  (dbmemsegh(db)->infrm_mpool)=wg_create_mpool(db,PARSER_MEMPOOL_SIZE); 
+  res=wr_import_otter_file(g,NULL,instr,NULL,iskb);
+  if (g->parse_errmsg) {
+    printf("%s\n",(g->parse_errmsg));
+    sys_free(g->parse_errmsg);
+    //res=1;
+  } else if (dbmemsegh(db)->errflag) {
+    wg_show_db_error(db);
+    res=1;
+  } 
   if (g->in_has_fof) *informat=1;
   sys_free(g); // no complex values given to glb elements
   //dprintf("wg_import_otterfile ends with res\n",res); 

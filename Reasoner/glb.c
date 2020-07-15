@@ -90,7 +90,7 @@ glb* wr_glb_new_simple(void* db) {
   (g->child_db)=NULL;
   (g->inkb)=0;
   (g->db_offset)=0;
-  (g->kb_g)=NULL;
+  (g->kb_g)=NULL;  
   wr_glb_init_simple(g);  // fills in simple values (ints, strings etc)  
   //printf("\ndbmemsegh(db)->tptp %ld\n",dbmemsegh(db)->tptp);
   if (dbmemsegh(db)->tptp) {
@@ -128,6 +128,7 @@ int wr_glb_init_simple(glb* g) {
   
   (g->shared_clid_next)=0;
   (g->local_clid_next)=0;
+  (g->local_db)=NULL; // must be set to the real local kb before used, done in rmain.c
 
   /* parser configuration */
 
@@ -141,9 +142,9 @@ int wr_glb_init_simple(glb* g) {
 
   (g->parse_is_included_file)=0;
   (g->parse_skolem_prefix)=NULL; 
-  (g->parse_skolem_nr)=0;
+  // (g->parse_skolem_nr)=0; // moved to dballoc.h
   (g->parse_newpred_prefix)=NULL; 
-  (g->parse_newpred_nr)=0;
+  // (g->parse_newpred_nr)=0; // moved to dballoc.h
   (g->parse_errmsg)=NULL;
   (g->parse_errflag)=0;
 

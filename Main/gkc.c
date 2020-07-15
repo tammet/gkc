@@ -128,8 +128,9 @@ gint parse_shmsize(char *arg);
 gint parse_flag(char *arg);
 int parse_memmode(char *arg);
 char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsize, 
-          int* parallel, int* tptp, int* json, int* convert, int* clausify, 
-          int* seconds, int* retcode);
+          int* parallel, int* tptp, int* json, 
+          char ***lstringsptr, char ***ljstringsptr, char ***lfilesptr, char **stratfile,
+          int* convert, int* clausify, int* seconds, int* retcode);          
 void wg_set_kb_db(void* db, void* kb);
 void segment_stats(void *db);
 void wg_show_strhash(void* db);
@@ -141,6 +142,8 @@ void err_printf(char* s);
 void err_printf2(char* s1, char* s2);
 
 int wg_import_data_file(void *db, char* filename, int iskb, int* informat, int askpolarity, int* askinfo);
+int wg_import_data_string(void *db, char* instr, int iskb, int* informat, int askpolarity, int* askinfo,
+                          int jsflag);
 
 #ifndef _WIN32
 int gkc_ltb_main(int argc, char **argv);
@@ -191,6 +194,13 @@ int gkc_main(int argc, char **argv) {
   char* cmdstr=NULL; // parsed from cmd line
   char** cmdfiles; // parsed from cmd line
   int cmdfileslen; // computed below
+  char** lstrings=NULL; // input strings (logic text) parsed from cmd line
+  int strnr;
+  char** ljstrings=NULL; // input js strings (logic text) parsed from cmd line
+  int jstrnr;
+  char** lfiles=NULL; // input filenames for logic text parsed from cmd line
+  int filenr;
+  char* stratfile=NULL;
   int tmp;
   int retcode=0;
   int informat=0; // 0 if not set, 1 if tptp fof
@@ -201,7 +211,8 @@ int gkc_main(int argc, char **argv) {
   int seconds=0; // 0 if no time limit, other value for time limit in seconds
   //int islocaldb=0; // lreasoner sets to 1 to avoid detaching db at the end
   int askinfo=0;
-  int askpolarity=1;
+  int askpolarity=1;  
+  char inputname[1000];
 
   if (argc<2) {
     usage(argv[0]);
@@ -215,8 +226,10 @@ int gkc_main(int argc, char **argv) {
 #endif  
 #endif
  
+  inputname[0]=0;
   cmdfiles=parse_cmdline(argc,argv,&cmdstr,&mbnr,&mbsize,&parallel,
-                         &tptp,&json,&convert,&clausify,&seconds,&retcode); 
+                         &tptp,&json,&lstrings,&ljstrings,&lfiles,&stratfile,
+                         &convert,&clausify,&seconds,&retcode);                         
   if (retcode) return retcode;
   if (tptp && json) {
     err_printf("do not set both -tptp and -json output parameters at the same time");    
@@ -252,17 +265,22 @@ int gkc_main(int argc, char **argv) {
   //printf("\ncmdstr %s cmdfileslen %d\n",cmdstr,cmdfileslen);
 
   if (mbsize==0) {
+    // default
 #ifdef _WIN32
 #ifdef _WIN64    
-    shmsize = (gint)5000000000; // 5 gb default for large csr 
+    shmsize = (gint)5000000000; // 5 gb default for large csr
+    shmsize2 = (gint)1000000000; // local db (used when shared mem used) is smaller 
 #else
-    shmsize=(gint)1000*(gint)1000000; // has to be small for win32    
+    shmsize=(gint)1000*(gint)1000000; // has to be small for win32 
+    shmsize2 =(gint)500*(gint)1000000; // local db (used when shared mem used) is smaller   
 #endif    
 #else
+    // non-windows case
     shmsize = (gint)5000000000; // 5 gb default for large csr
-#endif        
-    shmsize2 = shmsize;
-  } else {
+    shmsize2 = (gint)1000000000; // local db (used when shared mem used) is smaller
+  } else {  
+#endif            
+    // given on cmd line  
     shmsize=(gint)mbsize*(gint)1000000; // mbsize given on cmdline is in megabytes
     shmsize2 = shmsize;
   }
@@ -276,10 +294,10 @@ int gkc_main(int argc, char **argv) {
    // -prove
   
   if(!(strncmp(cmdstr,"-prove",15))) {
-    wg_int err;
+    wg_int err=0;
 
-    if (cmdfileslen<2) {
-      err_printf("-prove needs a file as an argument");
+    if (!lstrings && !ljstrings && !lfiles) {
+      err_printf("an input file or string as an argument is needed");
       return(1);
     }  
     shmptr=wg_attach_local_database(shmsize);
@@ -293,25 +311,49 @@ int gkc_main(int argc, char **argv) {
     (dbmemsegh(shmptr)->tptp)=tptp;
     (dbmemsegh(shmptr)->json)=json;
     (dbmemsegh(shmptr)->convert)=convert;
-    (dbmemsegh(shmptr)->clausify)=clausify;
-    err = wg_import_data_file(shmptr,cmdfiles[1],0,&informat,askpolarity,&askinfo);
+    (dbmemsegh(shmptr)->clausify)=clausify;    
+
+    if (lfiles) {      
+      for(filenr=0; lfiles[filenr] && !err; filenr++) {
+        //printf("\nfilesnr %d files %s\n",filenr,lfiles[filenr]); 
+        if (strlen(inputname)+strlen(lfiles[filenr])<900) {
+          strcat(inputname,lfiles[filenr]);      
+          strcat(inputname," ");
+        }
+        err=wg_import_data_file(shmptr,lfiles[filenr],0,&informat,askpolarity,&askinfo);
+      }  
+    }  
+    if (lstrings) {      
+      for(strnr=0; lstrings[strnr] && !err; strnr++) {
+        //printf("\nstrnr %d str %s\n",strnr,lstrings[strnr]);
+        if (strlen(inputname)<900) strcat(inputname,"input_text ");
+        err = wg_import_data_string(shmptr,lstrings[strnr],0,&informat,askpolarity,&askinfo,0);
+      }  
+    } 
+    if (ljstrings) {      
+      for(jstrnr=0; ljstrings[jstrnr] && !err; jstrnr++) {
+        //printf("\njstrnr %d jstr %s\n",jstrnr,ljstrings[jstrnr]);
+        if (strlen(inputname)<900) strcat(inputname,"input_jstext ");
+        err = wg_import_data_string(shmptr,ljstrings[jstrnr],0,&informat,askpolarity,&askinfo,1);
+      }  
+    }
+          
     //printf("\nreturned from wg_import_otter_file\n");  
     if(!err) {
       //printf("Data read from %s.\n",cmdfiles[1]);
     } else if(err<-1) {
-      err_printf("fatal error when reading otter file, data may be partially"\
-        " imported");
+      err_printf("error when reading file or text");
       return(1);   
     } else {
-      //err_printf("import failed");           
+      //err_printf("error when reading file or text");
       return(1); 
-    }   
+    }      
     if (convert && !clausify) {
       return 0;
     } else if (clausify) {
-      err = wg_run_converter(shmptr,cmdfileslen,cmdfiles,informat,NULL,NULL);
+      err = wg_run_converter(shmptr,inputname,stratfile,informat,NULL,NULL);
     } else {
-      err = wg_run_reasoner(shmptr,cmdfileslen,cmdfiles,informat,NULL,NULL);
+      err = wg_run_reasoner(shmptr,inputname,stratfile,informat,NULL,NULL);
       if (err) printf("\n{\"result\": \"proof not found\"}\n");
     }      
     return(0);
@@ -398,15 +440,16 @@ int gkc_main(int argc, char **argv) {
     return(0);
   }
 
-  // -provekb
+  // -usekb
 
-  if(!(strncmp(cmdstr,"-provekb",15))) {
+  if(!(strncmp(cmdstr,"-usekb",15))) {
     wg_int err;
-
+    /*
     if (cmdfileslen<2) {
-      err_printf("-provekb needs a file as an argument");
+      err_printf("-usekb needs a file as an argument");
       return(1);
-    }      
+    } 
+    */     
 #ifdef SHOWTIME 
     printf("\n-querykb starts with external shmname %s\n",shmname);
     gkc_show_cur_time();
@@ -416,7 +459,9 @@ int gkc_main(int argc, char **argv) {
       err_printf("failed to attach to database");
       return(1);
     }
-    printf("Using the existing shared memory kb %s.\n",shmname);
+    if (tptp && !(clausify) && !(convert)) {
+      printf("Using the existing shared memory kb %s.\n",shmname);
+    }  
 #ifdef SHOWTIME       
     printf("\ndb attached, showing attached shared memory db shmptr %ld\n",
       (unsigned long int)((gint)shmptr));
@@ -424,7 +469,7 @@ int gkc_main(int argc, char **argv) {
     wr_show_database_details(NULL,shmptr,"shmptr");
 #endif      
     // --- create a new temporary local db ---
-    shmsize2=100000000;     
+    //shmsize2=100000000;     
 #ifdef SHOWTIME      
     printf("\nto wg_attach_local_database_with_kb with shmptr %ld\n",
       (unsigned long int)((gint)shmptr));
@@ -452,17 +497,51 @@ int gkc_main(int argc, char **argv) {
     (dbmemsegh(shmptrlocal)->json)=json;
     (dbmemsegh(shmptrlocal)->convert)=convert; 
     (dbmemsegh(shmptrlocal)->clausify)=clausify;
-    err = wg_import_data_file(shmptrlocal,cmdfiles[1],0,&informat,askpolarity,&askinfo);        
+/*
+    (dbmemsegh(shmptr)->max_forks)=parallel;
+    (dbmemsegh(shmptr)->tptp)=tptp;
+    (dbmemsegh(shmptr)->json)=json;
+    (dbmemsegh(shmptr)->convert)=convert;
+    (dbmemsegh(shmptr)->clausify)=clausify;
+*/
+    (dbmemsegh(shmptrlocal)->parse_skolem_nr)=(dbmemsegh(shmptr)->parse_skolem_nr)+1;
+    (dbmemsegh(shmptrlocal)->parse_newpred_nr)=(dbmemsegh(shmptr)->parse_newpred_nr)+1;
+
+    strcat(inputname,"kb "); 
+    if (lfiles) {      
+      for(filenr=0; lfiles[filenr] && !err; filenr++) {
+        //printf("\nfilesnr %d files %s\n",filenr,lfiles[filenr]); 
+        if (strlen(inputname)+strlen(lfiles[filenr])<900) {
+          strcat(inputname,lfiles[filenr]);      
+        }
+        err=wg_import_data_file(shmptrlocal,lfiles[filenr],0,&informat,askpolarity,&askinfo);
+      }  
+    }  
+    if (lstrings) {      
+      for(strnr=0; lstrings[strnr] && !err; strnr++) {
+        //printf("\nstrnr %d str %s\n",strnr,lstrings[strnr]);
+        if (strlen(inputname)<900) strcat(inputname,"input_text ");
+        err = wg_import_data_string(shmptrlocal,lstrings[strnr],0,&informat,askpolarity,&askinfo,0);
+      }  
+    } 
+    if (ljstrings) {      
+      for(jstrnr=0; ljstrings[jstrnr] && !err; jstrnr++) {
+        //printf("\njstrnr %d jstr %s\n",jstrnr,ljstrings[jstrnr]);
+        if (strlen(inputname)<900) strcat(inputname,"input_jstext ");
+        err = wg_import_data_string(shmptrlocal,ljstrings[jstrnr],0,&informat,askpolarity,&askinfo,1);
+      }  
+    }
+          
+    //printf("\nreturned from wg_import_otter_file\n");  
     if(!err) {
       //printf("Data read from %s.\n",cmdfiles[1]);
     } else if(err<-1) {
-      err_printf("fatal error when reading otter file, data may be partially"\
-        " imported");
+      err_printf("error when reading file or text");
       return(1);   
     } else {
-      //err_printf("import failed");           
+      //err_printf("error when reading file or text");
       return(1); 
-    }  
+    } 
     
     // ---- local db created ------
 #ifdef SHOWTIME
@@ -472,9 +551,11 @@ int gkc_main(int argc, char **argv) {
     if (convert && !clausify) {     
       return 0; 
     } else if (clausify) {
-      err = wg_run_converter(shmptrlocal,cmdfileslen,cmdfiles,informat,NULL,NULL);
+      err_printf("do not use -clausify together with -usekb");
+      return 1;
+      //err = wg_run_converter(shmptrlocal,inputname,stratfile,informat,NULL,NULL);
     } else {
-      err = wg_run_reasoner(shmptrlocal,cmdfileslen,cmdfiles,informat,NULL,NULL);
+      err = wg_run_reasoner(shmptrlocal,inputname,stratfile,informat,NULL,NULL);
       if (err) printf("\n{\"result\": \"proof not found\"}\n");
     }     
 #ifdef SHOWTIME      
@@ -804,13 +885,19 @@ int parse_memmode(char *arg) {
  */
 
 char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsize, 
-          int* parallel, int* tptp, int* json, int* convert, int* clausify,
-          int* seconds, int* retcode) {
+          int* parallel, int* tptp, int* json, 
+          char ***lstringsptr, char ***ljstringsptr, char ***lfilesptr, char **stratfile,
+          int* convert, int* clausify, int* seconds, int* retcode) {
   int i,alen,nargc;
   char* arg;
   char c;
   char **nargv;
   int nr;
+  char **lstrings;
+  char **ljstrings;
+  char **lfiles;
+  int maxlstrings=10, maxljstrings=10, maxlfiles=10;
+  int lstringscount=0, ljstringscount=0, lfilescount=0;
   
   // init nargv: an array of non-command args, i.e. filenames
   nargc=0;
@@ -818,6 +905,10 @@ char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsiz
   for(i=0;i<argc;i++) {
     nargv[i]=NULL;
   }
+  lstrings=(char**)malloc(sizeof(char*)*maxlstrings);
+  ljstrings=(char**)malloc(sizeof(char*)*maxlstrings);
+  lfiles=(char**)malloc(sizeof(char*)*maxlfiles);
+
   // loop over all command line elements
   for(i=0; i<argc; i++) {
     //printf("\n i %d",i);
@@ -937,7 +1028,7 @@ char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsiz
         *clausify=1;  
       } else if (!(strncmp(arg,"-prove",10)) || 
                 !(strncmp(arg,"-readkb",10)) ||
-                !(strncmp(arg,"-provekb",10)) || 
+                !(strncmp(arg,"-usekb",10)) || 
                 !(strncmp(arg,"-deletekb",10)) ||
                 !(strncmp(arg,"-writekb",10)) ||
                 !(strncmp(arg,"-loadkb",10)) ||
@@ -948,20 +1039,88 @@ char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsiz
                 !(strncmp(arg,"--version",10)) ) {
         //printf("\n cmd %s",arg);
         *cmdstr=argv[i];
+      } else if (!(strncmp(arg,"-text",5))) {
+        if ((i+1)<argc) {
+          //printf("\n cmd %s param %s",arg,argv[i+1]);          
+          if ((lstringscount+1)<maxlstrings) {
+            lstrings[lstringscount]=argv[i+1];           
+            lstringscount++;
+            i++;
+          } else {
+            printf("Error: too many %s keywords given\n",arg);
+            exit(1);
+          }          
+        } else {
+          printf("Error: missing parameter to keyword %s\n",arg);
+          exit(1);
+        }      
+      } else if (!(strncmp(arg,"-jstext",5))) {
+        if ((i+1)<argc) {
+          //printf("\n cmd %s param %s",arg,argv[i+1]);          
+          if ((ljstringscount+1)<maxljstrings) {
+            ljstrings[ljstringscount]=argv[i+1];           
+            ljstringscount++;
+            i++;
+          } else {
+            printf("Error: too many %s keywords given\n",arg);
+            exit(1);
+          }          
+        } else {
+          printf("Error: missing parameter to keyword %s\n",arg);
+          exit(1);
+        }    
+      } else if (!(strncmp(arg,"-strategy",9))) {
+        if ((i+1)<argc) {
+          //printf("\n cmd %s param %s",arg,argv[i+1]);          
+          *stratfile=argv[i+1];          
+          i++;                 
+        } else {
+          printf("Error: missing parameter to keyword %s\n",arg);
+          exit(1);
+        }          
       } else {
         printf("Error: unknown keyword %s \n",arg);
         usage(argv[0]);
         *retcode=1;       
         return NULL;
-      }
-
+      }   
     } else {
       // norm value
       nargv[nargc]=argv[i];
       //printf("\n nargc %d nargv[nargc] %s",nargc,nargv[nargc]);
       nargc++;     
+      if (i>0) {
+        if ((lfilescount+1)<maxlfiles) {
+          lfiles[lfilescount]=argv[i];           
+          lfilescount++;        
+        } else {
+          printf("Error: too many input files given\n");
+          exit(1);
+        }
+      }          
     }    
   }
+  if (lstringscount) {   
+    lstrings[lstringscount]=NULL;
+    *lstringsptr=lstrings;
+  } else {  
+    *lstringsptr=NULL;
+    free(lstrings);
+  }  
+  if (ljstringscount) {       
+    ljstrings[ljstringscount]=NULL;
+    *ljstringsptr=ljstrings;
+  } else {  
+    *ljstringsptr=NULL;
+    free(ljstrings);
+  }
+  if (lfilescount) {   
+    lfiles[lfilescount]=NULL;
+    *lfilesptr=lfiles;
+  } else {  
+    *lfilesptr=NULL;
+    free(lfiles);
+  } 
   //printf("\nexiting\n");
   return nargv;
 }
@@ -1127,6 +1286,15 @@ int wg_import_data_file(void *db, char* filename, int iskb, int* informat, int a
   return err;
 }
 
+int wg_import_data_string(void *db, char* instr, int iskb, int* informat, int askpolarity, int* askinfo,
+                           int jsflag) {
+  int err;
+  if (jsflag) 
+    err=wg_import_js_string(db,instr,iskb,informat,askpolarity,askinfo,0);   
+  else 
+    err=wg_import_otter_string(db,instr,iskb,informat);  
+  return err;
+}
 
 /*
 
@@ -1174,6 +1342,7 @@ int gkc_ltb_main(int argc, char **argv) {
   int myerr;  
   int askinfo=0;
   int askpolarity=1;
+  char* inputname="LTB";
 
   if (argc<3) {
     return(0);
@@ -1329,7 +1498,7 @@ int gkc_ltb_main(int argc, char **argv) {
           } 
           (dbmemsegh(shmptr)->max_forks)=8;   
           //printf("\nchild to call wg_run_reasoner\n");      
-          myerr = wg_run_reasoner(shmptr,2,cmdfiles,informat,outfullname,"LTBSPECIAL");                             
+          myerr = wg_run_reasoner(shmptr,inputname,NULL,informat,outfullname,"LTBSPECIAL");                             
           //printf("\nchild myerr %d \n",myerr);
           fflush(stdout);
           if(!myerr) {            

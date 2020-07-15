@@ -70,14 +70,14 @@ extern "C" {
 /* ====== Functions ============== */
 
 
-cJSON* wr_parse_guide_file(int argc, char **argv, char** guidebuf) { 
+cJSON* wr_parse_guide_file(char* stratfile, char** guidebuf) { 
   char* filename=NULL;  
   char* buf=NULL;
   FILE* fp=NULL;  
   cJSON *guide=NULL;
   int len;
 
-  if (argc<3) {
+  if (!stratfile) {
     // default case: no guide file
 
     len=strlen(DEFAULT_GUIDE);
@@ -94,7 +94,7 @@ cJSON* wr_parse_guide_file(int argc, char **argv, char** guidebuf) {
     return guide;
   } 
   // file case
-  filename=argv[2];  
+  filename=stratfile;  
 #ifdef _WIN32
   if(fopen_s(&fp, filename, "rb")) {
 #else

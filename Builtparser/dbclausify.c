@@ -157,7 +157,8 @@ void* wr_clausify_formula(glb* g, void* mpool, void* frm,
   }  
 #endif  
 #ifdef TDEBUG  
-  printf("\nwr_clausify_skolemize ending with res and varnr %d sknr %d\n",varnr,g->parse_skolem_nr);  
+  printf("\nwr_clausify_skolemize ending with res and varnr %d sknr %d\n",
+     varnr,dbmemsegh(db)->parse_skolem_nr);  
   wg_mpool_print(db,res); 
   printf("\nstarting to distribute\n");
 #endif
@@ -743,8 +744,8 @@ void* wr_clausify_append_vars
     } else {
       // existential quantifier:
       // pick a fresh skolem name and create a skolem fun
-      (g->parse_skolem_nr)++;      
-      snprintf(buf,19,"%s%d",g->parse_skolem_prefix,g->parse_skolem_nr);      
+      (dbmemsegh(db)->parse_skolem_nr)++;      
+      snprintf(buf,19,"%s%d",g->parse_skolem_prefix,dbmemsegh(db)->parse_skolem_nr);      
       fun=wg_mkatom(db,mpool,WG_URITYPE,buf,NULL);
       term=NULL;
       // find universal vars in outer scope
@@ -1113,8 +1114,8 @@ void* wr_clausify_makedef(glb* g, void* mpool, void* frm, void **defs) {
     return show_clausify_warning(g,"could not create elem wr_clausify_makedef");
   }
   // make new def atom
-  (g->parse_newpred_nr)++;
-  snprintf(buf,19,"%s%d",g->parse_newpred_prefix,g->parse_newpred_nr);   
+  (dbmemsegh(db)->parse_newpred_nr)++;
+  snprintf(buf,19,"%s%d",g->parse_newpred_prefix,dbmemsegh(db)->parse_newpred_nr);   
   fun=wg_mkatom(db,mpool,WG_URITYPE,buf,NULL);
   if (!fun) return show_clausify_warning(g,"could not create elem wr_clausify_makedef");
   term=NULL;
