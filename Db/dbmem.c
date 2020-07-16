@@ -75,7 +75,7 @@ static void *init_dbhandle(void);
 static void free_dbhandle(void *dbhandle);
 #endif
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__EMSCRIPTEN__)
 static int memory_stats(void *db, struct shmid_ds *buf);
 #endif
 
@@ -675,7 +675,7 @@ void wg_print_header_version(db_memsegment_header *dbh, int verbose) {
 
 /* --------------------  memory image stats --------------------------- */
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__EMSCRIPTEN__)
 /** Get the shared memory stats structure.
  *  Returns 0 on success.
  *  Returns -1 if the database is local.
@@ -685,15 +685,15 @@ static int memory_stats(void *db, struct shmid_ds *buf) {
   db_memsegment_header* dbh = dbmemsegh(db);
 
   if(dbh->key) {
-    int shmid = shmget((key_t) dbh->key, 0, 0);
+    int shmid = shmget((key_t) dbh->key, 0, 0);     
     if(shmid < 0) {
       show_memory_error("memory_stats(): failed to get shmid");
       return -2;
     } else {
       int err;
 
-      memset(buf, 0, sizeof(struct shmid_ds));
-      err = shmctl(shmid, IPC_STAT, buf);
+      memset(buf, 0, sizeof(struct shmid_ds));   
+      err = shmctl(shmid, IPC_STAT, buf);           
       if(err) {
         show_memory_error("memory_stats(): failed to stat shared memory");
         return -2;
@@ -701,7 +701,7 @@ static int memory_stats(void *db, struct shmid_ds *buf) {
       return 0;
     }
   }
-  return -1;
+  return -1;  
 }
 #endif
 
@@ -710,7 +710,7 @@ static int memory_stats(void *db, struct shmid_ds *buf) {
  */
 int wg_memmode(void *db) {
   int mode = 0600; /* default for local memory and Win32 */
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__EMSCRIPTEN__)
   struct shmid_ds buf;
   int err = memory_stats(db, &buf);
   if(!err) {
@@ -726,7 +726,7 @@ int wg_memmode(void *db) {
  *  returns -1 on error.
  */
 int wg_memowner(void *db) {
-#ifdef _WIN32
+#if defined _WIN32 || defined __EMSCRIPTEN__
   int uid = 0;
 #else
   int uid = getuid(); /* default for local memory */
@@ -745,7 +745,7 @@ int wg_memowner(void *db) {
  *  returns -1 on error.
  */
 int wg_memgroup(void *db) {
-#ifdef _WIN32
+#if defined _WIN32 || defined __EMSCRIPTEN__
   int gid = 0;
 #else
   int gid = getgid(); /* default for local memory */
@@ -766,6 +766,9 @@ int wg_memgroup(void *db) {
 static void* link_shared_memory(int key, int *errcode) {
   void *shm;
 
+#ifdef __EMSCRIPTEN__
+  return NULL;
+#else  
 #ifdef _WIN32
   char fname[MAX_FILENAME_SIZE];
   HANDLE hmapfile;
@@ -798,7 +801,7 @@ static void* link_shared_memory(int key, int *errcode) {
 
   errno = 0;
   *errcode = 0;
-  // Link to existing segment
+  // Link to existing segment 
   shmid=shmget((key_t)key, 0, 0);
   if (shmid < 0) {
     return NULL;
@@ -817,6 +820,7 @@ static void* link_shared_memory(int key, int *errcode) {
   }
   return (void*) shm;
 #endif
+#endif
 }
 
 
@@ -824,6 +828,9 @@ static void* link_shared_memory(int key, int *errcode) {
 static void* create_shared_memory(int key, gint size, int mode) {
   void *shm;
 
+#ifdef __EMSCRIPTEN__
+  return NULL;
+#else  
 #ifdef _WIN32
   char fname[MAX_FILENAME_SIZE];
   HANDLE hmapfile;
@@ -864,7 +871,8 @@ static void* create_shared_memory(int key, gint size, int mode) {
   int shmid; /* return value from shmget() */
 
   // Create the segment
-  shmflg=IPC_CREAT | IPC_EXCL | mode;
+  
+  shmflg=IPC_CREAT | IPC_EXCL | mode; 
   shmid=shmget((key_t)key,size,shmflg);
   if (shmid < 0) {
     switch(errno) {
@@ -887,7 +895,7 @@ static void* create_shared_memory(int key, gint size, int mode) {
     }
     return NULL;
   }
-  // Attach the segment to our data space
+  // Attach the segment to our data space   
   shm=shmat(shmid,NULL,0);
   if (shm==(char *) -1) {
     show_memory_error("attaching shared memory segment failed");
@@ -895,11 +903,15 @@ static void* create_shared_memory(int key, gint size, int mode) {
   }
   return (void*) shm;
 #endif
+#endif
 }
 
 
 
 static int free_shared_memory(int key) {
+#ifdef __EMSCRIPTEN__   
+  return -1;
+#else  
 #ifdef _WIN32
   return 0;
 #else
@@ -909,7 +921,7 @@ static int free_shared_memory(int key) {
 
   errno = 0;
    // Link to existing segment
-  shmflg=0666;
+  shmflg=0666;  
   shmid=shmget((key_t)key, 0, shmflg);
   if (shmid < 0) {
     switch(errno) {
@@ -929,7 +941,7 @@ static int free_shared_memory(int key) {
     }
     return -1;
   }
-  // Free the segment
+  // Free the segment 
   tmp=shmctl(shmid, IPC_RMID, NULL);
   if (tmp==-1) {
     switch(errno) {
@@ -944,6 +956,7 @@ static int free_shared_memory(int key) {
     return -2;
   }
   return 0;
+#endif
 #endif
 }
 

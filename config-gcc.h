@@ -82,13 +82,13 @@
 #define USE_REASONER 1
 
 /* Version number of package */
-#define VERSION "0.5.2"
+#define VERSION "0.6.0"
 
 /* Package major version */
 #define VERSION_MAJOR 0
 
 /* Package minor version */
-#define VERSION_MINOR 5
+#define VERSION_MINOR 6
 
 /* Package revision number */
-#define VERSION_REV 2
+#define VERSION_REV 0

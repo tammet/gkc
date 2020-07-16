@@ -42,7 +42,11 @@
 
 #else
 
+#ifdef __EMSCRIPTEN__
+#include "../Builtparser/dbparse.h"
+#else
 #include "../Parser/dbparse.h"
+#endif
 #include <sys/wait.h> 
 #include <unistd.h> 
 #include <sys/signal.h>
@@ -136,7 +140,7 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
   int exit_on_proof=1; // set to 0 to clean memory and not call exit at end
   int givenguide=0;
   glb* analyze_g;
-  char* filename=NULL;
+  char* filename=NULL;  
   int forkslive=0, forkscreated=0, maxforks=2, forknr, err, cpid, i;
   int forkpids[64];
 
@@ -233,7 +237,7 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
   int pid=1,stat;
   forkscreated=0;
   forkslive=0;  
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__EMSCRIPTEN__)
   maxforks=0;
   pid=1;
 #else  
@@ -289,10 +293,11 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
       */
     }       
   }
-#endif  
+#endif 
+ 
  
   // forks have been created
-#ifndef _WIN32  
+#if !defined(_WIN32) && !defined(__EMSCRIPTEN__)  
   if (pid && forkscreated) {
     // only parent performs this loop
     while(forkslive) {
@@ -370,7 +375,7 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
     
     // child should only take some iters and pass others:
     //printf("\niter %d pid %d maxforks %d forknr %d (iter div maxforks) %d\n",iter,pid,maxforks,forknr,(iter % maxforks));
-#ifndef _WIN32   
+#if !defined(_WIN32) && !defined(__EMSCRIPTEN__)     
     if (!pid && maxforks && ((iter % maxforks)!=forknr)) continue; 
 #endif        
 #ifdef DEBUG    
@@ -736,6 +741,9 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
           wr_glb_free(g);
           return(0);
         } else {
+#ifdef __EMSCRIPTEN__
+          wr_glb_free(g);  
+#endif          
           return(0);
         }  
       }

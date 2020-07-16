@@ -241,6 +241,9 @@ int gkc_main(int argc, char **argv) {
     alarm(seconds);
   }  
 #endif  
+#if defined(__EMSCRIPTEN__) || defined(_WIN32)
+  parallel=0;
+#endif  
 
   //printf("\n parsed cmdstr %s mbnr %d mbsize %d\n",cmdstr,mbnr,mbsize);
   cmdfileslen=0;
@@ -266,6 +269,9 @@ int gkc_main(int argc, char **argv) {
 
   if (mbsize==0) {
     // default
+#ifdef __EMSCRIPTEN__    
+    shmsize=(gint)100*(gint)1000000; // has to be small for wasm: 100 MB here   
+#else    
 #ifdef _WIN32
 #ifdef _WIN64    
     shmsize = (gint)5000000000; // 5 gb default for large csr
@@ -280,6 +286,7 @@ int gkc_main(int argc, char **argv) {
     shmsize2 = (gint)1000000000; // local db (used when shared mem used) is smaller
   } else {  
 #endif            
+#endif    
     // given on cmd line  
     shmsize=(gint)mbsize*(gint)1000000; // mbsize given on cmdline is in megabytes
     shmsize2 = shmsize;
@@ -356,6 +363,9 @@ int gkc_main(int argc, char **argv) {
       err = wg_run_reasoner(shmptr,inputname,stratfile,informat,NULL,NULL);
       if (err) printf("\n{\"result\": \"proof not found\"}\n");
     }      
+#ifdef __EMSCRIPTEN__
+    wg_delete_local_database(shmptrlocal);
+#endif    
     return(0);
   }  
 
@@ -364,6 +374,10 @@ int gkc_main(int argc, char **argv) {
   if(!(strncmp(cmdstr,"-readkb",15))) {
     wg_int err;
 
+#ifdef __EMSCRIPTEN__
+    err_printf("-readkb unavailable under wasm");
+    return(1);
+#endif    
     if (cmdfileslen<2) {
       err_printf("-readkb needs a file as an argument");
       return(1);
