@@ -675,7 +675,7 @@ void wr_show_history(glb* g, gint history) {
   char namebuf[20];
   gptr ans;
   //gint anshistory;
-
+  
   //if (!(g->store_history)) return;
   wr_show_result(g,history);
   return;
@@ -1218,48 +1218,37 @@ int wr_show_result(glb* g, gint history) {
   } else {
     if (((g->print_level_flag)>1) &&
         (g->required_answer_nr)>1) {
-        bpos+=snprintf(buf+bpos,blen-bpos,"\n");
+        //bpos+=snprintf(buf+bpos,blen-bpos,"\n");
     }        
-#ifdef TPTP    
-    if (!(g->print_tptp)) {
-       if (dbmemsegh(g->local_db)->max_forks) {
+#ifdef TPTP        
+    bpos+=snprintf(buf+bpos,blen-bpos,
+          "result: proof found\n"); 
+    if ((g->filename) && (strstr(g->filename,"input_text")==NULL)) {
+      bpos+=snprintf(buf+bpos,blen-bpos,
+        "for %s\n",(g->filename));
+    }
+    if (g->print_history_extra) {
+      if (dbmemsegh(g->local_db)->max_forks) {            
+        if (*(g->guidetext)!=0) { 
           bpos+=snprintf(buf+bpos,blen-bpos,
-            "result: proof found\nfor %s\n",(g->filename));          
-          if (*(g->guidetext)!=0) { 
-            bpos+=snprintf(buf+bpos,blen-bpos,
-              "by run %d fork %d strategy %s\n",
-              (g->current_run_nr)+1,g->current_fork_nr,g->guidetext);  
-          }    
-        } else {         
-          bpos+=snprintf(buf+bpos,blen-bpos,
-            "result: proof found\nfor %s\n",(g->filename));          
-          if (*(g->guidetext)!=0) { 
-            bpos+=snprintf(buf+bpos,blen-bpos,
-              "by run %d strategy %s\n",
-              (g->current_run_nr)+1,g->guidetext);  
-          }  
+            "by run %d fork %d strategy %s\n",
+            (g->current_run_nr)+1,g->current_fork_nr,g->guidetext);  
         }    
-    } else if (g->in_has_fof) {
-      if (dbmemsegh(g->local_db)->max_forks) {
-        bpos+=snprintf(buf+bpos,blen-bpos,
-          "result: proof found\nby run %d fork %d strategy %s\n%% SZS status Theorem for %s.",
-          (g->current_run_nr)+1,g->current_fork_nr,g->guidetext,g->filename);
+      } else {                       
+        if (*(g->guidetext)!=0) { 
+          bpos+=snprintf(buf+bpos,blen-bpos,
+            "by run %d strategy %s\n",
+            (g->current_run_nr)+1,g->guidetext);  
+        }  
+      }    
+    }  
+    if ((g->print_tptp)) {
+      if (g->in_has_fof) {        
+        bpos+=snprintf(buf+bpos,blen-bpos,"%% SZS status Theorem for %s.",g->filename);            
       } else { 
-        bpos+=snprintf(buf+bpos,blen-bpos,
-          "result: proof found\nby run %d strategy %s\n%% SZS status Theorem for %s.",
-          (g->current_run_nr)+1,g->guidetext,g->filename);
-      }  
-    } else {
-      if (dbmemsegh(g->local_db)->max_forks) {
-        bpos+=snprintf(buf+bpos,blen-bpos,
-          "result: proof found\nby run %d fork %d strategy %s \n%% SZS status Unsatisfiable for %s.",
-          (g->current_run_nr)+1,g->current_fork_nr,g->guidetext,g->filename);
-      } else {
-        bpos+=snprintf(buf+bpos,blen-bpos,
-          "result: proof found\nby run %d strategy %s \n%% SZS status Unsatisfiable for %s.",
-          (g->current_run_nr)+1,g->guidetext,g->filename);
-      }          
-    } 
+        bpos+=snprintf(buf+bpos,blen-bpos,"%% SZS status Unsatisfiable for %s.",g->filename);          
+      } 
+    }   
 #else
     if (g->in_has_fof) {
       bpos+=snprintf(buf+bpos,blen-bpos,"result: proof found for %s.",g->filename);
@@ -1270,7 +1259,7 @@ int wr_show_result(glb* g, gint history) {
     if ((g->required_answer_nr)<2) {
       //bpos+=snprintf(buf+bpos,blen-bpos,"\nproof:");
     } else {
-      bpos+=snprintf(buf+bpos,blen-bpos,"\nanswers and proofs:");
+      //bpos+=snprintf(buf+bpos,blen-bpos,"\nanswers and proofs:");
     }  
   }  
   for(ansnr=2; ansnr<((g->answers)[1]); ansnr+=2) {
@@ -1297,7 +1286,7 @@ int wr_show_result(glb* g, gint history) {
         }  
         bpos+=snprintf(buf+bpos,blen-bpos,",\n");
       } else {
-        bpos+=snprintf(buf+bpos,blen-bpos,"\n\nanswer: ");
+        bpos+=snprintf(buf+bpos,blen-bpos,"\nanswer: ");
         ans=(gptr)((g->answers)[ansnr]);
         bpos=wr_strprint_clause(g,ans,&buf,&blen,bpos);
         if (bpos<0) {
@@ -1385,7 +1374,9 @@ int wr_show_result(glb* g, gint history) {
       } else {  
         bpos+=snprintf(buf+bpos,blen-bpos,"\n]}\n"); // end one answer/proof struct, no more coming
       }  
-    } 
+    } else {
+      bpos+=snprintf(buf+bpos,blen-bpos,"\n");
+    }
 
     if (mpool) wg_free_mpool(db,mpool); 
   }
@@ -1395,13 +1386,13 @@ int wr_show_result(glb* g, gint history) {
   } else {
 #ifdef TPTP      
     if (!(g->print_tptp)) {
-      bpos+=snprintf(buf+bpos,blen-bpos,"\n");
+      //bpos+=snprintf(buf+bpos,blen-bpos,"\n");
     } else {
       bpos+=snprintf(buf+bpos,blen-bpos,
-        "\n%% SZS output end CNFRefutation for %s",g->filename);
+        "\n%% SZS output end CNFRefutation for %s\n",g->filename);
     }    
 #endif        
-    bpos+=snprintf(buf+bpos,blen-bpos,"\n");
+    //bpos+=snprintf(buf+bpos,blen-bpos,"\n");
   }  
   if (g->outfilename) {
     outfile=fopen(g->outfilename, "w");
@@ -1938,7 +1929,7 @@ int wr_strprint_one_history
       if (g->print_json) {
         bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"], ");
       } else {
-        bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"]");
+        bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"] ");
       }      
     }
     bpos=wr_strprint_clause(g,cl,buf,blen,bpos);            
@@ -2062,7 +2053,7 @@ int wr_strprint_one_history
       if (g->print_json) {
         bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"], ");
       } else {
-        bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"]");
+        bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"] ");
       }      
     } 
     bpos=wr_strprint_clause(g,cl,buf,blen,bpos);    
@@ -2141,7 +2132,7 @@ int wr_strprint_one_history
       if (g->print_json) {
         bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"], ");
       } else {
-        bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"]");
+        bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"] ");
       }      
     }
     if (!wr_str_guarantee_space(g,buf,blen,bpos+100)) return -1;
@@ -2172,7 +2163,7 @@ int wr_strprint_one_history
       if (g->print_json) {
         bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"], ");
       } else {
-        bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"]");
+        bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"] ");
       }      
     }
     bpos=wr_strprint_clause(g,cl,buf,blen,bpos); 

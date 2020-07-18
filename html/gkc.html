@@ -65,6 +65,28 @@
   display: block;
 }
 
+code {
+    padding: .2em .4em;
+    margin: 0;
+    font-size: 100%;
+    color:black !important;
+    background-color: #f4f4f4 !important;
+    border-radius: 5px;
+}
+
+pre {    
+    background-color: white !important;   
+}
+
+pre code {
+    padding: 0 !important;
+    margin: 0 !important;
+    font-size: 100% !important;
+    color: #222 !important;
+    background-color: white !important;
+    border-radius: 0 !important;
+}
+
 </style>
 <script>
 'use strict';
@@ -100,7 +122,7 @@ function useGkc(el) {
   gkcoutput="";
   gkc(arglist);
   //console.log("gkcoutput",gkcoutput);
-  document.getElementById("result").innerHTML=gkcoutput;
+  document.getElementById("result").innerHTML=gkcoutput.trim();
 }  
 
 function gkc(arglist) {
@@ -694,11 +716,15 @@ obviously we can.</p>
 <p>The facts and the question are written in predicate logic, with the
 question posed as a negation, from which gkc derives contradiction.</p>
 
-<p>Why the negation and contradiction? Suppose want to prove a &amp; b =&gt; a.
-If we look for contradiction, then we should try to find contradiction from
--(a &amp; b =&gt; a) which is equivalent to  a &amp; b &amp; -a. Essentially, giving
+<p>Why the negation and contradiction? This is just a convenient way to simplify
+the problem. Here we really want to prove <code>a &amp; b =&gt; a</code>. This is true
+if and only if <code>-(a &amp; b =&gt; a)</code> is false. Now, the last formula 
+is equivalent to <code>a &amp; b &amp; -a</code>. Thus 
+the input facts and rules stay as they are, and we only negate the conclusion to be proved.
+To summarize, giving
 a goal to be proved from axioms (i.e. known facts / rules) as a negated 
-statement is a convenient way to organize proof search.</p>
+statement is just a convenient way to organize proof search and there is nothing really
+special about it.</p>
 
 </div>
 
@@ -709,13 +735,10 @@ father(pete,mark).
 
 -father(john,pete).
 
-% what this means:
-% let us want to prove a &amp; b =&gt; a
-% if we look for contradiction, then we should
-% try to find contradiction from
-% -(a &amp; b =&gt; a)
-% which is equivalent to
-% a &amp; b &amp; -a
+% What this means?
+% We want to prove that from the first two facts the third is derived.
+% To do so, we prove that if we negate the third (the conclusion),
+% the conjunction of all the facts gives a contradiction.
 </code></pre>
 
 
@@ -745,24 +768,18 @@ proof:
 
 <div id="example_1_proof_notes">
 
-<p>The output first indicates that the proof was found and then tells us
-which search attempt with which search strategy found it. Gkc runs a large number
-of search attempts with different search strategies both sequentially and in parallel:
-run <N> indicates the number of attempt and fork <N> indicates which parallel process
-found the proof. </p>
-
+<p>The output first indicates that the proof was found.
 <p>The <code>proof</code> block gives us numbered steps of the proof found:
 each step is either a used input fact / rule or a derived fact / rule.</p>
 
-<p>The [in,axiom] means that this fact/rule was given in input.</p>
+<p>The [in] means that this fact/rule was given in input.</p>
 
-<p>The [mp, 1, 2, fromaxiom] (not present in this proof) means that this fact / rule 
+<p>The [mp, 1, 2] (not exactly present in this proof) means that this fact / rule 
 was derived by modus ponens (i.e. the resolution rule)
 from previous steps 1 and 2. More concretely, the first literals of both were cut off and
-the rest were glued together. The "fromaxiom" piece of information is informational: 
-it indicates the fact / rule was derived from ordinary axioms, not a specially marked goal.</p>
+the rest were glued together.</p>
 
-<p>The [simp, 1, 2,fromaxiom] means the same as the [mp,...] above, just a specially simple case.</p>
+<p>The [simp, 1, 2] means the same as the [mp,...] above, just a specially simple case.</p>
 
 <p>The <a href="https://en.wikipedia.org/wiki/Resolution_(logic)">Resolution (logic) wiki page</a> 
 is a good short intro to the general principles of the derivation rules with the 
@@ -1354,7 +1371,7 @@ p(f(f(f(a)))
 <p>However, gkc does not attempt to detect unprovability and will
 run either forever or for a very long time, until the browser complains
 and asks you to stop, or it runs out of allocated time or memory.</p>
-<p><b>NB!</b>You will have to <b>reload</b> the page after you stop the script, otherwise
+<p><b>NB!</b> You will have to <b>reload</b> the page after you stop the script, otherwise
 the page will be unresponsive.</p>
 <!--
 <pre><code>./gkc example11.txt
@@ -1386,7 +1403,7 @@ nevertheless actually provable, try the fof-format problem
 <p>It will probably run until the browser complains badly 
 or time given by the automatic strategy selection runs out.</p>
 
-<p><b>NB!</b>You will have to <b>reload</b> the page after you stop the script, otherwise
+<p><b>NB!</b> You will have to <b>reload</b> the page after you stop the script, otherwise
   the page will be unresponsive.</p>
 
 <!--
@@ -2451,14 +2468,6 @@ function handleFileSelect(evt) {
 }
 // do this to initialize file reading:
 gid('files').addEventListener('change', handleFileSelect, false);
-
-// example data
-
-var examples=
-{"1":
-  {"data":"p(a). \n -p(a).",
-  "notes":""}
-};
 
 </script>
 <!-- ui with bootstrap -->

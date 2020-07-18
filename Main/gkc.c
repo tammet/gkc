@@ -138,8 +138,8 @@ void wg_show_database(void* db);
 void gkc_show_cur_time(void);
 
 void initial_printf(char* s);
-void err_printf(char* s);
-void err_printf2(char* s1, char* s2);
+void err_printf(int json, char* s);
+void err_printf2(int json, char* s1, char* s2);
 
 int wg_import_data_file(void *db, char* filename, int iskb, int* informat, int askpolarity, int* askinfo);
 int wg_import_data_string(void *db, char* instr, int iskb, int* informat, int askpolarity, int* askinfo,
@@ -232,7 +232,7 @@ int gkc_main(int argc, char **argv) {
                          &convert,&clausify,&seconds,&retcode);                         
   if (retcode) return retcode;
   if (tptp && json) {
-    err_printf("do not set both -tptp and -json output parameters at the same time");    
+    err_printf(json,"do not set both -tptp and -json output parameters at the same time");    
     return 0;
   }
 #ifndef _WIN32 
@@ -304,12 +304,12 @@ int gkc_main(int argc, char **argv) {
     wg_int err=0;
 
     if (!lstrings && !ljstrings && !lfiles) {
-      err_printf("an input file or string as an argument is needed");
+      err_printf(json,"an input file or string as an argument is needed");
       return(1);
     }  
     shmptr=wg_attach_local_database(shmsize);
     if(!shmptr) {
-      err_printf("failed to attach local database");
+      err_printf(json,"failed to attach local database");
       return(1);
     }
     //islocaldb=1;   
@@ -349,10 +349,10 @@ int gkc_main(int argc, char **argv) {
     if(!err) {
       //printf("Data read from %s.\n",cmdfiles[1]);
     } else if(err<-1) {
-      err_printf("error when reading file or text");
+      err_printf(json,"error when reading file or text");
       return(1);   
     } else {
-      //err_printf("error when reading file or text");
+      //err_printf(json,"error when reading file or text");
       return(1); 
     }      
     if (convert && !clausify) {
@@ -361,7 +361,10 @@ int gkc_main(int argc, char **argv) {
       err = wg_run_converter(shmptr,inputname,stratfile,informat,NULL,NULL);
     } else {
       err = wg_run_reasoner(shmptr,inputname,stratfile,informat,NULL,NULL);
-      if (err) printf("\n{\"result\": \"proof not found\"}\n");
+      if (err) {
+        if (json) printf("\n{\"result\": \"proof not found\"}\n");
+        else  printf("result: proof not found.\n");
+      }  
     }      
 #ifdef __EMSCRIPTEN__
     wg_delete_local_database(shmptrlocal);
@@ -375,21 +378,21 @@ int gkc_main(int argc, char **argv) {
     wg_int err;
 
 #ifdef __EMSCRIPTEN__
-    err_printf("-readkb unavailable under wasm");
+    err_printf(json,"-readkb unavailable under wasm");
     return(1);
 #endif    
     if (cmdfileslen<2) {
-      err_printf("-readkb needs a file as an argument");
+      err_printf(json,"-readkb needs a file as an argument");
       return(1);
     }   
 #ifdef _WIN32      
     if (mbsize && mbsize<100) {
-      err_printf("-readkb needs at least 100 megabytes: change -mbsize argument");
+      err_printf(json,"-readkb needs at least 100 megabytes: change -mbsize argument");
       return(1);
     }        
 #else
     if (mbsize && mbsize<1000) {
-      err_printf("-readkb needs at least 1000 megabytes: change -mbsize argument");
+      err_printf(json,"-readkb needs at least 1000 megabytes: change -mbsize argument");
       return(1);
     }
 #endif         
@@ -404,7 +407,7 @@ int gkc_main(int argc, char **argv) {
 #endif
     shmptr=wg_attach_database(shmname, shmsize);    
     if(!shmptr) {
-      err_printf("failed to attach to database");
+      err_printf(json,"failed to attach to database");
       return(1);
     }
 #ifdef SHOWTIME       
@@ -420,10 +423,10 @@ int gkc_main(int argc, char **argv) {
     if(!err)
       printf("Data parsed into the shared memory db, starting to build indexes.");
     else if(err<-1)
-      err_printf("problem reading otter file, data may be partially"\
+      err_printf(json,"problem reading otter file, data may be partially"\
         " imported");
     else {
-      err_printf("reading failed");
+      err_printf(json,"reading failed");
       wg_delete_database(shmname);
       return(1);
     }
@@ -435,7 +438,7 @@ int gkc_main(int argc, char **argv) {
     if (cmdfileslen==3) tmp=init_shared_database(shmptr,cmdfiles[2]);
     else tmp=init_shared_database(shmptr,NULL);
     if (tmp<0) {
-      err_printf("db creation failed");
+      err_printf(json,"db creation failed");
       wg_delete_database(shmname);
       return(1);
     }  
@@ -460,7 +463,7 @@ int gkc_main(int argc, char **argv) {
     wg_int err;
     /*
     if (cmdfileslen<2) {
-      err_printf("-usekb needs a file as an argument");
+      err_printf(json,"-usekb needs a file as an argument");
       return(1);
     } 
     */     
@@ -470,7 +473,7 @@ int gkc_main(int argc, char **argv) {
 #endif      
     shmptr=wg_attach_existing_database(shmname);
     if(!shmptr) {
-      err_printf("failed to attach to database");
+      err_printf(json,"failed to attach to database");
       return(1);
     }
     if (tptp && !(clausify) && !(convert)) {
@@ -496,7 +499,7 @@ int gkc_main(int argc, char **argv) {
     gkc_show_cur_time();
 #endif      
     if(!shmptrlocal) {
-      err_printf("failed to attach local database");
+      err_printf(json,"failed to attach local database");
       return(1);
     }        
     //islocaldb=1;
@@ -550,10 +553,10 @@ int gkc_main(int argc, char **argv) {
     if(!err) {
       //printf("Data read from %s.\n",cmdfiles[1]);
     } else if(err<-1) {
-      err_printf("error when reading file or text");
+      err_printf(json,"error when reading file or text");
       return(1);   
     } else {
-      //err_printf("error when reading file or text");
+      //err_printf(json,"error when reading file or text");
       return(1); 
     } 
     
@@ -565,12 +568,15 @@ int gkc_main(int argc, char **argv) {
     if (convert && !clausify) {     
       return 0; 
     } else if (clausify) {
-      err_printf("do not use -clausify together with -usekb");
+      err_printf(json,"do not use -clausify together with -usekb");
       return 1;
       //err = wg_run_converter(shmptrlocal,inputname,stratfile,informat,NULL,NULL);
     } else {
       err = wg_run_reasoner(shmptrlocal,inputname,stratfile,informat,NULL,NULL);
-      if (err) printf("\n{\"result\": \"proof not found\"}\n");
+      if (err) {
+        if (json) printf("\n{\"result\": \"proof not found\"}\n");
+        else  printf("result: proof not found.\n");
+      }     
     }     
 #ifdef SHOWTIME      
     printf("\nwg_run_reasoner returned\n");
@@ -586,12 +592,12 @@ int gkc_main(int argc, char **argv) {
      int flags = 0;
 
     if (cmdfileslen<2) {
-      err_printf("-writekb needs a file as an argument");
+      err_printf(json,"-writekb needs a file as an argument");
       return(1);
     }  
     shmptr=wg_attach_existing_database(shmname);
     if(!shmptr) {
-      err_printf("failed to attach local database");
+      err_printf(json,"failed to attach local database");
       return(1);
     }
 
@@ -602,11 +608,11 @@ int gkc_main(int argc, char **argv) {
       err = wg_dump(shmptr,cmdfiles[1]);
 
     if(err<-1) {
-      err_printf("cannot write to file, kb may have"\
+      err_printf(json,"cannot write to file, kb may have"\
         " become corrupt");
       return(1);  
     } else if(err) {
-      err_printf("writing failed");
+      err_printf(json,"writing failed");
       return(1);
     }
     return(0);
@@ -619,19 +625,19 @@ int gkc_main(int argc, char **argv) {
     int flags = 0;  
 
     if (cmdfileslen<2) {
-      err_printf("-loadkb needs a file as an argument");
+      err_printf(json,"-loadkb needs a file as an argument");
       return(1);
     }  
     err = wg_check_dump(NULL, cmdfiles[1], &minsize, &maxsize);
     if(err) {
-      err_printf2("loading failed, problem with %s",cmdfiles[1]);
+      err_printf2(json,"loading failed, problem with %s",cmdfiles[1]);
       return(1);
     }
 
     shmptr=wg_attach_memsegment(shmname, minsize, maxsize, 1,
       (flags & FLAGS_LOGGING), 0);
     if(!shmptr) {
-      err_printf("error: failed to attach local database");
+      err_printf(json,"error: failed to attach local database");
       return(1);
     }
 
@@ -640,11 +646,11 @@ int gkc_main(int argc, char **argv) {
     if(!err)
       printf("Database imported.\n");
     else if(err<-1) {
-      err_printf("failed to load, db may have"\
+      err_printf(json,"failed to load, db may have"\
         " become corrupt");
       return(1);  
     } else {
-      err_printf("loading failed");
+      err_printf(json,"loading failed");
       return(1);
     }
 #ifdef _WIN32    
@@ -661,17 +667,17 @@ int gkc_main(int argc, char **argv) {
     int flags = 0;
 
     if (cmdfileslen<3) {
-      err_printf("-readwritekb needs a data file and a dump filename as arguments");
+      err_printf(json,"-readwritekb needs a data file and a dump filename as arguments");
       return(1);
     }   
 #ifdef _WIN32      
     if (mbsize && mbsize<100) {
-      err_printf("-readwritekb needs at least 100 megabytes: change -mbsize argument");
+      err_printf(json,"-readwritekb needs at least 100 megabytes: change -mbsize argument");
       return(1);
     }        
 #else
     if (mbsize && mbsize<1000) {
-      err_printf("-readwritekb needs at least 1000 megabytes: change -mbsize argument");
+      err_printf(json,"-readwritekb needs at least 1000 megabytes: change -mbsize argument");
       return(1);
     }
 #endif
@@ -686,7 +692,7 @@ int gkc_main(int argc, char **argv) {
 #endif
     shmptr=wg_attach_database(shmname, shmsize);
     if(!shmptr) {
-      err_printf("failed to attach to database");
+      err_printf(json,"failed to attach to database");
       return(1);
     }
 #ifdef SHOWTIME       
@@ -702,10 +708,10 @@ int gkc_main(int argc, char **argv) {
     if(!err)
       printf("Data parsed into the shared memory db, starting to build indexes.");
     else if(err<-1)
-      err_printf("fatal error when reading otter file, data may be partially"\
+      err_printf(json,"fatal error when reading otter file, data may be partially"\
         " imported");
     else {
-      err_printf("reading failed");
+      err_printf(json,"reading failed");
       wg_delete_database(shmname);
       return(1);
     }
@@ -717,7 +723,7 @@ int gkc_main(int argc, char **argv) {
     if (cmdfileslen==4) tmp=init_shared_database(shmptr,cmdfiles[3]);
     else tmp=init_shared_database(shmptr,NULL);    
     if (tmp<0) {
-      err_printf("db creation failed");
+      err_printf(json,"db creation failed");
       wg_delete_database(shmname);
       return(1);
     }  
@@ -733,11 +739,11 @@ int gkc_main(int argc, char **argv) {
       err = wg_dump(shmptr,cmdfiles[2]);
 
     if(err<-1) {
-      err_printf("cannot write to file, kb may have"\
+      err_printf(json,"cannot write to file, kb may have"\
         " become corrupt");
       return(1);  
     } else if(err) {
-      err_printf("writing failed");
+      err_printf(json,"writing failed");
       return(1);
     }
     printf("Database written to file %s and remains present in memory.\n",cmdfiles[2]);
@@ -755,7 +761,7 @@ int gkc_main(int argc, char **argv) {
   if (!(strncmp(cmdstr,"-deletekb",15))) {
     /* free shared memory */
 #ifdef _WIN32      
-    err_printf("-deletekb is available on Linux and OSX only");
+    err_printf(json,"-deletekb is available on Linux and OSX only");
     return(0);
 #endif      
     wg_delete_database(shmname);
@@ -1274,12 +1280,18 @@ void initial_printf(char* s) {
   printf("{\"error\": \"%s\"}",s);
 }
 
-void err_printf(char* s) {
-  printf("{\"error\": \"%s\"}\n",s);
+void err_printf(int json,char* s) {
+  if(json)
+    printf("{\"error\": \"%s\"}\n",s);
+  else
+    printf("error: %s\n",s);  
 }
 
-void err_printf2(char* s1, char* s2) {
-  printf("{\"error\": \"%s %s\"}\n",s1,s2);
+void err_printf2(int json,char* s1, char* s2) {
+  if(json)
+    printf("{\"error\": \"%s %s\"}\n",s1,s2);
+  else
+    printf("error: %s %s\n",s1,s2); 
 }
 
 
@@ -1496,7 +1508,7 @@ int gkc_ltb_main(int argc, char **argv) {
 
           shmptr=wg_attach_local_database(shmsize);
           if(!shmptr) {
-            err_printf("failed to attach local database");
+            err_printf(0,"failed to attach local database");
             exit(1);
           }
           (dbmemsegh(shmptr)->min_strat_timeloop_nr)=bigloopi; 

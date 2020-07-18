@@ -431,7 +431,7 @@ int wr_strprint_clause(glb* g, gptr rec, char** buf, int *len, int pos) {
   if (!wr_str_guarantee_space(g,buf,len,pos+10)) return -1;  
   if (rec==NULL) {
     if (g->print_clauses_json) {
-      pos+=snprintf((*buf)+pos,(*len)-pos,"[]");
+      pos+=snprintf((*buf)+pos,(*len)-pos,"false");
     } else if (g->print_json) {
       pos+=snprintf((*buf)+pos,(*len)-pos,"\"false\"");
     } else if (g->print_clauses_tptp) {    
@@ -508,13 +508,13 @@ int wr_strprint_rule_clause_otter(glb* g, gint* rec,int printlevel, char** buf, 
   if (!wr_str_guarantee_space(g,buf,len,pos+10)) return -1;
   if (rec==NULL) {    
     if (g->print_clauses_json) {    
-      pos+=snprintf((*buf)+pos,(*len)-pos,"[]"); 
+      pos+=snprintf((*buf)+pos,(*len)-pos,"false"); 
       return pos;
     } else if (g->print_clauses_tptp) {    
       pos+=snprintf((*buf)+pos,(*len)-pos,"$false"); 
       return pos;                   
     } else {    
-      pos+=snprintf((*buf)+pos,(*len)-pos,"NULL"); 
+      pos+=snprintf((*buf)+pos,(*len)-pos,"false"); 
       return pos;
     }
   }
@@ -601,13 +601,13 @@ int wr_strprint_fact_clause_otter(glb* g, gint* rec, int printlevel, char** buf,
   if (!wr_str_guarantee_space(g,buf,len,pos+10)) return -1;
   if (rec==NULL) {    
     if (g->print_clauses_json) {    
-      pos+=snprintf((*buf)+pos,(*len)-pos,"[]"); 
+      pos+=snprintf((*buf)+pos,(*len)-pos,"false"); 
       return pos;       
     } else if (g->print_clauses_tptp) {    
       pos+=snprintf((*buf)+pos,(*len)-pos,"$false"); 
       return pos;    
     } else {    
-      pos+=snprintf((*buf)+pos,(*len)-pos,"NULL"); 
+      pos+=snprintf((*buf)+pos,(*len)-pos,"false"); 
       return pos;
     }
   }

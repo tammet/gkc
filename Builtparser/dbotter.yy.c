@@ -2552,8 +2552,13 @@ void wg_yyottererror (parse_parm* parm, void* scanner, const char* msg) {
   }
   if (parm->errmsg) return;
   parm->errmsg=malloc(2000);
-  snprintf(parm->errmsg,2000,"{\"error\": \"%s: file %s place '%s' in line %d:\n%s\"}", 
+  if (1) { //(parm->json) {
+    snprintf(parm->errmsg,2000,"{\"error\": \"%s: file %s place '%s' in line %d:\n%s\"}", 
           msg,parm->filename,s,wg_yyotterget_lineno(scanner),linebuf);
+  } else {
+    snprintf(parm->errmsg,2000,"error: %s: file %s place '%s' in line %d:\n%s", 
+          msg,parm->filename,s,wg_yyotterget_lineno(scanner),linebuf);
+  }        
   (parm->errmsg)[2000-1]=0;
   // printf("{\"error\": \"%s: file %s place '%s' in line %d:\n%s\"}\n", 
   //        msg,parm->filename,s,wg_yyotterget_lineno(scanner),linebuf);  

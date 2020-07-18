@@ -245,7 +245,7 @@ int wr_glb_init_simple(glb* g) {
   (g->print_level_flag)=10; // rmain uses this to set other flags accordingly. Normal: 10
                            // -1: use default, 0: none, 10: normal, 20: medium, 30: detailed
   (g->print_clause_history)=0; // 1 does not work well: prints double while deriving, ok for parsing res
-  (g->print_history_extra)=1; // 1 prints clause group etc, 0 prints basics
+  (g->print_history_extra)=0; // 1 prints clause group etc, 0 prints basics
   (g->print_fof_conversion_proof)=1; // 1 prints fof sources and some conversion steps in proof, 0 does not
 
   (g->parser_print_level)=1;

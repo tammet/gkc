@@ -254,6 +254,8 @@ int wr_import_js_file(glb* g, char* filename, char* strasfile, cvec clvec, int i
   pp.nullvars=NULL;
   pp.nullvarsnr=0;
   pp.boundvars=NULL;
+  pp.json=(g->print_json);
+
 
   for(i=0;i<PARSE_NESTING_DEPTH;i++) {
     pp.nests[i]=NULL;

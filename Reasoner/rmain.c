@@ -49,7 +49,8 @@
 #endif
 #include <sys/wait.h> 
 #include <unistd.h> 
-#include <sys/signal.h>
+//#include <sys/signal.h>
+#include <signal.h>
 #ifdef __linux__
 #include <sys/prctl.h>
 #else
@@ -73,6 +74,7 @@ extern "C" {
 
 static void wr_set_no_printout(glb* g);
 static void wr_set_tiny_printout(glb* g);
+static void wr_set_tiny_extra_printout(glb* g);
 static void wr_set_low_printout(glb* g);
 static void wr_set_normal_printout(glb* g);
 static void wr_set_medium_printout(glb* g);
@@ -476,6 +478,7 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
     if ((g->print_level_flag)<0) (g->print_level_flag)=default_print_level;
     if ((g->print_level_flag)==0) wr_set_no_printout(g);
     else if ((g->print_level_flag)<=10) wr_set_tiny_printout(g);
+    else if ((g->print_level_flag)<=11) wr_set_tiny_extra_printout(g);
     else if ((g->print_level_flag)<=15) wr_set_low_printout(g);
     else if ((g->print_level_flag)<=20) wr_set_normal_printout(g);
     else if ((g->print_level_flag)<=30) wr_set_medium_printout(g);
@@ -1579,6 +1582,7 @@ static void wr_set_no_printout(glb* g) {
   (g->print_runs)=0;
   (g->print_stats)=0;
   (g->print_datastructs)=0;
+  (g->print_history_extra)=0; 
   
 }
 
@@ -1605,6 +1609,34 @@ static void wr_set_tiny_printout(glb* g) {
   (g->print_clause_detaillevel)=1;
   (g->print_runs)=0;
   (g->print_stats)=0;
+  (g->print_history_extra)=0;
+  
+}
+
+static void wr_set_tiny_extra_printout(glb* g) {
+  (g->print_flag)=1;
+  
+  (g->parser_print_level)=0;
+  (g->print_initial_parser_result)=0;
+  (g->print_generic_parser_result)=0;
+  
+  (g->print_initial_active_list)=0;
+  (g->print_initial_passive_list)=0;
+  
+  (g->print_given_interval_trace)=0;
+  (g->print_initial_given_cl)=0;
+  (g->print_final_given_cl)=0;
+  (g->print_active_cl)=0;
+  (g->print_litterm_selection)=0;
+  (g->print_partial_derived_cl)=0;
+  (g->print_derived_cl)=0;
+  (g->print_derived_subsumed_cl)=0;
+  (g->print_derived_precut_cl)=0;
+  
+  (g->print_clause_detaillevel)=1;
+  (g->print_runs)=0;
+  (g->print_stats)=0;
+  (g->print_history_extra)=1;
   
 }
 
@@ -1632,6 +1664,7 @@ static void wr_set_low_printout(glb* g) {
   (g->print_runs)=1;
   (g->print_stats)=1;
   (g->print_datastructs)=0;
+  (g->print_history_extra)=1;
   
 }
 
@@ -1659,6 +1692,7 @@ static void wr_set_normal_printout(glb* g) {
   (g->print_runs)=1;
   (g->print_stats)=1;
   (g->print_datastructs)=0;
+  (g->print_history_extra)=1;
   
 }  
 
@@ -1686,6 +1720,7 @@ static void wr_set_medium_printout(glb* g) {
   (g->print_runs)=1;
   (g->print_stats)=1;
   (g->print_datastructs)=0;
+  (g->print_history_extra)=1;
   
 }
 
@@ -1712,6 +1747,7 @@ void wr_set_detailed_printout(glb* g) {
   (g->print_runs)=1;
   (g->print_stats)=1;
   (g->print_datastructs)=0;
+  (g->print_history_extra)=1;
   
 }
 
@@ -1738,6 +1774,7 @@ void wr_set_detailed_plus_printout(glb* g) {
   (g->print_runs)=1;
   (g->print_stats)=1;  
   (g->print_datastructs)=1;
+  (g->print_history_extra)=1;
 }
 
 

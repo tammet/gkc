@@ -176,7 +176,7 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, in
   tmp_comp_funs=(g->use_comp_funs);
   (g->use_comp_funs)=0;
   (g->in_has_fof)=0;
-  
+   
   if (strasfile==NULL) {  
     // input from file
     fnamestr=filename;
@@ -197,6 +197,7 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, in
     pp.foo=NULL; // indicates file case in YY_INPUT in dbotter.l
     pp.result=NULL;
     pp.errmsg=NULL;
+    pp.json=(g->print_json);
   } else {
     // input from string
     if (!strasfile) {
@@ -215,6 +216,7 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, in
     pp.pos = 0;
     pp.result=NULL;
     pp.errmsg=NULL;
+    pp.json=(g->print_json);
   }   
   //mpool=wg_create_mpool(db,PARSER_MEMPOOL_SIZE); 
   mpool=(dbmemsegh(db)->infrm_mpool);
@@ -1707,9 +1709,15 @@ int wr_show_parse_error(glb* g, char* format, ...) {
   if (g->parse_errmsg) return -1;
   (g->parse_errmsg)=malloc(1000);
   if (!(g->parse_errmsg)) return -1;
-  tmp1=snprintf((g->parse_errmsg),50,"{\"error\": \"parser error: ");
-  tmp2=vsnprintf((g->parse_errmsg)+tmp1,800,format,args);
-  snprintf((g->parse_errmsg)+tmp1+tmp2,50,"\"}");
+  if (1) { //(g->print_json) {
+    tmp1=snprintf((g->parse_errmsg),50,"{\"error\": \"parser error: ");
+    tmp2=vsnprintf((g->parse_errmsg)+tmp1,800,format,args);
+    snprintf((g->parse_errmsg)+tmp1+tmp2,50,"\"}");
+  } else {
+    tmp1=snprintf((g->parse_errmsg),50,"parser error: ");
+    tmp2=vsnprintf((g->parse_errmsg)+tmp1,800,format,args);
+    snprintf((g->parse_errmsg)+tmp1+tmp2,50,"\n");
+  }  
 
   /*
   printf("{\"error\": \"parser error: ");

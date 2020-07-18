@@ -105,6 +105,7 @@ typedef struct parse_parm_s {
 
   int askpolarity;
   int askinfo;
+  int json; // set to 1 if json output wanted (used in error printing)
 
   void* nests[PARSE_NESTING_DEPTH]; // stack for pure json parsing
 

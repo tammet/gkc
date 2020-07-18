@@ -1785,10 +1785,10 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
 
     } else if ((g->sin_clause_count)>100) { // < 1000
 
-      pos+=sprintf(buf+pos,     
-      "{\"max_seconds\": %d,\"strategy\":[\"hardness_pref\"],\"query_preference\":0},\n",secs);      
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0},\n",secs);      
+      "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0},\n",secs);
+      pos+=sprintf(buf+pos,     
+      "{\"max_seconds\": %d,\"strategy\":[\"hardness_pref\"],\"query_preference\":0},\n",secs);                  
       if (qp1ok) {
         pos+=sprintf(buf+pos,
         "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1},\n",secs);
@@ -1950,6 +1950,8 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
 
     } else if ((g->sin_clause_count)>20) { // < 100
 
+      pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0},\n",secs);
       if (qp1ok) {
         pos+=sprintf(buf+pos,
         "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1},\n",secs);
@@ -1959,9 +1961,7 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
       if (qp1ok) {      
         pos+=sprintf(buf+pos,
         "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":1},\n",secs);
-      }
-      pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0},\n",secs);
+      }      
       if (qp1ok) {      
         pos+=sprintf(buf+pos,
         "{\"max_seconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":1},\n",secs);
@@ -2116,19 +2116,19 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
 
     } else  { // < 20
       // very small size
-
-      pos+=sprintf(buf+pos,  
-      "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0},\n",secs);
-      if (qp1ok) {
-        pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":1},\n",secs);
-      }
+      
       pos+=sprintf(buf+pos,
         "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0},\n",secs);
+      pos+=sprintf(buf+pos,  
+         "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0},\n",secs);    
       if (qp1ok) {
         pos+=sprintf(buf+pos,
         "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1},\n",secs);
       }     
+      if (qp1ok) {
+        pos+=sprintf(buf+pos,
+        "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":1},\n",secs);
+      } 
 
       // exp:
     
