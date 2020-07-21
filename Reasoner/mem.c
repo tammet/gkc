@@ -56,6 +56,7 @@ extern "C" {
 void* wr_malloc(glb* g, int bytes) {
   ++(g->stat_wr_mallocs);
   (g->stat_wr_malloc_bytes)+=bytes;
+  //printf("\nwr_malloc %d (g->inkb) %ld\n",bytes,(g->inkb));
 #ifdef DEBUG  
   wr_printf("\nwr_malloc %d \n",bytes);
 #endif  
@@ -85,6 +86,7 @@ void* wr_realloc(glb* g, void* p, int bytes) {
 
 void wr_free(glb* g, void* p) {
   ++(g->stat_wr_frees);
+  //printf("\nwr_free\n");
 #ifdef DEBUG 
   wr_printf("\nwr_free\n");
 #endif  

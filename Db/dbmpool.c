@@ -161,11 +161,13 @@ static int extend_mpool(void* db, mpool_header* mpool, int minbytes) {
     bytes=bytes*2;
     if (bytes>=(minbytes+ALIGNMENT_BYTES)) break;
   }
+#ifndef __EMSCRIPTEN__  
   if (bytes>MAX_MPOOL_BYTES) {
     show_mpool_error_nr(db,
       " limit blocks extending mpool size to ",bytes);
     return -1;
   }
+#endif  
   subarea=malloc(bytes);
   if (subarea==NULL) {
     show_mpool_error_nr(db,
@@ -874,6 +876,7 @@ static void wg_mpool_print_aux(void* db, void* ptr, int depth, int pflag) {
   int i;
   void *curptr;
 
+  //printf("\nwg_mpool_print_aux called ptr %ld depth %d pflag %d\n",(gint)ptr,depth,pflag);
   if (ptr==NULL) {
     printf("()");
   } else if (wg_isatom(db,ptr)) {
@@ -933,7 +936,7 @@ static void wg_mpool_print_aux(void* db, void* ptr, int depth, int pflag) {
       }
     }
   } else {
-    if (pflag && wg_listtreecount(db,ptr)>10) ppflag=1;
+    //if (pflag && wg_listtreecount(db,ptr)>10) ppflag=1;
     printf ("(");
     for(curptr=ptr, count=0;curptr!=NULL && !wg_isatom(db,curptr);curptr=wg_rest(db,curptr), count++) {
       if (count>0) {
@@ -943,6 +946,12 @@ static void wg_mpool_print_aux(void* db, void* ptr, int depth, int pflag) {
         }
         printf(" ");
       }
+      // check pointer
+      if (wg_mpool_bad_ptr(db,curptr)) {      
+        printf("*first_wrongptr*");
+        break;
+      }
+      // end check pointer
       wg_mpool_print_aux(db,wg_first(db,curptr),depth+1,0);
     }
     if (wg_isatom(db,curptr)) {
@@ -967,6 +976,19 @@ static void wg_mpool_print_aux(void* db, void* ptr, int depth, int pflag) {
 
 
 /* ============== error handling ==================== */
+
+int wg_mpool_bad_ptr(void* db, void* ptr) {
+  gint tmp;
+
+  tmp=(gint)((ptrdiff_t)(ptr-db));
+  if (tmp<0) tmp=0-tmp;
+  //printf("\ntmp %ld\n",tmp);
+  if (tmp>(dbmemsegh(db)->size)) {
+    return 1;
+  }
+  return 0;
+}
+
 
 /** called with err msg when an mpool allocation error occurs
 *

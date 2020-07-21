@@ -81,7 +81,7 @@ cJSON* wr_parse_guide_file(char* stratfile, char** guidebuf) {
     // default case: no guide file
 
     len=strlen(DEFAULT_GUIDE);
-    buf = (char*)malloc(len+10);
+    buf = (char*)sys_malloc(len+10);
     *guidebuf=buf;
     if (!buf) {
       wr_errprint("failed to allocate memory for the built guide str");
@@ -108,7 +108,7 @@ cJSON* wr_parse_guide_file(char* stratfile, char** guidebuf) {
   len = ftell(fp);
   fseek(fp, 0, SEEK_SET);
   // read and proceed
-  buf = (char*)malloc(len + 10);
+  buf = (char*)sys_malloc(len + 10);
   *guidebuf=buf;
   if (!buf) {
     wr_errprint2("failed to allocate memory for the strategy file", filename);
@@ -160,7 +160,7 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr) {
   if (!json_isobject(guide)) {    
     errstr=cJSON_Print(guide);
     wr_warn2(g,"misunderstood section in the strategy:\n ", errstr);
-    if (errstr) free(errstr);
+    if (errstr) wr_free(g,errstr);
     return -1;
   }
   elem=guide->child;

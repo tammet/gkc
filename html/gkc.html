@@ -98,7 +98,7 @@ function useGkc(el) {
   var input, output;
   var inputarea, outputplace;
   var arglist;
-  var sel, conversion;
+  var sel, conversion, print_level, print_derived, strategy;
  
   var placeid=el.parentNode.id;
   var div = document.getElementById(placeid+"_output"); 
@@ -118,7 +118,24 @@ function useGkc(el) {
     conversion=conversion.substring(8);        
     arglist=["-text",input,"-"+conversion];
   }
-  //console.log(arglist);
+
+  sel=document.getElementById("print_level");
+  print_level=sel.options[sel.selectedIndex].value;
+  arglist=arglist.concat(['-print',print_level]);
+
+  sel=document.getElementById("print_derived");
+  print_derived=sel.options[sel.selectedIndex].value;
+  if (print_derived=="on") {
+    arglist=arglist.concat(['-derived']);
+  }
+
+  sel=document.getElementById("strategy");
+  strategy=sel.value;
+  if (strategy) {
+    arglist=arglist.concat(['-strategy',strategy]);
+  }
+
+  console.log(arglist);
   gkcoutput="";
   gkc(arglist);
   //console.log("gkcoutput",gkcoutput);
@@ -188,14 +205,15 @@ function fillOutput(placeid,text) {
 
 // example selection
 
-function selectExample() {
+function selectExample(level) {
   var sel;
   var value;
   var data;
   var notes;
   var placeid,html,el;
 
-  sel=document.getElementById("select_example");
+  if (level=='simple') sel=document.getElementById("select_example");
+  else sel=document.getElementById("select_advanced_example");
   value=sel.options[sel.selectedIndex].value;
 
   if (value=="examples") {
@@ -242,6 +260,17 @@ function selectExample() {
   document.getElementById("result").innerHTML=html;
 }
 
+function switchAdvanced() {
+  if ($('#advanced_buttons').is(":hidden")) {
+    //$('#ctf_show_configuremenu').val('1');
+    //$('#configure_btn').attr('value',clstr[2]);
+  } else {
+    //$('#ctf_show_configuremenu').val('0');
+    //$('#configure_btn').attr('value',clstr[1]);
+  }  
+  $('#advanced_buttons').slideToggle('slow');
+};
+
 // simplified Module glue code originally produced by emscripten
 
 var Module={  
@@ -254,6 +283,8 @@ var Module={
   printErr:function(e){
     arguments.length>1 && (e=Array.prototype.slice.call(arguments).join(" "));
     if ((JSON.stringify(e)).includes("abort(OOM)")) {
+      location.reload();
+    } else if ((JSON.stringify(e)).includes("index out of bounds")) {
       location.reload();
     }
     console.error(e);    
@@ -296,9 +327,9 @@ window.onerror=function(e){
     </div>
     <div class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
-        <li class="active"><a href="index.html">Solve</a></li>        
-        <li class="dummy"><a href="propositional.html">Propositional logic</a></li>
-        <li class="dummy"><a href="predicate.html">Predicate logic</a></li>
+        <li class="active"><a href="index.html">Solve predicate logic</a></li>        
+        <li class="dummy"><a href="propositional.html">Solve propositional logic</a></li>
+        <!-- <li class="dummy"><a href="predicate.html">Predicate logic</a></li> -->
         <li class="dummy"><a href="download.html">Download</a></li>        
         <li class="dummy"><a href="about.html">About</a></li> 
       </ul>
@@ -326,19 +357,22 @@ window.onerror=function(e){
          >syntax</button>
 </h2>                
 
-  <form class="form-inline" method="post">
+  <div class="form-inline" method="post" osnubmit="return false;">
     <div class="wblock">      
       <div id="gkc_1">     
         <textarea class="form-control" id="gkc_1_input" 
-        style="height: 200px; width:100%; margin-bottom: 20px;">
-brother(john,james).
--brother(X,Y) | brother(Y,X).
--brother(james,john). 
-        </textarea>
+        style="height: 200px; width:100%; margin-bottom: 20px;">% a simple example: using two facts and two rules, find a grandson of john
+
+father(john,pete).
+father(pete,mark).
+(father(X,Y)  & father(Y,Z)) => grandfather(X,Z).
+grandfather(X,Y) => grandson(Y,X).
+
+grandson(X,john) => $ans(X).</textarea>
         <button onclick="useGkc(this); return false;" class="btn btn-small btn-primary"
         style="width: 70px;">Prove</button>
         <select class="form-control" style="width: 110px;" id="select_example"
-          onchange="selectExample()">
+          onchange="selectExample('simple')">
           <option value="examples">examples</option>
           <option value="1">basics</option>
           <option value="2">answers</option>
@@ -375,8 +409,9 @@ brother(john,james).
           <option value="clauses_tptp">tptp clauses</option>          
         </select>
         &nbsp;&nbsp;&nbsp;
-        <button onclick="clearOutput(this); return false;" class="btn btn-small btn-default"
-        >Strategy</button>           
+        <button onclick="clearOutput(this); switchAdvanced(); return false;" 
+          class="btn btn-small btn-default"
+        >Advanced</button>           
         &nbsp;&nbsp;&nbsp;            
         <button onclick="clearOutput(this); return false;" class="btn btn-small btn-default"
         >Clear result</button>
@@ -388,11 +423,59 @@ brother(john,james).
            line-height: 1.42; border-radius: 15px; 
            background-color: #cccccc; color: #337ab7; margin-left: 15px;">?</button>
         </a> 
-                         
+        
+        <div id="advanced_buttons" style="padding-top: 15px; display: none;">
+          <div style="display: inline-block; width: 70px;">Advanced</div>
+          <select class="form-control" style="width: 110px;" id="select_advanced_example"
+            onchange="selectExample('advanced')">
+            <option value="examples">examples</option>
+            <option value="1">basics</option>
+            <option value="2">answers</option>
+            <option value="3">rules</option>
+            <option value="4">or-answers</option>
+            <option value="5">more rules</option>
+            <option value="6">functions</option>
+            <option value="7">gf with fun</option>
+            <option value="8">equalities</option>
+            <option value="9">reflexivity</option>
+            <option value="10">multi-answers</option>
+            <option value="11">algebra</option>
+            <option value="12">unprovable</option>
+            <option value="13">hard</option>
+            <option value="arithmetic1">arithmetic 1</option>
+            <option value="arithmetic2">arithmetic 2</option>
+            <option value="arithmetic3">arithmetic 3</option>
+            <option value="arithmetic4">arithmetic 4</option>          
+          </select>  
+          <div style="display: inline-block; width: 70px;  margin-left: 15px;">Print level</div>
+          <select class="form-control" style="width: 130px;" id="print_level">
+            <option value="10">minimal</option>
+            <option value="11">+ strategy</option>
+            <option value="15">+ statistics</option>
+            <option value="20">+ given</option>
+            <option value="40">+ derived</option>
+            <option value="50">+ details</option>                       
+            <option value="60">+ data structures</option> 
+          </select>
+          <div style="display: inline-block; width: 100px;  margin-left: 15px;">Show&nbsp;derived</div>
+          <select class="form-control" style="width: 110px;" id="print_derived">
+            <option value="off">off</option>
+            <option value="on">on</option>                                  
+          </select>
+          <a href="#solveModal" data-toggle="modal" class="qlink">
+            <button type="button" class="btn btn-default" style=" 
+             width: 30px; height: 30px; text-align: center; padding: 6px 0;  font-size: 12px;
+             line-height: 1.42; border-radius: 15px; 
+             background-color: #cccccc; color: #337ab7; margin-left: 15px;">?</button></a>
+          <p>              
+          <textarea class="form-control" id="strategy" 
+           style="height: 100px; width:100%; margin-bottom: 20px; margin-top: 15px;"
+           placeholder="Strategy as json text"></textarea>
+        </div>
       </div>      
     </div>
     <p>                  
-  </form>
+    </div>
 
 <p>
 <div id="input_notes"></div>
@@ -472,12 +555,13 @@ or just
 </div>
 
 <!-- footer -->
-
+<!--
 <div class="ofooter">  
   <div class="col-md-12 container ifooter">
   </div>  
 </div> 
-
+-->
+<div style="height:50px; width: 100%"> </div>
 
 <!-- modal help texts --->
 
@@ -708,9 +792,9 @@ Gkc can also use other, richer input languages: more about these later.</p>
 
 <p>This is a really trivial example.</p>
 
-<p>We will give two facts: john is a father of pete and
-pete is a father of mark. We will ask whether from these
-two facts we can derive that john is a father of pete: 
+<p>We will give two facts: <i>john is a father of pete</i> and
+<i>pete is a father of mark</i>. We will ask whether from these
+two facts we can derive that <i>john is a father of pete</i>: 
 obviously we can.</p>
 
 <p>The facts and the question are written in predicate logic, with the
@@ -742,9 +826,10 @@ father(pete,mark).
 </code></pre>
 
 
-<p>Notice that each statement in the input file is terminated with a period sign. 
-Minus sign - means negation. I.e. -father(john,pete) means 
-<code>john is NOT the father of pete</code>.</p>
+<p>Notice that each statement in the input file is terminated with a period sign.
+The list of statements is assumed to be a conjunction (<i>and</i>) of all statements. 
+Minus sign - means negation. Thus <code>-father(john,pete)</code> means 
+<i>john is NOT the father of pete</i>.</p>
 
 <p>Percentage character % is a line comment. Multi-line comments <code>/* .... */</code>
 can be used as well. </p>
@@ -775,7 +860,8 @@ each step is either a used input fact / rule or a derived fact / rule.</p>
 <p>The [in] means that this fact/rule was given in input.</p>
 
 <p>The [mp, 1, 2] (not exactly present in this proof) means that this fact / rule 
-was derived by modus ponens (i.e. the resolution rule)
+was derived by modus ponens (i.e. the 
+<a href="https://en.wikipedia.org/wiki/Resolution_(logic)">resolution rule</a>)
 from previous steps 1 and 2. More concretely, the first literals of both were cut off and
 the rest were glued together.</p>
 
@@ -811,7 +897,7 @@ foo bar ("}
 <div id="example_2_input_notes"><h3>Example 2 for answers</h3>
 
 <p>Like example 1, but we want to find a concrete person as an answer: we use the special
-"$ans" predicate for this. Observe the "answer: $ans(pete). " line in the output
+<i>$ans</i> predicate for this. Observe the <code>answer: $ans(pete).</code> line in the output
 stemming from this answer predicate.</p>
 
 <p>We are using a variable here: any word starting with a capital letter is considered
@@ -819,13 +905,13 @@ to be a variable. <code>X</code> is a variable in our example. You could also us
 as a variable: it also starts with a capital letter. All the words starting with
 a non-capital letter are constants, functions or predicates.</p>
 
-<p>Vertical bar | is logical or. </p>
+<p>Vertical bar <code>|</code> is logical or. </p>
 
-<p>Importantly, any rule like a &amp; b =&gt; c should be represented
-as -a | -b | c where negated atoms are essentially on the left side of the implication
-and the positive atoms on the right side. For example, -a | -b | c | d is equivalent
-to (a &amp; b) =&gt; (c | d). You can use =&gt;, &lt;=&gt; and quantifiers directly with the fof syntax
-of TPTP: this will be described later.</p>
+<p>Importantly, any rule like <code>a &amp; b =&gt; c</code> can be represented
+as a <i>clause</i> <code>-a | -b | c</code> where negated atoms are essentially on the left side of the implication
+and the positive atoms on the right side. For example, <code>-a | -b | c | d</code> is equivalent
+to <code>(a &amp; b) =&gt; (c | d)</code>. You can use =&gt;, &lt;=&gt; and quantifiers directly like
+in <code>-father(john,X) => $ans(X)</code> or as an equivalent clause in the example.
 
 </div>
 
@@ -896,7 +982,7 @@ proof:
  6: [in, axiom] -grandfather(john,X) | $ans(X).
  7: [mp, 5, 6, fromaxiom] $ans(mark).
 </code></pre>
-
+<!--
 <div id="example_3_proof_notes">
 Notice that the grandfather rule
 <pre><code>1: [in, axiom] -father(X,Y) | -father(Z,X) | grandfather(Z,Y).
@@ -913,6 +999,7 @@ which is then applied to the <code>father(pete,mark)</code> and
   argument or several at once. </p>
 
 </div>
+-->
 
 <div id="example_4_input_notes"><h3>Example 4 for indefinite answers</h3>
 
@@ -976,7 +1063,6 @@ father(pete,mark).
 
 % equivalent to (father(X,Y) &amp; father(Y,Z)) =&gt; grandfather(X,Z).
 -father(X,Y) | -father(Y,Z) | grandfather(X,Z).
-
 -ancestor(X,Y) | -ancestor(Y,Z) | ancestor(X,Z).
 -father(X,Y) | ancestor(X,Y).
 
@@ -1021,16 +1107,12 @@ be several different labels on one object):</p>
 </div>
 <p>Input file example6.txt:</p>
 
-<pre><code id="example_6_input_code">%father(john,pete).
+<pre><code id="example_6_input_code">% previously we had father(john,pete).
 father(john)=pete.
-
-%father(pete,mark).
+%previously we had father(pete,mark).
 father(pete)=mark.
-
-% equivalent to (father(X,Y) &amp; father(Y,Z)) =&gt; grandfather(X,Z).
-%-father(X,Y) | -father(Y,Z) | grandfather(X,Z).
+% previously we had -father(X,Y) | -father(Y,Z) | grandfather(X,Z).
 grandfather(father(father(X)),X).
-
 -ancestor(X,Y) | -ancestor(Y,Z) | ancestor(X,Z).
 ancestor(father(X),X).
 
@@ -1063,16 +1145,12 @@ and functions. Again, notice that the proof does not use equalities, just functi
 </div>
 <p>Input file example7.txt:</p>
 
-<pre><code id="example_7_input_code">%father(john,pete).
+<pre><code id="example_7_input_code">%previously we had father(john,pete).
 father(john)=pete.
-
-%father(pete,mark).
+% previously we had father(pete,mark).
 father(pete)=mark.
-
-% equivalent to (father(X,Y) &amp; father(Y,Z)) =&gt; grandfather(X,Z).
-%-father(X,Y) | -father(Y,Z) | grandfather(X,Z).
+% previously we had -father(X,Y) | -father(Y,Z) | grandfather(X,Z).
 grandfather(father(father(X)),X).
-
 -ancestor(X,Y) | -ancestor(Y,Z) | ancestor(X,Z).
 
 -grandfather(X,mark) | $ans(X).
@@ -1104,16 +1182,12 @@ Here the proof actually does use equalities, but only for simplification.</p>
 
 <p>Input file example8.txt:</p>
 
-<pre><code id="example_8_input_code">%father(john,pete).
-father(john) = pete.
-
-%father(pete,mark).
-father(pete) = mark.
-
-% equivalent to (father(X,Y) &amp; father(Y,Z)) =&gt; grandfather(X,Z).
-%-father(X,Y) | -father(Y,Z) | grandfather(X,Z).
+<pre><code id="example_8_input_code">%previously we had father(john,pete).
+father(john)=pete.
+% previously we had father(pete,mark).
+father(pete)=mark.
+% previously we had -father(X,Y) | -father(Y,Z) | grandfather(X,Z).
 grandfather(father(father(X)),X).
-
 -ancestor(X,Y) | -ancestor(Y,Z) | ancestor(X,Z).
 
 father(father(john)) != mark.
@@ -1159,16 +1233,12 @@ using the $ans predicate to find a grandfather of john. </p>
 </div>
 <p>Input file example9.txt:</p>
 
-<pre><code id="example_9_input_code">%father(john,pete).
-father(john) = pete.
-
-%father(pete,mark).
-father(pete) = mark.
-
-% equivalent to (father(X,Y) &amp; father(Y,Z)) =&gt; grandfather(X,Z).
-%-father(X,Y) | -father(Y,Z) | grandfather(X,Z).
+<pre><code id="example_9_input_code">%previously we had father(john,pete).
+father(john)=pete.
+% previously we had father(pete,mark).
+father(pete)=mark.
+% previously we had -father(X,Y) | -father(Y,Z) | grandfather(X,Z).
 grandfather(father(father(X)),X).
-
 -ancestor(X,Y) | -ancestor(Y,Z) | ancestor(X,Z).
 
 father(father(john)) != X | $ans(X).
@@ -1188,9 +1258,9 @@ proof:
  4: [simp, 1, 2, 3, fromaxiom] -=(mark,X) | $ans(X).
  5: [r=, 4.0, fromaxiom] $ans(mark).
 </code></pre>
-<div id="example_8_proof_notes">
+<div id="example_9_proof_notes">
 <p>Here the proof uses the reflexivity rule <code>r=</code> which is basically the
-standard property of equality: `X=X'.</p>
+standard property of equality: <code>X=X</code>.</p>
 </div>
 
 <div id="example_10_input_notes"><h3>Example 10 for multiple answers</h3>
@@ -1200,8 +1270,8 @@ We will also introduce mothers and a mother-side grandfather
 rule.</p>
 
 
-  We will also use a separate json-syntax strategy file multineg.txt
-  in the same folder to tell gkc specific details of what
+  We will also use a separate json-syntax strategy text
+  to tell gkc specific details of what
   to look for and how.</p>
   
   <p>The <code>"max_answers":2</code> part tells gkc that it should
@@ -1211,8 +1281,9 @@ rule.</p>
   strategy (here a conventional negative-preference ordered binary resolution)
   is to be used for proof search, without any parallel or sequential attempts
   with different search strategies.</p>
-  
-<p>multineg.txt file:</p>
+
+Please click on the <b>Advanced</b> button above and copy-paste the multineg.txt json 
+into the <b>Strategy</b> box, then click <b>Prove.</b>
 
 <pre><code>{
 "max_answers":2,
@@ -1220,8 +1291,6 @@ rule.</p>
 }
 </code></pre>
 
-Please click on the <b>Advanced</b> button above and copy-paste the multineg.txt json 
-into the <b>Strategy</b> box, then click <b>Prove.</b>
 </div>
 <!--
   <p>And you should run gkc like this to make it use the multineg.txt strategy file:</p>
@@ -1238,13 +1307,10 @@ into the <b>Strategy</b> box, then click <b>Prove.</b>
 father(mike) = pete.
 mother(john) = eve.
 mother(mike) = eve.
-
 father(pete) = mark.
 mother(eve) = mary.
-
 grandfather(father(father(X)),X).
 grandfather(father(mother(X)),X).
-
 -grandfather(mark,X) | $ans(X).
 </code></pre>
 

@@ -145,5 +145,6 @@ void* wg_makelog_conn(void* db, void* mpool, char* str);
 void* wg_mpool_copy(void* db, void* mpool, void* ptr);
 void wg_mpool_print(void* db, void* ptr);
 
+int wg_mpool_bad_ptr(void* db, void* ptr);
 
 #endif /* DEFINED_DBMPOOL_H */

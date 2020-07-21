@@ -225,6 +225,8 @@ int wr_glb_init_simple(glb* g) {
   (g->endgame_mode)=0; // set to 1 at the last phase of one run to look for contradiction directly
   //(g->cl_maxdepth)=1000000;
   //(g->cl_limitkept)=1;
+  (g->sine_k_values)=NULL;
+  (g->sine_uri_k_values)=NULL;
   (g->sine_k_bytes)=SINE_K_VALUES_SIZE;
   (g->backsubsume_bytes)=SINE_K_VALUES_SIZE;
 
@@ -244,6 +246,7 @@ int wr_glb_init_simple(glb* g) {
   (g->print_proof_tptp)=1; // if 1: tptp style proof printing
   (g->print_level_flag)=10; // rmain uses this to set other flags accordingly. Normal: 10
                            // -1: use default, 0: none, 10: normal, 20: medium, 30: detailed
+  (g->print_derived)=0;                            
   (g->print_clause_history)=0; // 1 does not work well: prints double while deriving, ok for parsing res
   (g->print_history_extra)=0; // 1 prints clause group etc, 0 prints basics
   (g->print_fof_conversion_proof)=1; // 1 prints fof sources and some conversion steps in proof, 0 does not
@@ -723,7 +726,6 @@ int wr_glb_init_local_complex(glb* g) {
 */  
 
 int wr_glb_free(glb* g) {
-
   // first free subitems
   wr_glb_free_shared_complex(g);
   wr_glb_free_local_complex(g);
@@ -752,7 +754,7 @@ int wr_glb_free_shared_simple(glb* g) {
 int wr_glb_free_local_simple(glb* g) {
   
   //str_freeref(g,&(g->info)); 
-  if (g->tmp_printbuf) free(g->tmp_printbuf);
+  if (g->tmp_printbuf) wr_free(g,g->tmp_printbuf);
   return 0;  
 }  
 

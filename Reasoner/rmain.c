@@ -105,6 +105,8 @@ void show_cur_time(void);
 
 //#define WEIGHT_PREFER_GOALS_ASSUMPTIONS 
 
+void* wr_free_analyze_g(glb* g);
+
 /* ====== Functions ============== */
 
 
@@ -155,7 +157,7 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
     givenguide=1;
   }  
   if (guide==NULL && givenguide) {
-    if (guidebuf!=NULL) free(guidebuf);
+    if (guidebuf!=NULL) sys_free(guidebuf);
     return -1;
   }
   filename=inputname;
@@ -349,6 +351,7 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
             }
           }  
           //break;
+          if (analyze_g) analyze_g=wr_free_analyze_g(analyze_g);
           exit(0);
         }        
       }
@@ -398,6 +401,7 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
     */
 
     g=wr_glb_new_simple(db);
+    (dbmemsegh(local_db)->local_g)=(glb*)g; // for cleaning in signal
     // init local_db
     (g->local_db)=local_db;
     // copy memsegh guiding stuff to g
@@ -406,7 +410,7 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
       (g->print_fof_conversion_proof)=1;
       (g->print_clauses_tptp)=1;
       (g->print_proof_tptp)=1;   
-      (g->use_comp_arithmetic)=0;
+      (g->use_comp_arithmetic)=1;
     } else {
       (g->print_tptp)=0;        
       (g->print_fof_conversion_proof)=0; 
@@ -421,7 +425,9 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
         wr_errprint("do not set both tptp and json output parameters at the same time");    
         return -1;
       }
-    }   
+    }
+    (g->print_level_flag)=(dbmemsegh(local_db)->printlevel);
+    (g->print_derived)=(dbmemsegh(local_db)->printderived);
 
     // copy analyze_g stats to g for easier handling
     wr_copy_sin_stats(analyze_g,g);    
@@ -434,6 +440,7 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
       if (guidebuf!=NULL) free(guidebuf);
       if (guide!=NULL) cJSON_Delete(guide);
       sys_free(g); 
+      if (analyze_g) analyze_g=wr_free_analyze_g(analyze_g);
       return -1;
     }   
 #ifdef DEBUG
@@ -442,9 +449,11 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
     (g->child_db)=child_db;
     (g->db)=db;
     (g->local_db)=local_db;
-
+ 
     (g->current_run_nr)=iter;
     (g->current_fork_nr)=forkslive;
+    (g->print_level_flag)=(dbmemsegh(local_db)->printlevel);
+    (g->print_derived)=(dbmemsegh(local_db)->printderived);
     if (outfilename) (g->outfilename)=outfilename;
     if (iter==0) (g->allruns_start_clock)=clock();  
     guidetext=NULL;
@@ -468,6 +477,7 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
       if (guide!=NULL) cJSON_Delete(guide);
       (g->guidetext)[0]=0;
       sys_free(g);
+      if (analyze_g) analyze_g=wr_free_analyze_g(analyze_g);
       return -1;
     } else if (guidetext) {
       tmp=strlen(guidetext);
@@ -523,6 +533,7 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
       wr_glb_free_shared_complex(g);
       wr_glb_free_local_complex(g);
       sys_free(g);
+      if (analyze_g) analyze_g=wr_free_analyze_g(analyze_g);
       return -1; 
     }   
     if (filename) {
@@ -660,6 +671,7 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
       // no clauses found
       wr_printf("\nNo clauses found.\n");
       wr_glb_free(g);
+      if (analyze_g) analyze_g=wr_free_analyze_g(analyze_g);
       break;
     }
     // ok, clauses found and clause lists initialized
@@ -741,11 +753,17 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
         show_cur_time();  
 #endif              
         if (outfilename) {
+          if (local_db) (dbmemsegh(local_db)->local_g)=NULL;
           wr_glb_free(g);
           return(0);
         } else {
+          if (local_db) (dbmemsegh(local_db)->local_g)=NULL;          
+          wr_glb_free(g);                   
+          if (analyze_g) analyze_g=wr_free_analyze_g(analyze_g);
 #ifdef __EMSCRIPTEN__
-          wr_glb_free(g);  
+          if (local_db) (dbmemsegh(local_db)->local_g)=NULL;          
+          wr_glb_free(g);                   
+          if (analyze_g) analyze_g=wr_free_analyze_g(analyze_g);  
 #endif          
           return(0);
         }  
@@ -753,8 +771,10 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
 #ifdef SHOWTIME       
       wr_printf("\nto call wr_glb_free\n");
       show_cur_time();  
-#endif            
-      wr_glb_free(g);
+#endif
+      if (local_db) (dbmemsegh(local_db)->local_g)=NULL;          
+      wr_glb_free(g);                   
+      if (analyze_g) analyze_g=wr_free_analyze_g(analyze_g);            
 #ifdef SHOWTIME       
       wr_printf("\nwr_glb_free returns\n");
       show_cur_time(); 
@@ -763,18 +783,28 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
     }
     // no proof found here
     // wr_show_stats(g,1);
-    wr_glb_free(g); 
+    if (local_db) (dbmemsegh(local_db)->local_g)=NULL;
+    wr_glb_free(g);        
     if ((iter+1)>=guideres) break;      
   }
-
   if (guidebuf!=NULL) free(guidebuf);
-  if (guide!=NULL) cJSON_Delete(guide);  
+  if (guide!=NULL) cJSON_Delete(guide);
+  if (analyze_g) analyze_g=wr_free_analyze_g(analyze_g); 
 #ifdef SHOWTIME       
   wr_printf("\nto return from rmain\n");
   show_cur_time(); 
 #endif  
   return res;  
 } 
+
+void* wr_free_analyze_g(glb* g) {
+  if (g) {
+    if (g->varbanks) wr_vec_free(g,g->varbanks);
+    if (g->varstack) wr_vec_free(g,g->varstack);
+    sys_free(g);
+  }  
+  return NULL;
+}
 
 int wg_run_converter(void *db, char* inputname, char* stratfile, int informat, 
                      char* outfilename, char* guidestr) {

@@ -67,6 +67,7 @@ extern "C" {
 #include "../Reasoner/rmain.h"
 #include "../Reasoner/init.h"
 #include "../Reasoner/analyze.h"
+#include "../Reasoner/clstore.h"
 #include "../Db/dbapi.h"
 #include "../Parser/jsparse.h"
 #endif
@@ -130,7 +131,7 @@ int parse_memmode(char *arg);
 char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsize, 
           int* parallel, int* tptp, int* json, 
           char ***lstringsptr, char ***ljstringsptr, char ***lfilesptr, char **stratfile,
-          int* convert, int* clausify, int* seconds, int* retcode);          
+          int* convert, int* clausify, int* seconds, int* retcode, int* printlevel, int* printderived);          
 void wg_set_kb_db(void* db, void* kb);
 void segment_stats(void *db);
 void wg_show_strhash(void* db);
@@ -165,6 +166,7 @@ su
 echo 500000000  > /proc/sys/kernel/shmmax
 */
 
+void* global_shmptr; // this is used by signal_handler of timer signal to cleanup
 
 /** top level */
 
@@ -210,10 +212,13 @@ int gkc_main(int argc, char **argv) {
   int clausify=0;
   int seconds=0; // 0 if no time limit, other value for time limit in seconds
   //int islocaldb=0; // lreasoner sets to 1 to avoid detaching db at the end
+  int printlevel=10;
+  int printderived=0;
   int askinfo=0;
   int askpolarity=1;  
   char inputname[1000];
 
+  global_shmptr=NULL;
   if (argc<2) {
     usage(argv[0]);
     return(0);
@@ -229,7 +234,7 @@ int gkc_main(int argc, char **argv) {
   inputname[0]=0;
   cmdfiles=parse_cmdline(argc,argv,&cmdstr,&mbnr,&mbsize,&parallel,
                          &tptp,&json,&lstrings,&ljstrings,&lfiles,&stratfile,
-                         &convert,&clausify,&seconds,&retcode);                         
+                         &convert,&clausify,&seconds,&retcode,&printlevel,&printderived);                         
   if (retcode) return retcode;
   if (tptp && json) {
     err_printf(json,"do not set both -tptp and -json output parameters at the same time");    
@@ -312,13 +317,16 @@ int gkc_main(int argc, char **argv) {
       err_printf(json,"failed to attach local database");
       return(1);
     }
+    global_shmptr=shmptr;    
     //islocaldb=1;   
     //err = wg_import_otter_file(shmptr,cmdfiles[1],0,&informat); 
     (dbmemsegh(shmptr)->max_forks)=parallel;
     (dbmemsegh(shmptr)->tptp)=tptp;
     (dbmemsegh(shmptr)->json)=json;
     (dbmemsegh(shmptr)->convert)=convert;
-    (dbmemsegh(shmptr)->clausify)=clausify;    
+    (dbmemsegh(shmptr)->clausify)=clausify;        
+    (dbmemsegh(shmptr)->printlevel)=printlevel;
+    (dbmemsegh(shmptr)->printderived)=printderived;
 
     if (lfiles) {      
       for(filenr=0; lfiles[filenr] && !err; filenr++) {
@@ -349,25 +357,38 @@ int gkc_main(int argc, char **argv) {
     if(!err) {
       //printf("Data read from %s.\n",cmdfiles[1]);
     } else if(err<-1) {
-      err_printf(json,"error when reading file or text");
+      err_printf(json,"error when reading file or text");     
+#ifdef __EMSCRIPTEN__
+      if (dbmemsegh(shmptr)->infrm_mpool) wg_free_mpool(shmptr, dbmemsegh(shmptr)->infrm_mpool);
+      wg_delete_local_database(shmptr);
+#endif          
       return(1);   
     } else {
-      //err_printf(json,"error when reading file or text");
+      //err_printf(json,"error when reading file or text");     
+#ifdef __EMSCRIPTEN__
+      if (dbmemsegh(shmptr)->infrm_mpool) wg_free_mpool(shmptr, dbmemsegh(shmptr)->infrm_mpool);
+      wg_delete_local_database(shmptr);
+#endif 
       return(1); 
     }      
-    if (convert && !clausify) {
+    if (convert && !clausify) {      
+#ifdef __EMSCRIPTEN__
+      if (dbmemsegh(shmptr)->infrm_mpool) wg_free_mpool(shmptr, dbmemsegh(shmptr)->infrm_mpool);
+      wg_delete_local_database(shmptr);
+#endif 
       return 0;
     } else if (clausify) {
       err = wg_run_converter(shmptr,inputname,stratfile,informat,NULL,NULL);
-    } else {
+    } else {      
       err = wg_run_reasoner(shmptr,inputname,stratfile,informat,NULL,NULL);
       if (err) {
         if (json) printf("\n{\"result\": \"proof not found\"}\n");
         else  printf("result: proof not found.\n");
       }  
-    }      
+    }          
 #ifdef __EMSCRIPTEN__
-    wg_delete_local_database(shmptrlocal);
+    if (dbmemsegh(shmptr)->infrm_mpool) wg_free_mpool(shmptr, dbmemsegh(shmptr)->infrm_mpool);
+    wg_delete_local_database(shmptr);
 #endif    
     return(0);
   }  
@@ -514,6 +535,8 @@ int gkc_main(int argc, char **argv) {
     (dbmemsegh(shmptrlocal)->json)=json;
     (dbmemsegh(shmptrlocal)->convert)=convert; 
     (dbmemsegh(shmptrlocal)->clausify)=clausify;
+    (dbmemsegh(shmptrlocal)->printlevel)=printlevel;
+    (dbmemsegh(shmptrlocal)->printderived)=printderived;
 /*
     (dbmemsegh(shmptr)->max_forks)=parallel;
     (dbmemsegh(shmptr)->tptp)=tptp;
@@ -554,9 +577,15 @@ int gkc_main(int argc, char **argv) {
       //printf("Data read from %s.\n",cmdfiles[1]);
     } else if(err<-1) {
       err_printf(json,"error when reading file or text");
+#ifdef __EMSCRIPTEN__
+      wg_delete_local_database(shmptrlocal);
+#endif
       return(1);   
     } else {
       //err_printf(json,"error when reading file or text");
+#ifdef __EMSCRIPTEN__
+      wg_delete_local_database(shmptrlocal);
+#endif      
       return(1); 
     } 
     
@@ -581,7 +610,10 @@ int gkc_main(int argc, char **argv) {
 #ifdef SHOWTIME      
     printf("\nwg_run_reasoner returned\n");
     gkc_show_cur_time();
-#endif   
+#endif       
+#ifdef __EMSCRIPTEN__
+    wg_delete_local_database(shmptrlocal);
+#endif  
     return(0);  
   }
 
@@ -772,7 +804,96 @@ int gkc_main(int argc, char **argv) {
 
 void sig_handler(int signum){
   fflush(stdout);
-  printf("\n{\"result\": \"time limit, proof not found\"}\n");  
+  printf("\n{\"result\": \"time limit, proof not found\"}\n");
+#ifdef __EMSCRIPTEN__  
+  glb* g;  
+  if (global_shmptr) {
+    if (dbmemsegh(global_shmptr)->infrm_mpool) 
+       wg_free_mpool(global_shmptr, dbmemsegh(global_shmptr)->infrm_mpool);
+    if (dbmemsegh(global_shmptr)->local_g) {
+      // this is risky: may be in non-ok state
+      //wr_glb_free_shared_complex((glb*)(dbmemsegh(global_shmptr)->local_g));
+      g=(dbmemsegh(global_shmptr)->local_g);
+      
+      wr_vec_free(g,rotp(g,g->clbuilt)); 
+      wr_vec_free(g,rotp(g,g->clactive));  
+      wr_vec_free(g,rotp(g,g->clactivesubsume));  
+      wr_vec_free(g,rotp(g,g->clpickstack));  
+      wr_vec_free(g,rotp(g,g->clqueue));     
+      //wr_vec_free(g,rotp(g,g->clweightqueue)); 
+      wr_free_priorqueue(g,rotp(g,g->clpickpriorqueue));
+      //wr_vec_free(g,rotp(g,g->clpickpriorqueue) );
+      wr_free_clpick_queues(g,rotp(g,g->clpick_queues));
+      //wr_vec_free(g,rotp(g,g->clpick_queues) );
+
+      //wr_free_termhash(g,rotp(g,g->hash_pos_groundunits));
+      wr_vec_free(g,rotp(g,g->hash_pos_groundunits));
+      //wr_free_termhash(g,rotp(g,g->hash_neg_groundunits));
+      wr_vec_free(g,rotp(g,g->hash_neg_groundunits) );
+
+      //wr_free_termhash(g,rotp(g,g->hash_pos_active_groundunits));
+      wr_vec_free(g,rotp(g,g->hash_pos_active_groundunits));
+      //wr_free_termhash(g,rotp(g,g->hash_neg_active_groundunits));
+      wr_vec_free(g,rotp(g,g->hash_neg_active_groundunits) );
+
+      //wr_free_atomhash(g,rotp(g,g->hash_atom_occurrences));
+      wr_vec_free(g,rotp(g,g->hash_atom_occurrences) ); 
+      //wr_clterm_hashlist_free(g,rotp(g,g->hash_neg_atoms));
+      wr_vec_free(g,rotp(g,g->hash_neg_atoms) );    
+      //wr_clterm_hashlist_free(g,rotp(g,g->hash_pos_atoms)); 
+      wr_vec_free(g,rotp(g,g->hash_pos_atoms) );
+      //
+      //if (g->use_strong_unit_cutoff) {    
+      //  if (g->hash_neg_units) wr_clterm_hashlist_free(g,rotp(g,g->hash_neg_units));    
+      //  if (g->hash_pos_units) wr_clterm_hashlist_free(g,rotp(g,g->hash_pos_units)); 
+      //}
+      wr_vec_free(g,rotp(g,g->hash_neg_units));
+      wr_vec_free(g,rotp(g,g->hash_pos_units));
+      //wr_clterm_hashlist_free(g,rotp(g,g->hash_units)); CP7
+      //wr_vec_free(g,rotp(g,g->hash_units) );
+      //wr_clterm_hashlist_free(g,rotp(g,g->hash_para_terms));
+      wr_vec_free(g,rotp(g,g->hash_para_terms) );
+      //wr_clterm_hashlist_free(g,rotp(g,g->hash_para_terms));
+      wr_vec_free(g,rotp(g,g->hash_eq_terms) );
+      //wr_clterm_hashlist_free(g,rotp(g,g->hash_para_terms));
+      wr_vec_free(g,rotp(g,g->hash_rewrite_terms));     
+
+
+      //wr_glb_free_local_complex((glb*)(dbmemsegh(global_shmptr)->local_g));
+
+      wr_str_free(g,(g->filename));
+      wr_vec_free(g,g->queue_termbuf);
+      wr_vec_free(g,g->hyper_termbuf);
+      wr_vec_free(g,g->active_termbuf);  
+      wr_vec_free(g,g->cut_clvec); 
+      wr_vec_free(g,g->rewrite_clvec);
+      wr_vec_free(g,g->varstack); 
+      wr_vec_free(g,g->xcountedvarlist);
+      wr_vec_free(g,g->ycountedvarlist);
+      wr_vec_free(g,g->varbanks);       
+      wr_vec_free(g,g->given_termbuf);
+      wr_vec_free(g,g->simplified_termbuf);
+      wr_vec_free(g,g->derived_termbuf);        
+      wr_vec_free(g,g->tmp_litinf_vec);  
+      wr_vec_free(g,(g->tmp_hardnessinf_vec));
+      wr_vec_free(g,(g->tmp_resolvability_vec));
+      wr_vec_free(g,(g->tmp_sort_vec));
+      //wr_vec_free(g,g->tmp_clinfo);
+      //wr_vec_free(g,g->tmp_varinfo);
+      wr_vec_free(g,g->hyper_queue);
+      //wr_vec_free(g,g->answers);
+      if (g->sine_k_values) sys_free(g->sine_k_values); // bytestring
+      if (g->sine_uri_k_values) sys_free(g->sine_uri_k_values); // bytestring
+      //if (g->backsubsume_values) sys_free(g->backsubsume_values);
+       
+      //wr_glb_free_shared_simple((glb*)(dbmemsegh(global_shmptr)->local_g)); 
+      //wr_glb_free_local_simple((glb*)(dbmemsegh(global_shmptr)->local_g));
+
+      sys_free((dbmemsegh(global_shmptr)->local_g)); // free whole spaces      
+    }    
+    wg_delete_local_database(global_shmptr); 
+  }    
+#endif  
   exit(0);
 }
 
@@ -907,7 +1028,7 @@ int parse_memmode(char *arg) {
 char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsize, 
           int* parallel, int* tptp, int* json, 
           char ***lstringsptr, char ***ljstringsptr, char ***lfilesptr, char **stratfile,
-          int* convert, int* clausify, int* seconds, int* retcode) {
+          int* convert, int* clausify, int* seconds, int* retcode, int* printlevel, int* printderived) {
   int i,alen,nargc;
   char* arg;
   char c;
@@ -1037,7 +1158,31 @@ char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsiz
         } else {
           printf("Error: missing parameter to keyword %s\n",arg);
           exit(1);
-        }     
+        }   
+      } else if (!(strncmp(arg,"-print",6))) {
+        if ((i+1)<argc) {
+          //printf("\n cmd %s param %s",arg,argv[i+1]);
+          i++;
+          if (!(sscanf(argv[i], "%d", &nr))) {
+            printf("Error: keyword %s argument must be a number, not %s\n",
+                    arg,argv[i]);
+            *retcode=1;       
+            return NULL;
+          } else {
+            //printf("\n parsed nr %d\n",nr);
+            if (nr<0) {
+              printf("Error: -print argument is negative\n");
+              *retcode=1;       
+            return NULL;
+            }            
+            *printlevel=nr;
+          }  
+        } else {
+          printf("Error: missing parameter to keyword %s\n",arg);
+          exit(1);
+        }   
+      } else if (!(strncmp(arg,"-derived",8))) {
+        *printderived=1;    
       } else if (!(strncmp(arg,"-tptp",5))) {
         *tptp=1;       
       } else if (!(strncmp(arg,"-json",5))) {

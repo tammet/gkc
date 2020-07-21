@@ -16,11 +16,15 @@
 # - run ./gkc ... creating gmon.out
 # - run gprof gkc gmon.out > res.txt
 # - look at the result: less res.txt
+#
+# for memory leaks detection 
+# - use clang and: CFLAGS = -O0 -Wall  -fsanitize=address
+# - run as: ASAN_SYMBOLIZER_PATH=/usr/lib/llvm-6.0/bin/llvm-symbolizer ./gkc 
 
 CC = gcc # clang # gcc
 #CFLAGS = -O2 -Wall -g # -Wmissing-field-initializers 
-#CFLAGS = -O2 -Wall -static # -Wmissing-field-initializers 
 CFLAGS = -O2 -Wall -static # -Wmissing-field-initializers 
+#CFLAGS = -O0 -Wall  -fsanitize=address  # for clang with memory leaks detection
 #CFLAGS = -O2 -Wall -pg # -Wmissing-field-initializers 
 LIBS = -lm
 

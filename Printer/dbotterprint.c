@@ -74,30 +74,13 @@ static gint show_print_error_str(void* db, char* errmsg, char* str);
 void wr_print_clause(glb* g, gptr rec) {
   gint history;
 
-  if (rec==NULL) return;
-  //printf("len %d\n",wg_get_record_len(g->db, rec));  
+  if (rec==NULL) return;    
   if (g->print_clause_history && g->print_flag) {
     history=wr_get_history(g,rec);
     wr_print_clause_name_history(g,history);
   }
-  /* 
-  int tmp, len=80;
-  char *buf;
-  buf=malloc(len);  
-  tmp=wr_strprint_clause_otter(g,rec,(g->print_clause_detaillevel),&buf,&len,0);
-  if (tmp<0 || buf==NULL) {
-    printf("printing error for clause \n");
-    wr_print_clause_otter(g,rec,(g->print_clause_detaillevel));
-  } else {
-    printf("%s %d %d",buf,tmp,len);
-  }
-  if (buf!=NULL) free(buf);
-  */
-
   wr_print_clause_otter(g,rec,(g->print_clause_detaillevel));
-
-  printf(" ");
-  //wg_print_record(g->db,rec);
+  printf(" ");  
 }  
 
 
@@ -110,7 +93,7 @@ void wr_print_halfbuilt_clause(glb* g, gptr rptr, int rpos) {
     xatom=rptr[tmp+LIT_ATOM_POS];
     xatommeta=rptr[tmp+LIT_META_POS];  
     if (xatommeta==0) {
-      printf(" cut ");
+      printf(" (cut element) ");
     } else {
       if (wg_atom_meta_is_neg(db,xatommeta)) printf("-");
       wr_print_atom_otter(g,xatom,(g->print_clause_detaillevel));
@@ -422,7 +405,23 @@ void wg_nice_print_var(void* db, gint i) {
 }
 
 
+
 /* ============= print clause to a string ============ */
+
+void wr_print_clause_via_buf(glb* g, gptr rec) {
+  int bpos=0;
+  int blen=190;
+  char* buf;
+  
+  buf=wr_malloc(g,200);
+  if (!buf) return;
+  bpos=wr_strprint_clause(g,rec,&buf,&blen,bpos);
+  if (bpos>0) {
+    printf("%s\n",buf);
+  }
+  wr_free(g,buf);
+}
+ 
 
 
 int wr_strprint_clause(glb* g, gptr rec, char** buf, int *len, int pos) {
@@ -442,26 +441,6 @@ int wr_strprint_clause(glb* g, gptr rec, char** buf, int *len, int pos) {
     }
     return pos;
   }  
-  //printf("len %d\n",wg_get_record_len(g->db, rec)); 
-  /* 
-  if (g->print_clause_history && g->print_flag) {
-    history=wr_get_history(g,rec);
-    wr_print_clause_name_history(g,history);
-  }
-  */
-  /* 
-  int tmp, len=80;
-  char *buf;
-  buf=malloc(len);  
-  tmp=wr_strprint_clause_otter(g,rec,(g->print_clause_detaillevel),&buf,&len,0);
-  if (tmp<0 || buf==NULL) {
-    printf("printing error for clause \n");
-    wr_print_clause_otter(g,rec,(g->print_clause_detaillevel));
-  } else {
-    printf("%s %d %d",buf,tmp,len);
-  }
-  if (buf!=NULL) free(buf);
-  */
   if ((g->print_json) && !(g->print_clauses_json)) {
     pos+=snprintf((*buf)+pos,(*len)-pos,"\"");
     pos=wr_strprint_clause_otter(g,rec,(g->print_clause_detaillevel), buf, len, pos);
@@ -469,9 +448,6 @@ int wr_strprint_clause(glb* g, gptr rec, char** buf, int *len, int pos) {
   } else {
     pos=wr_strprint_clause_otter(g,rec,(g->print_clause_detaillevel), buf, len, pos);
   }  
-
-  //printf(" ");
-  //wg_print_record(g->db,rec);
   return pos;
 } 
 
@@ -797,14 +773,15 @@ int wr_strprint_term_otter(glb* g, gint rec,int printlevel, char** buf, int *len
       pos=wr_strprint_term_otter(g,enc,printlevel,buf,len,pos);
       if (pos<0) return pos;
     } else {  
-      if ((g->print_clauses_tptp) && wg_get_encoded_type(db,enc)==WG_URITYPE &&
+      if (//(g->print_clauses_tptp) && 
+          wg_get_encoded_type(db,enc)==WG_URITYPE &&
           wg_decode_str(db,enc) && strlen(wg_decode_str(db,enc))==1) {
         if (!strcmp(wg_decode_str(db,enc),"+")) {
           pos+=snprintf((*buf)+pos,(*len)-pos,"$sum");
         } else if (!strcmp(wg_decode_str(db,enc),"*")) {
           pos+=snprintf((*buf)+pos,(*len)-pos,"$product");
         } else if (!strcmp(wg_decode_str(db,enc),"-")) {
-          pos+=snprintf((*buf)+pos,(*len)-pos,"$sum");
+          pos+=snprintf((*buf)+pos,(*len)-pos,"$difference");
         } else if (!strcmp(wg_decode_str(db,enc),"/")) {
           pos+=snprintf((*buf)+pos,(*len)-pos,"$quotient");
         } else if (!strcmp(wg_decode_str(db,enc),"<")) {
@@ -1308,226 +1285,6 @@ void wg_tptp_print_aux(void* db, void* ptr, int depth, int pflag) {
   }
 }
 
-/*
-
-int wg_print_frm_tptp(void* db, gptr rec, char** buf, int *len, int pos) {
-  //gint history;
-
-  if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;  
-  if (rec==NULL) {   
-    pos+=snprintf((*buf)+pos,(*len)-pos,"false");    
-    return pos;
-  }  
-  pos=wg_print_frm_aux_tptp(db,rec,100, buf, len, pos);
-  return pos;
-} 
-
-*/
-
-/** Print single clause (rule/fact record)
- * 
- * return next-to-write position in buf or -1 if error
- */
-
-/*
-int wg_print_frm_aux_tptp(void* db, gptr rec, int printlevel, char** buf, int *len, int pos) {
-  if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;  
-  if (rec==NULL) { pos+=sprintf((*buf)+pos,"NULL"); return pos; }
-  if (wg_rec_is_rule_clause(db,rec)) {
-    pos=wg_print_rule_clause_tptp(db,(gptr)rec,printlevel,buf,len,pos);
-  } else if (wg_rec_is_fact_clause(db,rec)) {
-    pos=wg_print_fact_clause_tptp(db,(gptr)rec,printlevel,buf,len,pos);
-  } else if (wg_rec_is_prop_clause(db,rec)) {
-    pos=wg_print_prop_clause_tptp(db,(gptr)rec,printlevel,buf,len,pos);
-  }    
-  return pos;
-}
-*/
-
-/** Print single rule record
- *
- * return next-to-write position in buf or -1 if error
- * 
- */
-
-/*
-int wg_print_rule_clause_tptp(void* db, gint* rec,int printlevel, char** buf, int *len, int pos) {
-  gint meta, enc;
-  int i, clen, isneg;
-  
-  if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;
-  if (rec==NULL) {    
-    if (wg_print_tptp_json(db)) {    
-      pos+=snprintf((*buf)+pos,(*len)-pos,"[]"); 
-      return pos;       
-    } else {    
-      pos+=snprintf((*buf)+pos,(*len)-pos,"NULL"); 
-      return pos;
-    }
-  }
-  clen = wg_count_clause_atoms(db, rec);
-  if (wg_print_tptp_json(db)) {
-    pos+=snprintf((*buf)+pos,(*len)-pos,"[");
-  } 
-  for(i=0; i<clen; i++) {
-    if (i>0 && i<clen) {
-      if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;
-      if (wg_print_tptp_json(db)) {
-        pos+=snprintf((*buf)+pos,(*len)-pos,", ");          
-      } else {
-        pos+=snprintf((*buf)+pos,(*len)-pos," | ");
-      }       
-    }  
-    meta=wg_get_rule_clause_atom_meta(db,rec,i);
-    enc=wg_get_rule_clause_atom(db,rec,i);
-    if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;
-    isneg=0;
-    if (wg_print_tptp_json(db)) {
-      if (wg_atom_meta_is_neg(db,meta)) isneg=1;  
-    } else {
-      if (wg_atom_meta_is_neg(db,meta)) pos+=snprintf((*buf)+pos,(*len)-pos,"-");
-    }    
-    if (wg_get_encoded_type(db, enc)==WG_RECORDTYPE) {   
-      pos=wg_print_atom_tptp(db,enc,printlevel,buf,len,pos,isneg);
-      if (pos<0) return pos;
-    } else {  
-      pos=wg_print_simpleterm_tptp(db,enc,printlevel,buf,len,pos,0);
-      if (pos<0) return pos;
-    }      
-  }
-  if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;
-  if (wg_print_tptp_json(db)) {
-    pos+=snprintf((*buf)+pos,(*len)-pos,"]");
-  } else {
-    pos+=snprintf((*buf)+pos,(*len)-pos,".");
-  } 
-  return pos;
-}
-*/
-/** Print single fact record
- *
- */
-/*
-int wg_print_fact_clause_tptp(void* db, gint* rec, int printlevel, char** buf, int *len, int pos) {
-  
-  if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;
-  if (rec==NULL) {    
-    if (wg_print_tptp_json(db)) {    
-      pos+=snprintf((*buf)+pos,(*len)-pos,"[]"); 
-      return pos;       
-    } else {    
-      pos+=snprintf((*buf)+pos,(*len)-pos,"NULL"); 
-      return pos;
-    }
-  }
-  if (wg_print_tptp_json(db)) {
-    pos+=snprintf((*buf)+pos,(*len)-pos,"[");
-    pos=wg_print_atom_tptp(db,wg_encode_record(db,rec),printlevel,buf,len,pos,0);
-    if (pos<0) return pos;
-    if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;
-    pos+=snprintf((*buf)+pos,(*len)-pos,"]");
-  } else {
-    pos=wg_print_atom_tptp(db,wg_encode_record(db,rec),printlevel,buf,len,pos,0);
-    if (pos<0) return pos;
-    if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;
-    pos+=sprintf((*buf)+pos,".");
-  }      
-  return pos;
-}
-
-int wg_print_prop_clause_tptp(void* db, gint* rec,int printlevel, char** buf, int *len, int pos) {
-  gint var;
-  //gint meta;
-  int i, clen;
-
-  UNUSEDVAR(db);
-  if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;
-  if (rec==NULL) {    
-    if (wg_print_tptp_json(db)) {    
-      pos+=snprintf((*buf)+pos,(*len)-pos,"[]"); 
-      return pos;       
-    } else {    
-      pos+=snprintf((*buf)+pos,(*len)-pos,"NULL"); 
-      return pos;
-    }
-  } 
-  clen = wg_count_prop_clause_atoms(db, rec);
-  for(i=0; i<clen; i++) {
-    if (!wg_str_guarantee_space(db,buf,len,pos+20)) return -1;
-    if (i>0 && i<clen) {      
-      if (wg_print_tptp_json(db)) {    
-        pos+=snprintf((*buf)+pos,(*len)-pos,",");              
-      } else {    
-        pos+=snprintf((*buf)+pos,(*len)-pos," ");       
-      }
-    }  
-    //meta=wg_get_rule_clause_atom_meta(db,rec,i);
-    var=wg_get_prop_clause_atom(db,rec,i);    
-    if (wg_print_tptp_json(db)) {    
-      pos+=snprintf((*buf)+pos,(*len)-pos,"%ld",var);              
-    } else {    
-      pos+=snprintf((*buf)+pos,(*len)-pos,"%ld",var);       
-    }
-  }
-  if (wg_print_tptp_json(db)) {    
-    pos+=snprintf((*buf)+pos,(*len)-pos,"]");            
-  } else {    
-    pos+=snprintf((*buf)+pos,(*len)-pos,".");    
-  }
-  return pos;
-}
-
-
-int wg_print_atom_tptp(void* db, gint rec, int printlevel,char** buf, int *len, int pos, int isneg) {
-  gptr recptr;
-  gint clen, enc;
-  int i;
-  
-  if (wg_get_encoded_type(db,rec)!=WG_RECORDTYPE) {
-    if (isneg) {
-      return wg_print_simpleterm_tptp(db,rec,printlevel,buf,len,pos,1); 
-    } else {
-      return wg_print_simpleterm_tptp(db,rec,printlevel,buf,len,pos,0); 
-    }       
-  }
-  recptr=wg_decode_record(db, rec);
-  clen = wg_get_record_len(db, recptr);
-  if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;
-  if (wg_print_tptp_json(db)) { 
-    pos+=snprintf((*buf)+pos,(*len)-pos,"[");
-  }  
-  for(i=0; i<clen; i++) {  
-    //if (i<(g->unify_firstuseterm)) continue;
-    if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;
-    //if(i>((g->unify_firstuseterm)+1)) pos+=snprintf((*buf)+pos,(*len)-pos,",");
-    enc = wg_get_field(db, recptr, i);
-    if (wg_get_encoded_type(db, enc)==WG_RECORDTYPE) {
-      pos=wg_print_term_tptp(db,enc,printlevel,buf,len,pos);
-      if (pos<0) return pos;
-    } else {  
-      if (0) { //(isneg && (i<=((g->unify_firstuseterm)))) {
-        pos=wg_print_simpleterm_tptp(db, enc,printlevel,buf,len,pos,1);
-      } else {
-        pos=wg_print_simpleterm_tptp(db, enc,printlevel,buf,len,pos,0);
-      }      
-      if (pos<0) return pos;
-    }       
-    if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;
-    if (wg_print_tptp_json(db)) {
-      //if (i==(g->unify_firstuseterm))  pos+=snprintf((*buf)+pos,(*len)-pos,",");
-    } else {
-      //if (i==(g->unify_firstuseterm))  pos+=snprintf((*buf)+pos,(*len)-pos,"(");
-    }     
-  }
-  if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;
-  if (wg_print_tptp_json(db)) { 
-    pos+=snprintf((*buf)+pos,(*len)-pos,"]");
-  } else {
-    pos+=snprintf((*buf)+pos,(*len)-pos,")");
-  }  
-  return pos;
-}
-*/
 
 int wg_print_frm_tptp(void* db, void* ptr, char** buf, int *len, int pos) {  
   int p;
@@ -1731,7 +1488,7 @@ int wg_print_subfrm_tptp(void* db, void* ptr,int depth,int pflag, int termflag, 
           pos+=snprintf((*buf)+pos,(*len)-pos,",");
         }
       } else {
-        // header of list
+        // header of list       
         pos=wg_print_subfrm_tptp(db,wg_first(db,curptr),depth+1,0,1,buf,len,pos);
         if (pos<0) return pos;
         if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
@@ -1774,6 +1531,7 @@ int wg_print_subcnf_tptp(void* db, void* ptr,int depth,int pflag, int termflag, 
   void *curptr;
   void *op;
   int lstlen;
+  void* el;
   char* symb;  
 
   //printf("\nwg_print_subfrm_tptp called\n"); 
@@ -1907,7 +1665,27 @@ int wg_print_subcnf_tptp(void* db, void* ptr,int depth,int pflag, int termflag, 
         }
       } else {
         // header of list
-        pos=wg_print_subcnf_tptp(db,wg_first(db,curptr),depth+1,0,1,buf,len,pos);
+        el=wg_first(db,curptr);
+        if (termflag && wg_isatom(db,el) && wg_atomstr1(db,el) && strlen(wg_atomstr1(db,el))==1) {
+          if (!strcmp(wg_atomstr1(db,el),"+")) {
+            pos+=snprintf((*buf)+pos,(*len)-pos,"$sum");
+          } else if (!strcmp(wg_atomstr1(db,el),"*")) {
+            pos+=snprintf((*buf)+pos,(*len)-pos,"$product");
+          } else if (!strcmp(wg_atomstr1(db,el),"-")) {
+            pos+=snprintf((*buf)+pos,(*len)-pos,"$difference");
+          } else if (!strcmp(wg_atomstr1(db,el),"/")) {
+            pos+=snprintf((*buf)+pos,(*len)-pos,"$quotient");
+          //} else if (!strcmp(wg_atomstr1(db,el),"<")) {
+          //  pos+=snprintf((*buf)+pos,(*len)-pos,"$less");
+          } else {
+            pos=wg_print_subcnf_tptp(db,el,depth+1,0,1,buf,len,pos);
+          } 
+        } else if (!termflag && wg_isatom(db,el) && wg_atomstr1(db,el) && strlen(wg_atomstr1(db,el))==1 &&
+                   !strcmp(wg_atomstr1(db,el),"<")) {
+            pos+=snprintf((*buf)+pos,(*len)-pos,"$less");                  
+        } else {
+          pos=wg_print_subcnf_tptp(db,el,depth+1,0,1,buf,len,pos);
+        }  
         if (pos<0) return pos;
         if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
         //printf ("(");
@@ -2028,46 +1806,7 @@ int wg_print_term_tptp(void* db, void* ptr,int depth,int pflag,char** buf, int *
     printf (")");
     if (ppflag) printf("\n");
   }
-  return pos;
-  /*
-  // ---- old ---
-  if (wg_get_encoded_type(db,rec)!=WG_RECORDTYPE) {
-    pos=wg_print_simpleterm_tptp(db,rec,printlevel,buf,len,pos,0);
-    return pos;
-  }
-  recptr=wg_decode_record(db, rec);
-  clen = wg_get_record_len(db, recptr);
-  if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;
-  if (wg_print_tptp_json(db)) { 
-    pos+=snprintf((*buf)+pos,(*len)-pos,"[");
-  }  
-  for(i=0; i<clen; i++) {
-    //if (i<(g->unify_firstuseterm)) continue;
-    if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;
-    //if(i>((g->unify_firstuseterm)+1)) pos+=snprintf((*buf)+pos,(*len)-pos,",");
-    enc = wg_get_field(db, recptr, i);    
-    if (wg_get_encoded_type(db, enc)==WG_RECORDTYPE) {
-      pos=wg_print_term_tptp(db,enc,printlevel,buf,len,pos);
-      if (pos<0) return pos;
-    } else {  
-      pos=wg_print_simpleterm_tptp(db, enc,printlevel,buf,len,pos,0);
-      if (pos<0) return pos;
-    }           
-    if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;
-    if (wg_print_tptp_json(db)) {
-      //if (i==(g->unify_firstuseterm))  pos+=snprintf((*buf)+pos,(*len)-pos,",");
-    } else {
-      //if (i==(g->unify_firstuseterm))  pos+=snprintf((*buf)+pos,(*len)-pos,"(");
-    }  
-  } 
-  if (!wg_str_guarantee_space(db,buf,len,pos+10)) return -1;
-  if (wg_print_tptp_json(db)) { 
-    pos+=snprintf((*buf)+pos,(*len)-pos,"]");
-  } else {
-    pos+=snprintf((*buf)+pos,(*len)-pos,")");
-  }  
-  return pos;
-  */
+  return pos; 
 }
 
 
@@ -2438,42 +2177,7 @@ int wg_list_is_term(void* db, void* lst) {
   }
   return 1;
 }
-/*
-int int wg_islogconnective(void* db, void* ptr) {
-  char* str;
 
-  if (!wg_isatom(db,ptr) || wg_atomtype(db,ptr)!=WG_ANONCONSTTYPE) return 0; 
-  str=wg_atomstr1(db,ptr);
-  if (!strcmp("not",str)) return 1;
-  if (!strcmp("and",str)) return 1;
-  if (!strcmp("or",str)) return 1;
-  if (!strcmp("imp",str)) return 1;
-  if (!strcmp("eqv",str)) return 1;
-  if (!strcmp("all",str)) return 1;
-  if (!strcmp("exists",str)) return 1;
-  return 0;  
-}
-*/
-/*
-int wg_list_is_formula_list(void* db, void* lst) {
-  void *el, *ptr;
-  int i; //, type;;
-
-  if (!lst || !wg_ispair(db,lst)) return 0;
-  ptr=lst;
-  for(i=0; ptr && wg_ispair(db,ptr); i++, ptr=wg_rest(db,ptr)) {
-    el=wg_first(db,ptr);
-    if (wg_islogconnective(db,el)) return 0;
-    if (!i) {
-      // first el should be symbol
-      if (!wg_isatom(db,ptr) || wg_atomtype(db,ptr)!=WG_URITYPE) {
-        return 0;
-      }      
-    }    
-  }
-  return 1;
-}
-*/
 
 // ============ end json printing ==============
 

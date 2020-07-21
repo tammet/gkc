@@ -341,7 +341,6 @@ int wr_calc_clause_resolvability(glb* g, gptr cl, int allowall, int hyperpartial
   }
 
   // from here clause length at least 2
-
   if (!allowall && (g->knuthbendixpref_strat)) {
     // use a separate knuthbendix resolvability marker procedure
     tmp=wr_calc_clause_knuthbendix_resolvability(g,cl,(g->varbanks));
@@ -377,7 +376,6 @@ int wr_calc_clause_resolvability(glb* g, gptr cl, int allowall, int hyperpartial
     }
     // here either all pos or hyperpartial: use hardness in the next part          
   }  
-
   // from here cannot be knuthbendix or hyper with some negative literals
   // count neg and pos and hardnesses for polarityorder and queryfocus
 
@@ -412,7 +410,6 @@ int wr_calc_clause_resolvability(glb* g, gptr cl, int allowall, int hyperpartial
       }
       // here either all pos or hyperpartial: use hardness in the next part          
     }  
-
     // calc hardnesses 
     for(i=0; i<atomnr; i++) {          
       meta=wg_get_rule_clause_atom_meta(db,cl,i);
@@ -449,7 +446,6 @@ int wr_calc_clause_resolvability(glb* g, gptr cl, int allowall, int hyperpartial
       }          
     }    
   }
-  
   // TESTING: normal no 0 blocker
   if (!allowall && negcount==0 && ((g->negpref_strat) || (g->hyperres_strat))) { 
     // pure positive for neg order:
@@ -458,6 +454,7 @@ int wr_calc_clause_resolvability(glb* g, gptr cl, int allowall, int hyperpartial
     if (!tmp) return 0; // error case
     return 1;
   }
+  
   // TESTING: normal no 0 blocker
   if (!allowall && poscount==0 && (g->pospref_strat)) {
     // pure negative for pos order:
@@ -466,7 +463,6 @@ int wr_calc_clause_resolvability(glb* g, gptr cl, int allowall, int hyperpartial
     if (!tmp) return 0; // error case
     return 1;
   }
-
   // next loop over clause marks allowed and prohibited literals
 
   allowedflag=0;
@@ -1171,13 +1167,17 @@ int wr_countedvarlist_is_subset(glb* g, cvec xlist, cvec ylist) {
   UNUSED(g);
 
 #ifdef EQORDER_DEBUG  
-  printf("\n");
-  for(i=0; i<xlist[1]; i=i+1) {
-    printf("xlist i %d: %ld\n",i,xlist[i]);
+  printf("\nxlist\n");
+  if (xlist) {
+    for(i=0; i<xlist[1]; i=i+1) {
+      printf("xlist i %d: %ld\n",i,xlist[i]);
+    }
   }
-  printf("\n");
-  for(i=0; i<ylist[1]; i=i+1) {
-    printf("ylist i %d: %ld\n",i,ylist[i]);
+  printf("\nylist\n");
+  if (ylist) {
+    for(i=0; i<ylist[1]; i=i+1) {
+      printf("ylist i %d: %ld\n",i,ylist[i]);
+    }
   }
 #endif
   // NULL cases are for atom knuth bendix: for para cases no NULLs here
@@ -1457,7 +1457,7 @@ int wr_calc_clause_knuthbendix_resolvability(glb* g, gptr cl, gptr vb) {
   */
 
   // loop over all pairs of literals, setting prohibited to 0
-  for(i=0; i<atomnr; i++) {          
+  for(i=0; i<atomnr; i++) {    
     //xmeta=wg_get_rule_clause_atom_meta(db,cl,i);
     xatom=wg_get_rule_clause_atom(db,cl,i);
     xw=(g->tmp_clinfo)[(i*2)+2];   
@@ -1562,6 +1562,8 @@ int wr_calc_clause_knuthbendix_resolvability(glb* g, gptr cl, gptr vb) {
       }
     } // loop on j
   } // loop on i
+  // try to free here, could not earlier
+  //wr_tmp_clinfo_free(g,(g->tmp_clinfo));
   return 1;
 }
 
@@ -1580,8 +1582,8 @@ int wr_calc_clause_size_countedvarlist(glb* g, gptr cl, gptr vb) {
   void* db=g->db;
   int atomnr,i,j,xw;  
   gint meta, atom; 
-  cvec gvvec;
-  cvec vvec;
+  cvec gvvec=NULL;
+  cvec vvec=NULL;
 
 
   UNUSED(db);
@@ -1596,13 +1598,13 @@ int wr_calc_clause_size_countedvarlist(glb* g, gptr cl, gptr vb) {
 
   // from here clause length at least 2
   (g->tmp_clinfo)[1]=2; // initialize
-  for(i=0; i<atomnr; i++) {          
+  for(i=0; i<atomnr; i++) {      
     meta=wg_get_rule_clause_atom_meta(db,cl,i);
     atom=wg_get_rule_clause_atom(db,cl,i);
     if (wr_answer_lit(g,atom)) {
-      // mark dummy: should not be selected for resolution or comparison
-      wr_cvec_store(g,(g->tmp_clinfo),(i*2)+2,-1);
-      wr_cvec_store(g,(g->tmp_clinfo),(i*2)+2+1,(gint)NULL);
+      // mark dummy: should not be selected for resolution or comparison      
+      (g->tmp_clinfo)=wr_cvec_store(g,(g->tmp_clinfo),(i*2)+2,-1);
+      (g->tmp_clinfo)=wr_cvec_store(g,(g->tmp_clinfo),(i*2)+2+1,(gint)NULL);      
       continue;
     }
     wr_clear_countedvarlist(g,(g->xcountedvarlist));
@@ -1617,8 +1619,9 @@ int wr_calc_clause_size_countedvarlist(glb* g, gptr cl, gptr vb) {
     // copy size over
     (g->tmp_clinfo)=wr_cvec_store(g,(g->tmp_clinfo),(i*2)+2,xw);
     // copy var vec over
-    if (gvvec[2]>3) {
+    if (gvvec[2]>3) {      
       // vars present in atom: alloc a cvec and copy over
+      //if (vvec) wr_vec_free(g,vvec); // cannot free here, getting heap use after free
       vvec=wr_cvec_new(g,gvvec[1]-2);
       if (vvec==NULL) {
         (g->alloc_err)=1;
@@ -1633,7 +1636,7 @@ int wr_calc_clause_size_countedvarlist(glb* g, gptr cl, gptr vb) {
       (g->tmp_clinfo)=wr_cvec_store(g,(g->tmp_clinfo),(i*2)+2+1,(gint)vvec);
     } else {
       (g->tmp_clinfo)=wr_cvec_store(g,(g->tmp_clinfo),(i*2)+2+1,(gint)NULL);
-    }                 
+    }                
 #ifdef EQORDER_DEBUG 
     wr_printf("\n stored weight and countedvarlist %ld\n",(g->tmp_clinfo)[(i*2)+2]);
     wr_show_countedvarlist(g,(gptr)((g->tmp_clinfo)[(i*2)+2+1]));
@@ -1643,7 +1646,7 @@ int wr_calc_clause_size_countedvarlist(glb* g, gptr cl, gptr vb) {
 #ifdef EQORDER_DEBUG 
   wr_printf("\nfinal (g->tmp_clinfo)[0] is %ld and (g->tmp_clinfo)[1] is %ld\n",
     (g->tmp_clinfo)[0],(g->tmp_clinfo)[1]);
-#endif  
+#endif    
   return atomnr; // mark vec is created
 } 
 

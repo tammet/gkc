@@ -480,6 +480,7 @@ typedef struct _db_memsegment_header {
   gint initialadr; /** initial segment address, only valid for creator */
   gint key;        /** global shared mem key */
 #ifdef USE_REASONER
+  void* local_g; /** pointer to g to be freed in signal handler upon abnormal termination */
   void* kb_db; /** pointer to the knowledge base shared mem db, if available */
   gint rglb; /** offset to the reasoner global block */
   gint clauselist; /** offset of the beginning of the clause list */
@@ -493,11 +494,13 @@ typedef struct _db_memsegment_header {
   gint tptp; /** initially 0, set by cmd line switches */
   gint json; /** initially 0, set by cmd line switches */
   gint convert;  /** initially 0, set by cmd line switches */
-  gint clausify;  /** initially 0, set by cmd line switches */
+  gint clausify;  /** initially 0, set by cmd line switches */ 
   gint min_strat_timeloop_nr; /** initially 0, set by LTB batch only */
   gint max_strat_timeloop_nr; /** initially 1000, set by by LTB batch only */
   int parse_skolem_nr;
   int parse_newpred_nr;
+  int printlevel; /** initially 10, set by cmd line switches */
+  int printderived; /** initially 0, set by cmd line switches */
 #ifdef SINE
 
 #endif

@@ -311,7 +311,7 @@ void wr_show_database_details(glb* passedg,void* db, char* desc) {
     printf("\ndb as ptr is %lx \n", (unsigned long int)db);
 
     rglb=db_rglb(db); // this is the internal g of db
-    g=malloc(sizeof(glb)); // this is a new malloced g
+    g=sys_malloc(sizeof(glb)); // this is a new malloced g
     // copy rglb stuff to g
     memcpy(g,rglb,sizeof(glb));
     // now g should contain the same things as rglb

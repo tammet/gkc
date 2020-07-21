@@ -175,7 +175,7 @@ void wr_process_resolve_result
     wr_printf("\nwr_process_resolve_result was subsumed with new subsumer\n");
 #endif    
     if (g->print_derived_subsumed_cl) {
-      wr_printf("\n- subsumed derived by mp ");
+      wr_printf("\n- subsumed derived by mp: ");
       wr_print_halfbuilt_clause(g,rptr,rpos);
     }
     return;    
@@ -187,7 +187,7 @@ void wr_process_resolve_result
     if (tmp>0 || tmp2>0) {
       // there were cuts
       if (g->print_derived_precut_cl) {
-        wr_printf("\nc post-cut derived by mp ");
+        wr_printf("\nc post-cut derived by mp: ");
         wr_print_halfbuilt_clause(g,rptr,rpos);
       }
 
@@ -316,6 +316,8 @@ void wr_process_resolve_result
     if (g->print_derived_cl) {
       wr_printf("\n+ derived by mp: ");
       wr_print_clause(g,res);    
+    } else if (g->print_derived) {  
+      wr_print_clause_via_buf(g,res);
     }  
     weight=wr_calc_clause_weight(g,res,&size,&depth,&length);
     avg=(g->avg_kept_weight);       
@@ -447,14 +449,14 @@ void wr_process_instgen_result
     wr_printf("\nwr_process_instgen_result was subsumed with new subsumer\n");
 #endif    
     if (g->print_derived_subsumed_cl) {
-      wr_printf("\n- subsumed derived by instgen ");
+      wr_printf("\n- subsumed derived by instgen: ");
       wr_print_halfbuilt_clause(g,rptr,rpos);
     }
     return;    
   } else if (tmp>0) {
     // there were cuts
     if (g->print_derived_precut_cl) {
-      wr_printf("\nc post-cut derived by instgen ");
+      wr_printf("\nc post-cut derived by instgen: ");
       wr_print_halfbuilt_clause(g,rptr,rpos);
     }
     wr_process_resolve_result_remove_cuts(g,rptr,&rpos,tmp);
@@ -675,7 +677,7 @@ void wr_process_factor_result
     wr_printf("\nwr_process_factor_result was subsumed with new subsumer\n");
 #endif    
     if (g->print_derived_subsumed_cl) {
-      wr_printf("\n- subsumed derived by merge ");
+      wr_printf("\n- subsumed derived by merge: ");
       wr_print_halfbuilt_clause(g,rptr,rpos);
     }
     return;    
@@ -687,7 +689,7 @@ void wr_process_factor_result
     if (tmp>0 || tmp2>0) {
       // there were cuts
       if (g->print_derived_precut_cl) {
-        wr_printf("\nc post-cut derived by merge ");
+        wr_printf("\nc post-cut derived by merge: ");
         wr_print_halfbuilt_clause(g,rptr,rpos);
       }
       wr_process_resolve_result_remove_cuts(g,rptr,&rpos,tmp+tmp2);
@@ -949,7 +951,7 @@ void wr_process_paramodulate_result
     if (tmp>0 || tmp2>0) {
       // there were cuts
       if (g->print_derived_precut_cl) {
-        wr_printf("\nc post-cut derived by = ");
+        wr_printf("\nc post-cut derived by =: ");
         if (fromflag) {
           wr_printf("from: ");
         } else {

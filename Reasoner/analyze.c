@@ -1140,7 +1140,7 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
     //wr_show_in_stats(kb_g);
   }   
   make_sum_input_stats(g,kb_g);
-  if (!(g->outfilename) && guideparam!=1 && (dbmemsegh(db)->tptp)) {
+  if (!(g->outfilename) && guideparam!=1 && ((dbmemsegh(db)->printlevel)>11)) {
     wr_show_in_summed_stats(g);
   }  
   if ((g->sin_poseq_clause_count)+(g->sin_negeq_clause_count)) {
@@ -1189,7 +1189,7 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
   } else if (dbmemsegh(db)->tptp) {
     pref="{\n"
         "\"print\":1,\n"
-        "\"print_level\": 15,\n"
+        "\"print_level\": %d,\n"
         "\"max_size\": 0,\n"
         "\"max_depth\": 0,\n"
         "\"max_length\": 0,\n"
@@ -1197,13 +1197,13 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
   } else {
     pref="{\n"
         "\"print\":1,\n"
-        "\"print_level\": 10,\n"
+        "\"print_level\": %d,\n"
         "\"max_size\": 0,\n"
         "\"max_depth\": 0,\n"
         "\"max_length\": 0,\n"
         "\"max_seconds\": 0,\n";  
   }  
-  pos=sprintf(buf,"%s",pref);
+  pos=sprintf(buf,pref,(dbmemsegh(db)->printlevel));
   if (!eq) {
     pos+=sprintf(buf+pos,"\"equality\":0,\n");
   }
@@ -2231,7 +2231,7 @@ BLOCKEND:
   
   //printf("\nbuf: \n%s\n",buf);
   
-  if (!(g->outfilename) && guideparam!=1 && (dbmemsegh(db)->tptp)) {
+  if (!(g->outfilename) && guideparam!=1 && ((dbmemsegh(db)->printlevel)>11)) {
     wr_printf("\nauto guide:\n-----------\n%s\n",buf);
   }     
 
@@ -2491,7 +2491,7 @@ void make_ltb_guide(glb* g, char** strats, int stratscount) {
 
     // first batch, 3 sec total
     secs=1;
-    buf=(char*)malloc(10000);  
+    buf=(char*)wr_malloc(g,10000);  
     pref="{\n"
         "\"print_level\": 5,\n"; 
     pos=sprintf(buf,"%s",pref);
@@ -2507,7 +2507,7 @@ void make_ltb_guide(glb* g, char** strats, int stratscount) {
 
     // second batch, 5 sec total, ends at 8 sec
     secs=1;
-    buf=(char*)malloc(10000);  
+    buf=(char*)wr_malloc(g,10000);  
     pref="{\n"
         "\"print_level\": 5,\n"; 
     pos=sprintf(buf,"%s",pref);
@@ -2527,7 +2527,7 @@ void make_ltb_guide(glb* g, char** strats, int stratscount) {
 
     // third batch, 15 sec total, ends at 23 sec
     secs=5;
-    buf=(char*)malloc(10000);  
+    buf=(char*)wr_malloc(g,10000);  
     pref="{\n"
         "\"print_level\": 5,\n"; 
     pos=sprintf(buf,"%s",pref);
@@ -2543,7 +2543,7 @@ void make_ltb_guide(glb* g, char** strats, int stratscount) {
 
     // fourth batch, 20 sec total, ends at 43 sec
     secs=5;
-    buf=(char*)malloc(10000);  
+    buf=(char*)wr_malloc(g,10000);  
     pref="{\n"
         "\"print_level\":  5,\n"; 
     pos=sprintf(buf,"%s",pref);
@@ -2561,7 +2561,7 @@ void make_ltb_guide(glb* g, char** strats, int stratscount) {
 
     // fifth batch 
     secs=15;
-    buf=(char*)malloc(10000);  
+    buf=(char*)wr_malloc(g,10000);  
     pref="{\n"
         "\"print_level\":  5,\n"; 
     pos=sprintf(buf,"%s",pref);

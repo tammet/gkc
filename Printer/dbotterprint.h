@@ -54,6 +54,8 @@ void wr_print_term_otter(glb* g, gint rec,int printlevel);
 void wr_print_simpleterm_otter(glb* g, gint enc,int printlevel);
 void wg_nice_print_var(void* db, gint i);
 
+void wr_print_clause_via_buf(glb* g, gptr rec);
+
 int wr_strprint_clause(glb* g, gptr rec, char** buf, int *len, int pos);
 int wr_strprint_clause_otter(glb* g, gptr rec, int printlevel, char** buf, int *len, int pos);
 int wr_strprint_rule_clause_otter(glb* g, gint* rec,int printlevel, char** buf, int *len, int pos);

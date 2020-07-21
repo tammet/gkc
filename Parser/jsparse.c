@@ -659,7 +659,7 @@ int wr_yajl_parse_file(glb* g, parse_parm* pp, char* filename,
     return -1;
   }
   yajl_free(hand);
-  if (line!=NULL) free(line);
+  if (line!=NULL) wr_free(g,line);
   if (filename) {
     fclose(file);
   }
@@ -1769,7 +1769,8 @@ int wr_is_json_freevar(glb* g,parse_parm* pp,void* ptr) {
   if (!wg_isatom(db,ptr) || wg_atomtype(db,ptr)!=WG_URITYPE) return 0;
   s=wg_atomstr1(db,ptr);
   if ((*s)=='\0') return 0;
-  if (*s >= 'A' && *s <= 'Z') return 1;      
+  if (*s >= 'A' && *s <= 'Z') return 1; 
+  if (*s == '?') return 1;     
   return 0;
 }  
 
@@ -2257,7 +2258,7 @@ void* wr_js_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
       setres2=wr_set_rule_clause_atom(g,record,litnr,tmpres2);
       if (setres!=0 || setres2!=0) {
         // wg_delete_record(db,atomres); // might leak memory
-        free(vardata);
+        wr_free(g,vardata);
         return NULL; 
       }   
     }        

@@ -367,6 +367,7 @@ typedef struct {
   int print_clauses_tptp;
   int print_proof_tptp;
   int print_level_flag;
+  int print_derived;
   int print_clause_history;
   int print_history_extra;  
   int print_fof_conversion_proof;

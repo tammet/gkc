@@ -115,6 +115,7 @@ gint wg_init_db_memsegment_with_kb(void* db, gint key, gint size, void* kb) {
   dbh->key=key;  /* might be 0 if local memory used */
 
 #ifdef USE_REASONER
+  dbh->local_g=NULL;
   dbh->kb_db=kb;
   dbh->rglb=0;
   dbh->clauselist=0;
@@ -133,6 +134,8 @@ gint wg_init_db_memsegment_with_kb(void* db, gint key, gint size, void* kb) {
   dbh->max_strat_timeloop_nr=1000;
   dbh->parse_skolem_nr=0;
   dbh->parse_newpred_nr=0;
+  dbh->printlevel=10; 
+  dbh->printderived=0; 
   //printf("\n in wg_init_db_memsegment_with_kb  dbh->kb_db is %d\n",(int)dbh->kb_db);
 #endif
 #ifdef CHECK

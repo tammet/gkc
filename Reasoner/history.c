@@ -1213,17 +1213,19 @@ int wr_show_result(glb* g, gint history) {
   } 
   // here we have some results
   if (g->print_json) {
+    if ((g->print_level_flag)>=15) {
+      bpos+=snprintf(buf+bpos,blen-bpos,"\n\n");
+    }        
     bpos+=snprintf(buf+bpos,blen-bpos,"{\"result\": \"proof found\",\n");
     bpos+=snprintf(buf+bpos,blen-bpos,"\n\"answers\": [\n");
   } else {
-    if (((g->print_level_flag)>1) &&
-        (g->required_answer_nr)>1) {
-        //bpos+=snprintf(buf+bpos,blen-bpos,"\n");
+    if ((g->print_level_flag)>=15) {
+        bpos+=snprintf(buf+bpos,blen-bpos,"\n\n");
     }        
 #ifdef TPTP        
     bpos+=snprintf(buf+bpos,blen-bpos,
           "result: proof found\n"); 
-    if ((g->filename) && (strstr(g->filename,"input_text")==NULL)) {
+    if ((g->filename) && ((g->print_level_flag)>=10) && (strstr(g->filename,"input_text")==NULL)) {
       bpos+=snprintf(buf+bpos,blen-bpos,
         "for %s\n",(g->filename));
     }
@@ -1262,6 +1264,19 @@ int wr_show_result(glb* g, gint history) {
       //bpos+=snprintf(buf+bpos,blen-bpos,"\nanswers and proofs:");
     }  
   }  
+
+  if ((g->print_level_flag)<10) {
+    if (g->print_json) {   
+      bpos+=snprintf(buf+bpos,blen-bpos,"]\n}\n");
+    } else if (g->print_tptp) {
+      bpos+=snprintf(buf+bpos,blen-bpos,"\n");
+    }       
+    printf("%s",buf);
+    fflush(stdout);
+    if (buf) wr_free(g,buf);
+    return bpos;
+  }      
+
   for(ansnr=2; ansnr<((g->answers)[1]); ansnr+=2) {
     // loop over all proofs 
     if (g->print_json) {

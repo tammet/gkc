@@ -126,6 +126,7 @@ int wr_is_tptp_cnf_clause(void* db, void* cl);
 int wr_is_tptp_fof_clause(void* db, void* cl);
 int wr_is_tptp_import_clause(void* db, void* cl);
 
+void *wr_parse_freeoccs(glb* g, void* mpool, void* vars, void* frm, int* clauseflag);
 
 //void* wr_preprocess_tptp_cnf_clause(glb* g, void* mpool, void* cl);
 //void* wr_preprocess_tptp_fof_clause(glb* g, void* mpool, void* cl, void* clname);
@@ -230,6 +231,7 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, in
   pres=wg_yyotterparse(&pp, pp.yyscanner);   
   wg_yyotterlex_destroy(pp.yyscanner);     
   //printf("\nwg_yyotterparse finished\n");     
+  //wg_mpool_print(db,pp.result);
   //printf("\nresult: %d pp.result %s\n",pres,(char*)pp.result);
 
   if (pp.errmsg) {
@@ -239,7 +241,7 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, in
     if (g->parse_errmsg) {
       strncpy(g->parse_errmsg,pp.errmsg,tmplen);
     }  
-    free(pp.errmsg);
+    wr_free(g,pp.errmsg);
   }
   if (!pres && pp.result!=NULL) { 
     if ((g->print_initial_parser_result)>0) {
@@ -345,6 +347,8 @@ void* wr_preprocess_clauselist
   gcell *cellptr;
   void* copied;
   void* part;
+  void* freevars;
+  int clauseflag=1;
   int blen=990,bpos=0;
 
 #ifdef DEBUG  
@@ -576,11 +580,23 @@ void* wr_preprocess_clauselist
         clname=wg_mkatom(db,mpool,WG_URITYPE,namebuf, NULL);
         sprintf(rolebuf,"axiom");   
         clrole=wg_mkatom(db,mpool,WG_URITYPE,rolebuf, NULL);       
-        if (!wg_str_guarantee_space(db,&(g->tmp_printbuf),&blen,bpos+1000)) return NULL;        
-        bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,
+        if (!wg_str_guarantee_space(db,&(g->tmp_printbuf),&blen,bpos+1000)) return NULL;              
+        clauseflag=1;
+        freevars=wr_parse_freeoccs(g,mpool,NULL,cl,&clauseflag);
+        //printf("\n clauseflag %d freevars: \n",clauseflag);
+        //wg_mpool_print(db,freevars); 
+        //printf("\n");       
+        if (clauseflag) {
+          bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,
                        "cnf('%s',%s,",wg_atomstr1(db,clname),wg_atomstr1(db,clrole));                                     
-        bpos=wg_print_cnf_tptp(db,cl,&(g->tmp_printbuf),&blen,bpos);
-        bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,").");                       
+          bpos=wg_print_cnf_tptp(db,cl,&(g->tmp_printbuf),&blen,bpos);          
+        } else {
+          if (freevars) cl=wg_mklist3(db,mpool,wg_makelogall(db,mpool),freevars,cl); 
+          bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,
+                       "fof('%s',%s,",wg_atomstr1(db,clname),wg_atomstr1(db,clrole));                                     
+          bpos=wg_print_frm_tptp(db,cl,&(g->tmp_printbuf),&blen,bpos);
+        } 
+        bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,").");               
         printf("%s\n",(g->tmp_printbuf));
       } else if ((dbmemsegh(db)->convert) && (dbmemsegh(db)->json)) {  
         bpos=0;
@@ -593,10 +609,15 @@ void* wr_preprocess_clauselist
           printf("%s\n",(g->tmp_printbuf));
         }  
       }  
-      if (g->parse_is_included_file)
+      if (g->parse_is_included_file) {
         resultclause=wg_mklist3(db,mpool,clname,clrole,resultclause);
-      else
-        resultclause=wg_mklist3(db,mpool,NULL,NULL,resultclause);  
+      } else {
+        // new version for full logic for otter-style input
+        resultclause=wr_clausify_formula(g,mpool,cl,NULL,NULL);
+        resultclause=wg_mklist3(db,mpool,NULL,NULL,resultclause);
+        // before was
+        //resultclause=wg_mklist3(db,mpool,NULL,NULL,resultclause);  
+      }  
       if (g->parse_errflag) break;  
     }        
 #ifdef DEBUG
@@ -672,6 +693,86 @@ void* wr_preprocess_tptp_cnf_clause(glb* g, void* mpool, void* cl) {
   }
   */
   return res;
+}
+
+/*
+int wr_check_fof_cnf_freevars(glb* g, void* mpool, void* cl, void** freevarsptr) {
+  
+
+}
+*/
+
+
+void *wr_parse_freeoccs(glb* g, void* mpool, void* vars, void* frm, int* clauseflag) {
+  void *db=g->db;
+  void *arg2, *arg3;
+  void *op, *newvars, *termoccs, *freeoccs;
+  void *term, *termpart;
+  int len;
+  /*
+  printf("\nwr_parse_freeoccs on ");
+  wg_mpool_print(db,frm);
+  printf("\nvars \n");
+  wg_mpool_print(db,vars);
+  printf("\n");
+  */
+  if (frm==NULL) return NULL;
+  if (wg_isatom(db,frm)) {
+    // simple atom
+    if ((g->parse_caps_as_var && isupper(wg_atomstr1(db,frm)[0])) ||
+        (g->parse_question_as_var && wg_atomstr1(db,frm)[0]=='?') ) { 
+      if (!wr_freeoccs_invars(g,mpool,vars,frm)) {
+        return wg_mkpair(db,mpool,frm,NULL);
+      }                 
+    } 
+    if (wg_islogtrue(db,frm) || wg_islogfalse(db,frm)) *clauseflag=0;  
+    return NULL;
+  }  
+  op=wg_first(db,frm);
+  len=wg_list_len(db,frm);
+  if (wg_ispair(db,op) && len<2) {
+    // pointless parenthesis around formula: lift up
+    return wr_parse_freeoccs(g,mpool,vars,op,clauseflag);
+  }
+  if (wg_ispair(db,op)) {
+    // should not happen
+    return NULL;
+  }
+  if (wg_islogall(db,op) || wg_islogexists(db,op)) {
+    // quantifier
+    *clauseflag=0;
+    arg2=wg_first(db,wg_rest(db,frm));
+    arg3=wg_first(db,wg_rest(db,wg_rest(db,frm)));
+    newvars=wr_miniscope_varssubset(g,mpool,arg2,vars);    
+    termoccs=wr_parse_freeoccs(g,mpool,newvars,arg3,clauseflag);
+    return termoccs;  
+  } else {
+    // logical or a nonlogical term: loop over    
+    freeoccs=NULL;
+    if (wg_islogconnective(db,op)) {
+      if (!(wg_islogor(db,op) || wg_islogneg(db,op))) *clauseflag=0;
+      termpart=wg_rest(db,frm);
+    } else {
+      termpart=wg_rest(db,frm); //frm;
+    }  
+    for(; termpart!=NULL; termpart=wg_rest(db,termpart)) {
+      term=wg_first(db,termpart);
+      termoccs=wr_parse_freeoccs(g,mpool,vars,term,clauseflag);     
+      if (termoccs) freeoccs=wr_add_freeoccs(g,mpool,freeoccs,termoccs);      
+    }
+    return freeoccs;
+  } 
+}
+
+int wr_is_parse_var(glb* g,void* ptr) {
+  void* db=g->db;
+  char *s;
+  if (!wg_isatom(db,ptr) || wg_atomtype(db,ptr)!=WG_URITYPE) return 0;
+  s=wg_atomstr1(db,ptr);
+  if ((*s)=='\0') return 0;
+  if (*s >= 'A' && *s <= 'Z') return 1; 
+  if (*s == '?') return 1;     
+  return 0;
 }
 
 void* wr_preprocess_tptp_fof_clause(glb* g, void* mpool, void* cl, void* clname) {
@@ -1014,6 +1115,10 @@ void* wr_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
 #endif      
     if (!wg_ispair(db,lit)) { issimple=0; continue; }
     fun=wg_first(db,lit);
+    if (wg_ispair(db,fun) && wg_mpool_bad_ptr(db,fun)) {
+      wr_show_parse_error(g," wrong syntax in clause nr %d ",clnr);
+      return NULL;
+    }
     if (wg_atomtype(db,fun)==WG_ANONCONSTTYPE && !strcmp(wg_atomstr1(db,fun),"not")) { issimple=0; continue; }    
     for(termpart=lit;wg_ispair(db,termpart);termpart=wg_rest(db,termpart)) {
       subterm=wg_first(db,termpart);
@@ -1158,7 +1263,7 @@ void* wr_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
       setres2=wr_set_rule_clause_atom(g,record,litnr,tmpres2);
       if (setres!=0 || setres2!=0) {
         // wg_delete_record(db,atomres); // might leak memory
-        free(vardata);
+        wr_free(g,vardata);
         return NULL; 
       }   
     }        
@@ -1333,7 +1438,7 @@ void* wr_parse_term(glb* g,void* mpool,void* term, char** vardata) {
       DPRINTF("term nr %d is primitive \n",termnr); 
       // convert some primitives to others
       if (!termnr && wg_atomstr1(db,term) && wg_atomstr1(db,term)[0]=='$') {
-        if (!strcmp("$plus",wg_atomstr1(db,term))) {
+        if (!strcmp("$sum",wg_atomstr1(db,term))) {
           term=wg_mkatom(db,mpool,WG_URITYPE,"+",NULL);
         } else if (!strcmp("$difference",wg_atomstr1(db,term))) {
           term=wg_mkatom(db,mpool,WG_URITYPE,"-",NULL);        
@@ -1646,7 +1751,7 @@ gint wr_parse_and_encode_otter_uri(glb* g, char *buf) {
        * XXX: check this code for correct handling of prefix. */
       int urilen = strlen(buf);
       tmplen=urilen + 1;
-      char *prefix = malloc(tmplen);
+      char *prefix = wr_malloc(g,tmplen);
       char *dataptr;
 
       if(!prefix) break;
@@ -1669,7 +1774,7 @@ gint wr_parse_and_encode_otter_uri(glb* g, char *buf) {
 prefix_marked:
       printf("for wg_encode_uri |%s|%s|\n",buf+((gint)dataptr-(gint)prefix+1),prefix);
       encoded = wg_encode_uri(db, buf+((gint)dataptr-(gint)prefix+1), prefix);
-      free(prefix);
+      wr_free(g,prefix);
       break;
     }
     next++;

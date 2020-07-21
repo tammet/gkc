@@ -496,9 +496,14 @@ void *wr_miniscope_freeoccs(glb* g, void* mpool, void* vars, void* frm) {
   void *term, *termpart;
   int len;
 
+  //printf("\nwr_miniscope_freeoccs on ");
+  //wg_mpool_print(db,frm);
+  //printf("\n");
+
   if (vars==NULL) return NULL;
   if (wg_isatom(db,frm)) {
     // simple atom
+    //return wg_mkpair(db,mpool,frm,NULL);
     if (wr_freeoccs_invars(g,mpool,vars,frm)) {
       res=wg_mkpair(db,mpool,frm,NULL);
       return res;
@@ -534,6 +539,9 @@ void *wr_miniscope_freeoccs(glb* g, void* mpool, void* vars, void* frm) {
     for(; termpart!=NULL; termpart=wg_rest(db,termpart)) {
       term=wg_first(db,termpart);
       termoccs=wr_miniscope_freeoccs(g,mpool,vars,term);
+      //printf("\ntermoccs ");
+      //wg_mpool_print(db,termoccs);
+      //printf("\n");
       if (termoccs) freeoccs=wr_add_freeoccs(g,mpool,freeoccs,termoccs);      
     }
     return freeoccs;
@@ -1596,7 +1604,7 @@ int wr_is_logconst(glb* g, void* arg) {
 
 /* ------------ errors ---------------- */
 
-
+/*
 void* show_clausify_error(glb* g, char* format, ...) {
   int tmp1,tmp2;
   va_list args;
@@ -1608,14 +1616,16 @@ void* show_clausify_error(glb* g, char* format, ...) {
   if (g->parse_errflag) return NULL;
   (g->parse_errflag)=1;  
   if (g->parse_errmsg) return NULL;
-  (g->parse_errmsg)=malloc(1000);
+  (g->parse_errmsg)=wr_malloc(g,1000);
   if (!(g->parse_errmsg)) return NULL;
   tmp1=snprintf((g->parse_errmsg),50,"{\"error\": \"clausification hard error: ");
   tmp2=vsnprintf((g->parse_errmsg)+tmp1,800,format,args);
   snprintf((g->parse_errmsg)+tmp1+tmp2,50,"\"}");
   va_end (args);
+  wr_free(g,malloc);
   return NULL;
 }
+*/
 
 void* show_clausify_warning(glb* g, char* format, ...) {
   int tmp1,tmp2;
@@ -1628,7 +1638,7 @@ void* show_clausify_warning(glb* g, char* format, ...) {
   if (g->parse_errflag) return NULL;
   (g->parse_errflag)=1;  
   if (g->parse_errmsg) return NULL;
-  (g->parse_errmsg)=malloc(1000);
+  (g->parse_errmsg)=wr_malloc(g,1000);
   if (!(g->parse_errmsg)) return NULL;
   tmp1=snprintf((g->parse_errmsg),50,"{\"error\": \"clausification error: ");
   tmp2=vsnprintf((g->parse_errmsg)+tmp1,800,format,args);

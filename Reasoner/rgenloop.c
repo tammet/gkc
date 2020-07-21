@@ -108,16 +108,6 @@ int wr_genloop(glb* g) {
 #endif  
   UNUSED(db);
 
-  /*
-  int *ptr;
-  ptr=0;
-  *ptr=100;
-  ptr=malloc(10000000);
-  free(ptr);
-  free(ptr);
-  free(ptr);
-  */
-
   //printf("\n** clactivesubsume data from external:\n"); 
   //wr_show_clactivesubsume(r_kb_g(g));
 
@@ -371,7 +361,6 @@ int wr_genloop(glb* g) {
 #endif   
 
     //if ((g->stat_given_used)>119) exit(0);
-
     if (g->print_final_given_cl) {
       wr_printf("\n*** given %d: ",(g->stat_given_used));
       wr_print_clause(g,given_cl);   
@@ -397,6 +386,7 @@ int wr_genloop(glb* g) {
     // optionally do backsubsumption
     if (!(g->endgame_mode) && (g->back_subsume)) wr_given_cl_backsubsume(g,given_cl,given_cl_metablock);
     // calculate resolvability: (g->tmp_resolvability_vec)
+
     if (given_from_hyperqueue_flag) {
       wr_calc_clause_resolvability(g,given_cl,0,1);
     } else {
@@ -426,7 +416,7 @@ int wr_genloop(glb* g) {
       // add to active list
       //printf("\n from normal queue\n");
       given_cl_as_active=wr_add_given_cl_active_list(g,given_cl,given_cl_metablock,1,
-                                    g->active_termbuf,(g->tmp_resolvability_vec));
+                                    g->active_termbuf,(g->tmp_resolvability_vec));                                      
     //printf("\nmetablock3 %d %d %d %d \n",*given_cl_metablock,*(given_cl_metablock+1),*(given_cl_metablock+2),*(given_cl_metablock+3));
     }
     if (given_cl_as_active==NULL) {
@@ -459,8 +449,6 @@ int wr_genloop(glb* g) {
     if ((g->proof_found) && wr_enough_answers(g)) return 0;
     if (g->alloc_err) return -1;        
     // next one blocks para for endgame
-
-   
     //
     // SWW
     /*
