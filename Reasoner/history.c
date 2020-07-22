@@ -1213,19 +1213,21 @@ int wr_show_result(glb* g, gint history) {
   } 
   // here we have some results
   if (g->print_json) {
-    if ((g->print_level_flag)>=15) {
+    if ((g->print_level_flag)>=12) {
       bpos+=snprintf(buf+bpos,blen-bpos,"\n\n");
     }        
     bpos+=snprintf(buf+bpos,blen-bpos,"{\"result\": \"proof found\",\n");
     bpos+=snprintf(buf+bpos,blen-bpos,"\n\"answers\": [\n");
   } else {
-    if ((g->print_level_flag)>=15) {
+    if ((g->print_level_flag)>=12) {
         bpos+=snprintf(buf+bpos,blen-bpos,"\n\n");
     }        
 #ifdef TPTP        
     bpos+=snprintf(buf+bpos,blen-bpos,
           "result: proof found\n"); 
-    if ((g->filename) && ((g->print_level_flag)>=10) && (strstr(g->filename,"input_text")==NULL)) {
+    if ((g->filename) && ((g->print_level_flag)>=10) && 
+        (strstr(g->filename,"input_text")==NULL) &&
+        (strstr(g->filename,"input_jtext")==NULL)) {
       bpos+=snprintf(buf+bpos,blen-bpos,
         "for %s\n",(g->filename));
     }

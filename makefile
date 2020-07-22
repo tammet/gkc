@@ -3,6 +3,9 @@
 #
 # Builds the gkc executable in the top folder.
 #
+# Beware: the dependences of .h files are not sufficiently defined,
+# thus if you change an .h file, do make clean before make
+#
 # Run as: 
 # make
 # make clean
@@ -22,10 +25,9 @@
 # - run as: ASAN_SYMBOLIZER_PATH=/usr/lib/llvm-6.0/bin/llvm-symbolizer ./gkc 
 
 CC = gcc # clang # gcc
-#CFLAGS = -O2 -Wall -g # -Wmissing-field-initializers 
-CFLAGS = -O2 -Wall -static # -Wmissing-field-initializers 
+CFLAGS = -O2 -Wall -static -Wmissing-field-initializers # normal compilation
 #CFLAGS = -O0 -Wall  -fsanitize=address  # for clang with memory leaks detection
-#CFLAGS = -O2 -Wall -pg # -Wmissing-field-initializers 
+#CFLAGS = -O2 -Wall -pg -Wmissing-field-initializers # for gprof
 LIBS = -lm
 
 TESTING = true

@@ -50,7 +50,7 @@
 #define NROF_SIMPLIFIED_TERMBUF_ELS 10000000 // 10 M of gint els
 
 #ifdef __EMSCRIPTEN__
-#define NROF_QUEUE_TERMBUF_ELS    20000000 // 20 M of gint els
+#define NROF_QUEUE_TERMBUF_ELS    40000000 // 40 M of gint els
 #define NROF_HYPER_TERMBUF_ELS    10000000 // 10 M of gint els                             
 #define NROF_ACTIVE_TERMBUF_ELS   20000000 // 20 M of gint els
 #else

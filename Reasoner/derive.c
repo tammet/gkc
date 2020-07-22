@@ -519,7 +519,9 @@ void wr_process_instgen_result
     if (g->print_derived_cl) {
       wr_printf("\n+ derived by instgen: ");
       wr_print_clause(g,res);    
-    }  
+    } else if (g->print_derived) {  
+      wr_print_clause_via_buf(g,res);
+    } 
     weight=wr_calc_clause_weight(g,res,&size,&depth,&length);
     avg=(g->avg_kept_weight);       
     //printf(" weight %d average %f count %d \n",weight,(g->avg_kept_weight),(g->stat_kept_cl));
@@ -755,6 +757,8 @@ void wr_process_factor_result
     if (g->print_derived_cl) {
       wr_printf("\n+ derived by merge: ");
       wr_print_clause(g,res);    
+    } else if (g->print_derived) {  
+      wr_print_clause_via_buf(g,res);
     }  
     weight=wr_calc_clause_weight(g,res,&size,&depth,&length);
     avg=(g->avg_kept_weight);  
@@ -916,7 +920,7 @@ void wr_process_paramodulate_result
     wr_print_term(g,aterm);  wr_printf("\nbterm:");
     wr_print_term(g,bterm);  wr_printf("\npath: %ld\n",path); 
     wr_printf("\nleftflag: %d\n",leftflag); 
-    wr_print_vardata(g);
+    //wr_print_vardata(g);
 
     if (fromflag) {
       wr_printf("from: ");
@@ -1083,6 +1087,8 @@ void wr_process_paramodulate_result
         wr_printf("into: ");
       } 
       wr_print_clause(g,res);
+    } else if (g->print_derived) {  
+      wr_print_clause_via_buf(g,res);
     }    
     weight=wr_calc_clause_weight(g,res,&size,&depth,&length);  
     avg=(g->avg_kept_weight);  

@@ -36,7 +36,7 @@ ${CC} -O3 -Wall -Wmissing-field-initializers -static -o gkc \
   Reasoner/analyze.c Reasoner/chains.c Reasoner/prop.c\
   Printer/dbotterprint.c \
   Builtparser/dbotter.tab.c  Builtparser/dbotter.yy.c  Builtparser/dbparse.c  Builtparser/dbprolog.tab.c \
-  Builtparser/dbprolog.yy.c Builtparser/dbclausify.c \
+  Builtparser/dbprolog.yy.c Builtparser/dbclausify.c Builtparser/jsparse.c \
   -lm  
 
 # Note: for a simple overview of available warning flags see

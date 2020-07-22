@@ -456,6 +456,9 @@ int wr_glb_init_simple(glb* g) {
   (g->current_fork_nr)=0;
   (g->avg_kept_weight)=0;
   (g->passed_ratio)=0;
+
+  (g->allruns_start_clock)=(clock_t)0;
+  (g->run_start_clock)=(clock_t)0;
   
   return 0;
 }  

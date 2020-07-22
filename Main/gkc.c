@@ -73,8 +73,9 @@ extern "C" {
 #endif
 
 #ifndef _WIN32
-#include<sys/wait.h> 
-#include<unistd.h> 
+#include <sys/wait.h> 
+#include <unistd.h> 
+#include <time.h>
 #endif
 
 
@@ -131,7 +132,8 @@ int parse_memmode(char *arg);
 char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsize, 
           int* parallel, int* tptp, int* json, 
           char ***lstringsptr, char ***ljstringsptr, char ***lfilesptr, char **stratfile,
-          int* convert, int* clausify, int* seconds, int* retcode, int* printlevel, int* printderived);          
+          int* convert, int* clausify, int* seconds, int* retcode, int* printlevel, int* printderived,
+          char** strattext);          
 void wg_set_kb_db(void* db, void* kb);
 void segment_stats(void *db);
 void wg_show_strhash(void* db);
@@ -146,6 +148,8 @@ int wg_import_data_file(void *db, char* filename, int iskb, int* informat, int a
 int wg_import_data_string(void *db, char* instr, int iskb, int* informat, int askpolarity, int* askinfo,
                           int jsflag);
 
+int wg_seems_json_string(void* db, char* str);
+
 #ifndef _WIN32
 int gkc_ltb_main(int argc, char **argv);
 #endif
@@ -157,6 +161,28 @@ void wr_output_batch_prob_failure(char* probname, char* outfullname, char* failu
 //#define SHOW_CONTENTS 1
 //#undef SHOW_CONTENTS
 
+/* ====== Emscripten specials ============== */
+/*
+#ifdef __EMSCRIPTEN__
+
+#include <emscripten.h>
+
+
+// start_timer(): call JS to set an async timer for 500ms
+EM_JS(void, start_timer, (), {
+  Module.timer = false;
+  setTimeout(function() {
+    Module.timer = true;
+  }, 500);
+});
+
+// check_timer(): check if that timer occurred
+EM_JS(int, check_timer, (), {
+  return Module.timer;
+});
+
+#endif
+*/
 /* ====== Functions ============== */
 
 /*
@@ -203,6 +229,7 @@ int gkc_main(int argc, char **argv) {
   char** lfiles=NULL; // input filenames for logic text parsed from cmd line
   int filenr;
   char* stratfile=NULL;
+  char* strattext=NULL;
   int tmp;
   int retcode=0;
   int informat=0; // 0 if not set, 1 if tptp fof
@@ -215,15 +242,17 @@ int gkc_main(int argc, char **argv) {
   int printlevel=10;
   int printderived=0;
   int askinfo=0;
-  int askpolarity=1;  
+  int askpolarity=1;
+  clock_t allruns_start_clock;  
   char inputname[1000];
 
+  allruns_start_clock=clock();
   global_shmptr=NULL;
   if (argc<2) {
     usage(argv[0]);
     return(0);
   }
-  
+
 #ifndef _WIN32  
 #ifdef TPTP
   tmp=gkc_ltb_main(argc,argv);
@@ -234,17 +263,18 @@ int gkc_main(int argc, char **argv) {
   inputname[0]=0;
   cmdfiles=parse_cmdline(argc,argv,&cmdstr,&mbnr,&mbsize,&parallel,
                          &tptp,&json,&lstrings,&ljstrings,&lfiles,&stratfile,
-                         &convert,&clausify,&seconds,&retcode,&printlevel,&printderived);                         
+                         &convert,&clausify,&seconds,&retcode,&printlevel,&printderived,
+                         &strattext);                         
   if (retcode) return retcode;
   if (tptp && json) {
     err_printf(json,"do not set both -tptp and -json output parameters at the same time");    
     return 0;
   }
-#ifndef _WIN32 
+#if !defined(_WIN32) && !defined(__EMSCRIPTEN__)
   if (seconds) {
     signal(SIGALRM,sig_handler);
     alarm(seconds);
-  }  
+  } 
 #endif  
 #if defined(__EMSCRIPTEN__) || defined(_WIN32)
   parallel=0;
@@ -327,6 +357,8 @@ int gkc_main(int argc, char **argv) {
     (dbmemsegh(shmptr)->clausify)=clausify;        
     (dbmemsegh(shmptr)->printlevel)=printlevel;
     (dbmemsegh(shmptr)->printderived)=printderived;
+    (dbmemsegh(shmptr)->max_seconds)=seconds;
+    (dbmemsegh(shmptr)->allruns_start_clock)=allruns_start_clock;
 
     if (lfiles) {      
       for(filenr=0; lfiles[filenr] && !err; filenr++) {
@@ -380,12 +412,15 @@ int gkc_main(int argc, char **argv) {
     } else if (clausify) {
       err = wg_run_converter(shmptr,inputname,stratfile,informat,NULL,NULL);
     } else {      
-      err = wg_run_reasoner(shmptr,inputname,stratfile,informat,NULL,NULL);
+      err = wg_run_reasoner(shmptr,inputname,stratfile,informat,NULL,strattext);
       if (err) {
+        if (printlevel>11) printf("\n\n");
         if (json) printf("\n{\"result\": \"proof not found\"}\n");
-        else  printf("result: proof not found.\n");
+        else  {          
+          printf("result: proof not found.\n");
+        }  
       }  
-    }          
+    }         
 #ifdef __EMSCRIPTEN__
     if (dbmemsegh(shmptr)->infrm_mpool) wg_free_mpool(shmptr, dbmemsegh(shmptr)->infrm_mpool);
     wg_delete_local_database(shmptr);
@@ -537,6 +572,8 @@ int gkc_main(int argc, char **argv) {
     (dbmemsegh(shmptrlocal)->clausify)=clausify;
     (dbmemsegh(shmptrlocal)->printlevel)=printlevel;
     (dbmemsegh(shmptrlocal)->printderived)=printderived;
+    (dbmemsegh(shmptrlocal)->max_seconds)=seconds;
+    (dbmemsegh(shmptrlocal)->allruns_start_clock)=allruns_start_clock;
 /*
     (dbmemsegh(shmptr)->max_forks)=parallel;
     (dbmemsegh(shmptr)->tptp)=tptp;
@@ -601,9 +638,10 @@ int gkc_main(int argc, char **argv) {
       return 1;
       //err = wg_run_converter(shmptrlocal,inputname,stratfile,informat,NULL,NULL);
     } else {
-      err = wg_run_reasoner(shmptrlocal,inputname,stratfile,informat,NULL,NULL);
+      err = wg_run_reasoner(shmptrlocal,inputname,stratfile,informat,NULL,strattext);
       if (err) {
-        if (json) printf("\n{\"result\": \"proof not found\"}\n");
+        if (printlevel>11) printf("\n\n");
+        if (json) printf("\n{\"result\": \"proof not found\"}\n");        
         else  printf("result: proof not found.\n");
       }     
     }     
@@ -1028,7 +1066,8 @@ int parse_memmode(char *arg) {
 char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsize, 
           int* parallel, int* tptp, int* json, 
           char ***lstringsptr, char ***ljstringsptr, char ***lfilesptr, char **stratfile,
-          int* convert, int* clausify, int* seconds, int* retcode, int* printlevel, int* printderived) {
+          int* convert, int* clausify, int* seconds, int* retcode, int* printlevel, int* printderived,
+          char** strattext) {
   int i,alen,nargc;
   char* arg;
   char c;
@@ -1230,6 +1269,14 @@ char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsiz
             printf("Error: too many %s keywords given\n",arg);
             exit(1);
           }          
+        } else {
+          printf("Error: missing parameter to keyword %s\n",arg);
+          exit(1);
+        }    
+       } else if (!(strncmp(arg,"-strategytext",13))) {        
+        if ((i+1)<argc) {
+          *strattext=argv[i+1];
+          i++;          
         } else {
           printf("Error: missing parameter to keyword %s\n",arg);
           exit(1);

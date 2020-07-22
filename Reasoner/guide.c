@@ -143,10 +143,10 @@ cJSON* wr_parse_guide_str(char* buf) {
     if (errorptr!=NULL) {      
       wr_errprint2("Incorrect json in strategy before",errorptr);
       return NULL;
-    }
+    }    
     wr_errprint("Empty guide");
     return NULL;
-  }
+  }  
   return guide;
 }
 

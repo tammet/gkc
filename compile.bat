@@ -21,5 +21,5 @@ cl /O2 /W2 /w34005 /wd4477 /wd4311 /wd4133 /Fegkc ^
   Reasoner/init.c ^
   Printer/dbotterprint.c ^
   Builtparser/dbotter.tab.c  Builtparser/dbotter.yy.c  Builtparser/dbparse.c ^
-  Builtparser/dbprolog.tab.c  Builtparser/dbprolog.yy.c Builtparser/dbclausify.c 
+  Builtparser/dbprolog.tab.c  Builtparser/dbprolog.yy.c Builtparser/dbclausify.c Builtparser/jsparse.c 
 

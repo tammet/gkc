@@ -67,7 +67,7 @@
 
 code {
     padding: .2em .4em;
-    margin: 0;
+    margin: 0px 5px 0px 5px;
     font-size: 100%;
     color:black !important;
     background-color: #f4f4f4 !important;
@@ -95,10 +95,10 @@ var gkcoutput="";
 
 function useGkc(el) {
   var placeid;
-  var input, output;
+  var input, output, textflag;
   var inputarea, outputplace;
   var arglist;
-  var sel, conversion, print_level, print_derived, strategy;
+  var sel, conversion, print_level, print_derived, strategy, seconds;
  
   var placeid=el.parentNode.id;
   var div = document.getElementById(placeid+"_output"); 
@@ -106,17 +106,18 @@ function useGkc(el) {
   inputarea=document.getElementById("gkc_1_input");
   outputplace=document.getElementById("result");  
   input=inputarea.value;  
-  arglist=["-text",input];
+  if (seemsJson(input)) textflag="-jstext";
+  else textflag="-text"   
   
   sel=document.getElementById("conversion_select");
   conversion=sel.options[sel.selectedIndex].value;
   if (conversion=="json" || conversion=="tptp") {
-    arglist=["-text",input,"-"+conversion];
+    arglist=[textflag,input,"-"+conversion];
   } else if (conversion=="simple" || conversion=="clauses") {
-    arglist=["-text",input];  
+    arglist=[textflag,input];  
   } else {
     conversion=conversion.substring(8);        
-    arglist=["-text",input,"-"+conversion];
+    arglist=[textflag,input,"-"+conversion];
   }
 
   sel=document.getElementById("print_level");
@@ -132,8 +133,20 @@ function useGkc(el) {
   sel=document.getElementById("strategy");
   strategy=sel.value;
   if (strategy) {
-    arglist=arglist.concat(['-strategy',strategy]);
+    arglist=arglist.concat(['-strategytext',strategy]);
   }
+
+  sel=document.getElementById("seconds");
+  seconds=sel.value;
+  if (seconds) {
+    seconds=parseInt(seconds);
+    if (isNaN(seconds)) seconds=5;
+    arglist=arglist.concat(['-seconds',""+seconds]);
+  } else {
+    arglist=arglist.concat(['-seconds',"5"]);
+  }
+
+  arglist=arglist.concat(['-parallel',"0"]);
 
   console.log(arglist);
   gkcoutput="";
@@ -142,13 +155,43 @@ function useGkc(el) {
   document.getElementById("result").innerHTML=gkcoutput.trim();
 }  
 
+function seemsJson(str) {
+  var c, len;
+  var i,lpar=0,rpar=0,lbrack=0,lcurl=0,rcurl=0,rbrack=0,quotes=0,periods=0,perc=0;
+  var tptpsymbs=0, jssymbs=0;
+  
+  if (!str) return 0;
+  len=str.length;
+  for(i=0; i<len; i++) {
+    c=str[i];
+    if (c=='[') lbrack++;
+    else if (c==']') rbrack++;
+    else if (c=='{') lcurl++;
+    else if (c=='}') rcurl++;
+    else if (c=='(') lpar++;
+    else if (c==')') rpar++;
+    else if (c=='"') quotes++;
+    else if (c=='.') periods++;
+    else if (c=='%') perc++;
+  }
+  if (!lbrack && !lcurl) return 0;
+  if (!rbrack && !rcurl) return 0;
+  if (!quotes) return 0;
+  if (!periods && quotes) return 1;
+  tptpsymbs=2*lcurl+2*rcurl+periods+perc;
+  jssymbs=lbrack+rbrack+2*lcurl+2*rcurl+2*quotes;
+  console.log(jssymbs,tptpsymbs);
+  if (jssymbs>tptpsymbs) return 1;
+  else return 0;
+}
+
 function gkc(arglist) {
   Module.callMain(arglist);
 }  
 
 function convert(el) {
   var placeid;
-  var input, output;
+  var input, output, textflag;
   var inputarea, outputplace;
   var arglist;
   var conversion;
@@ -159,17 +202,19 @@ function convert(el) {
   //clearOutputByPlace(placeid); 
   inputarea=document.getElementById("gkc_1_input");
   outputplace=document.getElementById("result");  
-  input=inputarea.value;  
+  input=inputarea.value; 
+  if (seemsJson(input)) textflag="-jstext";
+  else textflag="-text"   
 
   sel=document.getElementById("conversion_select");
   conversion=sel.options[sel.selectedIndex].value;
   if (conversion=="json" || conversion=="tptp") {
-    arglist=["-text",input,"-convert","-"+conversion];
+    arglist=[textflag,input,"-convert","-"+conversion];
   } else if (conversion=="simple" || conversion=="clauses") {
-    arglist=["-text",input,"-clausify"];  
+    arglist=[textflag,input,"-clausify"];  
   } else {
     conversion=conversion.substring(8);        
-    arglist=["-text",input,"-clausify","-"+conversion];
+    arglist=[textflag,input,"-clausify","-"+conversion];
   }  
   gkcoutput="";
   //console.log(arglist);
@@ -286,6 +331,8 @@ var Module={
       location.reload();
     } else if ((JSON.stringify(e)).includes("index out of bounds")) {
       location.reload();
+    } else if ((JSON.stringify(e)).includes("timeout")) {
+      location.reload();
     }
     console.error(e);    
   },
@@ -360,7 +407,7 @@ window.onerror=function(e){
   <div class="form-inline" method="post" osnubmit="return false;">
     <div class="wblock">      
       <div id="gkc_1">     
-        <textarea class="form-control" id="gkc_1_input" 
+        <textarea class="form-control" id="gkc_1_input" spellcheck="false"
         style="height: 200px; width:100%; margin-bottom: 20px;">% a simple example: using two facts and two rules, find a grandson of john
 
 father(john,pete).
@@ -447,10 +494,13 @@ grandson(X,john) => $ans(X).</textarea>
             <option value="arithmetic3">arithmetic 3</option>
             <option value="arithmetic4">arithmetic 4</option>          
           </select>  
+          <div style="display: inline-block; width: 70px;  margin-left: 15px;">Seconds</div>
+          <input type="text" id="seconds" value="5" style="width: 50px"></input>
           <div style="display: inline-block; width: 70px;  margin-left: 15px;">Print level</div>
-          <select class="form-control" style="width: 130px;" id="print_level">
+          <select class="form-control" style="width: 135px;" id="print_level">
             <option value="10">minimal</option>
             <option value="11">+ strategy</option>
+            <option value="12">+ runs</option>
             <option value="15">+ statistics</option>
             <option value="20">+ given</option>
             <option value="40">+ derived</option>
@@ -468,7 +518,7 @@ grandson(X,john) => $ans(X).</textarea>
              line-height: 1.42; border-radius: 15px; 
              background-color: #cccccc; color: #337ab7; margin-left: 15px;">?</button></a>
           <p>              
-          <textarea class="form-control" id="strategy" 
+          <textarea class="form-control" id="strategy" spellcheck="false"
            style="height: 100px; width:100%; margin-bottom: 20px; margin-top: 15px;"
            placeholder="Strategy as json text"></textarea>
         </div>
@@ -905,7 +955,7 @@ to be a variable. <code>X</code> is a variable in our example. You could also us
 as a variable: it also starts with a capital letter. All the words starting with
 a non-capital letter are constants, functions or predicates.</p>
 
-<p>Vertical bar <code>|</code> is logical or. </p>
+<p>Vertical bar <code>|</code> is logical <i>or</i>. </p>
 
 <p>Importantly, any rule like <code>a &amp; b =&gt; c</code> can be represented
 as a <i>clause</i> <code>-a | -b | c</code> where negated atoms are essentially on the left side of the implication

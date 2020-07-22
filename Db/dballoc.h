@@ -39,8 +39,10 @@
 
 #ifdef _WIN32
 #include "../config-w32.h"
+#include <windows.h>
 #else
 #include "../config.h"
+#include <time.h>
 #endif
 
 #include "dbmpool.h"
@@ -501,6 +503,8 @@ typedef struct _db_memsegment_header {
   int parse_newpred_nr;
   int printlevel; /** initially 10, set by cmd line switches */
   int printderived; /** initially 0, set by cmd line switches */
+  int max_seconds; /** initially 0, set by cmd line switches */
+  clock_t allruns_start_clock; /** initially set to the start clock */
 #ifdef SINE
 
 #endif

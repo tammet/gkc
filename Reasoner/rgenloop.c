@@ -149,14 +149,15 @@ int wr_genloop(glb* g) {
     // first check time
     curclock=clock();
     run_seconds = (float)(curclock - (g->run_start_clock)) / CLOCKS_PER_SEC;
-    total_seconds = (float)(curclock - (g->allruns_start_clock)) / CLOCKS_PER_SEC;
+    total_seconds = (float)(curclock - (dbmemsegh(db)->allruns_start_clock)) / CLOCKS_PER_SEC;
     if ((g->max_run_seconds) && (run_seconds>(g->max_run_seconds))) return 2;
     if ((g->max_seconds) && (total_seconds>(g->max_seconds))) return 2; 
     if (g->max_run_seconds) g->passed_ratio=(float)run_seconds / (float)(g->max_run_seconds);
     else g->passed_ratio=0; 
-    /*
-    printf("\n run_seconds %f (g->max_run_seconds) %d g->passed_ratio %f\n",
-      (float)run_seconds,(g->max_run_seconds),g->passed_ratio);
+    
+    //printf("\n run_seconds %f total_seconds %f (g->max_run_seconds) %d (g->max_seconds) %d g->passed_ratio %f\n",
+    //  (float)run_seconds,total_seconds,(g->max_run_seconds),(g->max_seconds),g->passed_ratio);
+    /*  
     printf("(g->pick_given_queue_ratio) %ld (g->res_shortarglen_limit) %ld (g->res_arglen_limit) %ld\n", 
       (g->pick_given_queue_ratio), (g->res_shortarglen_limit), (g->res_arglen_limit));
     printf("(g->stat_given_candidates) %ld (g->stat_para_derived_cl) %ld\n",

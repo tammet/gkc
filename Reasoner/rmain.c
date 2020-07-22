@@ -75,6 +75,7 @@ extern "C" {
 static void wr_set_no_printout(glb* g);
 static void wr_set_tiny_printout(glb* g);
 static void wr_set_tiny_extra_printout(glb* g);
+static void wr_set_tiny_runs_printout(glb* g);
 static void wr_set_low_printout(glb* g);
 static void wr_set_normal_printout(glb* g);
 static void wr_set_medium_printout(glb* g);
@@ -146,16 +147,21 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
   glb* analyze_g;
   char* filename=NULL;  
   int forkslive=0, forkscreated=0, maxforks=2, forknr, err, cpid, i;
+  clock_t curclock;
+  float total_seconds;
   int forkpids[64];
 
-
-  if (!stratfile) {
+  //printf("\n guidestr %s\n",guidestr);
+  if (!stratfile && !guidestr) {
     //guide=wr_parse_guide_file(argc,argv,&guidebuf);  
     givenguide=0;  
-  } else {
+  } else if (stratfile) {
     guide=wr_parse_guide_file(stratfile,&guidebuf);
     givenguide=1;
-  }  
+  } else if (guidestr) {
+    guide=wr_parse_guide_str(guidestr);  
+    givenguide=1;
+  }
   if (guide==NULL && givenguide) {
     if (guidebuf!=NULL) sys_free(guidebuf);
     return -1;
@@ -400,6 +406,15 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
     continue;  
     */
 
+    curclock=clock();
+    total_seconds = (float)(curclock - (dbmemsegh(local_db)->allruns_start_clock)) / CLOCKS_PER_SEC;
+    //printf("\ntotal_seconds %f max_seconds %d \n",total_seconds,(dbmemsegh(local_db)->max_seconds));
+    if ((dbmemsegh(local_db)->max_seconds) && 
+        (total_seconds>(dbmemsegh(local_db)->max_seconds))) {
+      res=2;    
+      break;
+    }
+
     g=wr_glb_new_simple(db);
     (dbmemsegh(local_db)->local_g)=(glb*)g; // for cleaning in signal
     // init local_db
@@ -428,6 +443,7 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
     }
     (g->print_level_flag)=(dbmemsegh(local_db)->printlevel);
     (g->print_derived)=(dbmemsegh(local_db)->printderived);
+    (g->max_seconds)=(dbmemsegh(local_db)->max_seconds);
 
     // copy analyze_g stats to g for easier handling
     wr_copy_sin_stats(analyze_g,g);    
@@ -454,6 +470,7 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
     (g->current_fork_nr)=forkslive;
     (g->print_level_flag)=(dbmemsegh(local_db)->printlevel);
     (g->print_derived)=(dbmemsegh(local_db)->printderived);
+    (g->max_seconds)=(dbmemsegh(local_db)->max_seconds);
     if (outfilename) (g->outfilename)=outfilename;
     if (iter==0) (g->allruns_start_clock)=clock();  
     guidetext=NULL;
@@ -489,6 +506,7 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
     if ((g->print_level_flag)==0) wr_set_no_printout(g);
     else if ((g->print_level_flag)<=10) wr_set_tiny_printout(g);
     else if ((g->print_level_flag)<=11) wr_set_tiny_extra_printout(g);
+    else if ((g->print_level_flag)<=12) wr_set_tiny_runs_printout(g);
     else if ((g->print_level_flag)<=15) wr_set_low_printout(g);
     else if ((g->print_level_flag)<=20) wr_set_normal_printout(g);
     else if ((g->print_level_flag)<=30) wr_set_medium_printout(g);
@@ -680,13 +698,11 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
     //wr_show_in_stats(g);
     //wr_print_clpick_queues(g,(g->clpick_queues));    
     //if ((g->print_flag) && (g->print_runs)) wr_print_strat_flags(g);
-
-    if (!(g->proof_found) || !(wr_enough_answers(g))) {
+    if (!(g->proof_found) || !(wr_enough_answers(g))) {      
       res=wr_genloop(g);
       //printf("\ngenloop ended\n");
       //printf("\n prop_hash_clauses:\n");  
       //wr_print_prop_clausehash(g,rotp(g,g->prop_hash_clauses));  
-
       if (res>0 && !(res==1 && wr_have_answers(g)) &&
           ((g->instgen_strat) || (g->propgen_strat))) {
         propres=wr_prop_solve_current(g);
@@ -712,11 +728,11 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
       if (wr_have_answers(g)) {
         wr_show_result(g,g->proof_history);
       } else {
-        if ((g->print_level_flag)>10) {  
+        if ((g->print_level_flag)>11) {  
           if (maxforks) {        
-            wr_printf("\n\nfork %d: search finished without proof.\n",g->current_fork_nr); 
+            wr_printf("\nfork %d: search finished without proof.\n",g->current_fork_nr); 
           } else {
-            wr_printf("\n\nsearch finished without proof.\n");
+            wr_printf("\nsearch finished without proof.\n");
           }  
         } else {
           /*
@@ -752,14 +768,13 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
         wr_printf("\nexiting\n");
         show_cur_time();  
 #endif              
+        if (guidebuf!=NULL) free(guidebuf);
+        if (guide!=NULL) cJSON_Delete(guide); 
         if (outfilename) {
           if (local_db) (dbmemsegh(local_db)->local_g)=NULL;
           wr_glb_free(g);
           return(0);
-        } else {
-          if (local_db) (dbmemsegh(local_db)->local_g)=NULL;          
-          wr_glb_free(g);                   
-          if (analyze_g) analyze_g=wr_free_analyze_g(analyze_g);
+        } else {          
 #ifdef __EMSCRIPTEN__
           if (local_db) (dbmemsegh(local_db)->local_g)=NULL;          
           wr_glb_free(g);                   
@@ -771,7 +786,7 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
 #ifdef SHOWTIME       
       wr_printf("\nto call wr_glb_free\n");
       show_cur_time();  
-#endif
+#endif      
       if (local_db) (dbmemsegh(local_db)->local_g)=NULL;          
       wr_glb_free(g);                   
       if (analyze_g) analyze_g=wr_free_analyze_g(analyze_g);            
@@ -1670,6 +1685,33 @@ static void wr_set_tiny_extra_printout(glb* g) {
   
 }
 
+static void wr_set_tiny_runs_printout(glb* g) {
+  (g->print_flag)=1;
+  
+  (g->parser_print_level)=0;
+  (g->print_initial_parser_result)=0;
+  (g->print_generic_parser_result)=0;
+  
+  (g->print_initial_active_list)=0;
+  (g->print_initial_passive_list)=0;
+  
+  (g->print_given_interval_trace)=0;
+  (g->print_initial_given_cl)=0;
+  (g->print_final_given_cl)=0;
+  (g->print_active_cl)=0;
+  (g->print_litterm_selection)=0;
+  (g->print_partial_derived_cl)=0;
+  (g->print_derived_cl)=0;
+  (g->print_derived_subsumed_cl)=0;
+  (g->print_derived_precut_cl)=0;
+  
+  (g->print_clause_detaillevel)=1;
+  (g->print_runs)=1;
+  (g->print_stats)=0;
+  (g->print_history_extra)=1;
+  
+}
+
 static void wr_set_low_printout(glb* g) {
   (g->print_flag)=1;
   
@@ -1821,8 +1863,8 @@ void wr_show_stats(glb* g, int show_local_complex) {
   wr_printf("----------------------------------\n");
   wr_printf("this run seconds: %f\n",
     (float)(clock() - (g->run_start_clock)) / (float)CLOCKS_PER_SEC);
-  //wr_printf("total seconds: %f\n",
-  //  (float)(clock() - (g->allruns_start_clock)) / (float)CLOCKS_PER_SEC);
+  wr_printf("total seconds: %f\n",
+   (float)(clock() - (g->allruns_start_clock)) / (float)CLOCKS_PER_SEC);
   wr_printf("stat_given_used: %d\n",g->stat_given_used);
   wr_printf("stat_given_used_at_endgame: %d\n",g->stat_given_used_at_endgame);
   wr_printf("stat_given_candidates:   %d\n",g->stat_given_candidates); 

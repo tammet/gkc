@@ -313,13 +313,17 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
     //printf(" count %ld ",wg_decode_uri_scount(db,uriinfo[i]));
     // add clause to occs list    
     tmp=(g->inkb);
-    (g->inkb)=0; // use malloc temporarily
+#ifdef __EMSCRIPTEN__    
+    (g->inkb)=1; // use inkb allocation temporarily
+#else
+    (g->inkb)=0; // use malloc allocation temporarily
+#endif    
     //printf("\nbefore wg_decode_uri_occs i %d uriinfo[i] %ld\n",i,uriinfo[i]);
     occs=wg_decode_uri_occs(db,uriinfo[i]);
     //printf("\nwg_decode_uri_occs gave occs %ld \n",(gint)occs);
     //printf("\nuriinfo[i] %ld decoded %ld\n",uriinfo[i],occs);      
     if (!occs) {
-      // no occs so far
+      // no occs so far      
       occs=wr_cvec_new(g,INITIAL_SINE_OCCVECLEN);
       if (!occs) {
         printf("\nfailed to alloc occs cvec while analyzing clause\n");
@@ -1140,7 +1144,7 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
     //wr_show_in_stats(kb_g);
   }   
   make_sum_input_stats(g,kb_g);
-  if (!(g->outfilename) && guideparam!=1 && ((dbmemsegh(db)->printlevel)>11)) {
+  if (!(g->outfilename) && guideparam!=1 && ((dbmemsegh(db)->printlevel)>12)) {
     wr_show_in_summed_stats(g);
   }  
   if ((g->sin_poseq_clause_count)+(g->sin_negeq_clause_count)) {
@@ -2231,7 +2235,7 @@ BLOCKEND:
   
   //printf("\nbuf: \n%s\n",buf);
   
-  if (!(g->outfilename) && guideparam!=1 && ((dbmemsegh(db)->printlevel)>11)) {
+  if (!(g->outfilename) && guideparam!=1 && ((dbmemsegh(db)->printlevel)>12)) {
     wr_printf("\nauto guide:\n-----------\n%s\n",buf);
   }     
 

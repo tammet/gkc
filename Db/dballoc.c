@@ -136,6 +136,7 @@ gint wg_init_db_memsegment_with_kb(void* db, gint key, gint size, void* kb) {
   dbh->parse_newpred_nr=0;
   dbh->printlevel=10; 
   dbh->printderived=0; 
+  dbh->allruns_start_clock=0;
   //printf("\n in wg_init_db_memsegment_with_kb  dbh->kb_db is %d\n",(int)dbh->kb_db);
 #endif
 #ifdef CHECK

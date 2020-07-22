@@ -51,6 +51,7 @@ extern "C" {
   
 /* ====== Private headers and defs ======== */
 
+#define ANS_IGNORE
 
 /* ======= Private protos ================ */
 
@@ -1348,7 +1349,11 @@ gint wr_subsume_cl_aux(glb* g,gptr cl1vec, gptr cl2vec,
   gint meta1,meta2;	    
   //int foundflag;	    
   int vc_tmp;	    
-  int nobackflag;	    
+  int nobackflag;	
+#ifdef ANS_IGNORE
+  int lit1ans=0;
+  int lit2ans=0;
+#endif      
 
 #ifdef DEBUG 
   wr_printf("\nwr_subsume_cl_aux called with litind1 %d litind2 %d cllen1 %d cllen2 %d gen and specific literals:\n",
@@ -1362,7 +1367,10 @@ gint wr_subsume_cl_aux(glb* g,gptr cl1vec, gptr cl2vec,
     i1=litind1;
     pt1=litpt1;
     meta1=*(pt1+LIT_META_POS); 
-    lit1=*(pt1+LIT_ATOM_POS);    
+    lit1=*(pt1+LIT_ATOM_POS);  
+#ifdef ANS_IGNORE
+    if (wr_answer_lit(g,lit1)) lit1ans=1;
+#endif       
     nobackflag=0; // backtracing will be prohibited if match found without vars set
     for(i2=0,pt2=litpt2; !nobackflag && i2<cllen2; i2++,pt2+=LIT_WIDTH) {
 #ifdef DEBUG      
@@ -1371,7 +1379,11 @@ gint wr_subsume_cl_aux(glb* g,gptr cl1vec, gptr cl2vec,
       if ((g->tmp_litinf_vec)[i2+1]==0) {
 	      // literal not bound by subsumption yet
         meta2=*(pt2+LIT_META_POS); 
-        lit2=*(pt2+LIT_ATOM_POS);         
+        lit2=*(pt2+LIT_ATOM_POS);       
+#ifdef ANS_IGNORE
+        if (wr_answer_lit(g,lit2)) lit2ans=1;
+        else lit2ans=0;
+#endif
         //foundflag=0;          
 #ifdef DEBUG
         wr_printf("\n in wr_subsume_cl_aux gen lit1 and specific lit2:\n");
@@ -1380,7 +1392,11 @@ gint wr_subsume_cl_aux(glb* g,gptr cl1vec, gptr cl2vec,
         wr_print_term(g,lit2);
         wr_printf("\n");
 #endif        
+#ifdef ANS_IGNORE
+        if (wr_sort_meta_bigger(meta1,meta2) && !lit1ans && !lit2ans) {
+#else
         if (wr_sort_meta_bigger(meta1,meta2)) {
+#endif          
           // lit1 cannot subsume any literal in cl2vec here or coming after, like:
           // general  s(b)
           // general  l(X,Y)
@@ -1388,14 +1404,23 @@ gint wr_subsume_cl_aux(glb* g,gptr cl1vec, gptr cl2vec,
           (g->stat_clsubs_meta_attempted)++;
           (g->stat_clsubs_meta_failed)++;
           return 0;
-        } else if (!litmeta_negpolarities(meta1,meta2) && wr_matchable_lit_meta(g,meta1,meta2)) {          
+        } else if (!litmeta_negpolarities(meta1,meta2) 
+#ifdef ANS_IGNORE 
+                   && ((lit1ans && lit2ans) || wr_matchable_lit_meta(g,meta1,meta2))) {
+#else        
+                   && wr_matchable_lit_meta(g,meta1,meta2)) {          
+#endif                     
 #ifdef DEBUG      
           wr_printf("\n ok polarities and matchable lit meta\n");
 #endif             
           vc_tmp=*(g->tmp_unify_vc); // store current value of varstack pointer ????????    
           if (((g->instgen_strat) && cllen1==cllen2) ?
                wr_eqmodvars_term_aux(g,lit1,lit2,uniquestrflag) :
+#ifdef ANS_IGNORE
+               (lit1ans && lit2ans) || wr_match_term_aux(g,lit1,lit2,uniquestrflag) ) {
+#else               
                wr_match_term_aux(g,lit1,lit2,uniquestrflag) ) {
+#endif                 
           //if (wr_match_term_aux(g,lit1,lit2,uniquestrflag)) { // not instgen case
 #ifdef DEBUG      
             wr_printf("\n wr_match_term_aux returned 1\n");

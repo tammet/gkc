@@ -43,7 +43,7 @@ ${CC} -Wall -Wmissing-field-initializers -Wno-unused-variable -O2 \
   Parser/jsparse.c \
   -o gkcjs.html \
   --embed-file Examples/example2.txt --embed-file Examples/steam.txt --embed-file Examples/arithmetic1.txt \
-  -s TOTAL_MEMORY=1000MB  -s EXPORTED_FUNCTIONS=["_main"] \
+  -s TOTAL_MEMORY=1000MB  -s EXPORTED_FUNCTIONS=["_main"]  \
   -s EXTRA_EXPORTED_RUNTIME_METHODS=["cwrap","ccall","callMain"]  -lm 
 
 # Notes:
