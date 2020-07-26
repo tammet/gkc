@@ -68,6 +68,7 @@ int wg_should_quote(char* s);
 int wg_contains_quote(char* s);
 int wg_contains_dquote(char* s);
 int wg_print_quoted(char** buf, int len, int pos, char* s);
+int wg_print_quoted2(char** buf, int len, int pos, char* es, char* s);
 int wg_print_dquoted(char** buf, int len, int pos, char* s, int negflag);
 int wg_nice_strprint_var(glb* g, gint i, char** buf, int *len, int pos);
 

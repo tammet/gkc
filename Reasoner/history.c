@@ -1227,7 +1227,7 @@ int wr_show_result(glb* g, gint history) {
           "result: proof found\n"); 
     if ((g->filename) && ((g->print_level_flag)>=10) && 
         (strstr(g->filename,"input_text")==NULL) &&
-        (strstr(g->filename,"input_jtext")==NULL)) {
+        (strstr(g->filename,"input_jstext")==NULL)) {
       bpos+=snprintf(buf+bpos,blen-bpos,
         "for %s\n",(g->filename));
     }

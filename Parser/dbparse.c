@@ -1491,6 +1491,9 @@ gint wr_parse_primitive(glb* g,void* mpool,void* atomptr, char** vardata, int po
   wg_mpool_print(db,atomptr); 
   printf("\n");  
 #endif  
+  printf("\nwg_parse_primitive starting with ");
+  wg_mpool_print(db,atomptr); 
+  printf("\n");  
   
   if (atomptr==NULL) {
     ret=wg_encode_null(db,NULL);

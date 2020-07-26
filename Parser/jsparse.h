@@ -41,6 +41,7 @@
 #define MPOOL_NULLVAR_PREFIX "Nvar"
 #define MPOOL_JSON_FOF "fof"
 #define MPOOL_JSON_ASK "ask"
+#define MPOOL_JSON_ARC "$arc"
 
 //#define MPOOL_JSON_TRUE "$gk_true$" // use logical true instead
 //#define MPOOL_JSON_FALSE "$gk_false$" // use logical false instead
@@ -100,5 +101,10 @@ void* wr_collect_json_freevars(glb* g, void* vars, void* cl);
 void* wr_js_parse_clauselist(glb* g,void* mpool,cvec clvec,void* clauselist);
 void* wr_js_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
         char** vardata,void* propfun, void* name, void* role, void* context);
+
+void* wr_process_json_formula_struct(glb* g, parse_parm* pp, void* cl, int isincluded);
+void* wr_process_json_formula_keyextend(glb* g, parse_parm* pp, void* cl, void* origcl, int isincluded);
+void* wr_json_mkid(glb* g, void* mpool, void* givenid);
+int wr_json_special_keystr(glb* g, char* keystr);
 
 #endif

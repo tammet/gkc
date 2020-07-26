@@ -1047,13 +1047,16 @@ void* wr_process_json_formula(glb* g,parse_parm* pp, void* cl, int isincluded) {
   } else {   
     // process keyval
     if (wg_ispair(db,cl) && wg_first(db,cl)==(pp->jsonstruct)) {
+      cl=wr_process_json_formula_struct(g,pp,cl,isincluded);
       name=wg_get_keystrval(db, "name", cl);
       role=wg_get_keystrval(db, "role", cl);
       content=wg_get_keystrval(db, "logic", cl);      
       if((name && !wg_isatom(db,name)) || (role && !wg_isatom(db,role))) {
+        // err case
         wr_show_jsparse_error(g,pp,"formula name and role must be strings");
         return NULL;     
       } else {
+        // ok case
         if (name) {    
           namestr=wg_atomstr1(db,name);        
           pp->formulaname=namestr;
@@ -1070,11 +1073,17 @@ void* wr_process_json_formula(glb* g,parse_parm* pp, void* cl, int isincluded) {
           wr_show_jsparse_error(g,pp,"unknown role value used");  
         } else if (content) {
           cl=content;
+        } else if (role && !content) {
+          wr_show_jsparse_error(g,pp,"json object has a @role key but no @logic key value");   
         } else {
-          wr_show_jsparse_error(g,pp,"json object has no logic key value");        
+          cl=NULL;        
         }
+        // here we have name, role, content
+        //cl=wr_process_json_formula_keyextend(g,pp,cl,origcl,isincluded);
+        //cl=wr_process_json_formula_struct(g,pp,cl,0);
       }
     }
+    // here keyval is processed
 #ifdef MARK_IMPORTED_NAMES          
     if (namestr && isincluded && strlen(namestr)<900) {
       strncpy(namebuf,IMPORTED_NAME_PREFIX,900);
@@ -1250,13 +1259,17 @@ void* wr_process_json_formula_aux(glb* g, parse_parm* pp, void* cl) {
   // process keyval
   if (wg_ispair(db,cl) && wg_first(db,cl)==(pp->jsonstruct)) {
     //name=wg_get_keystrval(db, "name", cl);
+    cl=wr_process_json_formula_struct(g,pp,cl,0);
+    //res=wr_process_json_formula_keyextend(g,pp,NULL,cl,0);
+    //return res;    
+    
     content=wg_get_keystrval(db, "logic", cl);
     if (content) {
       return wr_process_json_formula_aux(g,pp,content);
     } else {
       wr_show_jsparse_error(g,pp,"json object has no logic key value");
       return NULL;
-    }
+    }    
   }
   // now cl is not a keyval
   if (cl==NULL) {
@@ -1415,6 +1428,219 @@ void* wr_process_json_formula_aux(glb* g, parse_parm* pp, void* cl) {
 }
 
 
+/* ------- process keys for json-ld ------------------- */
+
+
+void* wr_process_json_formula_struct(glb* g, parse_parm* pp, 
+        void* cl, int isincluded) {
+  void* mpool=pp->mpool;
+  void* db=g->db;
+  char* keystr; 
+  void *part, *tmp, *key, *keyval;
+  void *valueatom, *origid, *id, *atom;
+  void* extended=NULL;
+  void *name, *role, *logic;
+
+  printf("\nwr_process_json_formula_struct called for \n");
+  wg_mpool_print(db,cl);
+  printf("\n");
+
+  if (!cl) return NULL;
+  // cl must be keyval
+  // find id if present
+  origid=wg_get_keystrval(db,"@id",cl);  
+  name=wg_get_keystrval(db,"name",cl);
+  role=wg_get_keystrval(db,"role",cl);
+  logic=wg_get_keystrval(db,"logic",cl);
+  // loop over all keys
+  for(part=wg_rest(db,cl); wg_ispair(db,part); part=wg_rest(db,part)) {
+    key=wg_first(db,part);
+    tmp=wg_rest(db,part);
+    keystr=wg_atomstr1(db,key);
+    if (wg_ispair(db,tmp)) {
+      keyval=wg_first(db,tmp);
+    } else {
+      keyval=NULL;
+    }
+    // here we have keystr and keyval
+    if (!(wr_json_special_keystr(g, keystr))) {
+      // json key to be made an atom
+      printf("\n keystr %s keyval ",keystr);
+      wg_mpool_print(db,keyval);
+      printf("\n");
+      // make a logical atom
+      id=wr_json_mkid(db,mpool,origid),
+      valueatom=keyval;
+      atom=wg_mklist4(db,mpool,
+        wg_mkatom(db,mpool,WG_URITYPE,MPOOL_JSON_ARC,NULL),
+        id,
+        wg_mkatom(db,mpool,WG_URITYPE,keystr,NULL),
+        valueatom);
+      printf("\n made atom ");
+      wg_mpool_print(db,atom);
+      printf("\n");
+      extended=wg_mkpair(db,mpool,atom,extended);
+    }
+    // continue to next key
+    if (wg_ispair(db,tmp)) {
+      part=tmp;
+    } else {
+      break;
+    }
+  }
+  printf("\n made extended ");
+  wg_mpool_print(db,extended);
+  printf("\n");
+  printf("\n cl was ");
+  wg_mpool_print(db,cl);
+  printf("\n");
+  if (extended) {   
+    if (logic) {
+      logic=wg_mkpair(db,mpool,          
+          wg_mkatom(db,mpool,WG_URITYPE,"and",NULL),
+            wg_mkpair(db,mpool,logic,extended));
+    } else {
+      logic=wg_mkpair(db,mpool,wg_mkatom(db,mpool,WG_URITYPE,"and",NULL),extended);
+    }  
+    printf("\n made extended logic ");
+    wg_mpool_print(db,logic);
+    printf("\n");
+    tmp=wg_mklist2(db,mpool,      
+      wg_mkatom(db,mpool,WG_URITYPE,"logic",NULL), 
+      logic);
+    if (role) {
+      tmp=wg_mkpair(db,mpool,
+        wg_mkatom(db,mpool,WG_URITYPE,"role",NULL),
+        wg_mkpair(db,mpool, 
+          role,
+          tmp));
+    }
+    if (name) {
+      tmp=wg_mkpair(db,mpool,
+        wg_mkatom(db,mpool,WG_URITYPE,"name",NULL),
+        wg_mkpair(db,mpool, 
+          name,
+          tmp));
+    }
+    cl=wg_mkpair(db,mpool,
+        wg_mkatom(db,mpool,WG_URITYPE,MPOOL_STRUCT_PREFSTR,NULL),
+        tmp);
+    printf("\n final made extended cl ");
+    wg_mpool_print(db,cl);
+    printf("\n");    
+    return cl;
+  } else {
+    return cl;
+  }
+}
+
+void* wr_process_json_formula_keyextend(glb* g, parse_parm* pp, 
+        void* cl, void* origcl, int isincluded) {
+  void* mpool=pp->mpool;
+  void* db=g->db;
+  char* keystr; 
+  void *part, *tmp, *key, *keyval;
+  void *valueatom, *origid, *id, *atom;
+  void* extended=NULL;
+
+  printf("\nwr_process_json_formula_keyextend called for \n");
+  wg_mpool_print(db,cl);
+  printf("\n");
+  wg_mpool_print(db,origcl);
+  printf("\n");
+
+  if (!origcl) return NULL;
+  // origcl must be keyval
+  // find id if present
+  origid=wg_get_keystrval(db,"@id",origcl);
+  // loop over all keys
+  for(part=wg_rest(db,origcl); wg_ispair(db,part); part=wg_rest(db,part)) {
+    key=wg_first(db,part);
+    tmp=wg_rest(db,part);
+    keystr=wg_atomstr1(db,key);
+    if (wg_ispair(db,tmp)) {
+      keyval=wg_first(db,tmp);
+    } else {
+      keyval=NULL;
+    }
+    // here we have keystr and keyval
+    if (!(wr_json_special_keystr(g, keystr))) {
+      // json key to be made an atom
+      printf("\n keystr %s keyval ",keystr);
+      wg_mpool_print(db,keyval);
+      printf("\n");
+      // make a logical atom
+      id=wr_json_mkid(db,mpool,origid),
+      valueatom=keyval;
+      atom=wg_mklist4(db,mpool,
+        wg_mkatom(db,mpool,WG_URITYPE,MPOOL_JSON_ARC,NULL),
+        id,
+        wg_mkatom(db,mpool,WG_URITYPE,keystr,NULL),
+        valueatom);
+      printf("\n made atom ");
+      wg_mpool_print(db,atom);
+      printf("\n");
+      extended=wg_mkpair(db,mpool,atom,extended);
+    }
+    // continue to next key
+    if (wg_ispair(db,tmp)) {
+      part=tmp;
+    } else {
+      break;
+    }
+  }
+  printf("\n made extended ");
+  wg_mpool_print(db,extended);
+  printf("\n");
+  printf("\n cl was ");
+  wg_mpool_print(db,cl);
+  printf("\n");
+  if (extended) {   
+    if (cl) {
+      cl=wg_mkpair(db,mpool,          
+          wg_mkatom(db,mpool,WG_URITYPE,"and",NULL),
+            wg_mkpair(db,mpool,cl,extended));
+    } else {
+      cl=wg_mkpair(db,mpool,wg_mkatom(db,mpool,WG_URITYPE,"and",NULL),extended);
+    }  
+    printf("\n made extended cl ");
+    wg_mpool_print(db,cl);
+    printf("\n");    
+    return cl;
+  } else {
+    return origcl;
+  }
+}
+
+void* wr_json_mkid(glb* g, void* mpool, void* givenid) {
+  void* res;
+  char* str;
+  
+  if (givenid) {
+    str=wg_atomstr1(g->db,givenid);
+    res=wg_mkatom(g->db,mpool,WG_URITYPE,str,NULL);
+  } else {
+    res=wg_mkatom(g->db,mpool,WG_URITYPE,"$id",NULL);    
+  }  
+  return res;
+}
+
+int wr_json_special_keystr(glb* g, char* keystr) {
+  int len;
+
+  if (!keystr) return 1;
+  len=strlen(keystr);
+  if (!len) return 1;  
+  if (len>10) return 0;
+  if (len<3) return 0;
+  if (!strcmp(keystr,"@id")) return 1;
+  if (!strcmp(keystr,"name")) return 1;
+  if (!strcmp(keystr,"role")) return 1;
+  if (!strcmp(keystr,"logic")) return 1;
+  return 0;
+}
+
+
 void* wr_process_json_term(glb* g, parse_parm* pp, void* cl, int atomlevel, int pos) {
   void* mpool=pp->mpool;
   void* db=g->db;
@@ -1425,6 +1651,7 @@ void* wr_process_json_term(glb* g, parse_parm* pp, void* cl, int atomlevel, int 
   void *r1, *r2,  *r1el; 
   void *tmp, *part; 
   int n, found;
+  char* str;
 
 #ifdef DEBUG
   printf("\nwr_process_json_term called\n");
@@ -1482,9 +1709,15 @@ void* wr_process_json_term(glb* g, parse_parm* pp, void* cl, int atomlevel, int 
         }
         if (!found) (pp->freevars)=wg_mkpair(db,mpool,cl,(pp->freevars));
       }
-      preres=cl;
-    } else {      
-      preres=cl;
+      preres=cl; 
+    } else {   
+      str=wg_atomstr1(db,cl);
+      if (*str && (*str >= 'A') && (*str <= 'Z')) {
+        preres=wg_mkatom(db,mpool,WG_ANONCONSTTYPE,str,NULL);
+        //preres=wg_mkatom(db,mpool,WG_URITYPE,str,"const");
+      } else {     
+        preres=cl;
+      }  
     }     
   } else {
     // a list
@@ -1769,9 +2002,18 @@ int wr_is_json_freevar(glb* g,parse_parm* pp,void* ptr) {
   if (!wg_isatom(db,ptr) || wg_atomtype(db,ptr)!=WG_URITYPE) return 0;
   s=wg_atomstr1(db,ptr);
   if ((*s)=='\0') return 0;
+  if ((*s)!='?') return 0;
+  s++;
+  if ((*s)=='\0') return 0;
+  if ((*s)!=':') return 0;
+  s++;
+  if ((*s)=='\0') return 0;
+  return 1;
+  /*
   if (*s >= 'A' && *s <= 'Z') return 1; 
   if (*s == '?') return 1;     
   return 0;
+  */
 }  
 
 int wr_json_equal_atoms(glb* g,void* a1, void* a2) {
@@ -2303,6 +2545,8 @@ void* wr_js_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
 #endif
   return record;
 } 
+
+
 
 
 /* ------------ errors ---------------- */

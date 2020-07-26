@@ -2838,7 +2838,12 @@ wg_int wg_encode_anonconst(void* db, char* str) {
 #endif
   //return wg_encode_unistr(db,str,NULL,WG_ANONCONSTTYPE);
   /* Logging handled inside wg_encode_unistr() */
-  return wg_encode_unistr(db,str,NULL,WG_URITYPE);
+  //return wg_encode_unistr(db,str,NULL,WG_URITYPE);
+  if (str && (*str)!=0 && (*str >= 'A' && *str <= 'Z')) {
+    return wg_encode_unistr(db,str,"c",WG_URITYPE); 
+  } else {
+    return wg_encode_unistr(db,str,NULL,WG_URITYPE);
+  }  
 }
 
 
