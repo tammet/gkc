@@ -94,6 +94,7 @@ int wg_list_len(void* db, void *ptr);
 int wg_listtreecount(void* db, void *ptr);
 
 void* wg_list_memberuri(void* db, void* list, void* el);
+void* wg_list_memberuri_in_sublist(void* db, void* list, void* el);
 
 void* wg_add_assoc(void* db, void* mpool, void* el1, void* el2, void* alist);
 void* wg_get_assoc(void* db, void* el1, void* alist);

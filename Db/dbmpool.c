@@ -466,6 +466,25 @@ void* wg_list_memberuri(void* db, void* list, void* el) {
   return NULL;
 }  
 
+void* wg_list_memberuri_in_sublist(void* db, void* list, void* el) {
+  void *listel, *tmp;
+  char* elstr;
+
+  if (list==NULL) return NULL;
+  elstr=wg_atomstr1(db,el);
+  for (; list!=NULL; list=wg_rest(db,list)) {
+    listel=wg_first(db,list);
+    if (wg_isatom(db,listel)) {
+      if (wg_atomtype(db,listel)!=WG_URITYPE) continue;
+      if (!strcmp(elstr,wg_atomstr1(db,listel))) return list;
+    } else if (wg_ispair(db,listel)) {
+      tmp=wg_list_memberuri(db,listel,el);
+      if (tmp) return list;
+    }
+  }
+  return NULL;
+}  
+
 
 // ----------- assoc -------------------
 

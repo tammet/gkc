@@ -314,8 +314,7 @@ void wr_print_simpleterm_otter(glb* g, gint enc,int printlevel) {
 
 #ifdef DEBUG  
   printf("simpleterm called with enc %d and type %d \n",(int)enc,wg_get_encoded_type(db,enc)); 
-#endif   
-  printf("simpleterm called with enc %d and type %d \n",(int)enc,wg_get_encoded_type(db,enc)); 
+#endif    
   switch(wg_get_encoded_type(db, enc)) {
     case WG_NULLTYPE:
       printf("NULL");
@@ -826,9 +825,7 @@ int wr_strprint_simpleterm_otter(glb* g, gint enc,int printlevel, char** buf, in
 
 #ifdef DEBUG  
   printf("simpleterm called with enc %d and type %d \n",(int)enc,wg_get_encoded_type(db,enc)); 
-#endif  
-  printf("simpleterm called with enc %d and type %d str %s\n",
-    (int)enc,wg_get_encoded_type(db,enc),wg_decode_str(db, enc));
+#endif    
   strbuf[0]=(char)0;
   if (!wr_str_guarantee_space(g,buf,len,pos+50)) return -1;
   switch(wg_get_encoded_type(db, enc)) {
@@ -1407,7 +1404,7 @@ int wg_print_subfrm_tptp(void* db, void* ptr,int depth,int pflag, int termflag, 
   printf("print_term called"); 
 #endif   
   int type;
-  char* p;
+  char *p; // *p2;
   int count;
   int ppflag=0;
   int i;
@@ -1439,6 +1436,7 @@ int wg_print_subfrm_tptp(void* db, void* ptr,int depth,int pflag, int termflag, 
   } else if (wg_isatom(db,ptr)) {
     type=wg_atomtype(db,ptr);    
     p=wg_atomstr1(db,ptr);   
+    //p2=wg_atomstr2(db,ptr); 
     if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1; 
     switch (type) {
       /*
@@ -1472,8 +1470,30 @@ int wg_print_subfrm_tptp(void* db, void* ptr,int depth,int pflag, int termflag, 
         break;
       }
       */  
+      case WG_ANONCONSTTYPE : {
+        // no negation assumed here!
+        if (p!=NULL && *p && (*p >= 'A') && (*p <= 'Z')) {
+          // must add c: prefix    
+          pos+=wg_print_quoted2(buf,*len,pos,"c",p);      
+          //pos+=snprintf((*buf)+pos,(*len)-pos,"\'c:%s\'",p);          
+        } else if (wg_contains_quote(p)) {            
+          pos+=wg_print_quoted(buf,*len,pos,p); 
+        } else {
+          pos+=snprintf((*buf)+pos,(*len)-pos,"%s",p);
+        }
+        break;
+      }
       default: {          
         if (p!=NULL) {
+          if (*p=='?' && *(p+1)==':') {
+            //printf("\nVAR \"%s\"\n",p);            
+            if (*(p+2) >= 'A' && *(p+2) <= 'Z') {
+              p=p+2;
+            } else {
+              pos+=wg_print_quoted2(buf,*len,pos,"V",p+2);             
+              return pos;       
+            }  
+          } 
           if (wg_contains_quote(p)) {            
             pos+=wg_print_quoted(buf,*len,pos,p); 
           } else if (wg_should_quote(p)) {
@@ -1674,11 +1694,38 @@ int wg_print_subcnf_tptp(void* db, void* ptr,int depth,int pflag, int termflag, 
       case WG_ANONCONSTTYPE: printf("a:"); break;
       case WG_VARTYPE: printf("?:"); break;
       */
+      case WG_ANONCONSTTYPE : {
+        // no negation assumed here!
+        if (p!=NULL && *p && (*p >= 'A') && (*p <= 'Z')) {
+          // must add c: prefix    
+          pos+=wg_print_quoted2(buf,*len,pos,"c",p);      
+          //pos+=snprintf((*buf)+pos,(*len)-pos,"\'c:%s\'",p);          
+        } else if (wg_contains_quote(p)) {            
+          pos+=wg_print_quoted(buf,*len,pos,p); 
+        } else {
+          pos+=snprintf((*buf)+pos,(*len)-pos,"%s",p);
+        }
+        break;
+      }
       default: {          
         if (p!=NULL) {
           if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
+          if (*p=='?' && *(p+1)==':') {
+            //printf("\nVAR \"%s\"\n",p);
+            if (*(p+2) >= 'A' && *(p+2) <= 'Z') {
+              p=p+2;
+            } else {
+              pos+=wg_print_quoted2(buf,*len,pos,"V",p+2);             
+              return pos;       
+            }  
+          }
           if (wg_contains_quote(p)) {            
             pos+=wg_print_quoted(buf,*len,pos,p); 
+          /*  
+          } else if (*p=='?' && *(p+1)==':') {
+            //printf("\"%s\"",p);
+            pos+=snprintf((*buf)+pos,(*len)-pos,"\'V%s\'",p);            
+          */  
           } else if (wg_should_quote(p)) {
             //printf("\"%s\"",p);
             pos+=snprintf((*buf)+pos,(*len)-pos,"\'%s\'",p);

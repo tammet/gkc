@@ -104,7 +104,7 @@ void* wr_js_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
 
 void* wr_process_json_formula_struct(glb* g, parse_parm* pp, void* cl, int isincluded);
 void* wr_process_json_formula_keyextend(glb* g, parse_parm* pp, void* cl, void* origcl, int isincluded);
-void* wr_json_mkid(glb* g, void* mpool, void* givenid);
+void* wr_json_mkid(glb* g, void* mpool, parse_parm* pp, void* givenid);
 int wr_json_special_keystr(glb* g, char* keystr);
 
 #endif

@@ -1490,11 +1490,9 @@ gint wr_parse_primitive(glb* g,void* mpool,void* atomptr, char** vardata, int po
   printf("\nwg_parse_primitive starting with ");
   wg_mpool_print(db,atomptr); 
   printf("\n");  
+  printf("\n type %d is anon %d\n",wg_atomtype(db,atomptr),wg_atomtype(db,atomptr)==WG_ANONCONSTTYPE);  
 #endif  
-  printf("\nwg_parse_primitive starting with ");
-  wg_mpool_print(db,atomptr); 
-  printf("\n");  
-  
+    
   if (atomptr==NULL) {
     ret=wg_encode_null(db,NULL);
   } else {    

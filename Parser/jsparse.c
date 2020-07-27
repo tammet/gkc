@@ -1241,7 +1241,7 @@ void* wr_process_json_formula_aux(glb* g, parse_parm* pp, void* cl) {
   void* db=g->db;
   void* preres=NULL;
   void *res, *head, *logconn, *newlogconn;
-  void *r1, *r2, *r1el; 
+  void *r1, *r2, *r1el, *r2el; 
   void *r1proc, *r2proc;
   void *content; // *name,
   char* str; 
@@ -1321,14 +1321,18 @@ void* wr_process_json_formula_aux(glb* g, parse_parm* pp, void* cl) {
     } else if (wr_json_is_eq_op(g,r1el) && head && wg_ispair(db,r2)) {      
       str=wg_atomstr1(db,r1el);
       if (*str!='=') {
+        head=wr_process_json_term(g,pp,head,0,1);
+        r2el=wr_process_json_term(g,pp,wg_first(db,r2),0,2);
         preres=wg_mklist2(db,mpool,
                 wg_makelogneg(db,mpool), 
                 wg_mklist3(db,mpool,
                   wg_makeatomeq(db,mpool),
                   head,
-                  wg_first(db,r2)));
+                  r2el));
       } else {
-        preres=wg_mklist3(db,mpool,r1el,head,wg_first(db,r2));
+        head=wr_process_json_term(g,pp,head,0,1);
+        r2el=wr_process_json_term(g,pp,wg_first(db,r2),0,2);
+        preres=wg_mklist3(db,mpool,r1el,head,r2el);
       }                            
     } else if (wg_isatom(db,head) &&
                (!strcmp("not",wg_atomstr1(db,head)) ||
@@ -1418,7 +1422,7 @@ void* wr_process_json_formula_aux(glb* g, parse_parm* pp, void* cl) {
       preres=wr_process_json_term(g,pp,cl,1,0);
     }
   }
-  res=preres;
+  res=preres; 
 #ifdef DEBUG  
   printf("\nwr_process_json_formula_aux result is\n");
   wg_mpool_print(db,res);
@@ -1437,9 +1441,10 @@ void* wr_process_json_formula_struct(glb* g, parse_parm* pp,
   void* db=g->db;
   char* keystr; 
   void *part, *tmp, *key, *keyval;
-  void *valueatom, *origid, *id, *atom;
+  void *valueatom, *origid, *id=NULL, *atom;
   void* extended=NULL;
   void *name, *role, *logic;
+  int madeid=0;
 
   printf("\nwr_process_json_formula_struct called for \n");
   wg_mpool_print(db,cl);
@@ -1448,7 +1453,8 @@ void* wr_process_json_formula_struct(glb* g, parse_parm* pp,
   if (!cl) return NULL;
   // cl must be keyval
   // find id if present
-  origid=wg_get_keystrval(db,"@id",cl);  
+  origid=wg_get_keystrval(db,"@id",cl); 
+  if (origid) id=origid; 
   name=wg_get_keystrval(db,"name",cl);
   role=wg_get_keystrval(db,"role",cl);
   logic=wg_get_keystrval(db,"logic",cl);
@@ -1469,7 +1475,18 @@ void* wr_process_json_formula_struct(glb* g, parse_parm* pp,
       wg_mpool_print(db,keyval);
       printf("\n");
       // make a logical atom
-      id=wr_json_mkid(db,mpool,origid),
+      /* 
+      if (!origid) {
+      // create existentially quantified var for id
+      idvar=wr_json_make_nullvar(g,pp);
+      if (!idvar) return NULL;
+      pp->nullvars=wg_mkpair(db,mpool,idvar,pp->nullvars);
+      
+    } */
+      if (!id) {
+        madeid=1;
+        id=wr_json_mkid(db,mpool,pp,origid);
+      }  
       valueatom=keyval;
       atom=wg_mklist4(db,mpool,
         wg_mkatom(db,mpool,WG_URITYPE,MPOOL_JSON_ARC,NULL),
@@ -1493,14 +1510,47 @@ void* wr_process_json_formula_struct(glb* g, parse_parm* pp,
   printf("\n");
   printf("\n cl was ");
   wg_mpool_print(db,cl);
-  printf("\n");
-  if (extended) {   
-    if (logic) {
-      logic=wg_mkpair(db,mpool,          
+  printf("\n madeid %d \n",madeid);
+  if (extended) {         
+    if (logic) {     
+      // both extended and logic part present      
+      if (madeid) {
+        extended=wg_inplace_reverselist(db,mpool,extended);
+        if (wg_rest(db,extended)) {      
+          extended=wg_mkpair(db,mpool,wg_mkatom(db,mpool,WG_URITYPE,"and",NULL),extended);
+        } else {
+          extended=wg_first(db,extended);
+        } 
+        extended=wg_mklist3(db,mpool,
+          wg_makelogexists(db,mpool),
+          wg_mklist1(db,mpool,id),
+          extended);
+        logic=wg_mklist3(db,mpool,          
           wg_mkatom(db,mpool,WG_URITYPE,"and",NULL),
-            wg_mkpair(db,mpool,logic,extended));
+          extended,
+          logic);  
+      } else {
+        logic=wg_mkpair(db,mpool,logic,extended);
+        logic=wg_inplace_reverselist(db,mpool,logic);    
+        logic=wg_mkpair(db,mpool,          
+          wg_mkatom(db,mpool,WG_URITYPE,"and",NULL),
+          logic);
+      }  
     } else {
-      logic=wg_mkpair(db,mpool,wg_mkatom(db,mpool,WG_URITYPE,"and",NULL),extended);
+      // no logic part present
+      extended=wg_inplace_reverselist(db,mpool,extended); 
+      if (wg_rest(db,extended)) {      
+        extended=wg_mkpair(db,mpool,wg_mkatom(db,mpool,WG_URITYPE,"and",NULL),extended);
+      } else {
+        extended=wg_first(db,extended);
+      } 
+      if (madeid) {
+        extended=wg_mklist3(db,mpool,
+          wg_makelogexists(db,mpool),
+          wg_mklist1(db,mpool,id),
+          extended);
+      }
+      logic=extended;
     }  
     printf("\n made extended logic ");
     wg_mpool_print(db,logic);
@@ -1570,7 +1620,7 @@ void* wr_process_json_formula_keyextend(glb* g, parse_parm* pp,
       wg_mpool_print(db,keyval);
       printf("\n");
       // make a logical atom
-      id=wr_json_mkid(db,mpool,origid),
+      id=wr_json_mkid(db,mpool,pp,origid),
       valueatom=keyval;
       atom=wg_mklist4(db,mpool,
         wg_mkatom(db,mpool,WG_URITYPE,MPOOL_JSON_ARC,NULL),
@@ -1612,15 +1662,17 @@ void* wr_process_json_formula_keyextend(glb* g, parse_parm* pp,
   }
 }
 
-void* wr_json_mkid(glb* g, void* mpool, void* givenid) {
+void* wr_json_mkid(glb* g, void* mpool,  parse_parm* pp, void* givenid) {
   void* res;
   char* str;
   
   if (givenid) {
     str=wg_atomstr1(g->db,givenid);
     res=wg_mkatom(g->db,mpool,WG_URITYPE,str,NULL);
-  } else {
-    res=wg_mkatom(g->db,mpool,WG_URITYPE,"$id",NULL);    
+  } else {    
+    res=wr_json_make_nullvar(g,pp);
+    if (!res) return NULL;
+    pp->nullvars=wg_mkpair(g->db,mpool,res,pp->nullvars);                 
   }  
   return res;
 }
@@ -1656,8 +1708,11 @@ void* wr_process_json_term(glb* g, parse_parm* pp, void* cl, int atomlevel, int 
 #ifdef DEBUG
   printf("\nwr_process_json_term called\n");
   wg_mpool_print(db,cl);
+  printf("\nboundvars:\n");
+  wg_mpool_print(db,pp->boundvars);
   printf("\n");
-#endif
+#endif 
+
   if (atomlevel) {
     pp->nullvars=NULL;
     pp->nullvarsnr=0;
@@ -1710,14 +1765,17 @@ void* wr_process_json_term(glb* g, parse_parm* pp, void* cl, int atomlevel, int 
         if (!found) (pp->freevars)=wg_mkpair(db,mpool,cl,(pp->freevars));
       }
       preres=cl; 
-    } else {   
+    } else if (!atomlevel && pos && 
+               wg_list_memberuri_in_sublist(db,(pp->boundvars),cl)) {
+      // bound variable case           
+      preres=cl;       
+    } else {    
       str=wg_atomstr1(db,cl);
       if (*str && (*str >= 'A') && (*str <= 'Z')) {
-        preres=wg_mkatom(db,mpool,WG_ANONCONSTTYPE,str,NULL);
-        //preres=wg_mkatom(db,mpool,WG_URITYPE,str,"const");
+        preres=wg_mkatom(db,mpool,WG_ANONCONSTTYPE,str,NULL);       
       } else {     
         preres=cl;
-      }  
+      }              
     }     
   } else {
     // a list
@@ -1729,11 +1787,10 @@ void* wr_process_json_term(glb* g, parse_parm* pp, void* cl, int atomlevel, int 
     } else {
       r1el=NULL;
       r2=NULL;
-    }
-
-    if (atomlevel && wg_isatom(db,r1el) && 
+    }   
+    if (atomlevel && wg_isatom(db,r1el) && r1el &&
         (!strcmp("=",wg_atomstr1(db,r1el)) | 
-         !strcmp("!=",wg_atomstr1(db,r1el)) )) { 
+         !strcmp("!=",wg_atomstr1(db,r1el)) )) {  
       if (r2==NULL) {
         wr_show_jsparse_error(g,pp,"too few arguments for = or !=");
         return NULL;
@@ -1741,16 +1798,14 @@ void* wr_process_json_term(glb* g, parse_parm* pp, void* cl, int atomlevel, int 
       if (wg_rest(db,r2)!=NULL) {
         wr_show_jsparse_error(g,pp,"too many arguments for = or !=");
         return NULL;
-      }     
+      }           
       a1=wr_process_json_term(g,pp,head,0,1);
       a2=wr_process_json_term(g,pp,wg_first(db,r2),0,2);
       if (!a1 || !a2) return NULL;
       if (!strcmp("=",wg_atomstr1(db,r1el)))  {
-        //preres=wg_mklist3(db,mpool,pp->eq,a1,a2);
-        //CP1
         *((gint*)cl)=(gint)(pp->atomeq);
-        *((gint*)r1)=(gint)a1;
-        *((gint*)r2)=(gint)a2;        
+        *((gint*)r1)=(gint)a1; 
+        *((gint*)r2)=(gint)a2; 
         preres=cl;
       } else {
         *((gint*)cl)=(gint)(pp->atomeq);
@@ -1767,7 +1822,7 @@ void* wr_process_json_term(glb* g, parse_parm* pp, void* cl, int atomlevel, int 
         (!strcmp("=",wg_atomstr1(db,head)) | 
          !strcmp("!=",wg_atomstr1(db,head)) |
          !strcmp("-=",wg_atomstr1(db,head)) |
-         !strcmp("~=",wg_atomstr1(db,head)) )) {
+         !strcmp("~=",wg_atomstr1(db,head)) )) { 
       if (r2==NULL) {
         wr_show_jsparse_error(g,pp,"too few arguments for = or !=");
         return NULL;
@@ -1808,11 +1863,13 @@ void* wr_process_json_term(glb* g, parse_parm* pp, void* cl, int atomlevel, int 
     } else if (atomlevel && 
                 ( (wg_atomstr1(db,head))[0]=='-' ||
                   (wg_atomstr1(db,head))[0]=='~' )) {  
-
+      //tmpres=NULL;
       for(n=0,part=cl; part!=NULL; part=wg_rest(db,part),n++) {
         tmp=wr_process_json_term(g,pp,wg_first(db,part),0,n);
         if (tmp==NULL) return NULL;
-      }              
+        *((gint*)part)=(gint)tmp;
+        //tmpres=wg_mkpair(db,mpool,tmp,tmpres);
+      }                          
       tmp=wg_mkatom(db,mpool,WG_URITYPE,(wg_atomstr1(db,head)+1),NULL);      
       *((gint*)cl)=(gint)tmp;
       preres=wg_mklist2(db,mpool,pp->logneg,cl);
@@ -1820,18 +1877,20 @@ void* wr_process_json_term(glb* g, parse_parm* pp, void* cl, int atomlevel, int 
         wr_show_jsparse_error(g,pp,"cannot process neg atom: memory overflow");
         return NULL;
       }
-    } else {
+    } else {       
       for(n=0,part=cl; part!=NULL; part=wg_rest(db,part),n++) {
         tmp=wr_process_json_term(g,pp,wg_first(db,part),0,n);
         if (tmp==NULL) return NULL;
         *((gint*)part)=(gint)tmp;
-      }
+      }     
+      tmp=wg_mkatom(db,mpool,WG_URITYPE,(wg_atomstr1(db,head)),NULL);         
+      *((gint*)cl)=(gint)tmp;
       preres=cl;
     }
-  }
+  } 
   if (atomlevel && pp->nullvars) {
     preres=wg_mklist3(db,mpool,pp->logexists,pp->nullvars,preres);
-  }
+  } 
   return preres;
 }
 /*
@@ -2217,7 +2276,7 @@ void* wr_js_parse_clauselist(glb* g,void* mpool,cvec clvec,void* clauselist) {
   wg_mpool_print(db,clauselist); 
   DPRINTF("\n");
 #endif
-   
+
   if (clvec!=NULL) CVEC_NEXT(clvec)=CVEC_START; 
   // create vardata block by malloc or inside mpool
 
