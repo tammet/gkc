@@ -52,6 +52,8 @@
                
 /* ====== Private headers and defs ======== */
 
+#define EMPTYSTRING "$emptystr"
+
 //#define DEBUG
 #undef DEBUG
 
@@ -860,7 +862,6 @@ int wr_strprint_simpleterm_otter(glb* g, gint enc,int printlevel, char** buf, in
         //printf("\"%s\"",p);
         pos+=snprintf((*buf)+pos,(*len)-pos,"\'%s\'",p);
       */
-
       exdata = wg_decode_uri_prefix(db, enc);
       if (strdata) len1=strlen(strdata);
       if (exdata) len2=strlen(exdata);
@@ -875,7 +876,11 @@ int wr_strprint_simpleterm_otter(glb* g, gint enc,int printlevel, char** buf, in
               return pos+snprintf((*buf)+pos,(*len)-pos,"\"-%s\"", strdata);
             }  
           } else {
-            if (wg_contains_dquote(strdata)) {                       
+            if (!strdata) {
+              return pos+snprintf((*buf)+pos,(*len)-pos,"\"\"");
+            } else if (!strcmp(strdata,EMPTYSTRING)) {
+              return pos+snprintf((*buf)+pos,(*len)-pos,"\"\"");             
+            } else if (wg_contains_dquote(strdata)) {                       
               pos+=wg_print_dquoted(buf,*len,pos,strdata,0);                          
               return pos;
             } else {  
@@ -894,7 +899,11 @@ int wr_strprint_simpleterm_otter(glb* g, gint enc,int printlevel, char** buf, in
               return pos+snprintf((*buf)+pos,(*len)-pos,"-%s", strdata);
             }            
           } else {
-            if (wg_contains_quote(strdata)) {           
+            if (!strdata) {
+              return pos+snprintf((*buf)+pos,(*len)-pos,"''");
+            } else if (!strcmp(strdata,EMPTYSTRING)) {
+              return pos+snprintf((*buf)+pos,(*len)-pos,"''");    
+            } else if (wg_contains_quote(strdata)) {           
               pos+=wg_print_quoted(buf,*len,pos,strdata); 
               return pos;
             } else if (wg_should_quote(strdata)) {
@@ -1016,7 +1025,11 @@ int wr_strprint_simpleterm_otter(glb* g, gint enc,int printlevel, char** buf, in
         if (isneg) {
           return pos+snprintf((*buf)+pos,(*len)-pos,"\"-%s\"",strbuf);
         } else {
-          return pos+snprintf((*buf)+pos,(*len)-pos,"\"%s\"",strbuf);
+          if (!strcmp(strdata,EMPTYSTRING)) {
+            return pos+snprintf((*buf)+pos,(*len)-pos,"\"\"");          
+          } else {
+            return pos+snprintf((*buf)+pos,(*len)-pos,"\"%s\"",strbuf);
+          }  
         }        
       } else {
         if (isneg) {
@@ -1345,7 +1358,8 @@ void wg_tptp_print_aux(void* db, void* ptr, int depth, int pflag) {
       if (wg_should_quote(p)) {
         printf("\"%s\"",p);
       } else {
-        printf("%s",p);
+        if (!strcmp(p,EMPTYSTRING)) printf("''");
+        else printf("%s",p);
       }
     } else {
       printf("\"\"");
@@ -1429,6 +1443,7 @@ int wg_print_subfrm_tptp(void* db, void* ptr,int depth,int pflag, int termflag, 
   printf("\npos after2: %d",pos);
   return pos;
   */
+
   if (ptr==NULL) {
     //printf("()");
     pos+=snprintf((*buf)+pos,(*len)-pos,"()");
@@ -1472,7 +1487,9 @@ int wg_print_subfrm_tptp(void* db, void* ptr,int depth,int pflag, int termflag, 
       */  
       case WG_ANONCONSTTYPE : {
         // no negation assumed here!
-        if (p!=NULL && *p && (*p >= 'A') && (*p <= 'Z')) {
+        if (!strcmp(p,EMPTYSTRING)) {
+          pos+=snprintf((*buf)+pos,(*len)-pos,"''");            
+        } else if (p!=NULL && *p && (*p >= 'A') && (*p <= 'Z')) {
           // must add c: prefix    
           pos+=wg_print_quoted2(buf,*len,pos,"c",p);      
           //pos+=snprintf((*buf)+pos,(*len)-pos,"\'c:%s\'",p);          
@@ -1483,9 +1500,12 @@ int wg_print_subfrm_tptp(void* db, void* ptr,int depth,int pflag, int termflag, 
         }
         break;
       }
-      default: {          
+      default: {         
         if (p!=NULL) {
-          if (*p=='?' && *(p+1)==':') {
+          if (!strcmp(p,EMPTYSTRING)) {
+            pos+=snprintf((*buf)+pos,(*len)-pos,"''");
+            return pos;
+          } else if (*p=='?' && *(p+1)==':') {
             //printf("\nVAR \"%s\"\n",p);            
             if (*(p+2) >= 'A' && *(p+2) <= 'Z') {
               p=p+2;
@@ -1524,8 +1544,7 @@ int wg_print_subfrm_tptp(void* db, void* ptr,int depth,int pflag, int termflag, 
     }   
     return pos;
   } else {    
-
-    op=wg_first(db,ptr);
+    op=wg_first(db,ptr);   
     lstlen=wg_list_len(db,ptr);   
     if (pflag && wg_listtreecount(db,ptr)>10) ppflag=1;
     if (!termflag &&
@@ -1696,7 +1715,9 @@ int wg_print_subcnf_tptp(void* db, void* ptr,int depth,int pflag, int termflag, 
       */
       case WG_ANONCONSTTYPE : {
         // no negation assumed here!
-        if (p!=NULL && *p && (*p >= 'A') && (*p <= 'Z')) {
+        if (!strcmp(p,EMPTYSTRING)) {
+          pos+=snprintf((*buf)+pos,(*len)-pos,"''");        
+        } else if (p!=NULL && *p && (*p >= 'A') && (*p <= 'Z')) {
           // must add c: prefix    
           pos+=wg_print_quoted2(buf,*len,pos,"c",p);      
           //pos+=snprintf((*buf)+pos,(*len)-pos,"\'c:%s\'",p);          
@@ -1710,7 +1731,10 @@ int wg_print_subcnf_tptp(void* db, void* ptr,int depth,int pflag, int termflag, 
       default: {          
         if (p!=NULL) {
           if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
-          if (*p=='?' && *(p+1)==':') {
+          if (!strcmp(p,EMPTYSTRING)) {
+            pos+=snprintf((*buf)+pos,(*len)-pos,"''");
+            return pos;
+          } else if (*p=='?' && *(p+1)==':') {
             //printf("\nVAR \"%s\"\n",p);
             if (*(p+2) >= 'A' && *(p+2) <= 'Z') {
               p=p+2;
@@ -1927,7 +1951,9 @@ int wg_print_term_tptp(void* db, void* ptr,int depth,int pflag,char** buf, int *
 
     if (p!=NULL) {      
       if (!wg_str_guarantee_space(db,buf,len,pos+strlen(p)+1000)) return -1; 
-      if (wg_should_quote(p)) {
+      if (!strcmp(p,EMPTYSTRING)) {
+        printf("''");
+      } else if (wg_should_quote(p)) {
         printf("\"%s\"",p);
       } else {
         printf("%s",p);
@@ -2053,7 +2079,9 @@ int wg_print_subfrm_json(void* db, void* ptr,int depth,int pflag,
       */
       default: {        
         if (p==NULL) {     
-          pos+=snprintf((*buf)+pos,(*len)-pos,"\"\"" );                
+          pos+=snprintf((*buf)+pos,(*len)-pos,"\"\"" );  
+        } else if (!strcmp(p,EMPTYSTRING)) {
+          pos+=snprintf((*buf)+pos,(*len)-pos,"\"\"");                
         } else if (!strncmp(p,"$true",5)) {
           if (negflag) pos+=snprintf((*buf)+pos,(*len)-pos,"false");
           else pos+=snprintf((*buf)+pos,(*len)-pos,"true");
@@ -2285,8 +2313,9 @@ int wg_print_term_json(void* db, void* ptr,int depth,int pflag,char** buf, int *
     p=wg_atomstr1(db,ptr); 
     */
 
-    if (p!=NULL) {      
-      printf("\"%s\"",p);      
+    if (p!=NULL) {  
+      if (!strcmp(p,EMPTYSTRING)) printf("\"\"");  
+      else printf("\"%s\"",p);      
     } else {
       printf("\"\"");
     }

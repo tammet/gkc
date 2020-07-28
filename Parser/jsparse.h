@@ -79,7 +79,8 @@ void* wr_process_json_import_clause(glb* g, void* mpool, void* cl, cvec clvec);
 void* wr_process_json_formula(glb* g,parse_parm* pp, void* cl, int isincluded);
 void* wr_process_json_formula_aux(glb* g, parse_parm* pp, void* cl);
 void* wr_process_json_term(glb* g, parse_parm* pp, void* ptr, int atomlevel, int pos);
-void* wg_make_nested_conn(void* db, void* mpool, void* op, void* cl);
+void* wr_process_json_list(glb* g, parse_parm* pp, void* cl);
+//void* wg_make_nested_conn(void* db, void* mpool, void* op, void* cl);
 
 void* wr_json_list_logconn(glb* g, parse_parm* pp, void* cl);
 void* wr_json_translate_connective(glb* g,parse_parm* pp,void* ptr);

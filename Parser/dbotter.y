@@ -73,6 +73,8 @@
 %token NAND
 %token AT
 
+%token EMPTYSTRING
+
 
 %left '&' NAND '|' NOR IMP RIMP EQV NEQV AT
 %left '?' '!' 
@@ -131,11 +133,10 @@ term:      prim                   { $$ = $1; }
          | '-' term               { $$ = MKWGPAIR(PP,MKWGCONST(PP,"not"),MKWGPAIR(PP,$2,MKWGNIL)); }	 
          | '~' term               { $$ = MKWGPAIR(PP,MKWGCONST(PP,"not"),MKWGPAIR(PP,$2,MKWGNIL)); }
          | '(' loglist')'         { $$ = $2; }
-         | '[' termlist ']'       { $$ = MKWGPAIR(PP,MKWGCONST(PP,"lst"),MKWGPAIR(PP,$2,MKWGNIL)); }
-         | '[' ']'                { $$ = MKWGPAIR(PP,MKWGCONST(PP,"lst"),MKWGNIL); }
-         | connlog                { $$ = $1; }
+         | '[' termlist ']'       { $$ = MKWGPAIR(PP,MKWGCONST(PP,"$$lst"),MKWGPAIR(PP,$2,MKWGNIL)); }
+         | '[' ']'                { $$ = MKWGPAIR(PP,MKWGCONST(PP,"$$lst"),MKWGNIL); }
+         | connlog                { $$ = $1; }         
 ;
-
 
 termlist:    term                { $$ = MKWGPAIR(PP,$1,MKWGNIL); } 
 	| term ',' termlist   { $$ = MKWGPAIR(PP,$1,$3); }
@@ -311,6 +312,7 @@ prim:     TINT             { $$ = MKWGINT(PP,$1); }
         | URI	            { $$ = MKWGURI(PP,$1); }
         | ID	            { $$ = MKWGCONST(PP,$1); }
         | TCONST	           { $$ = MKWGCONST(PP,$1); }
+        | EMPTYSTRING	       { $$ = MKWGCONST(PP,$1); }
 ;
 
 

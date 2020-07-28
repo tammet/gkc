@@ -45,15 +45,21 @@
 
 #define NROF_DYNALLOCINITIAL_ELS    10000000
 
+#ifdef __EMSCRIPTEN__
+
+#define NROF_QUEUE_TERMBUF_ELS      40000000 // 40 M of int els
+#define NROF_HYPER_TERMBUF_ELS       5000000 // 5 M of int els                             
+#define NROF_ACTIVE_TERMBUF_ELS     10000000 // 10 M of int els
+#define NROF_GIVEN_TERMBUF_ELS       1000000 // 1 M of gint els
+#define NROF_DERIVED_TERMBUF_ELS     1000000 // 1 M of gint els
+#define NROF_SIMPLIFIED_TERMBUF_ELS  1000000 // 1 M of gint els
+
+#else
+
 #define NROF_GIVEN_TERMBUF_ELS      10000000 // 10 M of gint els
 #define NROF_DERIVED_TERMBUF_ELS    10000000 // 10 M of gint els
 #define NROF_SIMPLIFIED_TERMBUF_ELS 10000000 // 10 M of gint els
 
-#ifdef __EMSCRIPTEN__
-#define NROF_QUEUE_TERMBUF_ELS    40000000 // 40 M of gint els
-#define NROF_HYPER_TERMBUF_ELS    10000000 // 10 M of gint els                             
-#define NROF_ACTIVE_TERMBUF_ELS   20000000 // 20 M of gint els
-#else
 #ifdef _WIN32
 #ifdef _WIN64
 #define NROF_QUEUE_TERMBUF_ELS   200000000

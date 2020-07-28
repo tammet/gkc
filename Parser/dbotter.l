@@ -180,6 +180,11 @@ ID       [a-zA-Z][a-zA-Z0-9_:+\-*/<>]*
               return AT; 
 	    }      
 
+"''"   {
+              parseprintf( "an emptystring: %s", yytext);
+              *yylval="$emptystr";	      
+              return EMPTYSTRING; 
+	    }  
 
 {DIGIT}+    { parseprintf( "An integer: %s (%d)\n",yytext,atoi(yytext));	           
               *yylval=yytext;              

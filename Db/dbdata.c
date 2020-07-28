@@ -2198,7 +2198,8 @@ wg_int wg_encode_uri(void* db, char* str, char* prefix) {
   /* standard for whitebd */
   //return wg_encode_unistr(db,str,prefix,WG_URITYPE);
   /* special for reasoner, copied/modified from unistr */
-  len=(gint)(strlen(str));
+  if (!str) len=0;
+  else len=(gint)(strlen(str));
   offset=find_create_longstr(db,str,prefix,WG_URITYPE,len+1);
   if (!offset) {
     show_data_error_nr(db,"cannot create a string of size ",len);
@@ -3064,7 +3065,7 @@ static gint find_create_longstr(void* db, char* data, char* extrastr, gint type,
   if (0) {    
   } else {
     // check if hash exists and use if found 
-#ifdef USE_REASONER     
+#ifdef USE_REASONER      
     hash=(int)(hashsum % (dbh->strhash_area_header).arraylength);
     //printf("\nCP3 find_create_longstr calced hashsum %d and hash %d\n",(int)hashsum,(int)hash);
 #else
@@ -3107,7 +3108,7 @@ static gint find_create_longstr(void* db, char* data, char* extrastr, gint type,
     }
     lstrptr=(char*)(offsettoptr(db,offset));
     // store string contents
-    memcpy(lstrptr+(LONGSTR_HEADER_GINTS*sizeof(gint)),data,length);
+    if (data) memcpy(lstrptr+(LONGSTR_HEADER_GINTS*sizeof(gint)),data,length);
     //zero the rest
     for(i=0;lenrest && i<sizeof(gint)-lenrest;i++) {
 /*    for(i=0;i<lenrest;i++) {*/

@@ -806,13 +806,13 @@ int wg_islogconnective(void* db, void* ptr) {
 }
 
 int wg_islog_conn(void* db, void* ptr, char* str) {
-  if (!wg_isatom(db,ptr) || wg_atomtype(db,ptr)!=WG_ANONCONSTTYPE) return 0;
+  if (!ptr || !wg_isatom(db,ptr) || wg_atomtype(db,ptr)!=WG_ANONCONSTTYPE) return 0;
   if (strcmp(wg_atomstr1(db,ptr),str)) return 0;
   return 1;
 }
 
 int wg_islog_uri(void* db, void* ptr, char* str) {
-  if (!wg_isatom(db,ptr) || wg_atomtype(db,ptr)!=WG_URITYPE) return 0;
+  if (!ptr || !wg_isatom(db,ptr) || wg_atomtype(db,ptr)!=WG_URITYPE) return 0;
   if (strcmp(wg_atomstr1(db,ptr),str)) return 0;
   if (wg_atomstr2(db,ptr)!=NULL) return 0;
   return 1;

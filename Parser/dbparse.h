@@ -66,7 +66,8 @@ void* wr_parse_clauselist(glb* g,void* mpool,cvec clvec,void* clauselist);
 void* wr_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
        char** vardata,void* propfun, void* name, void* role);
 void* wr_parse_atom(glb* g,void* mpool,void* term, int isneg, int issimple, char** vardata);
-void* wr_parse_term(glb* g,void* mpool,void* term, char** vardata);
+void* wr_parse_term(glb* g,void* mpool,void* term, char** vardata, gint* primitiveres);
+void* wr_parse_preprocess_list(glb* g,void* mpool,void* term);
 gint wr_parse_primitive(glb* g,void* mpool,void* atomptr, char** vardata, int pos);
 
 gint wr_parse_and_encode_otter_prim(glb* g, char *buf);
