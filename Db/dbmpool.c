@@ -546,6 +546,28 @@ void* wg_get_keystrval(void* db, char* str, void* keyval) {
   return NULL;
 }
 
+void* wg_get_keystrplace(void* db, char* str, void* keyval) {
+  void *part, *tmp, *el;
+
+  if (!keyval || !str) return NULL; 
+  for(part=wg_rest(db,keyval); wg_ispair(db,part); part=wg_rest(db,part)) {
+    el=wg_first(db,part);
+    tmp=wg_rest(db,part);
+    if (wg_isatom(db,el) && wg_atomstr1(db,el) && !strcmp(wg_atomstr1(db,el),str)) {      
+      if (wg_ispair(db,tmp)) {
+        return part;
+      } else {
+        return NULL;
+      }
+    }
+    if (wg_ispair(db,tmp)) {
+      part=tmp;
+    } else {
+      return NULL;
+    }
+  }
+  return NULL;
+}
 
 
 // ------------ atoms ------------------

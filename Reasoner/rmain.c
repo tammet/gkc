@@ -1520,11 +1520,11 @@ int wr_print_all_clauses(glb* g, void* child_db) {
     if (g->print_json) {
       if ((nameflag && namestr[0]) && (decprior && decprior!=WR_HISTORY_AXIOM_ROLENR)) {        
         if (wg_contains_dquote(namestr)) {
-          bpos+=snprintf(buf+bpos,blen-bpos,"\n{\"name\":");
+          bpos+=snprintf(buf+bpos,blen-bpos,"\n{\"@name\":");
           bpos+=wg_print_dquoted(&buf,blen,bpos,namestr,0);
-          bpos+=snprintf(buf+bpos,blen-bpos,",\"role\":\"%s\",\"logic\":",priorstr);
+          bpos+=snprintf(buf+bpos,blen-bpos,",\"@role\":\"%s\",\"@logic\":",priorstr);
         } else {
-          bpos+=snprintf(buf+bpos,blen-bpos,"\n{\"name\":\"%s\",\"role\":\"%s\",\"logic\":",
+          bpos+=snprintf(buf+bpos,blen-bpos,"\n{\"@name\":\"%s\",\"@role\":\"%s\",\"@logic\":",
                         namestr,priorstr);
         }  
         objflag=1;
@@ -1532,17 +1532,17 @@ int wr_print_all_clauses(glb* g, void* child_db) {
         //objflag=1;
       } else if (nameflag && namestr[0]) {
          if (wg_contains_dquote(namestr)) {
-          bpos+=snprintf(buf+bpos,blen-bpos,"\n{\"name\":");
+          bpos+=snprintf(buf+bpos,blen-bpos,"\n{\"@name\":");
           bpos+=wg_print_dquoted(&buf,blen,bpos,namestr,0);
-          bpos+=snprintf(buf+bpos,blen-bpos,",\"logic\":");
+          bpos+=snprintf(buf+bpos,blen-bpos,",\"@logic\":");
         } else {
-          bpos+=snprintf(buf+bpos,blen-bpos,"\n{\"name\":\"%s\",\"logic\":",namestr);
+          bpos+=snprintf(buf+bpos,blen-bpos,"\n{\"@name\":\"%s\",\"@logic\":",namestr);
         }  
         objflag=1;
         //bpos+=snprintf(buf+bpos,blen-bpos,"\n{\"name\":\"%s\",\"logic\":",namestr);
         //objflag=1;
       } else if (decprior && decprior!=WR_HISTORY_AXIOM_ROLENR) {
-        bpos+=snprintf(buf+bpos,blen-bpos,"\n{\"role\":\"%s\",\"logic\":",priorstr);
+        bpos+=snprintf(buf+bpos,blen-bpos,"\n{\"@role\":\"%s\",\"@logic\":",priorstr);
         objflag=1;
       }
       if (!wr_str_guarantee_space(g,&buf,&blen,bpos+100)) {

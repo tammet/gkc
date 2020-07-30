@@ -101,6 +101,7 @@ void* wg_get_assoc(void* db, void* el1, void* alist);
 
 void* wg_get_keyval(void* db, void* key, void* keyval);
 void* wg_get_keystrval(void* db, char* str, void* keyval);
+void* wg_get_keystrplace(void* db, char* str, void* keyval);
 
 int wg_isatom(void* db, void* ptr);
 void* wg_mkatom(void* db, void* mpool, int type, char* str1, char* str2);

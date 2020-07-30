@@ -70,6 +70,9 @@ void* wr_parse_term(glb* g,void* mpool,void* term, char** vardata, gint* primiti
 void* wr_parse_preprocess_list(glb* g,void* mpool,void* term);
 gint wr_parse_primitive(glb* g,void* mpool,void* atomptr, char** vardata, int pos);
 
+void wg_expand_frm_for_print(void* db, void* mpool, void* frm);
+void* wg_expand_frm_for_print_aux(void* db, void* mpool, void* cl);
+
 gint wr_parse_and_encode_otter_prim(glb* g, char *buf);
 gint wr_parse_and_encode_otter_uri(glb* g, char *buf);
 

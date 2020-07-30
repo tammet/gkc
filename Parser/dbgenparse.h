@@ -88,7 +88,9 @@ typedef struct parse_parm_s {
   void* logfalse;   // ...
   void* logneg; 
   void* logand;
+  void* logprefixand;
   void* logor;
+  void* logprefixor;
   void* logimp;
   void* logeqv;
   void* logall;
@@ -106,7 +108,13 @@ typedef struct parse_parm_s {
   int askpolarity;
   int askinfo;
   int json; // set to 1 if json output wanted (used in error printing)
-
+  int parse_top_level; // set to 1 for json top level handling, 0 inside:
+                       // print conversion if requested and value is 1
+  int jsonld_blankseed; // seed for json-ld blank random, diff for each doc 
+  int jsonld_blankcount; // 0 means none have been made, to be increased each time        
+  void* jsonld_blankprefatom; // mpool atom containing id unique prefix for this doc             
+  void* jsonld_blanks; // an mpool key-value object of json blank node name and logic value
+  
   void* nests[PARSE_NESTING_DEPTH]; // stack for pure json parsing
 
 } parse_parm;

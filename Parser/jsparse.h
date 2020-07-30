@@ -37,7 +37,7 @@
 
 #define MPOOL_STRUCT_PREFSTR "$gk_struct$"
 #define MPOOL_JSON_NULL "$gk_null$"
-#define MPOOL_JSON_EMPTY "$gk_empty$"
+#define MPOOL_JSON_EMPTY "$nil"
 #define MPOOL_NULLVAR_PREFIX "Nvar"
 #define MPOOL_JSON_FOF "fof"
 #define MPOOL_JSON_ASK "ask"
@@ -95,6 +95,7 @@ int wr_json_is_atomlist(void* db,void* ptr);
 int wr_json_is_connective(glb* g,void* ptr);
 int wr_json_is_eq_op(glb* g,void* ptr);
 int wr_json_equal_atoms(glb* g,void* a1, void* a2);
+int wr_json_really_equal_atoms(glb* g,void* a1, void* a2);
 
 void* wr_json_process_if_then(glb* g, parse_parm* pp, void* ptr);
 void* wr_collect_json_freevars(glb* g, void* vars, void* cl);
@@ -104,8 +105,13 @@ void* wr_js_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
         char** vardata,void* propfun, void* name, void* role, void* context);
 
 void* wr_process_json_formula_struct(glb* g, parse_parm* pp, void* cl, int isincluded);
+void* wr_add_struct_key_atoms(glb* g, parse_parm* pp, 
+         void* id, char* keystr, void* values, void* extended);
 void* wr_process_json_formula_keyextend(glb* g, parse_parm* pp, void* cl, void* origcl, int isincluded);
 void* wr_json_mkid(glb* g, void* mpool, parse_parm* pp, void* givenid);
 int wr_json_special_keystr(glb* g, char* keystr);
-
+void* wr_json_add_with_and(glb* g, parse_parm* pp, void* frm, void* previous);
+void* wr_add_keyval_jsstruct(glb *g, parse_parm* pp, 
+        void* key, void* keyval, void* jstruct);
+        
 #endif

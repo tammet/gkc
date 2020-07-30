@@ -362,7 +362,7 @@ void* wr_preprocess_clauselist
   }    
   // loop over clauses
   clnr=1;
-  if ((dbmemsegh(db)->convert) && (dbmemsegh(db)->json)) {
+  if ((dbmemsegh(db)->convert) && (dbmemsegh(db)->json) && !isincluded) {
     printf("[\n");
   }
   //wr_show_parse_error(g,"test %d",2);
@@ -457,7 +457,8 @@ void* wr_preprocess_clauselist
         bpos=0; 
         if (!wg_str_guarantee_space(db,&(g->tmp_printbuf),&blen,bpos+1000)) return NULL;
         bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,
-                       "cnf('%s',%s,",wg_atomstr1(db,clname),wg_atomstr1(db,clrole));              
+                       "cnf('%s',%s,",wg_atomstr1(db,clname),wg_atomstr1(db,clrole)); 
+        wg_expand_frm_for_print(db,mpool,cl);                             
         bpos=wg_print_frm_tptp(db,wg_nth(db,cl,3),&(g->tmp_printbuf),&blen,bpos);  
         bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,").");                       
         printf("%s\n",(g->tmp_printbuf));
@@ -473,7 +474,8 @@ void* wr_preprocess_clauselist
           bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,"\"%s\"",wg_atomstr1(db,clname));         
         }
         bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,",\"@role\":\"%s\",\"@logic\":",
-                       wg_atomstr1(db,clrole));                 
+                       wg_atomstr1(db,clrole));   
+        wg_expand_frm_for_print(db,mpool,cl);                              
         bpos=wg_print_frm_json(db,wg_nth(db,cl,3),&(g->tmp_printbuf),&blen,bpos);
         if (bpos<0) return NULL;
         if (wg_rest(db,lpart)) {
@@ -523,6 +525,7 @@ void* wr_preprocess_clauselist
         if (!wg_str_guarantee_space(db,&(g->tmp_printbuf),&blen,bpos+1000)) return NULL;
         bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,
                        "fof('%s',%s,",wg_atomstr1(db,clname),wg_atomstr1(db,clrole));
+        wg_expand_frm_for_print(db,mpool,cl);                
         bpos=wg_print_frm_tptp(db,wg_nth(db,cl,3),&(g->tmp_printbuf),&blen,bpos);
         bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,").");                       
         printf("%s\n",(g->tmp_printbuf));
@@ -538,7 +541,8 @@ void* wr_preprocess_clauselist
           bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,"\"%s\"",wg_atomstr1(db,clname));         
         }
         bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,",\"@role\":\"%s\",\"@logic\":",
-                       wg_atomstr1(db,clrole));                 
+                       wg_atomstr1(db,clrole));
+        wg_expand_frm_for_print(db,mpool,cl);                                 
         bpos=wg_print_frm_json(db,wg_nth(db,cl,3),&(g->tmp_printbuf),&blen,bpos);
         if (bpos<0) return NULL;
         if (wg_rest(db,lpart)) {
@@ -585,6 +589,7 @@ void* wr_preprocess_clauselist
         //printf("\n clauseflag %d freevars: \n",clauseflag);
         //wg_mpool_print(db,freevars); 
         //printf("\n");       
+        wg_expand_frm_for_print(db,mpool,cl);
         if (clauseflag) {
           bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,
                        "cnf('%s',%s,",wg_atomstr1(db,clname),wg_atomstr1(db,clrole));                                                           
@@ -592,14 +597,15 @@ void* wr_preprocess_clauselist
         } else {
           if (freevars) cl=wg_mklist3(db,mpool,wg_makelogall(db,mpool),freevars,cl); 
           bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,
-                       "fof('%s',%s,",wg_atomstr1(db,clname),wg_atomstr1(db,clrole));                                     
+                       "fof('%s',%s,",wg_atomstr1(db,clname),wg_atomstr1(db,clrole));                                                                     
           bpos=wg_print_frm_tptp(db,cl,&(g->tmp_printbuf),&blen,bpos);
         } 
         bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,").");               
         printf("%s\n",(g->tmp_printbuf));
       } else if ((dbmemsegh(db)->convert) && (dbmemsegh(db)->json)) {  
         bpos=0;
-        if (!wg_str_guarantee_space(db,&(g->tmp_printbuf),&blen,1000)) return NULL;                  
+        if (!wg_str_guarantee_space(db,&(g->tmp_printbuf),&blen,1000)) return NULL; 
+        wg_expand_frm_for_print(db,mpool,cl);                 
         bpos=wg_print_frm_json(db,cl,&(g->tmp_printbuf),&blen,bpos);
         if (bpos<0) return NULL;
         if (wg_rest(db,lpart)) {
@@ -628,7 +634,7 @@ void* wr_preprocess_clauselist
       resultlist=wg_mkpair(db,mpool,resultclause,resultlist);  
     }  
   } // end clause list loop 
-  if ((dbmemsegh(db)->convert) && (dbmemsegh(db)->json)) {
+  if ((dbmemsegh(db)->convert) && (dbmemsegh(db)->json) && !isincluded) {
     printf("]\n");
   }
   //free(vardata); // if taken from mpool, not freed
@@ -691,6 +697,71 @@ void* wr_preprocess_tptp_cnf_clause(glb* g, void* mpool, void* cl) {
     //res=wg_mkpair(db,mpool,clpart,NULL);
   }
   */
+  return res;
+}
+
+void wg_expand_frm_for_print(void* db, void* mpool, void* frm) {
+  void* part;
+  void* term;
+  void* expanded;
+
+  /*
+  printf("\ncalling wg_expand_frm_for_print:\n");
+  wg_mpool_print(db,frm);
+  printf("\n");
+  */
+  if (!frm) return;
+  if (wg_isatom(db,frm)) return;  
+  for(part=frm; part!=NULL; part=wg_rest(db,part)) {
+    term=wg_first(db,part);
+    if (wg_ispair(db,term) && wg_isatom(db,wg_first(db,term)) &&
+       wg_atomstr1(db,wg_first(db,term)) &&
+       !strcmp("$$lst",wg_atomstr1(db,wg_first(db,term))) ) {
+      if (!wg_ispair(db,wg_rest(db,term))) {
+        expanded=wg_mkatom(db,mpool,WG_URITYPE,"$nil",NULL);
+      } else {  
+        expanded=wg_expand_frm_for_print_aux(db,mpool,wg_first(db,wg_rest(db,term)));
+      }       
+      *((gint*)part)=(gint)expanded;    
+    } else {
+      wg_expand_frm_for_print(db,mpool,term);
+    }  
+  }
+}
+
+void* wg_expand_frm_for_print_aux(void* db, void* mpool, void* cl) { 
+  void* res=NULL;
+  void *term, *termpart, *fun;
+  /*
+  printf("\ncalling wg_expand_frm_for_print_aux:\n");
+  wg_mpool_print(db,cl);
+  printf("\n");
+  */
+  res=wg_mkatom(db,mpool,WG_URITYPE,"$nil",NULL);    
+  if (!cl) return res;
+  if (!wg_ispair(db,cl)) return cl;
+  fun=wg_mkatom(db,mpool,WG_URITYPE,"$list",NULL);
+  if (!res || !fun) return NULL;
+  if (wg_isatom(db,wg_first(db,cl)) &&
+      wg_atomstr1(db,wg_first(db,cl)) ) {
+    if (!strcmp("$$lst",wg_atomstr1(db,wg_first(db,cl)))) {
+      // $$lst term
+      if (!wg_ispair(db,wg_rest(db,cl))) {
+        term=wg_mkatom(db,mpool,WG_URITYPE,"$nil",NULL);
+      } else {  
+        term=wg_expand_frm_for_print_aux(db,mpool,wg_first(db,wg_rest(db,cl)));
+      }    
+      return term;
+    } 
+  } 
+  term=NULL;
+  termpart=wg_inplace_reverselist(db,mpool,cl);  
+  for(;wg_ispair(db,termpart);termpart=wg_rest(db,termpart)) {        
+    wg_expand_frm_for_print(db,mpool,termpart); 
+    term=wg_first(db,termpart);     
+    res=wg_mklist3(db,mpool,fun,term,res);
+    if (!res) return NULL;
+  }
   return res;
 }
 
