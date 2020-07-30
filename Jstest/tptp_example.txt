@@ -27,6 +27,10 @@
 %------------------------------------------------------------------------------
 %----Propositional
 
+%----Include directive
+include('Axioms/SYN000+0.ax').
+include('Axioms/SYN000+0.ax').
+
 fof(propositional,axiom,
     ( ( p0
       & ~ q0 )
@@ -89,8 +93,7 @@ fof(role_hypothesis,hypothesis,(
 fof(role_conjecture,conjecture,(
     ? [X] : p(X) )).
 
-%----Include directive
-include('Axioms/SYN000+0.ax').
+
 
 %----Comments
 /* This

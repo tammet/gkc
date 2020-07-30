@@ -634,8 +634,9 @@ void* wr_preprocess_clauselist
       resultlist=wg_mkpair(db,mpool,resultclause,resultlist);  
     }  
   } // end clause list loop 
-  if ((dbmemsegh(db)->convert) && (dbmemsegh(db)->json) && !isincluded) {
-    printf("]\n");
+  if ((dbmemsegh(db)->convert) && (dbmemsegh(db)->json))  {
+    if (!isincluded) printf("]\n");
+    else printf(",\n");
   }
   //free(vardata); // if taken from mpool, not freed
 #ifdef DEBUG
@@ -940,7 +941,7 @@ void* wr_process_tptp_import_clause(glb* g, void* mpool, void* cl) {
   char* p1;
   char* p2;
   char* str2;
-  //int tmp;
+  int tmp;
  
 #ifdef IDEBUG
   printf("\nwr_process_tptp_import_clause starts with\n");
@@ -1026,7 +1027,9 @@ void* wr_process_tptp_import_clause(glb* g, void* mpool, void* cl) {
 #ifdef IDEBUG
   printf("\nfilename %s\n",filename);
 #endif   
+  tmp=(g->parse_is_included_file);
   wr_import_otter_file(g,filename,NULL,NULL,1);  
+  (g->parse_is_included_file)=tmp;
   return NULL;
 }
 
