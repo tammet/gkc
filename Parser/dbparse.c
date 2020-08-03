@@ -841,6 +841,7 @@ void *wr_parse_freeoccs(glb* g, void* mpool, void* vars, void* frm, int* clausef
 int wr_is_parse_var(glb* g,void* ptr) {
   void* db=g->db;
   char *s;
+  
   if (!wg_isatom(db,ptr) || wg_atomtype(db,ptr)!=WG_URITYPE) return 0;
   s=wg_atomstr1(db,ptr);
   if ((*s)=='\0') return 0;

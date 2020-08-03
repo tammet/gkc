@@ -257,10 +257,15 @@ int wr_import_js_file(glb* g, char* filename, char* strasfile, cvec clvec, int i
   pp.nullvarsnr=0;
   pp.boundvars=NULL;
   pp.json=(g->print_json);
+  pp.jsonld_typekey=wg_mkatom(db,mpool,WG_URITYPE,"@type",NULL);
+  pp.jsonld_typerepl=wg_mkatom(db,mpool,WG_URITYPE,
+                    "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",NULL);  
+  pp.jsonld_vocabkey=wg_mkatom(db,mpool,WG_URITYPE,"@vocab",NULL);                                        
   pp.jsonld_blankseed=1;
   pp.jsonld_blankcount=0;
   pp.jsonld_blankprefatom=wg_mkatom(db,mpool,WG_URITYPE,"upref",NULL); 
   pp.jsonld_blanks=wg_mkpair(db,mpool,pp.jsonstruct,NULL);
+  pp.jsonld_ctxt=NULL;
 
   for(i=0;i<PARSE_NESTING_DEPTH;i++) {
     pp.nests[i]=NULL;
@@ -1041,6 +1046,7 @@ void* wr_process_json_formula(glb* g,parse_parm* pp, void* cl, int isincluded) {
     pp->nullvars=NULL;
     pp->nullvarsnr=0;
     pp->boundvars=NULL;
+    pp->jsonld_ctxt=NULL;
   }
   name=NULL;
   role=NULL;
@@ -1219,6 +1225,10 @@ void* wr_process_json_formula(glb* g,parse_parm* pp, void* cl, int isincluded) {
 
   printf("\nwr_process_json_formula nullvars is\n");
   wg_mpool_print(db,pp->nullvars);
+  printf("\n");  
+
+  printf("\nwr_process_json_formula ctxt is\n");
+  wg_mpool_print(db,pp->jsonld_ctxt);
   printf("\n");  
    
   printf("\nbefore wr_preprocess_tptp_fof_clause\n");
@@ -1502,18 +1512,22 @@ void* wr_process_json_formula_struct(glb* g, parse_parm* pp,
         void* cl, int isincluded) {
   void* mpool=pp->mpool;
   void* db=g->db;
-  char* keystr; 
+  char *keystr; 
   void *part, *tmp, *key, *keyval;
   void *origid, *id=NULL;
   void* extended=NULL;
-  void *name, *role, *logic; 
+  void *name, *role, *logic, *question, *ctxt;
+  int buflen=1000;
+  char *modkeystr;
+  int tmpval;
+  char keybuf[1000];
+
 
 #ifdef DEBUG 
   printf("\nwr_process_json_formula_struct called for \n");
   wg_mpool_print(db,cl);
   printf("\n");
-#endif
-
+#endif 
   if (!cl) return NULL;
   if (!wg_rest(db,cl)) return NULL;
   // cl must be keyval
@@ -1523,6 +1537,15 @@ void* wr_process_json_formula_struct(glb* g, parse_parm* pp,
   name=wg_get_keystrval(db,"@name",cl);
   role=wg_get_keystrval(db,"@role",cl);
   logic=wg_get_keystrval(db,"@logic",cl);
+  question=wg_get_keystrval(db,"@question",cl);
+  if ((role || question) && !(pp->parse_top_level)) {
+    wr_show_jsparse_error(g,pp,"@role or @question should not be used inside a nested object");
+    return NULL;
+  }
+  // get and process context
+  ctxt=wg_get_keystrval(db,"@context",cl); 
+  tmpval=wr_json_extend_context(g,pp,ctxt);
+  if (tmpval<0) return NULL; // error in context
   // loop over all keys
   for(part=wg_rest(db,cl); wg_ispair(db,part); part=wg_rest(db,part)) {
     key=wg_first(db,part);
@@ -1535,20 +1558,23 @@ void* wr_process_json_formula_struct(glb* g, parse_parm* pp,
     }
     // here we have keystr and keyval
     if (!(wr_json_special_keystr(g, keystr))) {
-      // json key to be made an atom
-      // make a logical atom
-      /* 
-      if (!origid) {
-      // create existentially quantified var for id
-      idvar=wr_json_make_nullvar(g,pp);
-      if (!idvar) return NULL;
-      pp->nullvars=wg_mkpair(db,mpool,idvar,pp->nullvars);
-      
-    } */      
+      // normal key, not a special @-prefixed key
+      modkeystr=wg_modify_keystr_by_ctxt(g,pp,keybuf,buflen,keystr);
+      if (modkeystr!=keystr) {
+        if (!modkeystr) keystr=keybuf;
+        else keystr=modkeystr;
+      }  
       if (!id) {               
         id=wr_json_mkid(db,mpool,pp,origid);      
       }  
       extended=wr_add_struct_key_atoms(g,pp,id,keystr,keyval,extended);        
+    } else if (!strcmp("@type",keystr)) {
+      if (!id) {               
+        id=wr_json_mkid(db,mpool,pp,origid);      
+      }       
+      keyval=wr_json_expand_list_prefixes(g,mpool,pp,keyval,0);      
+      extended=wr_add_struct_key_atoms(g,pp,id,
+          wg_atomstr1(db,pp->jsonld_typerepl),keyval,extended);
     }
     // continue to next key
     if (wg_ispair(db,tmp)) {
@@ -1571,8 +1597,13 @@ void* wr_process_json_formula_struct(glb* g, parse_parm* pp,
     // extended is present    
     //extended=wr_process_json_formula_aux(g,pp,extended); //,0,1);  
     if (logic) {     
-      // both extended and logic part present            
-      logic=wr_json_add_with_and(g,pp,logic,extended);       
+      // both extended and logic part present        
+      if (role && (!strcmp(wg_atomstr1(db,role),"question") ||
+         !strcmp(wg_atomstr1(db,role),"conjecture"))) {
+        logic=wr_json_add_with_negated_or(g,pp,logic,extended);
+      } else {         
+        logic=wr_json_add_with_and(g,pp,logic,extended);       
+      }             
     } else {
       // no logic part present
       logic=extended;
@@ -1611,7 +1642,7 @@ void* wr_add_struct_key_atoms(glb* g, parse_parm* pp,
          void* id, char* keystr, void* values, void* extended) {
   void* mpool=pp->mpool;
   void* db=g->db;
-  void *el, *atom, *part, *list, *neworigid, *newid, *resultclause;
+  void *el, *atom, *part, *list, *value, *neworigid, *newid, *resultclause;
   void *res1;
   int tmp;
 
@@ -1622,6 +1653,7 @@ void* wr_add_struct_key_atoms(glb* g, parse_parm* pp,
   void* tmp_nullvars;
   int tmp_nullvarsnr;
   void* tmp_boundvars;
+  void* tmp_ctxt;
 
 
 #ifdef DEBUG 
@@ -1647,6 +1679,7 @@ void* wr_add_struct_key_atoms(glb* g, parse_parm* pp,
 
     list=wg_get_keystrval(db, "@list", values);
     if (!list) list=wg_get_keystrval(db, "@set", values);
+    value=wg_get_keystrval(db, "@value", values);
     if (list) {
       // list structure case
       if (wg_isatom(db,list) && !strcmp("$nil",wg_atomstr1(db,list)))
@@ -1658,6 +1691,14 @@ void* wr_add_struct_key_atoms(glb* g, parse_parm* pp,
         id,
         wg_mkatom(db,mpool,WG_URITYPE,keystr,NULL),
         res1);   
+      extended=wr_json_add_with_and(g,pp,atom,extended);  
+    } else if (value) {
+      // @value object
+      atom=wg_mklist4(db,mpool,
+        wg_mkatom(db,mpool,WG_URITYPE,MPOOL_JSON_ARC,NULL),
+        id,
+        wg_mkatom(db,mpool,WG_URITYPE,keystr,NULL),
+        value);   
       extended=wr_json_add_with_and(g,pp,atom,extended);   
     } else {
       // nested structure case
@@ -1688,6 +1729,7 @@ void* wr_add_struct_key_atoms(glb* g, parse_parm* pp,
       tmp_nullvars=pp->nullvars;
       tmp_nullvarsnr=pp->nullvarsnr;
       tmp_boundvars=pp->boundvars;
+      tmp_ctxt=pp->jsonld_ctxt;
 
       resultclause=wr_process_json_formula(g,pp,values,0);     
 
@@ -1697,7 +1739,8 @@ void* wr_add_struct_key_atoms(glb* g, parse_parm* pp,
       pp->freevarsnr=tmp_freevarsnr;
       pp->nullvars=tmp_nullvars;
       pp->nullvarsnr=tmp_nullvarsnr;
-      pp->boundvars=tmp_boundvars;
+      pp->boundvars=tmp_boundvars;     
+      pp->jsonld_ctxt=tmp_ctxt;
 
       pp->parse_top_level=tmp;  
 
@@ -1725,8 +1768,43 @@ void* wr_add_struct_key_atoms(glb* g, parse_parm* pp,
   return extended;
 }
 
+void* wr_json_expand_list_prefixes(glb* g, void* mpool, parse_parm* pp, void* lst, int depth) {
+  void* db=g->db;
+  void* res=NULL;
+  void *part, *el, *ctxt, *tmp, *keyval;
+  char *valstr, *modvalstr;
+  int buflen=1000;
+  char keybuf[1000];
 
-void* wr_json_mkid(glb* g, void* mpool,  parse_parm* pp, void* givenid) {
+  ctxt=pp->jsonld_ctxt;
+  if (!ctxt) return lst;
+  if (wg_isatom(db,lst)) {
+    // lst is an atom, not a real list
+    if (wg_atomtype(db,lst)==WG_URITYPE) {
+      keyval=lst;
+      valstr=wg_atomstr1(db,lst);
+      modvalstr=wg_modify_keystr_by_ctxt(g,pp,keybuf,buflen,valstr);
+      if (modvalstr!=valstr) {
+        if (!modvalstr) valstr=keybuf;
+        else valstr=modvalstr;
+        keyval=wg_mkatom(db,mpool,WG_URITYPE,valstr,NULL);          
+      } 
+      return keyval;
+    } else {
+      return lst;
+    }
+  } 
+  // now lst is a real list
+  for(part=lst; part!=NULL; part=wg_rest(db,part)) {
+    el=wg_first(db,part);
+    tmp=wr_json_expand_list_prefixes(g,mpool,pp,el,depth);
+    res=wg_mkpair(db,mpool,tmp,res);
+  } 
+  return res;      
+}
+     
+
+void* wr_json_mkid(glb* g, void* mpool, parse_parm* pp, void* givenid) {
   void* db=g->db;
   void* res;
   char* str;
@@ -1760,17 +1838,20 @@ void* wr_json_mkid(glb* g, void* mpool,  parse_parm* pp, void* givenid) {
 int wr_json_special_keystr(glb* g, char* keystr) {
   int len;
 
-  if (!keystr) return 1;
+  if (!keystr) return 1;  
   len=strlen(keystr);
   if (!len) return 1;  
+  if (*keystr!='@') return 0;
   if (len>10) return 0;
-  if (len<3) return 0;
+  if (len<3) return 0;  
   if (!strcmp(keystr,"@id")) return 1;
-  if (!strcmp(keystr,"@name")) return 1;
-  if (!strcmp(keystr,"@role")) return 1;
-  if (!strcmp(keystr,"@logic")) return 1;
+  if (!strcmp(keystr,"@type")) return 1; 
   if (!strcmp(keystr,"@list")) return 1;
   if (!strcmp(keystr,"@set")) return 1;
+  if (!strcmp(keystr,"@context")) return 1; 
+  if (!strcmp(keystr,"@name")) return 1;
+  if (!strcmp(keystr,"@role")) return 1;
+  if (!strcmp(keystr,"@logic")) return 1; 
   return 0;
 }
 
@@ -1784,7 +1865,7 @@ void* wr_process_json_term(glb* g, parse_parm* pp, void* cl, int atomlevel, int 
   void *r1, *r2,  *r1el; 
   void *tmp, *part; 
   int n, found;
-  char* str;
+  //char* str;
 
 #ifdef DEBUG
   printf("\nwr_process_json_term called atomlevel %d\n",atomlevel);
@@ -1864,11 +1945,14 @@ void* wr_process_json_term(glb* g, parse_parm* pp, void* cl, int atomlevel, int 
     } else if (//!atomlevel && pos && 
                wg_list_memberuri_in_sublist(db,(pp->boundvars),cl)) {
       // bound variable case           
-      preres=cl;       
+      preres=cl;     
+    } else if (!strcmp(wg_atomstr1(db,cl),wg_atomstr1(db,pp->jsonld_typekey))) {
+      preres=pp->jsonld_typerepl;
     } else {    
-      str=wg_atomstr1(db,cl);
-      if (*str && (*str >= 'A') && (*str <= 'Z')) {
-        preres=wg_mkatom(db,mpool,WG_ANONCONSTTYPE,str,NULL);       
+      // default case: here prefix capital-starting strings with c:
+      //str=wg_atomstr1(db,cl);
+      if (wr_is_parse_var(g,cl)) { //(*str && (*str >= 'A') && (*str <= 'Z')) {
+        preres=wg_mkatom(db,mpool,WG_ANONCONSTTYPE,wg_atomstr1(db,cl),NULL);       
       } else {     
         preres=cl;
       }              
@@ -2809,6 +2893,20 @@ void* wr_json_add_with_and(glb* g, parse_parm* pp, void* frm, void* previous) {
   return res;  
 }
 
+void* wr_json_add_with_negated_or(glb* g, parse_parm* pp, void* frm, void* previous) {
+  void* db=g->db;
+  void* mpool=pp->mpool;
+  void* res;
+  
+  if (!previous) return frm;
+  if (!frm) return previous;
+  res=wg_mklist3(db,mpool,    
+    pp->logor,
+    frm,
+    wg_mklist2(db,mpool,pp->logneg,previous));
+  return res;  
+}
+
 void* wr_add_keyval_jsstruct(glb *g, parse_parm* pp, 
         void* key, void* keyval, void* jstruct) {
   void *db=g->db;
@@ -2826,6 +2924,169 @@ void* wr_add_keyval_jsstruct(glb *g, parse_parm* pp,
   }  
   return res;
 }
+
+/* ------------ context --------------- */
+
+int wr_json_extend_context(glb* g, parse_parm* pp, void* ctxt) {
+  void* mpool=pp->mpool;
+  void* db=g->db;
+  void *vocab, *part, *key, *value;
+  char *keystr;
+  void *internalidplace, *internalid, *val;
+  //void* oldctxt;
+
+  if (!ctxt || !wg_ispair(db,ctxt) || wg_first(db,ctxt)!=(pp->jsonstruct)) {    
+    return 0;
+  } 
+  // now a struct
+  // first search for @vocab and add this
+  vocab=wg_get_keyval(db,pp->jsonld_vocabkey,ctxt);
+  if (vocab) {   
+    if (!wg_isatom(db,vocab) || wg_atomtype(db,vocab)!=WG_URITYPE || !wg_atomstr1(db,vocab)) {
+      wr_show_parse_error(g,"@vocab value must be a string");      
+      return -1;    
+    }
+    (pp->jsonld_ctxt)=wg_add_assoc(db,mpool,pp->jsonld_vocabkey,vocab,pp->jsonld_ctxt);    
+  }
+  // now vocab is the value of @vocab
+  // loop over all elems of ctxt
+  for(part=wg_rest(db,ctxt); wg_ispair(db,part); part=wg_rest(db,part)) {
+    if (wg_isatom(db,wg_first(db,part)) && wg_rest(db,part) && wg_first(db,wg_rest(db,part))) {
+      key=wg_first(db,part);
+      if (!key || wg_atomtype(db,key)!=WG_URITYPE) {
+        part=wg_rest(db,part);
+        if (!part) break;
+        continue;
+      }
+      keystr=wg_atomstr1(db,key);
+      value=wg_first(db,wg_rest(db,part));
+      if (!keystr || !keystr[0] || (keystr && !strcmp(keystr,"@vocab"))) {
+        part=wg_rest(db,part);
+        if (!part) break;
+        continue;
+      }
+      
+      // here we have a valid key, keystr, value to be used
+      if (wg_ispair(db,value) && wg_first(db,value)==pp->jsonstruct) {
+        internalidplace=wg_get_keystrplace(db,"@id",value);      
+        if (internalidplace && wg_ispair(db,internalidplace)) {
+          internalid=wg_first(db,wg_rest(db,internalidplace));          
+        } else {
+          internalid=NULL;
+        }
+        if (internalid && wg_isatom(db,internalid) && wg_atomtype(db,internalid)==WG_URITYPE) {
+          val=internalid;
+          val=wr_json_expand_list_prefixes(g,pp->mpool,pp,internalid,0);         
+          *((gint*)wg_rest(db,internalidplace))=(gint)val;
+        } else if (internalid) {
+          wr_show_parse_error(g,"wrong type of @id value in @context"); 
+          return -1;
+        }       
+      } else {
+        value=wr_json_expand_list_prefixes(g,pp->mpool,pp,value,0);
+      }
+      (pp->jsonld_ctxt)=wg_add_assoc(db,mpool,key,value,pp->jsonld_ctxt);
+    } 
+    part=wg_rest(db,part);
+    if (!part) break;
+  }  
+  return 0;
+}  
+
+char* wg_modify_keystr_by_ctxt(glb* g, parse_parm* pp, char* buf, int buflen, char* keystr) {
+  void* db=g->db;
+  void *part, *el, *ctxtkey, *vocabstr, *val, *internalid=NULL;
+  char *colptr, *ctxtkeystr, *valstr;
+  int keylen, ctxtkeylen, valstrlen;
+  
+  if (!(pp->jsonld_ctxt) || !keystr) return keystr;
+  if (keystr)
+  keylen=strlen(keystr);
+  colptr=strchr(keystr,':');
+  if (colptr) {
+    // keystr contains colon : can it be expanded?
+    if (*(keystr+1)==':' && ((*(keystr)=='_') || (*(keystr)=='?'))) return keystr;
+    if (*(colptr+1)=='/' && *(colptr+2)=='/') return keystr;
+  }
+
+  for(part=pp->jsonld_ctxt; wg_ispair(db,part); part=wg_rest(db,part)) {
+    el=wg_first(db,part);
+    ctxtkey=wg_first(db,el);   
+    // do not prefix with vocab if keystr contains colon :
+    if (ctxtkey==(pp->jsonld_vocabkey) && !colptr) {         
+      // use vocab as a prefix  
+      vocabstr=wg_atomstr1(db,wg_rest(db,el));
+      if ((keylen+strlen(vocabstr)+10)>buflen) {
+        wr_show_parse_error(g,"@vocab value + key is too long"); 
+        return keystr;
+      }
+      strcpy(buf,vocabstr);
+      strcat(buf,keystr);     
+      return buf;
+    }     
+    ctxtkeystr=wg_atomstr1(db,ctxtkey);    
+    ctxtkeylen=strlen(ctxtkeystr);
+    if (!ctxtkeylen) continue;   
+    val=wg_rest(db,el);
+    if (!val) continue;
+
+    if (wg_ispair(db,val)) {          
+      //internalid=wg_get_keystrval(db,"@id",wg_rest(db,el)); 
+      if (wg_first(db,val)==pp->jsonstruct) {
+        internalid=wg_get_keystrval(db,"@id",val);       
+        if (internalid && wg_isatom(db,internalid) && wg_atomtype(db,internalid)==WG_URITYPE) {
+          val=internalid;
+          //val=wr_json_expand_list_prefixes(g,pp->mpool,pp,internalid,0);
+        } else if (internalid) {
+          wr_show_parse_error(g,"wrong type of @id value in @context"); 
+          return keystr;
+        } else {
+          continue;
+        }       
+      } else {
+        wr_show_parse_error(g,"wrong type of @context value"); 
+        return keystr;
+      }            
+    }
+    valstr=wg_atomstr1(db,val);
+    if (!valstr) continue;
+    valstrlen=strlen(valstr);
+    if (!valstrlen) continue;    
+    // now try to match keystr to the ctxtkeystr
+    if (!strcmp(keystr,ctxtkeystr)) {
+      // exactly matching key found, use value of the key
+      return valstr;
+    }   
+    if (colptr && !internalid && keylen>ctxtkeylen &&
+        !strncmp(keystr,ctxtkeystr,ctxtkeylen) &&
+        *(keystr+ctxtkeylen)==':' &&
+        wg_suitable_context_uri_end(db,*(valstr+valstrlen-1))) {
+      // key matches the before-colon part of the keystr      
+      if ((keylen+valstrlen+10)>buflen) {
+        wr_show_parse_error(g,"@context key value + key is too long"); 
+        return keystr;
+      }
+      strcpy(buf,valstr);
+      strcat(buf,colptr+1);
+      return buf;
+    }      
+  }  
+  return keystr;
+}
+
+int wg_suitable_context_uri_end(void* db, char c) {
+  // https://tools.ietf.org/html/rfc3986#section-2.2
+  // ":" / "/" / "?" / "#" / "[" / "]" / "@"
+  if (c==':') return 1;
+  if (c=='/') return 1;
+  if (c=='?') return 1;
+  if (c=='#') return 1;
+  if (c=='[') return 1;
+  if (c==']') return 1;
+  if (c=='@') return 1;
+  return 0;
+}
+
 
 /* ------------ errors ---------------- */
 

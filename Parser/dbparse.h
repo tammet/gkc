@@ -79,6 +79,7 @@ gint wr_parse_and_encode_otter_uri(glb* g, char *buf);
 gint wr_print_parseres(glb* g, gint x);
 
 void* wr_preprocess_tptp_cnf_clause(glb* g, void* mpool, void* cl);
+int wr_is_parse_var(glb* g,void* ptr);
 void* wr_preprocess_tptp_fof_clause(glb* g, void* mpool, void* cl, void* clname);
 void* wr_process_tptp_import_clause(glb* g, void* mpool, void* cl);
 
