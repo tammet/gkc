@@ -364,6 +364,20 @@ void* wg_mklist4(void* db, void* mpool, void* x1, void* x2, void* x3, void* x4) 
   return wg_mkpair(db,mpool,x1,tmp);
 }
 
+void* wg_mklist5(void* db, void* mpool, void* x1, void* x2, void* x3, void* x4, void* x5) {
+  void* tmp;
+
+  tmp=wg_mkpair(db,mpool,x5,NULL);
+  if (tmp==NULL) return NULL;
+  tmp=wg_mkpair(db,mpool,x4,tmp);
+  if (tmp==NULL) return NULL;
+  tmp=wg_mkpair(db,mpool,x3,tmp);
+  if (tmp==NULL) return NULL;
+  tmp=wg_mkpair(db,mpool,x2,tmp);
+  if (tmp==NULL) return NULL;
+  return wg_mkpair(db,mpool,x1,tmp);
+}
+
 void* wg_appendlist(void* db, void* mpool, void* arg1, void* arg2) {
   void *res1, *res;
 

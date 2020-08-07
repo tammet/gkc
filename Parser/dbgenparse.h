@@ -113,11 +113,14 @@ typedef struct parse_parm_s {
   void* jsonld_typekey;  // set to mpool atom "@type"
   void* jsonld_typerepl; // set to mpool atom "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"  
   void* jsonld_vocabkey;  // set to mpool atom "@vocab"
+  void* jsonld_basekey;  // set to mpool atom "@base"
   int jsonld_blankseed; // seed for json-ld blank random, diff for each doc 
   int jsonld_blankcount; // 0 means none have been made, to be increased each time        
   void* jsonld_blankprefatom; // mpool atom containing id unique prefix for this doc             
   void* jsonld_blanks; // an mpool key-value object of json blank node name and logic value
   void* jsonld_ctxt;  // an mpool key-value object of context elements, used as a stack
+  void* jsonld_base;  // an mpool atom for base of id
+  void* jsonld_graphid;  // an mpool atom for graph id creating $narc
 
   void* nests[PARSE_NESTING_DEPTH]; // stack for pure json parsing
 

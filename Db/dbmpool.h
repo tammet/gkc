@@ -82,6 +82,7 @@ void* wg_mklist1(void* db, void* mpool, void* x1);
 void* wg_mklist2(void* db, void* mpool, void* x1, void* x2);
 void* wg_mklist3(void* db, void* mpool, void* x1, void* x2, void* x3);
 void* wg_mklist4(void* db, void* mpool, void* x1, void* x2, void* x3, void* x4);
+void* wg_mklist5(void* db, void* mpool, void* x1, void* x2, void* x3, void* x4, void* x5);
 void* wg_appendlist(void* db, void* mpool, void* arg1, void* arg2);
 void* wg_reverselist(void* db, void* mpool, void* arg1);
 void* wg_inplace_reverselist(void* db, void* mpool, void* arg1);

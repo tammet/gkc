@@ -49,16 +49,61 @@ int wr_equality_atom(glb* g, gint atom);
 
 int wr_computable_termptr(glb* g, gptr yptr);
 gint wr_compute_from_termptr(glb* g, gptr tptr, int comp);
-gint wr_compute_fun_plus(glb* g, gptr tptr);
+//gint wr_compute_fun_plus(glb* g, gptr tptr);
 gint wr_compute_fun_equal(glb* g, gptr tptr);
-gint wr_compute_fun_less(glb* g, gptr tptr);
+gint wr_compute_fun_equal_terms(glb* g, gint a, gint b, gptr tptr);
+gint wr_compute_fun_lesseq_core(glb* g, gptr tptr, gint ifequal, int isless);
 gint wr_compute_fun_arith2(glb* g, gptr tptr, int comp);
+gint wr_compute_fun_arith1(glb* g, gptr tptr, int comp);
+int wr_uri_is_unique(glb* g, gint fun);
+int wr_uri_is_list(glb* g, gint fun);
+int wr_record_is_list(glb* g, gptr tptr);
+gint wr_compute_fun_list(glb* g, gptr tptr, int opcode);
+
+// two argument predicate funs
 
 #define COMP_FUN_EQUAL 1
 #define COMP_FUN_LESS 3
-#define COMP_FUN_PLUS 1000
-#define COMP_FUN_MINUS 1001
-#define COMP_FUN_MULT 1002
-#define COMP_FUN_DIV 1003
+
+#define COMP_FUN_LESSEQ 4
+#define COMP_FUN_GREATEREQ 5
+#define COMP_FUN_GREATER 6
+
+// two argument computing funs
+
+#define COMP_FUN_PLUS 10
+#define COMP_FUN_MINUS 11
+#define COMP_FUN_MULT 12
+#define COMP_FUN_DIV 13
+#define COMP_FUN_QUOTIENT_E 14
+#define COMP_FUN_QUOTIENT_T 15
+#define COMP_FUN_QUOTIENT_F 16
+#define COMP_FUN_REMAINDER_E 17
+#define COMP_FUN_REMAINDER_T 18
+#define COMP_FUN_REMAINDER_F 19
+
+// single argument predicate funs
+
+#define COMP_FUN_IS_INT 20
+#define COMP_FUN_IS_REAL 21
+#define COMP_FUN_IS_NUMBER 22
+#define COMP_FUN_IS_LIST 23
+#define COMP_FUN_IS_MAP 24
+#define COMP_FUN_IS_ATOM 25
+
+// single argument computing funs
+
+#define COMP_FUN_TO_INT 30
+#define COMP_FUN_TO_REAL 31
+#define COMP_FUN_FLOOR 32
+#define COMP_FUN_CEILING 33
+#define COMP_FUN_TRUNCATE 34
+#define COMP_FUN_ROUND 35
+#define COMP_FUN_UMINUS 36
+
+#define COMP_FUN_FIRST 40
+#define COMP_FUN_REST 41
+
+
 
 #endif

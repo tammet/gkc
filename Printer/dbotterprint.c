@@ -732,7 +732,7 @@ int wr_strprint_atom_otter(glb* g, gint rec, int printlevel,char** buf, int *len
     }       
     if (!wr_str_guarantee_space(g,buf,len,pos+10)) return -1;
     if (g->print_clauses_json) {
-      if (i==(g->unify_firstuseterm))  pos+=snprintf((*buf)+pos,(*len)-pos,",");
+      if (i==(g->unify_firstuseterm) && i+1<clen)  pos+=snprintf((*buf)+pos,(*len)-pos,",");
     } else {
       if (i==(g->unify_firstuseterm))  pos+=snprintf((*buf)+pos,(*len)-pos,"(");
     }     
@@ -1495,6 +1495,9 @@ int wg_print_subfrm_tptp(void* db, void* ptr,int depth,int pflag, int termflag, 
           //pos+=snprintf((*buf)+pos,(*len)-pos,"\'c:%s\'",p);          
         } else if (wg_contains_quote(p)) {            
           pos+=wg_print_quoted(buf,*len,pos,p); 
+        } else if (wg_should_quote(p)) {
+            //printf("\"%s\"",p);
+          pos+=snprintf((*buf)+pos,(*len)-pos,"\'%s\'",p);  
         } else {
           pos+=snprintf((*buf)+pos,(*len)-pos,"%s",p);
         }

@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,6 +43,7 @@ extern "C" {
 
 /* ====== Private headers and defs ======== */
 
+#define LISTPROCESSING
 #define PRINT_LIMITS
 //#define DEBUG
 //#undef DEBUG
@@ -849,16 +851,58 @@ int wr_computable_termptr(glb* g, gptr tptr) {
 #endif
   if (wg_get_encoded_type(g->db,fun)==WG_URITYPE) {    
     str = wg_decode_uri(g->db,fun);
-    if (str[0]=='\0' || str[1]!='\0' || str[0]<42 || str[0]>62) return 0;
-    if (wg_decode_uri_prefix(g->db,fun)!=NULL) return 0;
-    if (str[0]=='=' && str[1]=='\0') return COMP_FUN_EQUAL;
-    if (g->use_comp_arithmetic) {
-      if (str[0]=='<') return COMP_FUN_LESS;
-      else if (str[0]=='+') return COMP_FUN_PLUS;
-      else if (str[0]=='-') return COMP_FUN_MINUS;
-      else if (str[0]=='*') return COMP_FUN_MULT;
-      else if (str[0]=='/') return COMP_FUN_DIV;
-    }      
+    if (*str=='$') {
+      if (str[1]=='a') return 0; // quick elimination of $ans
+      if (g->use_comp_arithmetic) {        
+        if (str[1]=='i') {
+          if (!strcmp(str,"$is_int"))  return COMP_FUN_IS_INT;
+          if (!strcmp(str,"$is_real"))  return COMP_FUN_IS_REAL;
+          if (!strcmp(str,"$is_number"))  return COMP_FUN_IS_NUMBER;
+          if (!strcmp(str,"$is_list"))  return COMP_FUN_IS_LIST;
+          if (!strcmp(str,"$is_map"))  return COMP_FUN_IS_MAP;
+          if (!strcmp(str,"$is_atom"))  return COMP_FUN_IS_ATOM;
+          return 0;
+        }
+        if (!strcmp(str,"$lesseq")) return COMP_FUN_LESSEQ;
+        if (!strcmp(str,"$greatereq"))  return COMP_FUN_GREATEREQ;
+        if (!strcmp(str,"$greater"))  return COMP_FUN_GREATER;
+
+        if (!strcmp(str,"$to_int"))  return COMP_FUN_TO_INT;
+        if (!strcmp(str,"$to_real"))  return COMP_FUN_TO_REAL;
+        if (!strcmp(str,"$floor"))  return COMP_FUN_FLOOR;
+        if (!strcmp(str,"$ceiling"))  return COMP_FUN_CEILING;
+        if (!strcmp(str,"$truncate"))  return COMP_FUN_TRUNCATE;
+        if (!strcmp(str,"$round"))  return COMP_FUN_ROUND;
+        if (!strcmp(str,"$uminus"))  return COMP_FUN_UMINUS;
+
+        if (!strcmp(str,"$first")) return COMP_FUN_FIRST;
+        if (!strcmp(str,"$rest")) return COMP_FUN_REST;
+
+        if (str[1]=='q' && str[2]=='u') {
+          if (!strcmp(str,"$quotient_e"))  return COMP_FUN_QUOTIENT_E;
+          if (!strcmp(str,"$quotient_t"))  return COMP_FUN_QUOTIENT_T;
+          if (!strcmp(str,"$quotient_f"))  return COMP_FUN_QUOTIENT_F;
+          return 0;
+        } else if (str[1]=='r' && str[2]=='e') {
+          if (!strcmp(str,"$remainder"))  return COMP_FUN_REMAINDER_E;
+          if (!strcmp(str,"$remainder_e"))  return COMP_FUN_REMAINDER_E;
+          if (!strcmp(str,"$remainder_t"))  return COMP_FUN_REMAINDER_T;
+          if (!strcmp(str,"$remainder_f"))  return COMP_FUN_REMAINDER_F;
+          return 0;
+        }       
+      }  
+    } else {
+      if (str[0]=='\0' || str[1]!='\0' || str[0]<42 || str[0]>62) return 0;
+      if (wg_decode_uri_prefix(g->db,fun)!=NULL) return 0;
+      if (str[0]=='=' && str[1]=='\0') return COMP_FUN_EQUAL;
+      if (g->use_comp_arithmetic) {
+        if (str[0]=='<') return COMP_FUN_LESS;
+        else if (str[0]=='+') return COMP_FUN_PLUS;
+        else if (str[0]=='-') return COMP_FUN_MINUS;
+        else if (str[0]=='*') return COMP_FUN_MULT;
+        else if (str[0]=='/') return COMP_FUN_DIV;
+      }      
+    }  
   }  
   return 0;  
 }  
@@ -871,16 +915,53 @@ gint wr_compute_from_termptr(glb* g, gptr tptr, int comp) {
       res=wr_compute_fun_equal(g,tptr);
       break;
     case COMP_FUN_LESS:
-      res=wr_compute_fun_less(g,tptr);
+      res=wr_compute_fun_lesseq_core(g,tptr,ACONST_FALSE,1);
       break;
+    case COMP_FUN_LESSEQ:
+      res=wr_compute_fun_lesseq_core(g,tptr,ACONST_TRUE,1);
+      break;  
+    case COMP_FUN_GREATER:
+      res=wr_compute_fun_lesseq_core(g,tptr,ACONST_FALSE,0);
+      break;
+    case COMP_FUN_GREATEREQ:
+      res=wr_compute_fun_lesseq_core(g,tptr,ACONST_TRUE,0);
+      break;  
     case COMP_FUN_PLUS:
     case COMP_FUN_MINUS:
     case COMP_FUN_MULT:
     case COMP_FUN_DIV:
+    case COMP_FUN_QUOTIENT_E:
+    case COMP_FUN_QUOTIENT_T:
+    case COMP_FUN_QUOTIENT_F:
+    case COMP_FUN_REMAINDER_E:
+    case COMP_FUN_REMAINDER_T:
+    case COMP_FUN_REMAINDER_F:
       res=wr_compute_fun_arith2(g,tptr,comp);
       break;
+    case COMP_FUN_IS_INT:
+    case COMP_FUN_IS_REAL:
+    case COMP_FUN_IS_NUMBER:
+    case COMP_FUN_IS_LIST:
+    case COMP_FUN_IS_MAP:
+    case COMP_FUN_IS_ATOM:
+
+    case COMP_FUN_TO_INT:
+    case COMP_FUN_TO_REAL:
+    case COMP_FUN_FLOOR:
+    case COMP_FUN_CEILING:
+    case COMP_FUN_TRUNCATE:
+    case COMP_FUN_ROUND:
+    case COMP_FUN_UMINUS:
+      res=wr_compute_fun_arith1(g,tptr,comp);
+      break;
+    case COMP_FUN_FIRST:  
+      res=wr_compute_fun_list(g,tptr,1);
+      break;
+    case COMP_FUN_REST:  
+      res=wr_compute_fun_list(g,tptr,0);  
+      break;
     default:
-      res=encode_record(g->db,tptr);
+      res=encode_record(g->db,tptr);      
   }
   return res;
 }
@@ -889,31 +970,103 @@ gint wr_compute_from_termptr(glb* g, gptr tptr, int comp) {
 gint wr_compute_fun_equal(glb* g, gptr tptr) {
   void* db=g->db;
   int len;
-  gint a,b;
-  gint atype, btype;
+  gint a,b; 
+  gint res;
     
   len=get_record_len(tptr);
   if (len<(g->unify_firstuseterm)+3) return encode_record(db,tptr);  
   a=tptr[RECORD_HEADER_GINTS+(g->unify_funarg1pos)];
-  b=tptr[RECORD_HEADER_GINTS+(g->unify_funarg2pos)];
+  b=tptr[RECORD_HEADER_GINTS+(g->unify_funarg2pos)];  
+  res=wr_compute_fun_equal_terms(g,a,b,tptr);
+  return res;
+}
+
+
+gint wr_compute_fun_equal_terms(glb* g, gint a, gint b, gptr tptr) {
+  void* db=g->db;
+  gint atype, btype;  
+
+/*    
+  printf("\nwr_compute_fun_equal_terms called on\n");
+  wr_print_term(g,a);
+  printf("\n");  
+  wr_print_term(g,b);
+  printf("\n");
+*/  
   if (wr_equal_term(g,a,b,1)) return ACONST_TRUE;
   // here we have not immediately equal a and b
-
   atype=wg_get_encoded_type(db,a);
   btype=wg_get_encoded_type(db,b);
   if (atype==WG_VARTYPE) return encode_record(db,tptr);
   if (btype==WG_VARTYPE) return encode_record(db,tptr);
   // here we have not equal a and b with non-var types
+#ifdef LISTPROCESSING
+  gint tmp, ael, bel;
+  gptr aptr, bptr;  
+  aptr=rotp(g,a);
+  bptr=rotp(g,b);
+  if        (((btype==WG_INTTYPE) || (btype==WG_DOUBLETYPE)) &&
+             ((atype==WG_RECORDTYPE && wr_record_is_list(g,aptr)) ||
+              (atype==WG_URITYPE && 
+                (wr_uri_is_list(g,a) || wr_uri_is_unique(g,a)) )))  {
+    // number is not equal to a list or nil or unique uri
+    return ACONST_FALSE;
+  } else if (((atype==WG_INTTYPE) || (atype==WG_DOUBLETYPE)) &&            
+             ((btype==WG_RECORDTYPE && wr_record_is_list(g,bptr)) ||
+              (btype==WG_URITYPE && 
+                (wr_uri_is_list(g,b) || wr_uri_is_unique(g,b)) ))) {
+    // number is not equal to a list or nil or unique uri
+    return ACONST_FALSE;  
+  } else if (atype==WG_RECORDTYPE && btype==WG_URITYPE &&
+             ((wr_uri_is_list(g,b) || wr_uri_is_unique(g,b))
+               && wr_record_is_list(g,aptr) )) {              
+    // list is not equal to nil or unique uri           
+    return  ACONST_FALSE;    
+  } else if (btype==WG_RECORDTYPE && atype==WG_URITYPE &&
+             ((wr_uri_is_list(g,a) || wr_uri_is_unique(g,a)) 
+               && wr_record_is_list(g,bptr) )) {
+    // list is not equal to nil or unique uri     
+    return  ACONST_FALSE;     
+  } else if (atype==WG_RECORDTYPE && wr_record_is_list(g,aptr) &&
+             btype==WG_RECORDTYPE && wr_record_is_list(g,bptr) ) {
+    // list equality check       
+    ael=wg_get_field(db,aptr,2);
+    bel=wg_get_field(db,bptr,2);    
+    tmp=wr_compute_fun_equal_terms(g,ael,bel,tptr);
+    if (tmp==ACONST_FALSE) return ACONST_FALSE;
+    if (tmp!=ACONST_TRUE) return tmp;
+    ael=wg_get_field(db,aptr,3);
+    bel=wg_get_field(db,bptr,3);     
+    tmp=wr_compute_fun_equal_terms(g,ael,bel,tptr);
+    if (tmp==ACONST_FALSE) return ACONST_FALSE;
+    if (tmp!=ACONST_TRUE) return tmp;
+    return ACONST_TRUE;
+  } else if (atype==WG_URITYPE && btype==WG_URITYPE &&
+            (wr_uri_is_unique(g,a) || wr_uri_is_list(g,a)) && 
+            (wr_uri_is_unique(g,b) || wr_uri_is_list(g,b)) ) { 
+    // unique uris are not the same at that point in code          
+    return ACONST_FALSE;        
+  } else if (atype==WG_URITYPE || atype==WG_ANONCONSTTYPE || 
+             btype==WG_URITYPE || btype==WG_ANONCONSTTYPE) {         
+    return encode_record(db,tptr);    
+  } else if (atype==WG_RECORDTYPE || atype==WG_URITYPE || atype==WG_ANONCONSTTYPE || 
+             btype==WG_RECORDTYPE || btype==WG_URITYPE || btype==WG_ANONCONSTTYPE)  {         
+    return encode_record(db,tptr);
+  } else {
+    return ACONST_FALSE;
+  }  
+#else  
   if (atype==WG_RECORDTYPE || atype==WG_URITYPE || atype==WG_ANONCONSTTYPE || 
       btype==WG_RECORDTYPE || btype==WG_URITYPE || btype==WG_ANONCONSTTYPE) {
-    return encode_record(db,tptr);
+    return encode_record(db,tptr);    
   } else {
     // direct immediate values were not equal, hence false
     return ACONST_FALSE;
   }    
+#endif  
 }
 
-gint wr_compute_fun_less(glb* g, gptr tptr) {
+gint wr_compute_fun_lesseq_core(glb* g, gptr tptr, gint ifequal, int isless) { 
   void* db=g->db;
   int len;
   gint a,b;
@@ -924,7 +1077,7 @@ gint wr_compute_fun_less(glb* g, gptr tptr) {
   if (len<(g->unify_firstuseterm)+3) return encode_record(db,tptr);  
   a=tptr[RECORD_HEADER_GINTS+(g->unify_funarg1pos)];
   b=tptr[RECORD_HEADER_GINTS+(g->unify_funarg2pos)];
-  if (wr_equal_term(g,a,b,1)) return ACONST_FALSE;
+  if (wr_equal_term(g,a,b,1)) return ifequal;
 
   // here we have not equal a and b 
   atype=wg_get_encoded_type(db,a);
@@ -933,16 +1086,26 @@ gint wr_compute_fun_less(glb* g, gptr tptr) {
   if (btype!=WG_INTTYPE && btype!=WG_DOUBLETYPE) return encode_record(db,tptr);
   if (atype==WG_INTTYPE && btype==WG_INTTYPE) {
     // integer case
-    if (wg_decode_int(db,a) < wg_decode_int(db,b)) return ACONST_TRUE;
-    else return ACONST_FALSE;     
+    if (isless) {
+      if (wg_decode_int(db,a) < wg_decode_int(db,b)) return ACONST_TRUE;
+      else return ACONST_FALSE;
+    } else {
+      if (wg_decode_int(db,a) > wg_decode_int(db,b)) return ACONST_TRUE;
+      else return ACONST_FALSE;
+    }         
   } else { 
     // double case
     if (atype==WG_INTTYPE) ad=(double)(wg_decode_int(db,a));
     else ad=wg_decode_double(db,a);
     if (btype==WG_INTTYPE) bd=(double)(wg_decode_int(db,b));
     else bd=wg_decode_double(db,b);
-    if (ad < bd) return ACONST_TRUE;
-    else return ACONST_FALSE;             
+    if (isless) {
+      if (ad < bd) return ACONST_TRUE;
+      else return ACONST_FALSE; 
+    } else {
+      if (ad > bd) return ACONST_TRUE;
+      else return ACONST_FALSE; 
+    }                  
   }  
 }
 
@@ -951,10 +1114,10 @@ gint wr_compute_fun_arith2(glb* g, gptr tptr, int comp) {
   gint len;
   gint a,b;
   gint atype, btype;
-  gint ri;
+  gint ai,bi,ri;
   double ad,bd,rd;
    
-  //printf("wr_compute_fun_plus called\n");
+  //printf("wr_compute_fun_arith2 called\n");
   len=get_record_len(tptr); 
   if (len<(g->unify_firstuseterm)+3) return encode_record(db,tptr);     
   a=tptr[RECORD_HEADER_GINTS+(g->unify_funarg1pos)];
@@ -976,8 +1139,47 @@ gint wr_compute_fun_arith2(glb* g, gptr tptr, int comp) {
         ri=wg_decode_int(db,a) * wg_decode_int(db,b);
         break;  
       case COMP_FUN_DIV:
-        ri=wg_decode_int(db,a) % wg_decode_int(db,b);
+        bi=wg_decode_int(db,b);
+        if (!bi) return encode_record(db,tptr);
+        ri=wg_decode_int(db,a) / bi;
         break;  
+      case COMP_FUN_QUOTIENT_E:
+        bi=wg_decode_int(db,b);
+        if (!bi) return encode_record(db,tptr);
+        ai=wg_decode_int(db,a);
+        if (bi<0) ri=(gint)floor((double)ai / (double)bi);
+        else ri=(gint)ceil((double)ai / (double)bi);        
+        break;  
+      case COMP_FUN_QUOTIENT_T:
+        bi=wg_decode_int(db,b);
+        if (!bi) return encode_record(db,tptr);
+        ai=wg_decode_int(db,a);
+        ri=(gint)trunc((double)ai / (double)bi);            
+        break;   
+      case COMP_FUN_QUOTIENT_F:
+        bi=wg_decode_int(db,b);
+        if (!bi) return encode_record(db,tptr);
+        ai=wg_decode_int(db,a);
+        ri=(gint)floor((double)ai / (double)bi);            
+        break;   
+      case COMP_FUN_REMAINDER_E:
+        bi=wg_decode_int(db,b);
+        if (!bi) return encode_record(db,tptr);
+        ai=wg_decode_int(db,a);
+        ri=(gint)(ai % bi);                
+        break;  
+      case COMP_FUN_REMAINDER_T:
+        bi=wg_decode_int(db,b);
+        if (!bi) return encode_record(db,tptr);
+        ai=wg_decode_int(db,a);
+        ri=(gint)(ai % bi);                
+        break;   
+      case COMP_FUN_REMAINDER_F:
+        bi=wg_decode_int(db,b);
+        if (!bi) return encode_record(db,tptr);
+        ai=wg_decode_int(db,a);
+        ri=(gint)(ai % bi);                
+        break;      
       default:
         return encode_record(db,tptr);
     }
@@ -999,8 +1201,40 @@ gint wr_compute_fun_arith2(glb* g, gptr tptr, int comp) {
         rd=ad*bd;
         break;  
       case COMP_FUN_DIV:
+        if (bd==0.0) return encode_record(db,tptr);
         rd=ad/bd;
+        break; 
+      case COMP_FUN_QUOTIENT_E:       
+        if (bd==0.0) return encode_record(db,tptr);        
+        if (bd<0) ri=(gint)floor((double)ad / (double)bd);
+        else ri=(gint)ceil((double)ad / (double)bd);
+        return wg_encode_int(db,ri);        
         break;  
+      case COMP_FUN_QUOTIENT_T:        
+        if (bd==0.0) return encode_record(db,tptr);
+        ri=(gint)trunc((double)ad / (double)bd);            
+        return wg_encode_int(db,ri);
+        break;   
+      case COMP_FUN_QUOTIENT_F:
+        if (bd==0.0) return encode_record(db,tptr);       
+        ri=(gint)floor((double)ad / (double)bd);            
+        return wg_encode_int(db,ri);
+        break;  
+      case COMP_FUN_REMAINDER_E:       
+        if (bd==0.0) return encode_record(db,tptr);        
+        ri=(gint)((gint)ad % (gint)bd);        
+        return wg_encode_int(db,ri);        
+        break;  
+      case COMP_FUN_REMAINDER_T:        
+        if (bd==0.0) return encode_record(db,tptr);        
+        ri=(gint)((gint)ad % (gint)bd);             
+        return wg_encode_int(db,ri);
+        break;   
+      case COMP_FUN_REMAINDER_F:
+        if (bd==0.0) return encode_record(db,tptr);        
+        ri=(gint)((gint)ad % (gint)bd);             
+        return wg_encode_int(db,ri);
+        break;      
       default: 
         return encode_record(db,tptr);
     }
@@ -1008,39 +1242,273 @@ gint wr_compute_fun_arith2(glb* g, gptr tptr, int comp) {
   }  
 } 
 
-
-gint wr_compute_fun_plus(glb* g, gptr tptr) {
+gint wr_compute_fun_arith1(glb* g, gptr tptr, int comp) {
   void* db=g->db;
   gint len;
-  gint a,b;
-  gint atype, btype;
+  gint a;
+  gint atype;
   gint ri;
-  double ad,bd,rd;
+  char* str;
+  double rd;
    
-  //printf("wr_compute_fun_plus called\n");
+  //printf("wr_compute_fun_arith1 called\n");
   len=get_record_len(tptr); 
-  if (len<(g->unify_firstuseterm)+3) return encode_record(db,tptr);     
+  if (len<(g->unify_firstuseterm)+2) return encode_record(db,tptr);     
   a=tptr[RECORD_HEADER_GINTS+(g->unify_funarg1pos)];
   atype=wg_get_encoded_type(db,a);
-  if (atype!=WG_INTTYPE && atype!=WG_DOUBLETYPE) return encode_record(db,tptr);
-  b=tptr[RECORD_HEADER_GINTS+(g->unify_funarg2pos)];
-  btype=wg_get_encoded_type(db,b);
-  if (btype!=WG_INTTYPE && btype!=WG_DOUBLETYPE) return encode_record(db,tptr);
-  if (atype==WG_INTTYPE && btype==WG_INTTYPE) {
-    // integer res case
-    ri=wg_decode_int(db,a)+wg_decode_int(db,b);
-    return wg_encode_int(db,ri);    
-  } else { 
-    // double res case
-    if (atype==WG_INTTYPE) ad=(double)(wg_decode_int(db,a));
-    else ad=wg_decode_double(db,a);
-    if (btype==WG_INTTYPE) bd=(double)(wg_decode_int(db,b));
-    else bd=wg_decode_double(db,b);
-    rd=ad+bd;
-    return wg_encode_double(db,rd);        
-  }  
-}  
+  //if (atype!=WG_INTTYPE && atype!=WG_DOUBLETYPE) return encode_record(db,tptr);  
+  if (atype==WG_INTTYPE) {
+    // integer case
+    switch (comp) {
+      case COMP_FUN_IS_INT:
+        return ACONST_TRUE;
+        break;
+      case COMP_FUN_IS_REAL:
+        return ACONST_FALSE;
+        break;  
+      case COMP_FUN_IS_NUMBER:
+        return ACONST_TRUE;
+        break;  
+      case COMP_FUN_IS_LIST:
+        return ACONST_FALSE;
+        break;  
+      case COMP_FUN_IS_MAP:
+        return ACONST_FALSE;
+        break;
+      case COMP_FUN_IS_ATOM:
+        return ACONST_TRUE;
+        break;   
 
+      case COMP_FUN_TO_INT:
+        return a; 
+        //ri=wg_decode_int(db,a); 
+        //return wg_encode_int(db,ri);
+        break;
+      case COMP_FUN_TO_REAL: 
+        ri=wg_decode_int(db,a); 
+        return wg_encode_double(db,(double)ri);
+        break;
+      case COMP_FUN_FLOOR: 
+        return a;
+        //ri=wg_decode_int(db,a); 
+        //return wg_encode_int(db,ri);
+        break;
+      case COMP_FUN_CEILING: 
+        return a;
+        //ri=wg_decode_int(db,a); 
+        //return wg_encode_int(db,ri);
+        break;
+      case COMP_FUN_TRUNCATE: 
+        return a;
+        //ri=wg_decode_int(db,a); 
+        //return wg_encode_int(db,ri);
+        break;
+      case COMP_FUN_ROUND: 
+        return a;
+        //ri=wg_decode_int(db,a); 
+        //return wg_encode_int(db,ri);
+        break;          
+      case COMP_FUN_UMINUS: 
+        ri=wg_decode_int(db,a); 
+        return wg_encode_int(db,0-ri);
+        break;   
+      default:
+        return encode_record(db,tptr);
+    }        
+  } else if (atype==WG_DOUBLETYPE) { 
+    // double res case    
+    switch (comp) {
+      case COMP_FUN_IS_INT:
+        return ACONST_FALSE;
+        break;
+      case COMP_FUN_IS_REAL:
+        return ACONST_TRUE;
+        break;  
+      case COMP_FUN_IS_NUMBER:
+        return ACONST_TRUE;
+        break;  
+      case COMP_FUN_IS_LIST:
+        return ACONST_FALSE;
+        break;  
+      case COMP_FUN_IS_MAP:
+        return ACONST_FALSE;
+        break;
+      case COMP_FUN_IS_ATOM:
+        return ACONST_TRUE;
+        break;   
+
+      case COMP_FUN_TO_INT:         
+        rd=wg_decode_double(db,a); 
+        return wg_encode_int(db,(gint)(floor(rd)));
+        break;
+      case COMP_FUN_TO_REAL:
+        return a; 
+        //ri=wg_decode_int(db,a); 
+        //return wg_encode_double(db,(double)ri);
+        break;
+      case COMP_FUN_FLOOR: 
+        rd=wg_decode_double(db,a); 
+        return wg_encode_int(db,(gint)(floor(rd)));
+        break;
+      case COMP_FUN_CEILING: 
+        rd=wg_decode_double(db,a); 
+        return wg_encode_int(db,(gint)(ceil(rd)));
+        //ri=wg_decode_int(db,a); 
+        //return wg_encode_int(db,ri);
+        break;
+      case COMP_FUN_TRUNCATE: 
+        rd=wg_decode_double(db,a); 
+        return wg_encode_int(db,(gint)(trunc(rd)));
+        //ri=wg_decode_int(db,a); 
+        //return wg_encode_int(db,ri);
+        break;
+      case COMP_FUN_ROUND: 
+        rd=wg_decode_double(db,a); 
+        return wg_encode_int(db,(gint)(round(rd)));
+        //ri=wg_decode_int(db,a); 
+        //return wg_encode_int(db,ri);
+        break;          
+      case COMP_FUN_UMINUS: 
+        rd=wg_decode_double(db,a);  
+        return wg_encode_double(db,0-rd);
+        break;   
+      default:
+        return encode_record(db,tptr);
+    }               
+  } else if (atype==WG_RECORDTYPE) {
+    switch (comp) {
+      /*
+      case COMP_FUN_ISATOM:          
+        return ACONST_FALSE;
+        break;
+      */  
+      case COMP_FUN_IS_LIST:
+        return wr_compute_fun_list(g,tptr,2);        
+        break;
+      case COMP_FUN_FIRST:         
+        return wr_compute_fun_list(g,tptr,1);        
+        break;
+      case COMP_FUN_REST:         
+        return wr_compute_fun_list(g,tptr,0);        
+        break;    
+    }
+  } else if  (atype==WG_URITYPE) {
+    switch (comp) {
+      case COMP_FUN_IS_ATOM:          
+        return ACONST_TRUE; 
+        break;
+      case COMP_FUN_IS_LIST:
+        str=wg_decode_uri(db,a);  
+        if (str && 
+            str[0]=='$' && str[1]=='n' && str[2]=='i' && str[3]=='l' &&
+            str[4]=='\0')         
+          return ACONST_TRUE; 
+        break;                
+    }  
+  }   
+  /*     
+  } else if (atype==WG_VARTYPE) {
+    switch (comp) {
+      case COMP_FUN_ISATOM:          
+        return ACONST_FALSE;       
+    }    
+  } else if (comp==COMP_FUN_ISATOM) {
+    return ACONST_TRUE;
+  } 
+  */ 
+  return encode_record(db,tptr);  
+} 
+
+int wr_uri_is_unique(glb* g, gint fun) {
+  char* funstr;
+  
+  funstr=wg_decode_uri(g->db,fun);    
+  if (funstr &&
+      funstr[0]=='#' && funstr[1]==':') 
+    return 1;
+  else
+    return 0;
+} 
+   
+int wr_uri_is_list(glb* g, gint fun) {
+  char* funstr;
+  
+  funstr=wg_decode_uri(g->db,fun);    
+  if (funstr &&
+      funstr[0]=='$' && funstr[1]=='n' && funstr[2]=='i' && funstr[3]=='l' &&
+      funstr[4]=='\0') 
+    return 1;
+  else
+    return 0;     
+}
+
+
+int wr_record_is_list(glb* g, gptr tptr) {
+  void* db=g->db;
+  int len;
+  gint fun;
+  gint funtype;
+  char* funstr;
+  
+  len=get_record_len(tptr); 
+  if (len!=(g->unify_firstuseterm)+3) return 0;  // wrong nr of args to $list
+  //fun=aptr[RECORD_HEADER_GINTS+(g->unify_funarg1pos)+1]; 
+  fun=wg_get_field(db, tptr, 1);      
+  // fun should be $list
+  funtype=wg_get_encoded_type(db,fun);     
+  if (funtype!=WG_URITYPE)  return 0;
+  funstr=wg_decode_uri(db,fun);   
+  if (funstr &&
+      funstr[0]=='$' && funstr[1]=='l' && funstr[2]=='i' && funstr[3]=='s' &&
+      funstr[4]=='t' && funstr[5]=='\0') 
+    return 1;
+  else
+    return 0;     
+}
+
+gint wr_compute_fun_list(glb* g, gptr tptr, int opcode) {
+  void* db=g->db;
+  int len;
+  gint a,fun;
+  gint funtype,res;
+  gptr aptr;
+  char* funstr;
+    
+  // tptr should be $first($list(x,y))   
+  len=get_record_len(tptr);
+  if (len!=(g->unify_firstuseterm)+2) return encode_record(db,tptr);  // wrong nr of args to $first
+  a=tptr[RECORD_HEADER_GINTS+(g->unify_funarg1pos)]; 
+  //a=wg_get_field(db, tptr, 1);  
+  if (!isdatarec(a)) return encode_record(db,tptr);  
+  // a is indeed a function term 
+  aptr=rotp(g,a);
+  len=get_record_len(aptr); 
+  if (len!=(g->unify_firstuseterm)+3) return encode_record(db,tptr);  // wrong nr of args to $list
+  //fun=aptr[RECORD_HEADER_GINTS+(g->unify_funarg1pos)+1]; 
+  fun=wg_get_field(db, aptr, 1);      
+  // fun should be $list
+  funtype=wg_get_encoded_type(db,fun);     
+  if (funtype!=WG_URITYPE)  return encode_record(db,tptr);
+  funstr=wg_decode_uri(db,fun);   
+  if (funstr[0]=='$' && funstr[1]=='l' && funstr[2]=='i' && funstr[3]=='s' &&
+      funstr[4]=='t' && funstr[5]=='\0') { 
+    if (opcode==1) {
+      //res=aptr[RECORD_HEADER_GINTS+(g->unify_funarg1pos)+1];     
+      res=wg_get_field(db, aptr, 2);
+      return res;
+    } else if (opcode==0) {
+      res=wg_get_field(db, aptr, 3);
+      res=aptr[RECORD_HEADER_GINTS+(g->unify_funarg1pos)+1];   
+    } else if (opcode==2) {
+      return ACONST_TRUE;
+    } else {
+      return encode_record(db,tptr);
+    }
+    return res;  
+  } else {
+    return encode_record(db,tptr);
+  }
+}
 
 
 #ifdef __slusplus

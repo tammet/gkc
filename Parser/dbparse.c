@@ -844,6 +844,10 @@ int wr_is_parse_var(glb* g,void* ptr) {
   
   if (!wg_isatom(db,ptr) || wg_atomtype(db,ptr)!=WG_URITYPE) return 0;
   s=wg_atomstr1(db,ptr);
+  return wr_is_parse_varstr(g,s);  
+}
+
+int wr_is_parse_varstr(glb* g, char* s) {
   if ((*s)=='\0') return 0;
   if (*s >= 'A' && *s <= 'Z') return 1; 
   if (*s == '?') return 1;     

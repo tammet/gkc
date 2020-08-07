@@ -57,6 +57,10 @@
 
 #define UNUSED(x) (void)(x);
 
+//#define EXPAND_JSONLD_KEYS
+#define EXPAND_JSONLD_TERMS
+#define EXPAND_JSONLD_LISTKEYS
+
 #define MARK_IMPORTED_NAMES
 //#define IMPORTED_NAME_PREFIX "$imp_"
 
@@ -261,11 +265,13 @@ int wr_import_js_file(glb* g, char* filename, char* strasfile, cvec clvec, int i
   pp.jsonld_typerepl=wg_mkatom(db,mpool,WG_URITYPE,
                     "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",NULL);  
   pp.jsonld_vocabkey=wg_mkatom(db,mpool,WG_URITYPE,"@vocab",NULL);                                        
+  pp.jsonld_basekey=wg_mkatom(db,mpool,WG_URITYPE,"@base",NULL);  
   pp.jsonld_blankseed=1;
   pp.jsonld_blankcount=0;
   pp.jsonld_blankprefatom=wg_mkatom(db,mpool,WG_URITYPE,"upref",NULL); 
   pp.jsonld_blanks=wg_mkpair(db,mpool,pp.jsonstruct,NULL);
   pp.jsonld_ctxt=NULL;
+  pp.jsonld_graphid=NULL;
 
   for(i=0;i<PARSE_NESTING_DEPTH;i++) {
     pp.nests[i]=NULL;
@@ -1047,6 +1053,7 @@ void* wr_process_json_formula(glb* g,parse_parm* pp, void* cl, int isincluded) {
     pp->nullvarsnr=0;
     pp->boundvars=NULL;
     pp->jsonld_ctxt=NULL;
+    pp->jsonld_base=NULL;
   }
   name=NULL;
   role=NULL;
@@ -1253,7 +1260,9 @@ void* wr_process_json_formula(glb* g,parse_parm* pp, void* cl, int isincluded) {
     } else {
       bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,"fof(%s,%s,",namestr,rolestr);
     }  
-    wg_expand_frm_for_print(db,mpool,preres); 
+    wg_expand_frm_for_print(db,mpool,preres);
+    wg_mpool_print(db,preres);
+    printf("\n"); 
     bpos=wg_print_frm_tptp(db,wg_nth(db,preres,3),&(g->tmp_printbuf),&blen,bpos); 
     if (!wr_str_guarantee_space(g,&(g->tmp_printbuf),&blen,bpos+100)) {
       if (g->tmp_printbuf) wr_free(g,(g->tmp_printbuf));
@@ -1395,7 +1404,27 @@ void* wr_process_json_formula_aux(glb* g, parse_parm* pp, void* cl) {
         head=wr_process_json_term(g,pp,head,0,1);
         r2el=wr_process_json_term(g,pp,wg_first(db,r2),0,2);
         preres=wg_mklist3(db,mpool,r1el,head,r2el);
-      }                            
+      }  
+    /*  
+    } else if (!strcmp(wg_atomstr1(db,r1el),"+") && head && wg_ispair(db,r2)) {      
+      str=wg_atomstr1(db,r1el);
+      if (*str!='=') {
+        // not a positive equality, hence negative
+        head=wr_process_json_term(g,pp,head,0,1);
+        r2el=wr_process_json_term(g,pp,wg_first(db,r2),0,2);
+        preres=wg_mklist2(db,mpool,
+                wg_makelogneg(db,mpool), 
+                wg_mklist3(db,mpool,
+                  wg_makeatomeq(db,mpool),
+                  head,
+                  r2el));
+      } else {
+        // a positive equality
+        head=wr_process_json_term(g,pp,head,0,1);
+        r2el=wr_process_json_term(g,pp,wg_first(db,r2),0,2);
+        preres=wg_mklist3(db,mpool,r1el,head,r2el);
+      }                              
+    */  
     } else if (wg_isatom(db,head) &&
                (!strcmp("not",wg_atomstr1(db,head)) ||
                 !strcmp("-",wg_atomstr1(db,head)) ||
@@ -1516,11 +1545,17 @@ void* wr_process_json_formula_struct(glb* g, parse_parm* pp,
   void *part, *tmp, *key, *keyval;
   void *origid, *id=NULL;
   void* extended=NULL;
-  void *name, *role, *logic, *question, *ctxt;
-  int buflen=1000;
-  char *modkeystr;
+  void *name, *role, *logic, *graph, *question, *ctxt;
   int tmpval;
+  void *graphel, *resultclause;
+  int foundkey;
+  gint array[12];
+  
+#ifdef EXPAND_JSONLD_KEYS   
+  char *modkeystr;
+  int buflen=1000;
   char keybuf[1000];
+#endif  
 
 
 #ifdef DEBUG 
@@ -1532,10 +1567,10 @@ void* wr_process_json_formula_struct(glb* g, parse_parm* pp,
   if (!wg_rest(db,cl)) return NULL;
   // cl must be keyval
   // find id if present
-  origid=wg_get_keystrval(db,"@id",cl); 
-  if (origid) id=wr_json_mkid(db,mpool,pp,origid);
+  origid=wg_get_keystrval(db,"@id",cl);   
   name=wg_get_keystrval(db,"@name",cl);
   role=wg_get_keystrval(db,"@role",cl);
+  graph=wg_get_keystrval(db,"@graph",cl);
   logic=wg_get_keystrval(db,"@logic",cl);
   question=wg_get_keystrval(db,"@question",cl);
   if ((role || question) && !(pp->parse_top_level)) {
@@ -1544,11 +1579,30 @@ void* wr_process_json_formula_struct(glb* g, parse_parm* pp,
   }
   // get and process context
   ctxt=wg_get_keystrval(db,"@context",cl); 
-  tmpval=wr_json_extend_context(g,pp,ctxt);
+  tmpval=wr_json_extend_context(g,pp,ctxt);  
   if (tmpval<0) return NULL; // error in context
+  if (origid) id=wr_json_mkid(db,mpool,pp,origid,NULL);
+  foundkey=0;
+  if (graph && !origid) {
+    // detect if there are keys    
+    for (part=wg_rest(db,cl); part!=NULL; part=wg_rest(db,part)) {
+      key=wg_first(db,part);
+      keystr=wg_atomstr1(db,key);
+      if (key && !(wr_json_special_keystr(g, keystr))) {
+        foundkey=1;
+        break;
+      }      
+      part=wg_rest(db,part);
+      continue;
+    }      
+  }
   // loop over all keys
   for(part=wg_rest(db,cl); wg_ispair(db,part); part=wg_rest(db,part)) {
     key=wg_first(db,part);
+    if (!wg_isatom(db,key) || wg_atomtype(db,key)!=WG_URITYPE) {
+      part=wg_rest(db,part);
+      continue;
+    }  
     tmp=wg_rest(db,part);
     keystr=wg_atomstr1(db,key);
     if (wg_ispair(db,tmp)) {
@@ -1559,22 +1613,43 @@ void* wr_process_json_formula_struct(glb* g, parse_parm* pp,
     // here we have keystr and keyval
     if (!(wr_json_special_keystr(g, keystr))) {
       // normal key, not a special @-prefixed key
+#ifdef EXPAND_JSONLD_KEYS      
       modkeystr=wg_modify_keystr_by_ctxt(g,pp,keybuf,buflen,keystr);
       if (modkeystr!=keystr) {
         if (!modkeystr) keystr=keybuf;
         else keystr=modkeystr;
-      }  
+      } 
+#endif       
       if (!id) {               
-        id=wr_json_mkid(db,mpool,pp,origid);      
+        id=wr_json_mkid(db,mpool,pp,origid,NULL);      
       }  
       extended=wr_add_struct_key_atoms(g,pp,id,keystr,keyval,extended);        
     } else if (!strcmp("@type",keystr)) {
       if (!id) {               
-        id=wr_json_mkid(db,mpool,pp,origid);      
+        id=wr_json_mkid(db,mpool,pp,origid,NULL);      
       }       
+#ifdef EXPAND_JSONLD_KEYS       
       keyval=wr_json_expand_list_prefixes(g,mpool,pp,keyval,0);      
+#endif      
       extended=wr_add_struct_key_atoms(g,pp,id,
           wg_atomstr1(db,pp->jsonld_typerepl),keyval,extended);
+    } else if (!strcmp("@graph",keystr)) {
+      if (origid || foundkey) {
+        if (!id) {               
+          id=wr_json_mkid(db,mpool,pp,origid,NULL);      
+        }         
+      }        
+      for (part=keyval; part!=NULL; part=wg_rest(db,part)) {
+        graphel=wg_first(db,part);
+        //tmpval=(pp->parse_top_level);
+        wr_json_push_context(g,pp,array);
+        (pp->parse_top_level)=0;
+        (pp->jsonld_graphid)=id;
+        resultclause=wr_process_json_formula(g,pp,graphel,1);   
+        wr_json_pop_context(g,pp,array);
+        //(pp->parse_top_level)=tmpval;
+        extended=wr_json_add_with_and(g,pp,resultclause,extended);       
+      }      
     }
     // continue to next key
     if (wg_ispair(db,tmp)) {
@@ -1643,17 +1718,10 @@ void* wr_add_struct_key_atoms(glb* g, parse_parm* pp,
   void* mpool=pp->mpool;
   void* db=g->db;
   void *el, *atom, *part, *list, *value, *neworigid, *newid, *resultclause;
-  void *res1;
-  int tmp;
-
-  char* tmp_formulaname;
-  char* tmp_formularole;
-  void* tmp_freevars;
-  int tmp_freevarsnr;
-  void* tmp_nullvars;
-  int tmp_nullvarsnr;
-  void* tmp_boundvars;
-  void* tmp_ctxt;
+  void *res1; 
+  char* valstr;
+  void* modvalue=NULL;
+  gint array[12];
 
 
 #ifdef DEBUG 
@@ -1663,14 +1731,42 @@ void* wr_add_struct_key_atoms(glb* g, parse_parm* pp,
   wg_mpool_print(db,id);
   printf("\n");
 #endif
-
   if (!wg_ispair(db,values)) {
     // simple value
+    if (values==pp->jsonnull) {
+      /*
+      modvalue=wr_json_make_nullvar(g,pp);
+      if (!modvalue) return extended;
+      pp->nullvars=wg_mkpair(db,mpool,modvalue,pp->nullvars);
+      atom=wg_mklist4(db,mpool,
+        wg_mkatom(db,mpool,WG_URITYPE,MPOOL_JSON_ARC,NULL),
+        id,
+        wg_mkatom(db,mpool,WG_URITYPE,keystr,NULL),       
+        modvalue);   
+      extended=wr_json_add_with_and(g,pp,atom,extended);  
+      */
+      return extended;
+    }  
+    if (values && wg_atomtype(db,values)==WG_URITYPE) {                  
+      if (wr_json_isvar(g,pp,values)) {
+        modvalue=values;
+      } else {
+        valstr=wg_atomstr1(db,values);
+        modvalue=wg_mkatom(db,mpool,WG_ANONCONSTTYPE,valstr,NULL);
+      }  
+    } else {
+      modvalue=values;
+    }  
+    atom=wr_json_mkarc(db,pp,
+        id,wg_mkatom(db,mpool,WG_URITYPE,keystr,NULL),modvalue);
+    /*    
     atom=wg_mklist4(db,mpool,
       wg_mkatom(db,mpool,WG_URITYPE,MPOOL_JSON_ARC,NULL),
       id,
       wg_mkatom(db,mpool,WG_URITYPE,keystr,NULL),
-      values);   
+      //values);
+      modvalue);   
+    */  
     extended=wr_json_add_with_and(g,pp,atom,extended);  
     //extended=wg_mkpair(db,mpool,atom,extended);
   } else if (wg_first(db,values)==(pp->jsonstruct)) {
@@ -1680,48 +1776,69 @@ void* wr_add_struct_key_atoms(glb* g, parse_parm* pp,
     list=wg_get_keystrval(db, "@list", values);
     if (!list) list=wg_get_keystrval(db, "@set", values);
     value=wg_get_keystrval(db, "@value", values);
+    if (value && wg_atomtype(db,value)==WG_URITYPE) {
+      valstr=wg_atomstr1(db,value);
+      modvalue=wg_mkatom(db,mpool,WG_ANONCONSTTYPE,valstr,NULL);
+    } else {
+      modvalue=value;
+    } 
     if (list) {
       // list structure case
       if (wg_isatom(db,list) && !strcmp("$nil",wg_atomstr1(db,list)))
         res1=list;
       else
         res1=wr_process_json_list(g,pp,list);
+      atom=wr_json_mkarc(db,pp,
+        id,wg_mkatom(db,mpool,WG_URITYPE,keystr,NULL),res1);
+      /*    
       atom=wg_mklist4(db,mpool,
         wg_mkatom(db,mpool,WG_URITYPE,MPOOL_JSON_ARC,NULL),
         id,
         wg_mkatom(db,mpool,WG_URITYPE,keystr,NULL),
         res1);   
+      */  
       extended=wr_json_add_with_and(g,pp,atom,extended);  
-    } else if (value) {
+    } else if (modvalue) {
       // @value object
+      atom=wr_json_mkarc(db,pp,
+        id,wg_mkatom(db,mpool,WG_URITYPE,keystr,NULL),modvalue);
+      /*  
       atom=wg_mklist4(db,mpool,
         wg_mkatom(db,mpool,WG_URITYPE,MPOOL_JSON_ARC,NULL),
         id,
         wg_mkatom(db,mpool,WG_URITYPE,keystr,NULL),
-        value);   
+        modvalue);   
+      */  
       extended=wr_json_add_with_and(g,pp,atom,extended);   
     } else {
       // nested structure case
       neworigid=wg_get_keystrval(db,"@id",values); 
       if (neworigid) {
-        newid=wr_json_mkid(db,mpool,pp,neworigid); //neworigid;         
+        newid=wr_json_mkid(db,mpool,pp,neworigid,values); //neworigid;         
       } else {
-        newid=wr_json_mkid(db,mpool,pp,NULL);     
+        newid=wr_json_mkid(db,mpool,pp,NULL,NULL);     
         values=wr_add_keyval_jsstruct(g,pp, 
           wg_mkatom(db,mpool,WG_URITYPE,"@id",NULL),
           newid,
           values);
       }  
+      atom=wr_json_mkarc(db,pp,
+        id,wg_mkatom(db,mpool,WG_URITYPE,keystr,NULL),newid);
+      /*  
       atom=wg_mklist4(db,mpool,
         wg_mkatom(db,mpool,WG_URITYPE,MPOOL_JSON_ARC,NULL),
         id,
         wg_mkatom(db,mpool,WG_URITYPE,keystr,NULL),
         newid);    
+      */  
       res1=wr_json_add_with_and(g,pp,atom,extended); 
       //res1=wg_mkpair(db,mpool,atom,extended); 
-      tmp=pp->parse_top_level;    
-      pp->parse_top_level=0;
+      
+      //tmp=pp->parse_top_level;    
+      //pp->parse_top_level=0;
     
+      wr_json_push_context(g,pp,array);
+      /*
       tmp_formulaname=pp->formulaname;
       tmp_formularole=pp->formularole;
       tmp_freevars=pp->freevars;
@@ -1730,9 +1847,12 @@ void* wr_add_struct_key_atoms(glb* g, parse_parm* pp,
       tmp_nullvarsnr=pp->nullvarsnr;
       tmp_boundvars=pp->boundvars;
       tmp_ctxt=pp->jsonld_ctxt;
-
-      resultclause=wr_process_json_formula(g,pp,values,0);     
-
+      tmp_base=pp->jsonld_base;
+      */
+      pp->parse_top_level=0;
+      resultclause=wr_process_json_formula(g,pp,values,0);    
+      wr_json_pop_context(g,pp,array); 
+      /*
       pp->formulaname=tmp_formulaname;
       pp->formularole=tmp_formularole;
       pp->freevars=tmp_freevars;
@@ -1741,8 +1861,9 @@ void* wr_add_struct_key_atoms(glb* g, parse_parm* pp,
       pp->nullvarsnr=tmp_nullvarsnr;
       pp->boundvars=tmp_boundvars;     
       pp->jsonld_ctxt=tmp_ctxt;
-
-      pp->parse_top_level=tmp;  
+      pp->jsonld_base=tmp_base;
+      */
+      //pp->parse_top_level=tmp;  
 
 
       if (resultclause){        
@@ -1768,6 +1889,49 @@ void* wr_add_struct_key_atoms(glb* g, parse_parm* pp,
   return extended;
 }
 
+void* wr_json_mkarc(glb* g, parse_parm *pp, void* id, void* pred, void* obj) {
+  void* res;
+  
+  if (pp->jsonld_graphid) {
+    res=wg_mklist5(g->db,pp->mpool,
+          wg_mkatom(g->db,pp->mpool,WG_URITYPE,MPOOL_JSON_NARC,NULL),
+          id, pred, obj, pp->jsonld_graphid);
+  } else {  
+    res=wg_mklist4(g->db,pp->mpool,
+          wg_mkatom(g->db,pp->mpool,WG_URITYPE,MPOOL_JSON_ARC,NULL),
+          id, pred, obj);
+  }
+  return res;      
+}
+
+void wr_json_push_context(glb* g, parse_parm *pp, gint* array) {
+  *(array+0)=(gint)(pp->formulaname);
+  *(array+1)=(gint)(pp->formularole);
+  *(array+2)=(gint)(pp->freevars);
+  *(array+3)=(gint)(pp->freevarsnr);
+  *(array+4)=(gint)(pp->nullvars);
+  *(array+5)=(gint)(pp->nullvarsnr);
+  *(array+6)=(gint)(pp->boundvars);
+  *(array+7)=(gint)(pp->jsonld_ctxt);
+  *(array+8)=(gint)(pp->jsonld_base);
+  *(array+9)=(gint)(pp->parse_top_level);
+  *(array+10)=(gint)(pp->jsonld_graphid);
+}
+
+void wr_json_pop_context(glb* g, parse_parm *pp, gint* array) {
+  (pp->formulaname)=(char*)*(array+0);
+  (pp->formularole)=(char*)*(array+1);
+  (pp->freevars)=(void*)*(array+2);
+  (pp->freevarsnr)=(int)*(array+3);
+  (pp->nullvars)=(void*)*(array+4);
+  (pp->nullvarsnr)=(int)*(array+5);
+  (pp->boundvars)=(void*)*(array+6);
+  (pp->jsonld_ctxt)=(void*)*(array+7);
+  (pp->jsonld_base)=(void*)*(array+8);
+  (pp->parse_top_level)=(int)*(array+9);
+  (pp->jsonld_graphid)=(void*)*(array+10);
+}
+
 void* wr_json_expand_list_prefixes(glb* g, void* mpool, parse_parm* pp, void* lst, int depth) {
   void* db=g->db;
   void* res=NULL;
@@ -1782,6 +1946,7 @@ void* wr_json_expand_list_prefixes(glb* g, void* mpool, parse_parm* pp, void* ls
     // lst is an atom, not a real list
     if (wg_atomtype(db,lst)==WG_URITYPE) {
       keyval=lst;
+#ifdef EXPAND_JSONLD_LISTKEYS      
       valstr=wg_atomstr1(db,lst);
       modvalstr=wg_modify_keystr_by_ctxt(g,pp,keybuf,buflen,valstr);
       if (modvalstr!=valstr) {
@@ -1789,6 +1954,7 @@ void* wr_json_expand_list_prefixes(glb* g, void* mpool, parse_parm* pp, void* ls
         else valstr=modvalstr;
         keyval=wg_mkatom(db,mpool,WG_URITYPE,valstr,NULL);          
       } 
+#endif      
       return keyval;
     } else {
       return lst;
@@ -1804,25 +1970,71 @@ void* wr_json_expand_list_prefixes(glb* g, void* mpool, parse_parm* pp, void* ls
 }
      
 
-void* wr_json_mkid(glb* g, void* mpool, parse_parm* pp, void* givenid) {
+void* wr_json_mkid(glb* g, void* mpool, parse_parm* pp, void* givenid, void* map) {
   void* db=g->db;
   void* res;
-  char* str;
+  char *str, *basestr;
+  void *base, *tmp;
   //void* ids=pp->jsonld_blanks;
   //int bpos;
-  char buf[300];
-  
+  int len;
+  int buflen=1000;
+  char buf[1000];
+  /*
+  printf("\n base \n");
+  wg_mpool_print(db,pp->jsonld_base);
+  printf("\n");
+  */
   if (givenid) {    
     str=wg_atomstr1(g->db,givenid);
     if (!str) return NULL;
-    if (0) { //(*str=='_' && *(str+1)==':') {
+    if (*str=='_' && *(str+1)==':') {
       // blank node
+      res=givenid;
+      /*
       if (strlen(str)>280) return NULL;
       sprintf(buf,"%s_%s",str,wg_atomstr1(db,pp->jsonld_blankprefatom));      
-      res=wg_mkatom(db,mpool,WG_URITYPE,buf,NULL);  
-    } else {
-      // not a blank node
+      res=wg_mkatom(db,mpool,WG_ANONCONSTTYPE,buf,NULL);  
+      */
+    } else if (wr_json_isvar(g,pp,givenid)) {
       res=givenid;
+    } else {
+      // not a blank node or a var
+      base=pp->jsonld_base; // default base
+      if (map) {
+        // try to use the new map to get base
+        tmp=wg_get_keystrval(db,"@context",map);
+        if (tmp && wg_ispair(db,tmp)) {
+          tmp=wg_get_keystrval(db,"@base",tmp);
+          if (tmp) {
+            // now use the new base
+            base=tmp;
+          }  
+        }
+      }             
+      // try to use base   
+      if (base && wg_isatom(db,base) &&
+          wg_atomtype(db,base)==WG_URITYPE &&
+          wg_atomstr1(db,base)) {
+        // try to use base    
+        basestr=wg_atomstr1(db,base);    
+        len=strlen(basestr);
+        if (wr_json_is_expandable_uristr(g,str) &&
+            len &&  wg_suitable_context_uri_end(db,*(basestr+len-1))) {               
+          if ((len+strlen(str)+10)>buflen) {
+            wr_show_parse_error(g,"@base key value + key is too long"); 
+            return wg_mkatom(db,mpool,WG_ANONCONSTTYPE,buf,NULL);
+          }
+          strcpy(buf,basestr);
+          strcat(buf,str);         
+          res=wg_mkatom(db,mpool,WG_ANONCONSTTYPE,buf,NULL);
+        } else {
+          res=wg_mkatom(db,mpool,WG_ANONCONSTTYPE,str,NULL);
+        }  
+      } else {                 
+        // no base
+        res=wg_mkatom(db,mpool,WG_ANONCONSTTYPE,str,NULL); 
+      }  
     }
   } else {    
     // NULL givenid, make a new one
@@ -1830,7 +2042,7 @@ void* wr_json_mkid(glb* g, void* mpool, parse_parm* pp, void* givenid) {
       //wg_atomstr1(db,pp->jsonld_blankprefatom),
       pp->jsonld_blankseed);
     (pp->jsonld_blankseed)++;
-    res=wg_mkatom(db,mpool,WG_URITYPE,buf,NULL);                 
+    res=wg_mkatom(db,mpool,WG_ANONCONSTTYPE,buf,NULL);                 
   }  
   return res;
 }
@@ -1849,12 +2061,56 @@ int wr_json_special_keystr(glb* g, char* keystr) {
   if (!strcmp(keystr,"@list")) return 1;
   if (!strcmp(keystr,"@set")) return 1;
   if (!strcmp(keystr,"@context")) return 1; 
+  if (!strcmp(keystr,"@graph")) return 1; 
   if (!strcmp(keystr,"@name")) return 1;
   if (!strcmp(keystr,"@role")) return 1;
   if (!strcmp(keystr,"@logic")) return 1; 
   return 0;
 }
 
+int wr_json_special_logicstr(glb* g, char* keystr) {
+  int len;
+
+  if (!keystr) return 1;  
+  len=strlen(keystr);
+  if (!len) return 1;      
+  if (*keystr=='?' && *(keystr+1)==':') return 1;
+  if (*keystr=='_' && *(keystr+1)==':') return 1;
+  if (len>10) return 0; 
+  if (!strcmp(keystr,"=")) return 1;
+  if (!strcmp(keystr,"$arc")) return 1; 
+  if (!strcmp(keystr,"$narc")) return 1; 
+  if (!strcmp(keystr,"$ans")) return 1; 
+  if (!strcmp(keystr,"$list")) return 1;
+  if (!strcmp(keystr,"$first")) return 1;
+  if (!strcmp(keystr,"$rest")) return 1;  
+  return 0;
+}
+
+
+int wr_json_freevarstr(glb* g, char* keystr) {
+  int len;
+
+  if (!keystr) return 0;  
+  len=strlen(keystr);
+  if (!len) return 0;   
+  if (*keystr=='?' && *(keystr+1)==':') return 1;
+  //if (*keystr=='_' && *(keystr+1)==':') return 1; 
+  return 0;
+}
+
+int wr_json_isvar(glb* g, parse_parm* pp, void* atom) {
+  void* db=g->db;
+  char *str;
+
+  if (!wg_isatom(db,atom)) return 0;  
+  if (wg_atomtype(db,atom)!=WG_URITYPE) return 0;
+  str=wg_atomstr1(db,atom);    
+  if (*str=='?' && *(str+1)==':') return 1;
+  if (wg_list_memberuri_in_sublist(db,(pp->boundvars),atom)) return 1;
+  if (wg_list_memberuri_in_sublist(db,(pp->freevars),atom)) return 1; 
+  return 0;
+}
 
 void* wr_process_json_term(glb* g, parse_parm* pp, void* cl, int atomlevel, int pos) {
   void* mpool=pp->mpool;
@@ -1864,7 +2120,12 @@ void* wr_process_json_term(glb* g, parse_parm* pp, void* cl, int atomlevel, int 
   void *a1, *a2;  
   void *r1, *r2,  *r1el; 
   void *tmp, *part; 
-  int n, found;
+  int n, found;  
+  char *valstr, *modvalstr; 
+  int modified;
+  int buflen=1000;
+  char keybuf[1000];
+
   //char* str;
 
 #ifdef DEBUG
@@ -1877,7 +2138,7 @@ void* wr_process_json_term(glb* g, parse_parm* pp, void* cl, int atomlevel, int 
   if (atomlevel) {
     pp->nullvars=NULL;
     pp->nullvarsnr=0;
-  }
+  } 
   // process keyval
   if (wg_ispair(db,cl) && wg_first(db,cl)==(pp->jsonstruct)) {
     //name=wg_get_keystrval(db, "name", cl);
@@ -1905,7 +2166,7 @@ void* wr_process_json_term(glb* g, parse_parm* pp, void* cl, int atomlevel, int 
   if (cl==NULL) {
     preres=NULL;
   } else if (wg_isatom(db,cl)) {  
-    if (cl==pp->jsonnull) {
+    if (cl==pp->jsonnull) {     
       if (atomlevel) {
         wr_show_jsparse_error(g,pp,"null can be used only inside an atom, not at the formula level");
         return NULL;
@@ -1930,7 +2191,7 @@ void* wr_process_json_term(glb* g, parse_parm* pp, void* cl, int atomlevel, int 
       preres=cl;
     } else if (//!atomlevel && pos && 
                wr_is_json_freevar(g,pp,cl)) {
-      // variable case
+      // variable case     
       if (!wg_list_memberuri(db,(pp->freevars),cl)) {
         found=0;
         for(part=(pp->boundvars); part!=NULL; part=wg_rest(db,part)) {          
@@ -1948,15 +2209,44 @@ void* wr_process_json_term(glb* g, parse_parm* pp, void* cl, int atomlevel, int 
       preres=cl;     
     } else if (!strcmp(wg_atomstr1(db,cl),wg_atomstr1(db,pp->jsonld_typekey))) {
       preres=pp->jsonld_typerepl;
-    } else {    
-      // default case: here prefix capital-starting strings with c:
-      //str=wg_atomstr1(db,cl);
-      if (wr_is_parse_var(g,cl)) { //(*str && (*str >= 'A') && (*str <= 'Z')) {
-        preres=wg_mkatom(db,mpool,WG_ANONCONSTTYPE,wg_atomstr1(db,cl),NULL);       
-      } else {     
-        preres=cl;
-      }              
-    }     
+    } else if (wg_atomtype(db,cl)==WG_URITYPE) { 
+        
+      
+      valstr=wg_atomstr1(db,cl);
+      modified=0;
+#ifdef EXPAND_JSONLD_TERMS      
+      // use context to change uri string valstr as necessary        
+      if (//wr_json_is_expandable_uristr(g,valstr) &&
+          !(wr_json_special_keystr(g, valstr)) &&
+          !(wr_json_special_logicstr(g, valstr))) {
+        modvalstr=wg_modify_keystr_by_ctxt(g,pp,keybuf,buflen,valstr);
+        if (modvalstr!=valstr) {
+          modified=1;
+          if (!modvalstr) { 
+            valstr=keybuf;            
+          } else {
+            valstr=modvalstr;                               
+          }
+        } 
+      }
+#endif       
+      // now check if valstr starts with capital letter: if yes, make anonconst
+      //printf("\n valstr %s modified %d\n",valstr,modified);
+      if (wr_json_freevarstr(db,valstr)) {
+        printf("\n valstr %s modified %d\n",valstr,modified);
+        preres=cl; 
+      } else if (1) { //(wr_is_parse_varstr(g,valstr)) { //(*str && (*str >= 'A') && (*str <= 'Z')) {
+        // starts with a capital letter, make anonconst, printed later with c: prefix
+        preres=wg_mkatom(db,mpool,WG_ANONCONSTTYPE,valstr,NULL);       
+      } else {          
+        // non-capital-letter uri, do not have to make anon and later prefix with c:
+        if (!modified) preres=cl;
+        else preres=wg_mkatom(db,mpool,WG_URITYPE,valstr,NULL);  
+      }
+    } else {
+      // other non-uri atom
+      preres=cl;
+    }    
   } else {
     // a list
     head=wg_first(db,cl);    
@@ -1998,6 +2288,29 @@ void* wr_process_json_term(glb* g, parse_parm* pp, void* cl, int atomlevel, int 
         return NULL;
       }
       //return preres;
+    } else if (!atomlevel && wg_isatom(db,r1el) && r1el &&
+        wg_atomstr1(db,r1el) &&  
+        (!strcmp("+",wg_atomstr1(db,r1el)) | 
+         !strcmp("*",wg_atomstr1(db,r1el)) |
+         !strcmp("-",wg_atomstr1(db,r1el)) |
+         !strcmp("/",wg_atomstr1(db,r1el)))) {  
+      if (r2==NULL) {
+        wr_show_jsparse_error(g,pp,"too few arguments for arithmetic operation");
+        return NULL;
+      }         
+      if (wg_rest(db,r2)!=NULL) {
+        wr_show_jsparse_error(g,pp,"too many arguments for arithmetic operation");
+        return NULL;
+      }           
+      a1=wr_process_json_term(g,pp,head,0,1);
+      a2=wr_process_json_term(g,pp,wg_first(db,r2),0,2);
+      if (!a1 || !a2) return NULL;
+      
+      *((gint*)cl)=(gint)r1el;
+      *((gint*)r1)=(gint)a1; 
+      *((gint*)r2)=(gint)a2; 
+      preres=cl;
+
     } else if (atomlevel &&  wg_isatom(db,head) && 
         (!strcmp("=",wg_atomstr1(db,head)) | 
          !strcmp("!=",wg_atomstr1(db,head)) |
@@ -2088,6 +2401,21 @@ void* wr_process_json_term(glb* g, parse_parm* pp, void* cl, int atomlevel, int 
     preres=wg_mklist3(db,mpool,pp->logexists,pp->nullvars,preres);
   } 
   return preres;
+}
+
+int wr_json_is_expandable_uristr(glb* g, char* keystr) {
+  char* colptr;
+  
+  if (!keystr) return 0;
+  if (*keystr==0) return 0;  
+  colptr=strchr(keystr,':');
+  if (colptr) {
+    // keystr contains colon : can it be expanded?    
+    if (*(keystr+1)==':' && ((*(keystr)=='_') || (*(keystr)=='?'))) return 0;
+    if (*(colptr+1)=='/' && *(colptr+2)=='/') return 0;
+    return 1;
+  }
+  return 1;  
 }
 
 void* wr_process_json_list(glb* g, parse_parm* pp, void* cl) { 
@@ -2384,12 +2712,14 @@ void* wr_json_process_if_then(glb* g, parse_parm* pp, void* ptr) {
   if (condcount>1) {
     cond=wg_inplace_reverselist(db,mpool,cond);
     cond=wg_mkpair(db,mpool,pp->logprefixand,cond);
+    cond=wr_json_unflatten_logic(g,pp,cond,pp->logand,pp->logand,1,0);
   } else {
     cond=wg_first(db,cond);
   }
   if (conseqcount>1) {
     conseq=wg_inplace_reverselist(db,mpool,conseq);
     conseq=wg_mkpair(db,mpool,pp->logor,conseq);
+    conseq=wr_json_unflatten_logic(g,pp,conseq,pp->logor,pp->logor,1,0);
   } else {
     conseq=wg_first(db,conseq);
   }
@@ -2930,7 +3260,7 @@ void* wr_add_keyval_jsstruct(glb *g, parse_parm* pp,
 int wr_json_extend_context(glb* g, parse_parm* pp, void* ctxt) {
   void* mpool=pp->mpool;
   void* db=g->db;
-  void *vocab, *part, *key, *value;
+  void *vocab, *base, *part, *key, *value;
   char *keystr;
   void *internalidplace, *internalid, *val;
   //void* oldctxt;
@@ -2947,6 +3277,23 @@ int wr_json_extend_context(glb* g, parse_parm* pp, void* ctxt) {
       return -1;    
     }
     (pp->jsonld_ctxt)=wg_add_assoc(db,mpool,pp->jsonld_vocabkey,vocab,pp->jsonld_ctxt);    
+  }
+  base=wg_get_keyval(db,pp->jsonld_basekey,ctxt);
+  /*
+  printf("\n base\n");
+  wg_mpool_print(db,base);
+  printf("\n pp->jsonld_basekey\n");
+  wg_mpool_print(db,pp->jsonld_basekey);
+  printf("\n ctxt\n");
+  wg_mpool_print(db,ctxt);
+  printf("\n");
+  */
+  if (base) {   
+    if (!wg_isatom(db,base) || wg_atomtype(db,base)!=WG_URITYPE || !wg_atomstr1(db,base)) {
+      wr_show_parse_error(g,"@base value must be a string");      
+      return -1;    
+    }
+    (pp->jsonld_base)=base;  
   }
   // now vocab is the value of @vocab
   // loop over all elems of ctxt
@@ -2976,14 +3323,14 @@ int wr_json_extend_context(glb* g, parse_parm* pp, void* ctxt) {
         }
         if (internalid && wg_isatom(db,internalid) && wg_atomtype(db,internalid)==WG_URITYPE) {
           val=internalid;
-          val=wr_json_expand_list_prefixes(g,pp->mpool,pp,internalid,0);         
+          val=wr_json_expand_atom(g,pp->mpool,pp,internalid,0);         
           *((gint*)wg_rest(db,internalidplace))=(gint)val;
         } else if (internalid) {
           wr_show_parse_error(g,"wrong type of @id value in @context"); 
           return -1;
         }       
       } else {
-        value=wr_json_expand_list_prefixes(g,pp->mpool,pp,value,0);
+        value=wr_json_expand_atom(g,pp->mpool,pp,value,0);
       }
       (pp->jsonld_ctxt)=wg_add_assoc(db,mpool,key,value,pp->jsonld_ctxt);
     } 
@@ -2999,8 +3346,7 @@ char* wg_modify_keystr_by_ctxt(glb* g, parse_parm* pp, char* buf, int buflen, ch
   char *colptr, *ctxtkeystr, *valstr;
   int keylen, ctxtkeylen, valstrlen;
   
-  if (!(pp->jsonld_ctxt) || !keystr) return keystr;
-  if (keystr)
+  if (!(pp->jsonld_ctxt) || !keystr) return keystr;  
   keylen=strlen(keystr);
   colptr=strchr(keystr,':');
   if (colptr) {
@@ -3012,8 +3358,8 @@ char* wg_modify_keystr_by_ctxt(glb* g, parse_parm* pp, char* buf, int buflen, ch
   for(part=pp->jsonld_ctxt; wg_ispair(db,part); part=wg_rest(db,part)) {
     el=wg_first(db,part);
     ctxtkey=wg_first(db,el);   
-    // do not prefix with vocab if keystr contains colon :
-    if (ctxtkey==(pp->jsonld_vocabkey) && !colptr) {         
+    // do not prefix with vocab if keystr contains colon at non-first place:
+    if (ctxtkey==(pp->jsonld_vocabkey) && (!colptr || colptr==keystr)) {         
       // use vocab as a prefix  
       vocabstr=wg_atomstr1(db,wg_rest(db,el));
       if ((keylen+strlen(vocabstr)+10)>buflen) {
@@ -3073,6 +3419,37 @@ char* wg_modify_keystr_by_ctxt(glb* g, parse_parm* pp, char* buf, int buflen, ch
   }  
   return keystr;
 }
+
+
+void* wr_json_expand_atom(glb* g, void* mpool, parse_parm* pp, void* lst, int depth) {
+  void* db=g->db;
+  //void* res=NULL;
+  void *ctxt, *keyval;
+  char *valstr, *modvalstr;
+  int buflen=1000;
+  char keybuf[1000];
+
+  ctxt=pp->jsonld_ctxt;
+  if (!ctxt) return lst;
+  if (wg_isatom(db,lst)) {
+    // lst is an atom, not a real list
+    if (wg_atomtype(db,lst)==WG_URITYPE) {
+      keyval=lst;     
+      valstr=wg_atomstr1(db,lst);
+      modvalstr=wg_modify_keystr_by_ctxt(g,pp,keybuf,buflen,valstr);
+      if (modvalstr!=valstr) {
+        if (!modvalstr) valstr=keybuf;
+        else valstr=modvalstr;
+        keyval=wg_mkatom(db,mpool,WG_URITYPE,valstr,NULL);          
+      }       
+      return keyval;
+    } else {
+      return lst;
+    }
+  }   
+  return lst;      
+}
+     
 
 int wg_suitable_context_uri_end(void* db, char c) {
   // https://tools.ietf.org/html/rfc3986#section-2.2
