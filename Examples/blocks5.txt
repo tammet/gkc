@@ -1,3 +1,8 @@
+% -----------------------------------
+%
+% See https://en.wikipedia.org/wiki/Blocks_world
+% 
+% -----------------------------------
 
 % ----- initial situation s0 ------
 %
@@ -5,76 +10,61 @@
 %   a   b   d
 %  ------------------------------
 
-holds(on(a,table),s0).
+holds(on('#:a','#:table'),s0).
 
-holds(on(b,table),s0).
+holds(on('#:b','#:table'),s0).
 
-holds(on(c,d),s0).
+holds(on('#:c','#:d'),s0).
 
-holds(on(d,table),s0).
+holds(on('#:d','#:table'),s0).
 
-holds(clear(a),s0).
+holds(clear('#:a'),s0).
 
-holds(clear(b),s0).
+holds(clear('#:b'),s0).
 
-holds(clear(c),s0).
+holds(clear('#:c'),s0).
 
 holds(empty,s0).
 
-holds(clear(table),State).
+holds(clear('#:table'),State).
 
+% ------ difference axioms --------
 
-% ---- difference of objects -----
-
-    
-differ(X,Y)
-    | -differ(Y,X).
-
-differ(a,b).
-
-differ(a,c).
-
-differ(a,d).
-
-differ(a,table).
-
-differ(b,c).
-
-differ(b,d).
-
-differ(b,table).
-
-differ(c,d).
-
-differ(c,table).
-
-differ(d,table).
-
-%holds(and(X,Y),State) 
-%    | -holds(X,State)
-%    | -holds(Y,State).
+'#:a'!='#:b'.
+'#:a'!='#:c'.
+'#:a'!='#:d'.
+'#:a'!='#:table'.
+'#:b'!='#:c'.
+'#:b'!='#:d'.
+'#:b'!='#:table'.
+'#:c'!='#:d'.
+'#:c'!='#:table'.
+'#:d'!='#:table'.
 
 % ----- pickup rules  ------
 
 holds(holding(X),do(pickup(X),State))
     | -holds(empty,State)
     | -holds(clear(X),State)
-    | -differ(X,table).
+    | =(X,'#:table').
 
 holds(clear(Y),do(pickup(X),State))
     | -holds(on(X,Y),State)
     | -holds(clear(X),State)
     | -holds(empty,State).
 
-% frame axioms for pickup
+% ---- frame axioms for pickup ---
+%
+% see https://en.wikipedia.org/wiki/Frame_problem
+% 
 
 holds(on(X,Y),do(pickup(Z),State))
     | -holds(on(X,Y),State)
-    | -differ(X,Z).
+    | =(X,Z).
 
 holds(clear(X),do(pickup(Z),State))
     | -holds(clear(X),State)
-    | -differ(X,Z).
+    | =(X,Z).
 
 % ---- putdown rules -----
 
@@ -90,64 +80,69 @@ holds(clear(X),do(putdown(X,Y),State))
     | -holds(holding(X),State)
     | -holds(clear(Y),State).
 
-% ---- a few minimal frame axioms for putdown -----
+% ---- frame axioms for putdown -----
+%
+% see https://en.wikipedia.org/wiki/Frame_problem
+% 
 
 holds(on(X,Y),do(putdown(Z,W),State))
     | -holds(on(X,Y),State).    
 
 holds(clear(Z),do(putdown(X,Y),State))
     | -holds(clear(Z),State)
-    | -differ(Z,Y).
+    | =(Z,Y).
 
-% ----- queries -----------------
+% ----- query -----------------
 %
-% first run the uncommented query and then:
+% build a tower:
 %
-% * try out the others: uncomment one and comment out others
-% * create your own goals: see what can be achieved in sensible time and what not.
+%   c
+%   b        
+%   a   
 %
 % ------------------------------- 
 
-% first goal:
-%
-%  b
-%  a
-
-% -holds(on(b,a),State).
-%
-% this version gives the required moves collected into State:
-%
-
-%-holds(on(b,a),State) | $ans(State).
-
-
-% second goal:
-%
-%  c
-%  b     
-%  a 
-
-% -holds(on(b,a),State) | -holds(on(c,b),State).
-%
-% this version gives the required moves collected into State (over a minute to find proof!)
-%
-% 
-%
-% cnf(prove,negated_conjecture,
-%   -holds(on(b,a),State) | -holds(on(c,b),State) | $ans(State)).
- 
-% harder goals:
-
-%cnf(prove,negated_conjecture,
-% -holds(on(b,a),State) | -holds(on(c,b),State) | -holds(on(d,b),State)).
-
-%cnf(prove,negated_conjecture,
-% -holds(on(a,d),State) | -holds(on(b,a),State)).
-
-% cnf(prove,negated_conjecture,
-% -holds(on(a,d),State) | -holds(on(b,a),State) | -holds(on(c,b),State)).
 
 cnf(prove,negated_conjecture,
-  -holds(on(d,a),State) | -holds(on(b,d),State) | -holds(on(c,b),State)).
+    -holds(on('#:b','#:a'),State) | -holds(on('#:c','#:b'),State) | $ans(State)).
+ 
 
-  
+% ----- query 2 -----------------
+%
+% this is a harder problem: to try it out,
+% comment out query 1,
+% uncomment difference axioms above and
+% uncomment the following
+%
+% build a tower:
+%
+%   c
+%   b        
+%   a   
+%   d
+% -------------------------------
+
+
+
+%cnf(prove,negated_conjecture,
+%    -holds(on('#:a','#:d'),State) | -holds(on('#:b','#:a'),State) | -holds(on('#:c','#:b'),State) | $ans(State)).   
+ 
+ 
+% ----- query 3 -----------------
+%
+% this is an even harder problem, running into the Sussman anomaly
+% https://en.wikipedia.org/wiki/Sussman_anomaly :
+% to try it out,
+% comment out queries 1 and 2 and uncomment the following
+%
+% build a tower:
+%
+%   b
+%   a        
+%   d   
+%   c
+% -------------------------------
+
+
+%cnf(prove,negated_conjecture,
+%   -holds(on('#:d','#:c'),State) | -holds(on('#:a','#:d'),State) | -holds(on('#:b','#:a'),State) | $ans(State)). 

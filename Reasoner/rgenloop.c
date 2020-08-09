@@ -94,7 +94,7 @@ int wr_genloop(glb* g) {
   //int propres;
   gint given_cl_metablock[CLMETABLOCK_ELS];
   clock_t curclock;
-  float run_seconds,total_seconds,fullness; // passed_ratio
+  float run_seconds,run_dseconds,total_seconds,fullness; // passed_ratio
   int given_from_hyperqueue_flag,tmp;
 
 #ifndef USE_RES_TERMS  
@@ -149,11 +149,18 @@ int wr_genloop(glb* g) {
     // first check time
     curclock=clock();
     run_seconds = (float)(curclock - (g->run_start_clock)) / CLOCKS_PER_SEC;
+    run_dseconds = (float)(curclock - (g->run_start_clock)) / ((float)CLOCKS_PER_SEC / 10.0);
     total_seconds = (float)(curclock - (dbmemsegh(db)->allruns_start_clock)) / CLOCKS_PER_SEC;
     if ((g->max_run_seconds) && (run_seconds>(g->max_run_seconds))) return 2;
-    if ((g->max_seconds) && (total_seconds>(g->max_seconds))) return 2; 
-    if (g->max_run_seconds) g->passed_ratio=(float)run_seconds / (float)(g->max_run_seconds);
-    else g->passed_ratio=0; 
+    if ((g->max_run_dseconds) && (run_dseconds>(g->max_run_dseconds))) return 2;
+    if ((g->max_seconds) && (total_seconds>(g->max_seconds))) return 2;
+    if (g->max_run_dseconds) {
+      if (g->max_run_dseconds) g->passed_ratio=(float)run_dseconds / (float)(g->max_run_dseconds);
+      else g->passed_ratio=0; 
+    } else {  
+      if (g->max_run_seconds) g->passed_ratio=(float)run_seconds / (float)(g->max_run_seconds);
+      else g->passed_ratio=0; 
+    }
     
     //printf("\n run_seconds %f total_seconds %f (g->max_run_seconds) %d (g->max_seconds) %d g->passed_ratio %f\n",
     //  (float)run_seconds,total_seconds,(g->max_run_seconds),(g->max_seconds),g->passed_ratio);

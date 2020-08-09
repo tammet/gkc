@@ -94,7 +94,7 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active, cvec resol
   int ures;
   int dbused;
   int preflen, plen, resolvedliterals;
-  float run_seconds;
+  float run_seconds,run_dseconds;
   gint prefhashes[ATOM_PREFHASH_MAXLEN+1];
   clock_t curclock;
   
@@ -355,6 +355,8 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active, cvec resol
               curclock=clock();
               run_seconds = (float)(curclock - (g->run_start_clock)) / CLOCKS_PER_SEC;            
               if ((g->max_run_seconds) && (run_seconds>(g->max_run_seconds))) return;
+              run_dseconds = (float)(curclock - (g->run_start_clock)) / ((float)CLOCKS_PER_SEC / 10);            
+              if ((g->max_run_dseconds) && (run_dseconds>(g->max_run_dseconds))) return;
             }
             // get next node;
             node=wr_clterm_hashlist_next(g,hashvec,node);               
@@ -492,7 +494,7 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active, cvec re
   gint fun, path;
   int eqtermorder=3,eqtermorder_after=3;
   clock_t curclock;
-  float run_seconds;
+  float run_seconds,run_dseconds;
    
 #ifdef DEBUG
   wr_printf("\n!!! wr_paramodulate_from_all_active called for clause ");
@@ -812,11 +814,13 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active, cvec re
       #endif         
               wr_clear_varstack(g,g->varstack);              
               //wr_print_vardata(g);
-              // extra time check
+              // extra time check              
               if ((g->stat_derived_cl%256)==0) {
                 curclock=clock();
                 run_seconds = (float)(curclock - (g->run_start_clock)) / CLOCKS_PER_SEC;            
                 if ((g->max_run_seconds) && (run_seconds>(g->max_run_seconds))) return;
+                run_dseconds = (float)(curclock - (g->run_start_clock)) / ((float)CLOCKS_PER_SEC / 10);            
+                if ((g->max_run_dseconds) && (run_dseconds>(g->max_run_dseconds))) return;
               }
               // get next node;
               node=wr_clterm_hashlist_next(g,hashvec,node);       
@@ -929,7 +933,7 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
   int ures;
   int dbused;
   clock_t curclock;
-  float run_seconds;
+  float run_seconds,run_dseconds;
 
 
   int replpath;
@@ -1179,11 +1183,13 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
       }
 
       wr_clear_varstack(g,g->varstack);              
-      //wr_print_vardata(g);
+      //wr_print_vardata(g);     
       if ((g->stat_derived_cl%256)==0) {
         curclock=clock();
-        run_seconds = (float)(curclock - (g->run_start_clock)) / CLOCKS_PER_SEC;       
+        run_seconds = (float)(curclock - (g->run_start_clock)) / CLOCKS_PER_SEC;            
         if ((g->max_run_seconds) && (run_seconds>(g->max_run_seconds))) return 1;
+        run_dseconds = (float)(curclock - (g->run_start_clock)) / ((float)CLOCKS_PER_SEC / 10);            
+        if ((g->max_run_dseconds) && (run_dseconds>(g->max_run_dseconds))) return 1;
       }
       // get next node;
       node=wr_clterm_hashlist_next(g,hashvec,node);       

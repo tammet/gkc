@@ -1134,7 +1134,7 @@ query preference handling:
 char* make_auto_guide(glb* g, glb* kb_g, int guideparam) { 
   void* db=g->db;
   char *buf=NULL,*pref; 
-  int i,j,pos,iterations=4,secs;
+  int i,j,pos,iterations=5,dsecs;
   int eq,depth,length,size; //,bigratio;
   int qp1ok=1, qp2ok=1, qp3ok=1; // query preference strats default ok
   int tmp;
@@ -1186,7 +1186,7 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
         "\"max_size\": 0,\n"
         "\"max_depth\": 0,\n"
         "\"max_length\": 0,\n"
-        "\"max_seconds\": 0,\n"; 
+        "\"max_dseconds\": 0,\n"; 
     min_strat_timeloop_nr=(dbmemsegh(db)->min_strat_timeloop_nr);
     max_strat_timeloop_nr=(dbmemsegh(db)->max_strat_timeloop_nr); 
     //printf("\nminloopi %ld  maxloopi %ld\n",min_strat_timeloop_nr,max_strat_timeloop_nr);   
@@ -1197,7 +1197,7 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
         "\"max_size\": 0,\n"
         "\"max_depth\": 0,\n"
         "\"max_length\": 0,\n"
-        "\"max_seconds\": 0,\n";  
+        "\"max_dseconds\": 0,\n";  
   } else {
     pref="{\n"
         "\"print\":1,\n"
@@ -1205,7 +1205,7 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
         "\"max_size\": 0,\n"
         "\"max_depth\": 0,\n"
         "\"max_length\": 0,\n"
-        "\"max_seconds\": 0,\n";  
+        "\"max_dseconds\": 0,\n";  
   }  
   pos=sprintf(buf,pref,(dbmemsegh(db)->printlevel));
   if (!eq) {
@@ -1215,9 +1215,9 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
   
   if ((g->sin_clause_count)>500000) {
     // very large
-    secs=10;
+    dsecs=50;
   } else {
-    secs=1;
+    dsecs=1;
   }
   depth=2;
   length=(g->sin_min_length);
@@ -1225,7 +1225,7 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
   //smallratio=2;
   //bigratio=20;
   //if (guideparam==1) iterations=1;
-  for(i=0;i<iterations;i++) {
+  for(i=0;i<iterations;i++) {   
     if (i<min_strat_timeloop_nr) goto BLOCKEND;
     if (i>max_strat_timeloop_nr) break;
     // start of a block
@@ -1236,81 +1236,81 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
     // --- ueq ---
   
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1},\n",dsecs);
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0},\n",dsecs);
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"weight_select_ratio\":20},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"weight_select_ratio\":20},\n",dsecs);
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"weight_select_ratio\":20},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"weight_select_ratio\":20},\n",dsecs);
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"weight_select_ratio\":20,\"depth_penalty\":50},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"weight_select_ratio\":20,\"depth_penalty\":50},\n",dsecs);
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"weight_select_ratio\":20, \"depth_penalty\":50},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"weight_select_ratio\":20, \"depth_penalty\":50},\n",dsecs);
 
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"rewrite\":0},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"rewrite\":0},\n",dsecs);
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"weight_select_ratio\":20, \"rewrite\":0},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"weight_select_ratio\":20, \"rewrite\":0},\n",dsecs);
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"weight_select_ratio\":2},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"weight_select_ratio\":2},\n",dsecs);
 
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"weight_select_ratio\":20,\"depth_penalty\":50, \"var_weight\":1, \"repeat_var_weight\":1},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"weight_select_ratio\":20,\"depth_penalty\":50, \"var_weight\":1, \"repeat_var_weight\":1},\n",dsecs);
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"weight_select_ratio\":20, \"depth_penalty\":50, \"var_weight\":1, \"repeat_var_weight\":1},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"weight_select_ratio\":20, \"depth_penalty\":50, \"var_weight\":1, \"repeat_var_weight\":1},\n",dsecs);
  
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 0},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 0},\n",dsecs);
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1},\n",dsecs);
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2},\n",dsecs);
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"reverse_clauselist\": 1},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"reverse_clauselist\": 1},\n",dsecs);
 
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"max_depth\": 2},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"max_depth\": 2},\n",dsecs);
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"max_depth\": 4},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"max_depth\": 4},\n",dsecs);
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"max_depth\": 6},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"max_depth\": 6},\n",dsecs);
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"max_depth\": 8},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"max_depth\": 8},\n",dsecs);
        pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"max_depth\": 10},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"max_depth\": 10},\n",dsecs);
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"max_size\":20},\n",secs);
+      "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"max_size\":20},\n",dsecs);
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"max_size\":30},\n",secs);
+      "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"max_size\":30},\n",dsecs);
        pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"max_size\":40},\n",secs);
+      "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"max_size\":40},\n",dsecs);
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"var_weight\":1},\n",secs);    
+      "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"var_weight\":1},\n",dsecs);    
    
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"var_weight\":1, \"repeat_var_weight\":1},\n",secs);    
+      "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"var_weight\":1, \"repeat_var_weight\":1},\n",dsecs);    
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"max_size\":30,\"depth_penalty\":50},\n",secs);
+      "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"max_size\":30,\"depth_penalty\":50},\n",dsecs);
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d,\"strategy\":[\"unit\",\"prohibit_nested_para\"],\"query_preference\":1,\"reverse_clauselist\":1},\n",secs);
+      "{\"max_dseconds\": %d,\"strategy\":[\"unit\",\"prohibit_nested_para\"],\"query_preference\":1,\"reverse_clauselist\":1},\n",dsecs);
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d,\"strategy\":[\"unit\",\"prohibit_nested_para\"],\"query_preference\":1,\"depth_penalty\":100},\n",secs);
+      "{\"max_dseconds\": %d,\"strategy\":[\"unit\",\"prohibit_nested_para\"],\"query_preference\":1,\"depth_penalty\":100},\n",dsecs);
       if ((g->sin_clause_count)>9) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"sine\":1},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"sine\":1},\n",dsecs);
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"sine\":1, \"rewrite\":0},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"sine\":1, \"rewrite\":0},\n",dsecs);
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"sine\":1, \"weight_select_ratio\":2},\n",secs);       
+        "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"sine\":1, \"weight_select_ratio\":2},\n",dsecs);       
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"sine\":2},\n",secs); 
+        "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"sine\":2},\n",dsecs); 
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"sine\":2},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"sine\":2},\n",dsecs);
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"sine\":1},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"sine\":1},\n",dsecs);
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"sine\":1, \"depth_penalty\":50},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"sine\":1, \"depth_penalty\":50},\n",dsecs);
       }
    
 
@@ -1321,84 +1321,84 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
 
       if (qp2ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2},\n",dsecs);
       }
       if (qp3ok) {         
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 3},\n",secs);          
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 3},\n",dsecs);          
       }
       if (qp1ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1},\n",dsecs);
       }
       // unit mod
       if (qp1ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 1},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 1},\n",dsecs);
       }  
       if (qp2ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 2},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 2},\n",dsecs);
       }  
 
 
       if (qp3ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 3},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 3},\n",dsecs);
       }
       // positive pref mod
 
       if (qp2ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"positive_pref\"], \"query_preference\": 2},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\",\"positive_pref\"], \"query_preference\": 2},\n",dsecs);
       }  
 
       // sine
 
-      if (qp2ok && i<2) {
+      if (qp2ok && i<3) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2, \"sine\":1},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2, \"sine\":1},\n",dsecs);
       }
-      if (qp3ok && i<2) {         
+      if (qp3ok && i<3) {         
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 3, \"sine\":1},\n",secs);          
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 3, \"sine\":1},\n",dsecs);          
       }
-      if (qp1ok && i<2) {
+      if (qp1ok && i<3) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1, \"sine\":2},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1, \"sine\":2},\n",dsecs);
       }
-      if (qp1ok && i<2) {
+      if (qp1ok && i<3) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1, \"sine\":1},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1, \"sine\":1},\n",dsecs);
       }
-      if (qp1ok && i<2) {
+      if (qp1ok && i<3) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 1, \"sine\":1},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 1, \"sine\":1},\n",dsecs);
       }
 
 
       // -- maybe --
 
-      if (i<1) {
+      if (i<2) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"positive_pref\"], \"query_preference\": 1},\n",secs);      
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\",\"positive_pref\"], \"query_preference\": 1},\n",dsecs);      
         if (qp1ok && eq) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1, \"rewrite\": 0},\n",secs);
+          "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1, \"rewrite\": 0},\n",dsecs);
         }
         if (qp3ok) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"positive_pref\"], \"query_preference\": 3},\n",secs);
+          "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\",\"positive_pref\"], \"query_preference\": 3},\n",dsecs);
         }
         // size limit mod
         if (qp1ok) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1, \"max_depth\": %d},\n",secs,depth);
+          "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1, \"max_depth\": %d},\n",dsecs,depth);
         }  
       
         if (qp2ok) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2, \"max_size\": %d},\n",secs,size);
+          "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2, \"max_size\": %d},\n",dsecs,size);
         }  
       }  
       
@@ -1409,83 +1409,83 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
       
       if (qp2ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2},\n",dsecs);
       }     
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 0},\n",secs);  
+      "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 0},\n",dsecs);  
 
       // sine
 
-      if (qp2ok && i<2) {
+      if (qp2ok && i<3) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2, \"sine\":1},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2, \"sine\":1},\n",dsecs);
       }
 
-      if (i<2) {
+      if (i<3) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 0, \"sine\":2},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 0, \"sine\":2},\n",dsecs);
       }
 
       // unit mod
 
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 1},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 1},\n",dsecs);
       if (qp2ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 2},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 2},\n",dsecs);
       }  
       if (qp3ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 3},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 3},\n",dsecs);
       }
-      if (qp1ok && i<2) {
+      if (qp1ok && i<3) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 1, \"sine\":1},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 1, \"sine\":1},\n",dsecs);
       }
       // positive pref mod
       if (qp1ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"positive_pref\"], \"query_preference\": 1},\n",secs);      
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\",\"positive_pref\"], \"query_preference\": 1},\n",dsecs);      
       }  
       if (qp2ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"positive_pref\"], \"query_preference\": 2},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\",\"positive_pref\"], \"query_preference\": 2},\n",dsecs);
       }  
       if (qp3ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"positive_pref\"], \"query_preference\": 3},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\",\"positive_pref\"], \"query_preference\": 3},\n",dsecs);
       }
       if (qp2ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"positive_pref\"], \"query_preference\": 2, \"sine\":1},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\",\"positive_pref\"], \"query_preference\": 2, \"sine\":1},\n",dsecs);
       } 
       // size limit mod
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1, \"max_depth\": %d},\n",secs,depth);
+      "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1, \"max_depth\": %d},\n",dsecs,depth);
 
       if (qp2ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2, \"max_size\": %d},\n",secs,size);  
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2, \"max_size\": %d},\n",dsecs,size);  
       }  
       
       // -- maybe --
 
-      if (i<1) {
+      if (i<2) {
         if (qp1ok) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1},\n",secs);          
+          "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1},\n",dsecs);          
         }  
         if (qp1ok && eq) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1, \"rewrite\": 0},\n",secs);      
+          "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1, \"rewrite\": 0},\n",dsecs);      
         }
         if (qp3ok) {         
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 3},\n",secs);          
+          "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 3},\n",dsecs);          
         }
-        if (i<1) {
+        if (i<2) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"unit\",\"pure_unit\"],\"query_preference\":0},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"unit\",\"pure_unit\"],\"query_preference\":0},\n",dsecs);
         }
       }  
 
@@ -1495,116 +1495,116 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
       // large       
       if (qp2ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2},\n",dsecs);
       }
       if (qp1ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1},\n",dsecs);
       } 
       if (qp3ok) {         
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 3},\n",secs);          
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 3},\n",dsecs);          
       }
       // unit mod
       
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 0},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 0},\n",dsecs);
       
       if (qp1ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 1},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 1},\n",dsecs);
       }  
       if (eq) {
-        if (i<2) {
+        if (i<3) {
           pos+=sprintf(buf+pos, 
-          "{\"max_seconds\": %d, \"strategy\":[\"unit\",\"pure_unit\"],\"max_size\":30,\"max_depth\":10,\"max_weight\":300, \"weight_select_ratio\":1, \"rewrite\":0},\n",secs);
+          "{\"max_dseconds\": %d, \"strategy\":[\"unit\",\"pure_unit\"],\"max_size\":30,\"max_depth\":10,\"max_weight\":300, \"weight_select_ratio\":1, \"rewrite\":0},\n",dsecs);
         } else {
           pos+=sprintf(buf+pos, 
-          "{\"max_seconds\": %d, \"strategy\":[\"unit\",\"pure_unit\"],\"max_size\":30,\"max_depth\":10,\"max_weight\":300, \"weight_select_ratio\":1},\n",secs);      
+          "{\"max_dseconds\": %d, \"strategy\":[\"unit\",\"pure_unit\"],\"max_size\":30,\"max_depth\":10,\"max_weight\":300, \"weight_select_ratio\":1},\n",dsecs);      
         }
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"query_focus\",\"positive_pref\",\"prohibit_nested_para\"],\"query_preference\":0},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"query_focus\",\"positive_pref\",\"prohibit_nested_para\"],\"query_preference\":0},\n",dsecs);
       } 
 
-      if (qp1ok && (i<2)) {
+      if (qp1ok && (i<3)) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 1,  \"sine\":1},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 1,  \"sine\":1},\n",dsecs);
       }
 
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"positive_pref\"], \"query_preference\": 0},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\",\"positive_pref\"], \"query_preference\": 0},\n",dsecs);
       if (qp1ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"positive_pref\"], \"query_preference\": 1},\n",secs);  
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\",\"positive_pref\"], \"query_preference\": 1},\n",dsecs);  
       }  
 
       if (qp2ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2, \"max_size\": %d},\n",secs,size);
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2, \"max_size\": %d},\n",dsecs,size);
       }
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d,\"strategy\":[\"query_focus\",\"positive_pref\"],\"query_preference\":0,\"max_size\":30},\n",secs);
+      "{\"max_dseconds\": %d,\"strategy\":[\"query_focus\",\"positive_pref\"],\"query_preference\":0,\"max_size\":30},\n",dsecs);
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d,\"strategy\":[\"query_focus\",\"positive_pref\"],\"query_preference\":0,\"var_weight\":1, \"repeat_var_weight\":1},\n",secs);    
+      "{\"max_dseconds\": %d,\"strategy\":[\"query_focus\",\"positive_pref\"],\"query_preference\":0,\"var_weight\":1, \"repeat_var_weight\":1},\n",dsecs);    
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d,\"strategy\":[\"query_focus\",\"positive_pref\"],\"query_preference\":0,\"max_size\":30,\"depth_penalty\":50,\"length_penalty\":100},\n",secs);      
-      if (i<2) {
+      "{\"max_dseconds\": %d,\"strategy\":[\"query_focus\",\"positive_pref\"],\"query_preference\":0,\"max_size\":30,\"depth_penalty\":50,\"length_penalty\":100},\n",dsecs);      
+      if (i<3) {
         if (eq) {
           pos+=sprintf(buf+pos,
-            "{\"max_seconds\": %d,\"strategy\":[\"unit\",\"posunitpara\"],\"query_preference\":1,\"sine\":1},\n",secs);           
+            "{\"max_dseconds\": %d,\"strategy\":[\"unit\",\"posunitpara\"],\"query_preference\":1,\"sine\":1},\n",dsecs);           
         }         
         if (eq) {
           pos+=sprintf(buf+pos,
-            "{\"max_seconds\": %d,\"strategy\":[\"unit\",\"posunitpara\"],\"query_preference\":1,\"sine\":1},\n",secs);           
+            "{\"max_dseconds\": %d,\"strategy\":[\"unit\",\"posunitpara\"],\"query_preference\":1,\"sine\":1},\n",dsecs);           
         }
         if (eq) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"unit\",\"pure_unit\"],\"query_preference\":1},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"unit\",\"pure_unit\"],\"query_preference\":1},\n",dsecs);
         }
       }
 
       // maybe
 
-      if (i<1) {
+      if (i<2) {
         if (qp2ok) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 2},\n",secs);
+          "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 2},\n",dsecs);
         } 
         if (qp1ok && eq) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1, \"rewrite\":0},\n",secs);
+          "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1, \"rewrite\":0},\n",dsecs);
         }  
         if (qp3ok) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 3},\n",secs);
+          "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 3},\n",dsecs);
         }
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0},\n",secs);
-        if (i<1) {
+        "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0},\n",dsecs);
+        if (i<2) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"unit\",\"pure_unit\"],\"query_preference\":0},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"unit\",\"pure_unit\"],\"query_preference\":0},\n",dsecs);
         }
         if (eq) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"query_focus\",\"posunitpara\"],\"query_preference\":1,\"depth_penalty\":50,\"length_penalty\":100, \"sine\":1},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"query_focus\",\"posunitpara\"],\"query_preference\":1,\"depth_penalty\":50,\"length_penalty\":100, \"sine\":1},\n",dsecs);
         }
         if (qp1ok) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 1, \"sine\":1},\n",secs);
+          "{\"max_dseconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 1, \"sine\":1},\n",dsecs);
         }
         if (qp1ok) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 1, \"sine\":2},\n",secs);
+          "{\"max_dseconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 1, \"sine\":2},\n",dsecs);
         }
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"depth_penalty\":100, \"sine\":1},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"depth_penalty\":100, \"sine\":1},\n",dsecs);
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"sine\":2},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"sine\":2},\n",dsecs);
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"unit\",\"posunitpara\"],\"query_preference\":0,\"sine\":2},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"unit\",\"posunitpara\"],\"query_preference\":0,\"sine\":2},\n",dsecs);
         if (qp2ok) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2, \"sine\":1},\n",secs);
+          "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2, \"sine\":1},\n",dsecs);
         }
         
       }
@@ -1615,171 +1615,171 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
       // large
       if (qp1ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1},\n",dsecs);
       }  
       if (qp2ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2},\n",dsecs);
       }      
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 0},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 0},\n",dsecs);
       
       if (qp1ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 1},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 1},\n",dsecs);
       }  
       if (qp2ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 2},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 2},\n",dsecs);
       }  
       if (qp3ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 3},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 3},\n",dsecs);
       }
       if (qp1ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 1},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 1},\n",dsecs);
       }    
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 0},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 0},\n",dsecs);
 
       if (eq) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"hardness_pref\",\"posunitpara\"],\"query_preference\":1},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"hardness_pref\",\"posunitpara\"],\"query_preference\":1},\n",dsecs);
       }
       if (eq) {
         pos+=sprintf(buf+pos, 
-        "{\"max_seconds\": %d, \"strategy\":[\"unit\",\"pure_unit\"],\"max_size\":30,\"max_depth\":10,\"max_weight\":300, \"weight_select_ratio\":1, \"rewrite\":0},\n",secs);
+        "{\"max_dseconds\": %d, \"strategy\":[\"unit\",\"pure_unit\"],\"max_size\":30,\"max_depth\":10,\"max_weight\":300, \"weight_select_ratio\":1, \"rewrite\":0},\n",dsecs);
       } 
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"depth_penalty\":100},\n",secs);
+      "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"depth_penalty\":100},\n",dsecs);
       if (eq) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"query_focus\",\"posunitpara\"],\"query_preference\":1,\"depth_penalty\":50,\"length_penalty\":100},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"query_focus\",\"posunitpara\"],\"query_preference\":1,\"depth_penalty\":50,\"length_penalty\":100},\n",dsecs);
       }
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d,\"strategy\":[\"query_focus\",\"max_ground_weight\"],\"query_preference\":1},\n",secs);
+      "{\"max_dseconds\": %d,\"strategy\":[\"query_focus\",\"max_ground_weight\"],\"query_preference\":1},\n",dsecs);
 
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\":1, \"reverse_clauselist\":1},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\":1, \"reverse_clauselist\":1},\n",dsecs);
      
     
       // single
 
-      if (i<2) {
+      if (i<3) {
         if (qp1ok) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1, \"sine\":1},\n",secs);
+          "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1, \"sine\":1},\n",dsecs);
         }  
         if (qp1ok && eq) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1, \"rewrite\":0},\n",secs);
+          "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1, \"rewrite\":0},\n",dsecs);
         } 
         if (eq) {
          pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"hardness_pref\",\"posunitpara\"],\"query_preference\":1,\"sine\":1},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"hardness_pref\",\"posunitpara\"],\"query_preference\":1,\"sine\":1},\n",dsecs);
         }  
         if (qp3ok) {  
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":3},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":3},\n",dsecs);
         }
         if (qp2ok) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"query_focus\",\"unit\"],\"query_preference\":2},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"query_focus\",\"unit\"],\"query_preference\":2},\n",dsecs);
         }
         if (qp1ok) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"query_focus\",\"positive_pref\"],\"query_preference\":1},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"query_focus\",\"positive_pref\"],\"query_preference\":1},\n",dsecs);
         }
         if (qp1ok) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":1,\"max_depth\":2},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":1,\"max_depth\":2},\n",dsecs);
         }
         if (qp1ok) {  
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d, \"strategy\":[\"positive_pref\",\"unit\"], \"query_preference\":1, \"reverse_clauselist\":1, \"weight_select_ratio\": 2},\n",secs);
+          "{\"max_dseconds\": %d, \"strategy\":[\"positive_pref\",\"unit\"], \"query_preference\":1, \"reverse_clauselist\":1, \"weight_select_ratio\": 2},\n",dsecs);
         }
         
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"hardness_pref\"],\"query_preference\":1},\n",secs);  
+        "{\"max_dseconds\": %d,\"strategy\":[\"hardness_pref\"],\"query_preference\":1},\n",dsecs);  
 
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0},\n",secs);    
+        "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0},\n",dsecs);    
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"sine\":1},\n",secs); 
+        "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"sine\":1},\n",dsecs); 
 
         if (eq) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"query_focus\",\"posunitpara\"],\"query_preference\":1,\"depth_penalty\":50,\"length_penalty\":100, \"sine\":1},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"query_focus\",\"posunitpara\"],\"query_preference\":1,\"depth_penalty\":50,\"length_penalty\":100, \"sine\":1},\n",dsecs);
         }
 
         if (qp1ok) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 1, \"sine\":1},\n",secs);          
+          "{\"max_dseconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 1, \"sine\":1},\n",dsecs);          
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1,\"var_weight\":1, \"repeat_var_weight\":1},\n",secs);      
+          "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1,\"var_weight\":1, \"repeat_var_weight\":1},\n",dsecs);      
         }
         if (qp1ok) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 1, \"sine\":2},\n",secs);
+          "{\"max_dseconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 1, \"sine\":2},\n",dsecs);
         }
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"depth_penalty\":100, \"sine\":1},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"depth_penalty\":100, \"sine\":1},\n",dsecs);
         if (eq) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"unit\",\"pure_unit\"],\"query_preference\":1},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"unit\",\"pure_unit\"],\"query_preference\":1},\n",dsecs);
         }
         // maybe
 
-        if (i<1) {
+        if (i<2) {
           if (qp3ok) {         
             pos+=sprintf(buf+pos,
-            "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 3},\n",secs);              
+            "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 3},\n",dsecs);              
             if (eq) {
               pos+=sprintf(buf+pos,
-              "{\"max_seconds\": %d,\"strategy\":[\"unit\",\"posunitpara\"],\"query_preference\":0},\n",secs);        
+              "{\"max_dseconds\": %d,\"strategy\":[\"unit\",\"posunitpara\"],\"query_preference\":0},\n",dsecs);        
             }  
           }
           if (eq) {
             pos+=sprintf(buf+pos,
-            "{\"max_seconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 0, \"rewrite\": 0},\n",secs);
+            "{\"max_dseconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 0, \"rewrite\": 0},\n",dsecs);
           }
           pos+=sprintf(buf+pos,
-            "{\"max_seconds\": %d,\"strategy\":[\"unit\",\"pure_unit\"],\"weight_select_ratio\":1, \"query_preference\":0},\n",secs);
+            "{\"max_dseconds\": %d,\"strategy\":[\"unit\",\"pure_unit\"],\"weight_select_ratio\":1, \"query_preference\":0},\n",dsecs);
           if (qp2ok) {
             pos+=sprintf(buf+pos,
-            "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2, \"sine\":1},\n",secs);
+            "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2, \"sine\":1},\n",dsecs);
           }
           if (qp1ok) {
             pos+=sprintf(buf+pos,
-            "{\"max_seconds\": %d,\"strategy\":[\"hardness_pref\"],\"query_preference\":1, \"sine\":1},\n",secs);
+            "{\"max_dseconds\": %d,\"strategy\":[\"hardness_pref\"],\"query_preference\":1, \"sine\":1},\n",dsecs);
           }  
 
           if (qp1ok) {
             pos+=sprintf(buf+pos,
-            "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1},\n",secs);
+            "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1},\n",dsecs);
           }  
           if (qp2ok) {
             pos+=sprintf(buf+pos,
-            "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2},\n",secs);
+            "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2},\n",dsecs);
           }      
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 0},\n",secs);                  
+          "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 0},\n",dsecs);                  
 
           if (qp1ok) {
             pos+=sprintf(buf+pos,
-            "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1,\"weight_select_ratio\":20,\"depth_penalty\": 50, \"length_penalty\":100},\n",secs);
+            "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1,\"weight_select_ratio\":20,\"depth_penalty\": 50, \"length_penalty\":100},\n",dsecs);
           }  
           pos+=sprintf(buf+pos,     
-          "{\"max_seconds\": %d,\"strategy\":[\"hardness_pref\"],\"query_preference\":1,\"weight_select_ratio\":20,\"depth_penalty\": 50, \"length_penalty\":100},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"hardness_pref\"],\"query_preference\":1,\"weight_select_ratio\":20,\"depth_penalty\": 50, \"length_penalty\":100},\n",dsecs);
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1,\"max_depth\":4},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1,\"max_depth\":4},\n",dsecs);
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1,\"max_depth\":8},\n",secs);         
+          "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1,\"max_depth\":8},\n",dsecs);         
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"max_depth\":10, \"weight_select_ratio\":20},\n",secs);   
+          "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"max_depth\":10, \"weight_select_ratio\":20},\n",dsecs);   
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"weight_select_ratio\":20,\"depth_penalty\": 50, \"length_penalty\":100},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"weight_select_ratio\":20,\"depth_penalty\": 50, \"length_penalty\":100},\n",dsecs);
       
       
         }
@@ -1790,164 +1790,164 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
     } else if ((g->sin_clause_count)>100) { // < 1000
 
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0},\n",secs);
+      "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0},\n",dsecs);
       pos+=sprintf(buf+pos,     
-      "{\"max_seconds\": %d,\"strategy\":[\"hardness_pref\"],\"query_preference\":0},\n",secs);                  
+      "{\"max_dseconds\": %d,\"strategy\":[\"hardness_pref\"],\"query_preference\":0},\n",dsecs);                  
       if (qp1ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1},\n",dsecs);
       }
       if (qp1ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":1},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":1},\n",dsecs);
       }
       if (qp3ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":3},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":3},\n",dsecs);
       }
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d,\"strategy\":[\"query_focus\",\"positive_pref\"],\"query_preference\":0},\n",secs);      
+      "{\"max_dseconds\": %d,\"strategy\":[\"query_focus\",\"positive_pref\"],\"query_preference\":0},\n",dsecs);      
       if (qp1ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"query_focus\",\"positive_pref\"],\"query_preference\":1},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"query_focus\",\"positive_pref\"],\"query_preference\":1},\n",dsecs);
       }
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0},\n",secs);
+      "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0},\n",dsecs);
       if (qp1ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":1,\"reverse_clauselist\":1},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":1,\"reverse_clauselist\":1},\n",dsecs);
       }
       if (qp1ok) {
         pos+=sprintf(buf+pos, 
-        "{\"max_seconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":1,\"depth_penalty\": 100},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":1,\"depth_penalty\": 100},\n",dsecs);
       }
      
-      if (i<1) {
+      if (i<2) {
         pos+=sprintf(buf+pos,     
-        "{\"max_seconds\": %d,\"strategy\":[\"hardness_pref\"],\"query_preference\":0, \"weight_select_ratio\":1,\"depth_penalty\": 50, \"length_penalty\":100},\n",secs);      
+        "{\"max_dseconds\": %d,\"strategy\":[\"hardness_pref\"],\"query_preference\":0, \"weight_select_ratio\":1,\"depth_penalty\": 50, \"length_penalty\":100},\n",dsecs);      
         if (eq) {
           pos+=sprintf(buf+pos,     
-          "{\"max_seconds\": %d,\"strategy\":[\"hardness_pref\"],\"query_preference\":0, \"rewrite\":0},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"hardness_pref\"],\"query_preference\":0, \"rewrite\":0},\n",dsecs);
         }  
         if (eq) {
           pos+=sprintf(buf+pos,     
-          "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1, \"rewrite\":0},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1, \"rewrite\":0},\n",dsecs);
         }
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"weight_select_ratio\":1,\"depth_penalty\": 50, \"length_penalty\":100},\n",secs);      
+        "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"weight_select_ratio\":1,\"depth_penalty\": 50, \"length_penalty\":100},\n",dsecs);      
         if (qp1ok) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1, \"weight_select_ratio\":1,\"depth_penalty\": 50, \"length_penalty\":100},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1, \"weight_select_ratio\":1,\"depth_penalty\": 50, \"length_penalty\":100},\n",dsecs);
         }
         if (qp1ok) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":1,\"weight_select_ratio\":30,\"depth_penalty\": 100, \"length_penalty\":100},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":1,\"weight_select_ratio\":30,\"depth_penalty\": 100, \"length_penalty\":100},\n",dsecs);
         }
         if (qp3ok) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":3, \"weight_select_ratio\":20,\"var_weight\": 1, \"repeat_var_weight\":2},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":3, \"weight_select_ratio\":20,\"var_weight\": 1, \"repeat_var_weight\":2},\n",dsecs);
         }
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"query_focus\",\"positive_pref\"],\"query_preference\":0,  \"weight_select_ratio\":20, \"var_weight\": 1, \"repeat_var_weight\":2 },\n",secs);      
+        "{\"max_dseconds\": %d,\"strategy\":[\"query_focus\",\"positive_pref\"],\"query_preference\":0,  \"weight_select_ratio\":20, \"var_weight\": 1, \"repeat_var_weight\":2 },\n",dsecs);      
         if (qp1ok) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"query_focus\",\"positive_pref\"],\"query_preference\":1, \"max_depth\": 4, \"var_weight\":1},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"query_focus\",\"positive_pref\"],\"query_preference\":1, \"max_depth\": 4, \"var_weight\":1},\n",dsecs);
         }
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0, \"max_depth\": 6, \"var_weight\":1 },\n",secs);        
+        "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0, \"max_depth\": 6, \"var_weight\":1 },\n",dsecs);        
         if (qp1ok) {
           pos+=sprintf(buf+pos, 
-          "{\"max_seconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":1,\"var_weight\":1, \"weight_select_ratio\":30,  \"depth_penalty\": 100},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":1,\"var_weight\":1, \"weight_select_ratio\":30,  \"depth_penalty\": 100},\n",dsecs);
         }
       }
       // single 
 
-      if (i<2) {        
+      if (i<3) {        
         if (qp1ok) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":1,\"max_depth\":2},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":1,\"max_depth\":2},\n",dsecs);
         }
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"max_depth\":3},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"max_depth\":3},\n",dsecs);
         pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d, \"strategy\":[\"hardness_pref\"], \"query_preference\": 0,\"sine\":1},\n",secs);
+          "{\"max_dseconds\": %d, \"strategy\":[\"hardness_pref\"], \"query_preference\": 0,\"sine\":1},\n",dsecs);
         if (qp2ok) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":2},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":2},\n",dsecs);
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"query_focus\",\"positive_pref\"],\"query_preference\":2},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"query_focus\",\"positive_pref\"],\"query_preference\":2},\n",dsecs);
         }              
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1,\"length_penalty\":100},\n",secs);      
+        "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1,\"length_penalty\":100},\n",dsecs);      
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"depth_penalty\":100},\n",secs);       
+        "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"depth_penalty\":100},\n",dsecs);       
         if (qp1ok) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":1,\"depth_penalty\":50,\"length_penalty\":100},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":1,\"depth_penalty\":50,\"length_penalty\":100},\n",dsecs);
         }      
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1,\"depth_penalty\":50,\"length_penalty\":100},\n",secs);      
+        "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1,\"depth_penalty\":50,\"length_penalty\":100},\n",dsecs);      
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"depth_penalty\":50,\"length_penalty\":100},\n",secs);      
+        "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"depth_penalty\":50,\"length_penalty\":100},\n",dsecs);      
         if (eq) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\",\"posunitpara\"],\"query_preference\":1,\"max_depth\":2,\"depth_penalty\":50,\"length_penalty\":100},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\",\"posunitpara\"],\"query_preference\":1,\"max_depth\":2,\"depth_penalty\":50,\"length_penalty\":100},\n",dsecs);
         }
         if (eq) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"hardness_pref\",\"posunitpara\"],\"query_preference\":0,\"depth_penalty\":50,\"length_penalty\":100},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"hardness_pref\",\"posunitpara\"],\"query_preference\":0,\"depth_penalty\":50,\"length_penalty\":100},\n",dsecs);
         }
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"hardness_pref\",\"max_ground_weight\"],\"query_preference\":0},\n",secs);            
+        "{\"max_dseconds\": %d,\"strategy\":[\"hardness_pref\",\"max_ground_weight\"],\"query_preference\":0},\n",dsecs);            
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1,\"max_depth\": 2},\n",secs);            
+        "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1,\"max_depth\": 2},\n",dsecs);            
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":1,\"max_depth\": 2},\n",secs);      
+        "{\"max_dseconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":1,\"max_depth\": 2},\n",dsecs);      
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"max_depth\": 1},\n",secs);     
+        "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"max_depth\": 1},\n",dsecs);     
         //pos+=sprintf(buf+pos,
-        //"{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1,\"reverse_clauselist\": 1},\n",secs);
+        //"{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1,\"reverse_clauselist\": 1},\n",dsecs);
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"unit\",\"pure_unit\"],\"query_preference\":0},\n",secs);   
+        "{\"max_dseconds\": %d,\"strategy\":[\"unit\",\"pure_unit\"],\"query_preference\":0},\n",dsecs);   
         if (qp1ok) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1,\"var_weight\":1, \"repeat_var_weight\":1},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1,\"var_weight\":1, \"repeat_var_weight\":1},\n",dsecs);
         }
         pos+=sprintf(buf+pos,     
-        "{\"max_seconds\": %d,\"strategy\":[\"hardness_pref\"],\"query_preference\":0, \"sine\":1},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"hardness_pref\"],\"query_preference\":0, \"sine\":1},\n",dsecs);
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0, \"sine\":1},\n",secs);   
+        "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0, \"sine\":1},\n",dsecs);   
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0, \"sine\":1},\n",secs); 
+        "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0, \"sine\":1},\n",dsecs); 
         if (qp1ok) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":1, \"sine\":2},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":1, \"sine\":2},\n",dsecs);
         }  
         if (qp1ok) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1, \"sine\":2},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1, \"sine\":2},\n",dsecs);
         }   
         pos+=sprintf(buf+pos,     
-        "{\"max_seconds\": %d,\"strategy\":[\"hardness_pref\"],\"query_preference\":0,\"weight_select_ratio\":20,\"depth_penalty\": 50, \"length_penalty\":100},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"hardness_pref\"],\"query_preference\":0,\"weight_select_ratio\":20,\"depth_penalty\": 50, \"length_penalty\":100},\n",dsecs);
         pos+=sprintf(buf+pos,
-         "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"max_depth\":4},\n",secs);
+         "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"max_depth\":4},\n",dsecs);
         pos+=sprintf(buf+pos,
-         "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1,\"max_depth\":8},\n",secs);         
+         "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1,\"max_depth\":8},\n",dsecs);         
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"max_depth\":10, \"weight_select_ratio\":20},\n",secs);   
+        "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"max_depth\":10, \"weight_select_ratio\":20},\n",dsecs);   
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"weight_select_ratio\":20,\"depth_penalty\": 50, \"length_penalty\":100},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"weight_select_ratio\":20,\"depth_penalty\": 50, \"length_penalty\":100},\n",dsecs);
                 
        
       // double 
       
-      } else if (i<3) {  
+      } else if (i<4) {  
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0, \"weight_select_ratio\":20},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0, \"weight_select_ratio\":20},\n",dsecs);
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0, \"weight_select_ratio\":20},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0, \"weight_select_ratio\":20},\n",dsecs);
         pos+=sprintf(buf+pos,     
-        "{\"max_seconds\": %d,\"strategy\":[\"hardness_pref\"],\"query_preference\":0, \"weight_select_ratio\":20},\n",secs);         
+        "{\"max_dseconds\": %d,\"strategy\":[\"hardness_pref\"],\"query_preference\":0, \"weight_select_ratio\":20},\n",dsecs);         
       } 
     
     // ---
@@ -1955,164 +1955,164 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
     } else if ((g->sin_clause_count)>20) { // < 100
 
       pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0},\n",dsecs);
       if (qp1ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1},\n",dsecs);
       }
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0},\n",secs);
+      "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0},\n",dsecs);
       if (qp1ok) {      
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":1},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":1},\n",dsecs);
       }      
       if (qp1ok) {      
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":1},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":1},\n",dsecs);
       }
 
-      if (i<1) {
+      if (i<2) {
         if (qp1ok) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1, \"depth_penalty\": 100, \"var_weight\":1, \"repeat_var_weight\":1},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1, \"depth_penalty\": 100, \"var_weight\":1, \"repeat_var_weight\":1},\n",dsecs);
         }
         if (eq) {
           pos+=sprintf(buf+pos,     
-          "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1, \"rewrite\":0},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1, \"rewrite\":0},\n",dsecs);
         }
         if (eq) {
           pos+=sprintf(buf+pos,     
-          "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0, \"rewrite\":0},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0, \"rewrite\":0},\n",dsecs);
         }
         if (eq) {
           pos+=sprintf(buf+pos,     
-          "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0, \"rewrite\":0},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0, \"rewrite\":0},\n",dsecs);
         }
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0, \"var_weight\":1, \"depth_penalty\": 100, \"repeat_var_weight\":1},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0, \"var_weight\":1, \"depth_penalty\": 100, \"repeat_var_weight\":1},\n",dsecs);
         if (qp1ok && eq) {      
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":1, \"equality\":0, \"var_weight\":1, \"repeat_var_weight\":1},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":1, \"equality\":0, \"var_weight\":1, \"repeat_var_weight\":1},\n",dsecs);
         }
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0, \"var_weight\":1, \"length_penalty\": 100, \"repeat_var_weight\":1},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0, \"var_weight\":1, \"length_penalty\": 100, \"repeat_var_weight\":1},\n",dsecs);
         if (qp1ok) {      
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":1, \"var_weight\":1, \"weight_select_ratio\":100, \"repeat_var_weight\":1},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":1, \"var_weight\":1, \"weight_select_ratio\":100, \"repeat_var_weight\":1},\n",dsecs);
         } 
         pos+=sprintf(buf+pos, 
-        "{\"max_seconds\": %d,\"strategy\":[\"positive_pref\"],\"query_preference\":0},\n",secs); 
+        "{\"max_dseconds\": %d,\"strategy\":[\"positive_pref\"],\"query_preference\":0},\n",dsecs); 
         pos+=sprintf(buf+pos,     
-        "{\"max_seconds\": %d,\"strategy\":[\"hardness_pref\"],\"query_preference\":1},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"hardness_pref\"],\"query_preference\":1},\n",dsecs);
       
       }
 
       //dual:
       pos+=sprintf(buf+pos, 
-      "{\"max_seconds\": %d,\"strategy\":[\"positive_pref\"],\"query_preference\":0,\"reverse_clauselist\":1},\n",secs);
+      "{\"max_dseconds\": %d,\"strategy\":[\"positive_pref\"],\"query_preference\":0,\"reverse_clauselist\":1},\n",dsecs);
       if (qp1ok && eq) {      
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1, \"equality\":0},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1, \"equality\":0},\n",dsecs);
       }
 
       //exp:
 
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d,\"strategy\":[\"positive_pref\"],\"query_preference\":0,\"reverse_clauselist\":1,\"length_penalty\":100},\n",secs);      
+      "{\"max_dseconds\": %d,\"strategy\":[\"positive_pref\"],\"query_preference\":0,\"reverse_clauselist\":1,\"length_penalty\":100},\n",dsecs);      
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"depth_penalty\": 100},\n",secs);      
+      "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"depth_penalty\": 100},\n",dsecs);      
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":1,\"var_weight\":1, \"repeat_var_weight\":1},\n",secs);
+      "{\"max_dseconds\": %d,\"strategy\":[\"query_focus\"],\"query_preference\":1,\"var_weight\":1, \"repeat_var_weight\":1},\n",dsecs);
       if (qp1ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1,\"var_weight\":1, \"repeat_var_weight\":1},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1,\"var_weight\":1, \"repeat_var_weight\":1},\n",dsecs);
       }
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"weight_select_ratio\":100, \"depth_penalty\":100, \"length_penalty\":100},\n",secs);
+      "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"weight_select_ratio\":100, \"depth_penalty\":100, \"length_penalty\":100},\n",dsecs);
                
 
       //single:
       
-      if (i<2) {
+      if (i<3) {
         if (qp1ok) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1,\"reverse_clauselist\":1},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1,\"reverse_clauselist\":1},\n",dsecs);
         }
         if (qp1ok) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1, \"weight_select_ratio\":20},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1, \"weight_select_ratio\":20},\n",dsecs);
         }
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"max_depth\":2},\n",secs);      
+        "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"max_depth\":2},\n",dsecs);      
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"max_depth\":4},\n",secs); 
+        "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"max_depth\":4},\n",dsecs); 
         if (eq) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"unit\",\"pure_unit\"],\"query_preference\":0},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"unit\",\"pure_unit\"],\"query_preference\":0},\n",dsecs);
         }     
         if (qp1ok) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":1,\"reverse_clauselist\":1},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":1,\"reverse_clauselist\":1},\n",dsecs);
         }
         pos+=sprintf(buf+pos,     
-        "{\"max_seconds\": %d,\"strategy\":[\"hardness_pref\"],\"query_preference\":0,\"weight_select_ratio\":20,\"depth_penalty\": 50, \"length_penalty\":100},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"hardness_pref\"],\"query_preference\":0,\"weight_select_ratio\":20,\"depth_penalty\": 50, \"length_penalty\":100},\n",dsecs);
       
 
         //exp single:
 
         if (qp1ok) {
           pos+=sprintf(buf+pos, 
-          "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1,\"max_size\":30},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1,\"max_size\":30},\n",dsecs);
         }
         if (qp1ok) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"query_focus\",\"double\"],\"query_preference\":1},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"query_focus\",\"double\"],\"query_preference\":1},\n",dsecs);
         }
         if (eq) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"unit\",\"posunitpara\"],\"query_preference\":0},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"unit\",\"posunitpara\"],\"query_preference\":0},\n",dsecs);
         }
         if (qp1ok && eq) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"unit\",\"posunitpara\"],\"query_preference\":1},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"unit\",\"posunitpara\"],\"query_preference\":1},\n",dsecs);
         }
         if (eq) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\",\"posunitpara\"],\"query_preference\":0},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\",\"posunitpara\"],\"query_preference\":0},\n",dsecs);
         }
         if (qp1ok) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1, \"var_weight\":1, \"repeat_var_weight\":1},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1, \"var_weight\":1, \"repeat_var_weight\":1},\n",dsecs);
         }
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"], \"var_weight\":1, \"repeat_var_weight\":1,\
-         \"depth_penalty\":100, \"length_penalty\":100, \"max_length\":3,\"max_depth\":3},\n",secs);
-        if (i<1 && !eq) {
+        "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"], \"var_weight\":1, \"repeat_var_weight\":1,\
+         \"depth_penalty\":100, \"length_penalty\":100, \"max_length\":3,\"max_depth\":3},\n",dsecs);
+        if (i<2 && !eq) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"unit\",\"pure_unit\"],\"query_preference\":0},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"unit\",\"pure_unit\"],\"query_preference\":0},\n",dsecs);
         }  
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0, \"sine\":1},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0, \"sine\":1},\n",dsecs);
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0, \"sine\":1},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0, \"sine\":1},\n",dsecs);
 
         pos+=sprintf(buf+pos,
-         "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"max_depth\":4},\n",secs);
+         "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"max_depth\":4},\n",dsecs);
         pos+=sprintf(buf+pos,
-         "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"max_depth\":8},\n",secs);         
+         "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"max_depth\":8},\n",dsecs);         
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"max_depth\":10, \"weight_select_ratio\":20},\n",secs);   
+        "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"max_depth\":10, \"weight_select_ratio\":20},\n",dsecs);   
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"weight_select_ratio\":20,\"depth_penalty\": 50, \"length_penalty\":100},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"weight_select_ratio\":20,\"depth_penalty\": 50, \"length_penalty\":100},\n",dsecs);
    
 
       // double 
 
-      } else if (i<3) {  
+      } else if (i<4) {  
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0, \"weight_select_ratio\":20},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0, \"weight_select_ratio\":20},\n",dsecs);
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0, \"weight_select_ratio\":20},\n",secs);        
+        "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0, \"weight_select_ratio\":20},\n",dsecs);        
       }  
 
     // ----
@@ -2122,86 +2122,86 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
       // very small size
       
       pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0},\n",dsecs);
       pos+=sprintf(buf+pos,  
-         "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0},\n",secs);    
+         "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0},\n",dsecs);    
       if (qp1ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1},\n",dsecs);
       }     
       if (qp1ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":1},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":1},\n",dsecs);
       } 
 
       // exp:
     
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"weight_select_ratio\":100, \"depth_penalty\":100, \"length_penalty\":100},\n",secs);
+      "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"weight_select_ratio\":100, \"depth_penalty\":100, \"length_penalty\":100},\n",dsecs);
     
 
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1,\"weight_select_ratio\":20},\n",secs);
+      "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1,\"weight_select_ratio\":20},\n",dsecs);
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0, \"var_weight\":1, \"repeat_var_weight\":1},\n",secs);      
+      "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0, \"var_weight\":1, \"repeat_var_weight\":1},\n",dsecs);      
       if (eq) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"unit\",\"prohibit_nested_para\"],\"query_preference\":1,\"reverse_clauselist\":1},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"unit\",\"prohibit_nested_para\"],\"query_preference\":1,\"reverse_clauselist\":1},\n",dsecs);
       }
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0, \"depth_penalty\":100},\n",secs);
+      "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0, \"depth_penalty\":100},\n",dsecs);
       if (eq) {       
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\",\"prohibit_nested_para\"],\"query_preference\":0},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\",\"prohibit_nested_para\"],\"query_preference\":0},\n",dsecs);
       }
       pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0, \"depth_penalty\":50, \"length_penalty\":100},\n",secs);      
+      "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0, \"depth_penalty\":50, \"length_penalty\":100},\n",dsecs);      
       if (qp1ok) {
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1,\"weight_select_ratio\":20,\"depth_penalty\": 50, \"length_penalty\":100},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":1,\"weight_select_ratio\":20,\"depth_penalty\": 50, \"length_penalty\":100},\n",dsecs);
       }
-      if (i<2) {         
+      if (i<3) {         
          pos+=sprintf(buf+pos,
-         "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0},\n",secs);
+         "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0},\n",dsecs);
       }
-      if (i<2) {
+      if (i<3) {
         if (eq) {
           pos+=sprintf(buf+pos,
-          "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\",\"posunitpara\"],\"query_preference\":0},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\",\"posunitpara\"],\"query_preference\":0},\n",dsecs);
         }
         if (eq) {
           pos+=sprintf(buf+pos,     
-          "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0, \"rewrite\":0},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0, \"rewrite\":0},\n",dsecs);
         }
         if (eq) {
           pos+=sprintf(buf+pos,     
-          "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0, \"rewrite\":0},\n",secs);
+          "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0, \"rewrite\":0},\n",dsecs);
         }
         pos+=sprintf(buf+pos,     
-        "{\"max_seconds\": %d,\"strategy\":[\"hardness_pref\"],\"query_preference\":0,\"weight_select_ratio\":20,\"depth_penalty\": 50, \"length_penalty\":100},\n",secs);      
+        "{\"max_dseconds\": %d,\"strategy\":[\"hardness_pref\"],\"query_preference\":0,\"weight_select_ratio\":20,\"depth_penalty\": 50, \"length_penalty\":100},\n",dsecs);      
         pos+=sprintf(buf+pos, 
-        "{\"max_seconds\": %d,\"strategy\":[\"positive_pref\"],\"query_preference\":0},\n",secs);    
+        "{\"max_dseconds\": %d,\"strategy\":[\"positive_pref\"],\"query_preference\":0},\n",dsecs);    
         pos+=sprintf(buf+pos,
-         "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"max_depth\":4},\n",secs);
+         "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"max_depth\":4},\n",dsecs);
         pos+=sprintf(buf+pos,
-         "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"max_depth\":8},\n",secs); 
+         "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"max_depth\":8},\n",dsecs); 
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"unit\",\"pure_unit\"],\"query_preference\":0},\n",secs); 
+        "{\"max_dseconds\": %d,\"strategy\":[\"unit\",\"pure_unit\"],\"query_preference\":0},\n",dsecs); 
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"max_depth\":10, \"weight_select_ratio\":20},\n",secs);   
+        "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0,\"max_depth\":10, \"weight_select_ratio\":20},\n",dsecs);   
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"weight_select_ratio\":20,\"depth_penalty\": 50, \"length_penalty\":100},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"weight_select_ratio\":20,\"depth_penalty\": 50, \"length_penalty\":100},\n",dsecs);
         pos+=sprintf(buf+pos,     
-        "{\"max_seconds\": %d,\"strategy\":[\"hardness_pref\"],\"query_preference\":0,\"weight_select_ratio\":20,\"depth_penalty\": 50, \"length_penalty\":100},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"hardness_pref\"],\"query_preference\":0,\"weight_select_ratio\":20,\"depth_penalty\": 50, \"length_penalty\":100},\n",dsecs);
       
 
       // double 
       
-      } else if (i<3) {  
+      } else if (i<4) {  
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0, \"weight_select_ratio\":20},\n",secs);
+        "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0, \"weight_select_ratio\":20},\n",dsecs);
         pos+=sprintf(buf+pos,
-        "{\"max_seconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0, \"weight_select_ratio\":20},\n",secs);        
+        "{\"max_dseconds\": %d,\"strategy\":[\"negative_pref\"],\"query_preference\":0, \"weight_select_ratio\":20},\n",dsecs);        
       } 
 
     }
@@ -2215,12 +2215,16 @@ BLOCKEND:
       pos+=sprintf(buf+pos,"\n");      
     }
     // limit mods
-    secs=secs*5;
-    if (((g->in_max_depth)>1) && (g->sin_max_depth)>1) {
-      depth=depth+1;
-    } 
-    length=length+1; 
-    size=size*2;
+    if (i==0) {
+      dsecs=dsecs*10;      
+    } else {
+      dsecs=dsecs*5;
+      if (((g->in_max_depth)>1) && (g->sin_max_depth)>1) {
+        depth=depth+1;
+      } 
+      length=length+1; 
+      size=size*2;
+    }  
   }
 
   // overwrite last comma
@@ -2485,7 +2489,7 @@ void wr_show_in_summed_stats(glb* g) {
 
 void make_ltb_guide(glb* g, char** strats, int stratscount) { 
   char *buf=NULL,*pref;   
-  int i,pos,secs,stratn;
+  int i,pos,dsecs,stratn;
   
   for(i=0;i<stratscount;i++) {
     strats[i]=NULL;
@@ -2494,94 +2498,94 @@ void make_ltb_guide(glb* g, char** strats, int stratscount) {
   for(i=0;i<1;i++) {
 
     // first batch, 3 sec total
-    secs=1;
+    dsecs=1;
     buf=(char*)wr_malloc(g,10000);  
     pref="{\n"
         "\"print_level\": 5,\n"; 
     pos=sprintf(buf,"%s",pref);
     pos+=sprintf(buf+pos,"\"runs\":[\n");
     pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1},\n",dsecs);
     pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 1},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 1},\n",dsecs);
     pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1}\n",secs);    
+      "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1}\n",dsecs);    
     pos+=sprintf(buf+pos,"]}\n");    
     if (stratn<stratscount) strats[stratn++]=buf;
 
     // second batch, 5 sec total, ends at 8 sec
-    secs=1;
+    dsecs=1;
     buf=(char*)wr_malloc(g,10000);  
     pref="{\n"
         "\"print_level\": 5,\n"; 
     pos=sprintf(buf,"%s",pref);
     pos+=sprintf(buf+pos,"\"runs\":[\n");
     pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2},\n",dsecs);
     pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 0},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 0},\n",dsecs);
     pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"positive_pref\"], \"query_preference\": 3},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\",\"positive_pref\"], \"query_preference\": 3},\n",dsecs);
     pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 1},\n",secs);  
+      "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\",\"unit\"], \"query_preference\": 1},\n",dsecs);  
     pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 2, \"equality\":0}\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 2, \"equality\":0}\n",dsecs);
     pos+=sprintf(buf+pos,"]}\n");    
     if (stratn<stratscount) strats[stratn++]=buf;
 
     // third batch, 15 sec total, ends at 23 sec
-    secs=5;
+    dsecs=5;
     buf=(char*)wr_malloc(g,10000);  
     pref="{\n"
         "\"print_level\": 5,\n"; 
     pos=sprintf(buf,"%s",pref);
     pos+=sprintf(buf+pos,"\"runs\":[\n");
     pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1},\n",dsecs);
     pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 2},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 2},\n",dsecs);
     pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0}\n",secs);    
+      "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0}\n",dsecs);    
     pos+=sprintf(buf+pos,"]}\n");
     if (stratn<stratscount) strats[stratn++]=buf;
 
     // fourth batch, 20 sec total, ends at 43 sec
-    secs=5;
+    dsecs=5;
     buf=(char*)wr_malloc(g,10000);  
     pref="{\n"
         "\"print_level\":  5,\n"; 
     pos=sprintf(buf,"%s",pref);
     pos+=sprintf(buf+pos,"\"runs\":[\n");
     pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2},\n",dsecs);
     pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 0, \"reverse_clauselist\": 1},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 0, \"reverse_clauselist\": 1},\n",dsecs);
     pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 2},\n",secs);    
+      "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 2},\n",dsecs);    
     pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"hyper\"], \"query_preference\": 1}\n",secs);  
+      "{\"max_dseconds\": %d, \"strategy\":[\"hyper\"], \"query_preference\": 1}\n",dsecs);  
     pos+=sprintf(buf+pos,"]}\n");
     if (stratn<stratscount) strats[stratn++]=buf;
 
     // fifth batch 
-    secs=15;
+    dsecs=15;
     buf=(char*)wr_malloc(g,10000);  
     pref="{\n"
         "\"print_level\":  5,\n"; 
     pos=sprintf(buf,"%s",pref);
     pos+=sprintf(buf+pos,"\"runs\":[\n");
     pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1},\n",dsecs);
     pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2},\n",dsecs);
     pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 1},\n",secs);  
+      "{\"max_dseconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 1},\n",dsecs);  
     pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 0, \"reverse_clauselist\": 1},\n",secs);
+      "{\"max_dseconds\": %d, \"strategy\":[\"negative_pref\"], \"query_preference\": 0, \"reverse_clauselist\": 1},\n",dsecs);
     pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1},\n",secs);    
+      "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1},\n",dsecs);    
     pos+=sprintf(buf+pos,
-      "{\"max_seconds\": %d, \"strategy\":[\"hyper\"], \"query_preference\": 1}\n",secs); 
+      "{\"max_dseconds\": %d, \"strategy\":[\"hyper\"], \"query_preference\": 1}\n",dsecs); 
     pos+=sprintf(buf+pos,"]}\n");
     if (stratn<stratscount) strats[stratn++]=buf;
 
@@ -2591,7 +2595,7 @@ void make_ltb_guide(glb* g, char** strats, int stratscount) {
       pos+=sprintf(buf+pos,"\n");      
     }
     // limit mods
-    secs=secs*5;   
+    dsecs=dsecs*5;   
     */
   }
   /*

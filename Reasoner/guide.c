@@ -211,7 +211,7 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr) {
       (g->max_run_seconds)=json_valueint(elem);
 
       // TESTING: commented out. NORMALLY: active
-      if ((g->max_run_seconds)<2) {
+      if ((g->max_run_seconds) && (g->max_run_seconds)<2) {
         (g->use_strong_unit_cutoff)=1;
       } else {
         (g->use_strong_unit_cutoff)=0;
@@ -223,6 +223,25 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr) {
       //printf("\nmax_seconds %d\n", json_valueint(elem));
       (g->max_seconds)=json_valueint(elem);
     } 
+    
+    else if (!strcmp(key,"max_dseconds")) {
+      //printf("\nmax_run_seconds %d\n", json_valueint(elem));
+      (g->max_run_dseconds)=json_valueint(elem);
+
+      // TESTING: commented out. NORMALLY: active
+      if ((g->max_run_dseconds) && (g->max_run_dseconds)<20) {
+        (g->use_strong_unit_cutoff)=1;
+      } else {
+        (g->use_strong_unit_cutoff)=0;
+      }      
+
+      //(g->use_strong_unit_cutoff)=1;
+
+    } else if (!strcmp(key,"total_dseconds")) {
+      //printf("\nmax_seconds %d\n", json_valueint(elem));
+      (g->max_dseconds)=json_valueint(elem);
+    } 
+
     /*
     else if (!strcmp(key,"max_forks")) {
       //printf("\nmax_forks %d\n", json_valueint(elem));

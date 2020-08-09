@@ -1886,6 +1886,8 @@ void wr_print_strat_flags(glb* g) {
   /* pre-given limits */
   wr_printf("max_run_seconds %d\n", (g->max_run_seconds)); // one run max seconds
   wr_printf("max_seconds %d\n", (g->max_seconds));     // total max seconds
+  wr_printf("max_run_dseconds %d\n", (g->max_run_dseconds)); // one run max dseconds
+  wr_printf("max_dseconds %d\n", (g->max_dseconds));     // total max dseconds
   wr_printf("cl_maxkeep_weightlimit %d\n", (g->cl_maxkeep_weightlimit));
   wr_printf("cl_maxkeep_sizelimit %d\n", (g->cl_maxkeep_sizelimit));
   wr_printf("cl_maxkeep_depthlimit %d\n", (g->cl_maxkeep_depthlimit));

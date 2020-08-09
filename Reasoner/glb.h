@@ -322,6 +322,8 @@ typedef struct {
 
   int max_run_seconds;
   int max_seconds;
+  int max_run_dseconds;
+  int max_dseconds;
   int cl_keep_weightlimit;
   int cl_keep_sizelimit;
   int cl_keep_depthlimit;

@@ -148,7 +148,7 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
   char* filename=NULL;  
   int forkslive=0, forkscreated=0, maxforks=2, forknr, err, cpid, i;
   clock_t curclock;
-  float total_seconds;
+  float total_seconds,total_dseconds;
   int forkpids[64];
 
   //printf("\n guidestr %s\n",guidestr);
@@ -233,17 +233,17 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
       if (guidebuf!=NULL) { sys_free(guidebuf); guidebuf=NULL; }
 
     } else if (guidestr!=NULL) {      
-      guide=wr_parse_guide_str(guidestr); 
+      guide=wr_parse_guide_str(guidestr);       
       if (guide==NULL) {  return -1; } 
     } else {
       guidebuf=make_auto_guide(analyze_g,kb_g,0);     
-      guide=wr_parse_guide_str(guidebuf); 
+      guide=wr_parse_guide_str(guidebuf);       
       if (guide==NULL) {  return -1; } 
       //if (guidebuf!=NULL) wr_free(g,(void*)guidebuf);
       if (guidebuf!=NULL) { sys_free(guidebuf); guidebuf=NULL; }
     }
   }
-    
+  
   int pid=1,stat;
   forkscreated=0;
   forkslive=0;  
@@ -408,9 +408,16 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
 
     curclock=clock();
     total_seconds = (float)(curclock - (dbmemsegh(local_db)->allruns_start_clock)) / CLOCKS_PER_SEC;
+    total_dseconds = (float)(curclock - (dbmemsegh(local_db)->allruns_start_clock)) / 
+                      ((float)CLOCKS_PER_SEC / 10.0);
     //printf("\ntotal_seconds %f max_seconds %d \n",total_seconds,(dbmemsegh(local_db)->max_seconds));
     if ((dbmemsegh(local_db)->max_seconds) && 
         (total_seconds>(dbmemsegh(local_db)->max_seconds))) {
+      res=2;    
+      break;
+    }
+    if ((dbmemsegh(local_db)->max_dseconds) && 
+        (total_dseconds>(dbmemsegh(local_db)->max_dseconds))) {
       res=2;    
       break;
     }
@@ -440,13 +447,21 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
         wr_errprint("do not set both tptp and json output parameters at the same time");    
         return -1;
       }
-    }
+    }    
+
     (g->print_level_flag)=(dbmemsegh(local_db)->printlevel);
     (g->print_derived)=(dbmemsegh(local_db)->printderived);
     (g->max_seconds)=(dbmemsegh(local_db)->max_seconds);
+    (g->max_dseconds)=(dbmemsegh(local_db)->max_dseconds);
 
     // copy analyze_g stats to g for easier handling
     wr_copy_sin_stats(analyze_g,g);    
+    /*
+    if (dbmemsegh(local_db)->printlevel) (g->print_level_flag)=(dbmemsegh(local_db)->printlevel);
+    if (dbmemsegh(local_db)->printderived) (g->print_derived)=(dbmemsegh(local_db)->printderived);
+    if (dbmemsegh(local_db)->max_seconds) (g->max_seconds)=(dbmemsegh(local_db)->max_seconds);
+    if (dbmemsegh(local_db)->max_dseconds) (g->max_dseconds)=(dbmemsegh(local_db)->max_dseconds);
+    */
 
     if (kb_g!=NULL) {
       (g->kb_g)=kb_g; // points to the copy of globals of the external kb
@@ -465,16 +480,22 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
     (g->child_db)=child_db;
     (g->db)=db;
     (g->local_db)=local_db;
- 
+     
     (g->current_run_nr)=iter;
     (g->current_fork_nr)=forkslive;
     (g->print_level_flag)=(dbmemsegh(local_db)->printlevel);
     (g->print_derived)=(dbmemsegh(local_db)->printderived);
     (g->max_seconds)=(dbmemsegh(local_db)->max_seconds);
-    if (outfilename) (g->outfilename)=outfilename;
-    if (iter==0) (g->allruns_start_clock)=clock();  
+    (g->max_dseconds)=(dbmemsegh(local_db)->max_dseconds);
+    if (outfilename) (g->outfilename)=outfilename;   
+
+    if (iter==0) (g->allruns_start_clock)=clock();    
     guidetext=NULL;
-    guideres=wr_parse_guide_section(g,guide,iter,&guidetext);  
+    guideres=wr_parse_guide_section(g,guide,iter,&guidetext); 
+
+    if (dbmemsegh(local_db)->printlevel) (g->print_level_flag)=(dbmemsegh(local_db)->printlevel);
+    if (dbmemsegh(local_db)->printderived) (g->print_derived)=(dbmemsegh(local_db)->printderived);
+
     /*
     if (g->print_flag) {
       printf("\n**** run %d starts\n",iter+1);

@@ -180,6 +180,8 @@ int wr_glb_init_simple(glb* g) {
   /* pre-given limits */
   (g->max_run_seconds)=0; // one run max seconds
   (g->max_seconds)=0;     // total max seconds
+  (g->max_run_dseconds)=0; // one run max deciseconds
+  (g->max_dseconds)=0;     // total max deciseconds
   (g->cl_maxkeep_weightlimit)=0;
   (g->cl_maxkeep_sizelimit)=0;
   (g->cl_maxkeep_depthlimit)=0;
