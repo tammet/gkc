@@ -1216,8 +1216,12 @@ int wr_show_result(glb* g, gint history) {
     if ((g->print_level_flag)>=12) {
       bpos+=snprintf(buf+bpos,blen-bpos,"\n\n");
     }        
-    bpos+=snprintf(buf+bpos,blen-bpos,"{\"result\": \"proof found\",\n");
-    bpos+=snprintf(buf+bpos,blen-bpos,"\n\"answers\": [\n");
+    if (g->print_level_flag<10) {
+      bpos+=snprintf(buf+bpos,blen-bpos,"{\"result\": \"proof found\"}\n");          
+    } else {  
+      bpos+=snprintf(buf+bpos,blen-bpos,"{\"result\": \"proof found\",\n");    
+      bpos+=snprintf(buf+bpos,blen-bpos,"\n\"answers\": [\n");
+    }
   } else {
     if ((g->print_level_flag)>=12) {
         bpos+=snprintf(buf+bpos,blen-bpos,"\n\n");
@@ -1269,7 +1273,7 @@ int wr_show_result(glb* g, gint history) {
 
   if ((g->print_level_flag)<10) {
     if (g->print_json) {   
-      bpos+=snprintf(buf+bpos,blen-bpos,"]\n}\n");
+      //bpos+=snprintf(buf+bpos,blen-bpos,"]\n}\n");
     } else if (g->print_tptp) {
       bpos+=snprintf(buf+bpos,blen-bpos,"\n");
     }       
@@ -1398,8 +1402,10 @@ int wr_show_result(glb* g, gint history) {
     if (mpool) wg_free_mpool(db,mpool); 
   }
   if (g->print_json) {
-    bpos+=snprintf(buf+bpos,blen-bpos,"]}\n"); // end all answers
-    //bpos+=snprintf(buf+bpos,blen-bpos,"}\n");
+    if (g->print_level_flag>9) {
+      bpos+=snprintf(buf+bpos,blen-bpos,"]}\n"); // end all answers
+      //bpos+=snprintf(buf+bpos,blen-bpos,"}\n");
+    }  
   } else {
 #ifdef TPTP      
     if (!(g->print_tptp)) {
@@ -2289,10 +2295,27 @@ int wr_register_answer(glb* g, gptr cl, gint history) {
   gint count;
   cvec answers;
   gptr hcopy;
+  gint i;
 
   if (!(g->store_history)) return 0;
   answers=(g->answers);
   count=(g->answers)[1];
+  if (count>0) {
+    // check if there is a same answer already
+    for(i=2; i<count; i=i+2) {
+      /*
+      printf("\nexisting ans i %ld \n",i);
+      wr_print_clause(g,(gptr)(g->answers)[i]);
+      printf("\n");
+      */
+      // old one subsumes new one, do not add
+      if (wr_same_answers(g,(gptr)(g->answers)[i],cl,1)) {
+        //printf("\nfound subsuming answer\n");
+        return (((g->answers)[1])-2)/2;
+      }
+    }
+  }
+
   hcopy=wr_copy_raw_history_record(g,wg_decode_record(db,history),g->queue_termbuf);
   if (hcopy==NULL) return -1;
   (g->answers)=wr_cvec_store(g,answers,count,(gint)cl);
@@ -2324,6 +2347,76 @@ int wr_have_answers(glb* g) {
   } else {    
     return 0;
   }
+}
+
+
+/* ------------------------------------------------------ 
+
+   clause-to-clause subsumption
+
+   ------------------------------------------------------
+*/   
+
+int wr_same_answers(glb* g, gptr cl1, gptr cl2, int uniquestrflag) {
+  void* db=g->db;
+  int cllen1,cllen2;
+  int i1;
+  gint meta1,meta2;
+  gint atom1,atom2;
+
+#ifdef DEBUG  
+  wr_printf("\nwr_same_answers called on clauses %d %d :\n",(int)cl1,(int)cl2);
+  wr_print_clause(g,cl1);
+  wr_printf("\n");
+  wr_print_clause(g,cl2);
+  wr_printf("\n");  
+  wr_printf("\n");  
+  wg_print_record(db,cl1);
+  wr_printf("\n");
+  wg_print_record(db,cl2);
+  wr_printf("\n");
+#endif
+  // check fact clause cases first
+  if (!wg_rec_is_rule_clause(db,cl1)) {
+    if (!wg_rec_is_rule_clause(db,cl2)) {
+#ifdef DEBUG  
+       wr_printf("both clauses are facts \n");
+#endif                         
+      if (wr_equal_term(g,encode_record(db,cl1),encode_record(db,cl2),uniquestrflag))
+        return 1;
+      else
+        return 0;
+    } else {      
+      return 0;
+    }      
+  } 
+  // now cl1 is a rule clause  
+  if (!wg_rec_is_rule_clause(db,cl2)) {
+    return 0;
+  } 
+  // now both clauses are rule clauses 
+  cllen1=wg_count_clause_atoms(db,cl1);
+  cllen2=wg_count_clause_atoms(db,cl2);  
+  if (cllen1!=cllen2) return 0;
+  for(i1=0;i1<cllen1;i1++) {
+    meta1=wg_get_rule_clause_atom_meta(db,cl1,i1);
+    atom1=wg_get_rule_clause_atom(db,cl1,i1);    
+    meta2=wg_get_rule_clause_atom_meta(db,cl2,i1);
+    atom2=wg_get_rule_clause_atom(db,cl2,i1);  
+    /*
+    printf("\n i1 %d meta1 %ld meta2 %ld\n",i1,meta1,meta2);  
+    wr_print_term(g,atom1);
+    printf("\n");
+    wr_print_term(g,atom2);
+    printf("\n");
+    */
+    if (wg_atom_meta_is_neg(db,meta1)!=wg_atom_meta_is_neg(db,meta2) || 
+        !wr_equal_term(g,atom1,atom2,uniquestrflag)) {
+      //printf("\nunequal\n");    
+      return 0;
+    }
+  }
+  return 1;  
 }
 
 /* ============== error handling ==================== */

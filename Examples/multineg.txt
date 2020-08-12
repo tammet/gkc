@@ -1,4 +1,8 @@
 {
-"max_answers":2,
-"strategy": ["negative_pref"]
+"max_answers":3,
+"runs": [
+{"strategy": ["unit"]},
+{"strategy": ["negative_pref"]}
+]
+
 }

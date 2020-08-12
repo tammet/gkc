@@ -88,9 +88,9 @@ int wg_print_term_tptp(void* db, void* rec,int depth, int pflag, char** buf, int
 int wg_print_simpleterm_tptp(void* db, void* rec,int printlevel, char** buf, int *len, int pos, int isneg);
 int wg_print_nice_var_tptp(void* db, gint i, char** buf, int *len, int pos);
 
-int wg_print_frm_json(void* db, void* ptr, char** buf, int *len, int pos); 
-int wg_print_subfrm_json(void* db, void* rec,int depth, int pflag, 
-                         int termflag, char** buf, int *len, int pos, int negflag);
+int wg_print_frm_json(void* db, void* mpool, void* ptr, char** buf, int *len, int pos); 
+int wg_print_subfrm_json(void* db, void* mpool, void* rec,int depth, int pflag, 
+                         int termflag, char** buf, int *len, int pos, int negflag, void* boundvars);
 int wg_print_cnf_tptp(void* db, void* ptr, char** buf, int *len, int pos);
 int wg_print_subcnf_tptp(void* db, void* ptr,int depth,int pflag, int termflag, char** buf, int *len, int pos);
 

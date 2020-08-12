@@ -415,6 +415,7 @@ int wr_calc_clause_resolvability(glb* g, gptr cl, int allowall, int hyperpartial
       meta=wg_get_rule_clause_atom_meta(db,cl,i);
       atom=wg_get_rule_clause_atom(db,cl,i);
       if (wr_answer_lit(g,atom)) continue;
+      if (wr_specialcomp_lit(g,atom)) continue;    
       // count pos/neg
       if (wg_atom_meta_is_neg(db,meta)) {
         // negative lit
@@ -473,6 +474,10 @@ int wr_calc_clause_resolvability(glb* g, gptr cl, int allowall, int hyperpartial
     else polarity=1;            
     if (wr_answer_lit(g,atom)) {
       (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
+      continue;
+    } 
+    if (wr_specialcomp_lit(g,atom)) {
+      (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,1);
       continue;
     } 
     if (allowall) {
@@ -671,7 +676,7 @@ int wr_calc_clause_hardnesses(glb* g, gptr cl,
     else polarity=1;
     
     
-    if (wr_answer_lit(g,atom)) hardness=MIN_HARDNESS;
+    if (wr_answer_lit(g,atom) || wr_specialcomp_lit(g,atom)) hardness=MIN_HARDNESS;
     else hardness=wr_calc_atom_hardness(g,polarity,atom);
 
     //printf("\n  atom ");
@@ -1601,7 +1606,7 @@ int wr_calc_clause_size_countedvarlist(glb* g, gptr cl, gptr vb) {
   for(i=0; i<atomnr; i++) {      
     meta=wg_get_rule_clause_atom_meta(db,cl,i);
     atom=wg_get_rule_clause_atom(db,cl,i);
-    if (wr_answer_lit(g,atom)) {
+    if (wr_answer_lit(g,atom) || wr_specialcomp_lit(g,atom)) {
       // mark dummy: should not be selected for resolution or comparison      
       (g->tmp_clinfo)=wr_cvec_store(g,(g->tmp_clinfo),(i*2)+2,-1);
       (g->tmp_clinfo)=wr_cvec_store(g,(g->tmp_clinfo),(i*2)+2+1,(gint)NULL);      

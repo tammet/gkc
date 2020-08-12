@@ -31,6 +31,17 @@ holds(clear('#:table'),State).
 % ------ difference axioms --------
 
 '#:a'!='#:b'.
+'#:b'!='#:c'.
+'#:c'!='#:d'.
+'#:d'!='#:table'.
+
+/* 
+%
+% a full list of difference axioms:
+% commented out, since not needed for the queries below
+%
+
+'#:a'!='#:b'.
 '#:a'!='#:c'.
 '#:a'!='#:d'.
 '#:a'!='#:table'.
@@ -40,6 +51,7 @@ holds(clear('#:table'),State).
 '#:c'!='#:d'.
 '#:c'!='#:table'.
 '#:d'!='#:table'.
+*/
 
 % ----- pickup rules  ------
 
@@ -110,8 +122,7 @@ cnf(prove,negated_conjecture,
 % ----- query 2 -----------------
 %
 % this is a harder problem: to try it out,
-% comment out query 1,
-% uncomment difference axioms above and
+% comment out query 1 and
 % uncomment the following
 %
 % build a tower:
@@ -124,13 +135,13 @@ cnf(prove,negated_conjecture,
 
 
 
-%cnf(prove,negated_conjecture,
+% cnf(prove,negated_conjecture,
 %    -holds(on('#:a','#:d'),State) | -holds(on('#:b','#:a'),State) | -holds(on('#:c','#:b'),State) | $ans(State)).   
  
  
 % ----- query 3 -----------------
 %
-% this is an even harder problem, running into the Sussman anomaly
+% this harder problem is a case of Sussman anomaly
 % https://en.wikipedia.org/wiki/Sussman_anomaly :
 % to try it out,
 % comment out queries 1 and 2 and uncomment the following
@@ -144,5 +155,5 @@ cnf(prove,negated_conjecture,
 % -------------------------------
 
 
-%cnf(prove,negated_conjecture,
+% cnf(prove,negated_conjecture,
 %   -holds(on('#:d','#:c'),State) | -holds(on('#:a','#:d'),State) | -holds(on('#:b','#:a'),State) | $ans(State)). 

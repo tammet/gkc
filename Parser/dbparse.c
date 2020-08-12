@@ -476,7 +476,7 @@ void* wr_preprocess_clauselist
         bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,",\"@role\":\"%s\",\"@logic\":",
                        wg_atomstr1(db,clrole));   
         wg_expand_frm_for_print(db,mpool,cl);                              
-        bpos=wg_print_frm_json(db,wg_nth(db,cl,3),&(g->tmp_printbuf),&blen,bpos);
+        bpos=wg_print_frm_json(db,mpool,wg_nth(db,cl,3),&(g->tmp_printbuf),&blen,bpos);
         if (bpos<0) return NULL;
         if (wg_rest(db,lpart)) {
           printf("%s},\n",(g->tmp_printbuf));
@@ -543,7 +543,7 @@ void* wr_preprocess_clauselist
         bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,",\"@role\":\"%s\",\"@logic\":",
                        wg_atomstr1(db,clrole));
         wg_expand_frm_for_print(db,mpool,cl);                                 
-        bpos=wg_print_frm_json(db,wg_nth(db,cl,3),&(g->tmp_printbuf),&blen,bpos);
+        bpos=wg_print_frm_json(db,mpool,wg_nth(db,cl,3),&(g->tmp_printbuf),&blen,bpos);
         if (bpos<0) return NULL;
         if (wg_rest(db,lpart)) {
           printf("%s},\n",(g->tmp_printbuf));
@@ -560,7 +560,7 @@ void* wr_preprocess_clauselist
       // otter clause  
       resultclause=cl;
       clrole=NULL;
-      clname=NULL;
+      clname=NULL;      
 #ifdef MARK_IMPORTED_NAMES      
       if (g->parse_is_included_file) {
         //printf("\n!!! clname %s\n",wg_atomstr1(db,clname));
@@ -606,7 +606,7 @@ void* wr_preprocess_clauselist
         bpos=0;
         if (!wg_str_guarantee_space(db,&(g->tmp_printbuf),&blen,1000)) return NULL; 
         wg_expand_frm_for_print(db,mpool,cl);                 
-        bpos=wg_print_frm_json(db,cl,&(g->tmp_printbuf),&blen,bpos);
+        bpos=wg_print_frm_json(db,mpool,cl,&(g->tmp_printbuf),&blen,bpos);
         if (bpos<0) return NULL;
         if (wg_rest(db,lpart)) {
           printf("%s,\n",(g->tmp_printbuf));

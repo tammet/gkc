@@ -88,7 +88,9 @@ typedef struct parse_parm_s {
   void* logfalse;   // ...
   void* logneg; 
   void* logand;
+  void* logprefixand;
   void* logor;
+  void* logprefixor;
   void* logimp;
   void* logeqv;
   void* logall;
@@ -106,6 +108,19 @@ typedef struct parse_parm_s {
   int askpolarity;
   int askinfo;
   int json; // set to 1 if json output wanted (used in error printing)
+  int parse_top_level; // set to 1 for json top level handling, 0 inside:
+                       // print conversion if requested and value is 1
+  void* jsonld_typekey;  // set to mpool atom "@type"
+  void* jsonld_typerepl; // set to mpool atom "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"  
+  void* jsonld_vocabkey;  // set to mpool atom "@vocab"
+  void* jsonld_basekey;  // set to mpool atom "@base"
+  int jsonld_blankseed; // seed for json-ld blank random, diff for each doc 
+  int jsonld_blankcount; // 0 means none have been made, to be increased each time        
+  void* jsonld_blankprefatom; // mpool atom containing id unique prefix for this doc             
+  void* jsonld_blanks; // an mpool key-value object of json blank node name and logic value
+  void* jsonld_ctxt;  // an mpool key-value object of context elements, used as a stack
+  void* jsonld_base;  // an mpool atom for base of id
+  void* jsonld_graphid;  // an mpool atom for graph id creating $narc
 
   void* nests[PARSE_NESTING_DEPTH]; // stack for pure json parsing
 

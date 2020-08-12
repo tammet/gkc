@@ -55,10 +55,6 @@ differ(c,table).
 
 differ(d,table).
 
-%holds(and(X,Y),State) 
-%    | -holds(X,State)
-%    | -holds(Y,State).
-
 % ----- pickup rules  ------
 
 holds(holding(X),do(pickup(X),State))
@@ -139,13 +135,13 @@ cnf(prove,negated_conjecture,
 % -------------------------------
 
 
-%cnf(prove,negated_conjecture,
+% cnf(prove,negated_conjecture,
 %   -holds(on(a,d),State) | -holds(on(b,a),State) | -holds(on(c,b),State) | $ans(State)).   
  
  
 % ----- query 3 -----------------
 %
-% this is an even harder problem, running into the Sussman anomaly
+% this harder problem is a case of Sussman anomaly
 % https://en.wikipedia.org/wiki/Sussman_anomaly :
 % to try it out,
 % comment out queries 1 and 2 and uncomment the following
@@ -159,6 +155,6 @@ cnf(prove,negated_conjecture,
 % -------------------------------
 
 
-%cnf(prove,negated_conjecture,
+% cnf(prove,negated_conjecture,
 %   -holds(on(d,c),State) | -holds(on(a,d),State) | -holds(on(b,a),State) | $ans(State)). 
   

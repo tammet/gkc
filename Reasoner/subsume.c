@@ -1369,7 +1369,7 @@ gint wr_subsume_cl_aux(glb* g,gptr cl1vec, gptr cl2vec,
     meta1=*(pt1+LIT_META_POS); 
     lit1=*(pt1+LIT_ATOM_POS);  
 #ifdef ANS_IGNORE
-    if (wr_answer_lit(g,lit1)) lit1ans=1;
+    if ((g->required_answer_nr)==1 && wr_answer_lit(g,lit1)) lit1ans=1;
 #endif       
     nobackflag=0; // backtracing will be prohibited if match found without vars set
     for(i2=0,pt2=litpt2; !nobackflag && i2<cllen2; i2++,pt2+=LIT_WIDTH) {
@@ -1381,7 +1381,7 @@ gint wr_subsume_cl_aux(glb* g,gptr cl1vec, gptr cl2vec,
         meta2=*(pt2+LIT_META_POS); 
         lit2=*(pt2+LIT_ATOM_POS);       
 #ifdef ANS_IGNORE
-        if (wr_answer_lit(g,lit2)) lit2ans=1;
+        if ((g->required_answer_nr)==1 && wr_answer_lit(g,lit2)) lit2ans=1;
         else lit2ans=0;
 #endif
         //foundflag=0;          

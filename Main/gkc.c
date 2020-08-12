@@ -624,8 +624,7 @@ int gkc_main(int argc, char **argv) {
       wg_delete_local_database(shmptrlocal);
 #endif      
       return(1); 
-    } 
-    
+    }     
     // ---- local db created ------
 #ifdef SHOWTIME
     printf("\nto call wg_run_reasoner\n");
@@ -941,46 +940,65 @@ void sig_handler(int signum){
 */
 
 void usage(char *prog) {
-  printf("gkc is a reasoner for large knowledge bases.\n\n"\
-         "usage:\n"\
-         "basic proof search with a default strategy:\n"\
-         "  gkc <problem file>\n"\
-         "proof search with a strategy selection file:\n"\
-         "  gkc -prove <problem file> <strategy file>\n"\
-         "parse and load a file into shared memory database:\n"\
-         "  gkc -readkb <axioms file>\n"\
-         "proof search using the shared memory database as prepared additional axioms:\n"\
-         "  gkc -provekb <problem file> <strategy file>\n"\
-         "write the present shared memory database to a file for fast loading:\n"\
-         "  gkc -writekb <dump file>\n"\
-         "load a shared memory database from a file:\n"\
-         "  gkc -loadkb <dump file>\n"\
-         "parse and load a file into shared memory database and write this to a file:\n"\
-         "  gkc -readwritekb <filename> <dump file>\n"\
-         "delete the present shared memory database (not necessary for reading a new one):\n"\
-         "  gkc -deletekb\n"\
-         "show gkc version:\n"\
-         "  gkc -version\n"\
+  printf("\ngkc is a first order logic reasoner for large knowledge bases:\n"\
          "\n"\
-         "where:\n"\
-         "  <problem file> should be in TPTP FOF or CNF syntax or Otter CNF syntax\n"\
-         "  <strategy file> is an optional json file: see neg.txt, runs.txt in Examples\n"\
-         "  <axioms file> is like a <problem file> \n"\
-         "  <dump file> stores the parsed and prepared database for fast loading \n"\
+         "basic proof search with an automatic strategy:\n"\
+         "  gkc <logic file_1> ...<logic file_N>\n"\
+         "    read all logic files and then search for proof, where \n"\
+         "    *.js* file suffix indicates json format\n"\
+         "    and you can optionally input logic directly from command line:\n"\
+         "    ... -text 'logic text' ... -jstext 'logic text in json' \n"\
          "\n"\
-         "additional optional parameters:\n"\
-         "  -parallel <nr of parallel processes to run>\n"\
-         "   UNIX only; if omitted, 8 worker processes and 1 parent used\n"\
-         "  -mbsize <megabytes to allocate>\n"\
-         "   if omitted, 5000 megabytes assumed for UNIX, 1000 for 32-bit Windows\n"\
+         "options for proof search with a user-determined strategy:\n"\
+         "  -strategy <strategy file>\n"\
+         "     use the json <strategy file> to determine proof search strategy and options\n"\
+         "  -strategytext 'strategy text in json' \n"\
+         "     alternatively input strategy text directly from command line\n"\
+         "\n"\
+         "options and parameters for using the shared memory database of axioms:\n"\
+         "  -usekb\n"\
+         "     use the axioms in the shared memory database in addition to other input\n"\
          "  -mbnr <shared memory database nr>\n"\
-         "   if omitted, 1000 used\n"\
-         "  -tptp <0 or 1>\n"\
-         "   if omitted or 0, simple output format (default), if 1, tptp output format\n"\
-         "  -json <0 or 1>\n"\
-         "   if omitted or 0, simple output format (default),  if 1, json output format\n"\
-         "  -convert <0 or 1>\n"\
-         "   if omitted or 0, search for proof, if 1, convert only\n");
+         "     if omitted, number 1000 is used\n"\
+         "  gkc -readkb <logic file>\n"\
+         "     parse and load a logic file into the shared memory database\n"\
+         "  gkc -writekb <dump file>\n"\
+         "     write the present shared memory database to a file for faster loading later\n"\
+         "  gkc -loadkb <dump file>\n"\
+         "     load a shared memory database from a file\n"\
+         "  gkc -readwritekb <filename> <dump file>\n"\
+         "     parse and load a file into shared memory database and write this to a file\n"\
+         "  gkc -deletekb\n"\
+         "     delete the present shared memory database (not necessary for reading a new one)\n"\
+         "\n"\
+         "options with numeric parameters:\n"\
+         "  -seconds <n>\n"\
+         "     use <n> as an upper limit of running time in seconds; default unrestricted\n"\
+         "  -parallel <nr of parallel processes to run>\n"\
+         "     UNIX only; if omitted, 4 worker processes and 1 parent used\n"\
+         "  -mbsize <megabytes to allocate initially>\n"\
+         "     if omitted, 5000 megabytes assumed for UNIX, 1000 for 32-bit Windows\n"\
+         "  -print <nr>\n"\
+         "     indicate the amount of output: 10 is default, bigger numbers give more,\n"\
+         "     useful values are 1,10,11,12,13,14,20,30,40,50,51\n"\
+         "\n"\
+         "options without parameters:\n"\
+         "  -tptp\n"\
+         "     if present, use tptp output format, otherwise a simple output format\n"\
+         "  -json\n"\
+         "     if present, use json output format, otherwise a simple output format\n"\
+         "  -convert\n"\
+         "     if present, convert input format only, otherwise search for proof;\n"\
+         "     use along with -tptp or -json options \n"\
+         "  -clausify\n"\
+         "     if present, convert to clauses only, otherwise search for proof\n"\
+         "  -derived\n"\
+         "     print out all the derived clauses\n"\
+         "  -version\n"\
+         "     show gkc version\n"\
+         "  -help\n"\
+         "     show this help text;\n"\
+         "     see https://github.com/tammet/gkc for details and examples\n");
 }
 
 /** Handle the user-supplied database size (or pick a reasonable

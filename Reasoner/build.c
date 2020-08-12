@@ -396,8 +396,7 @@ gint wr_build_calc_term(glb* g, gint x) {
         printf("\ngot rewrite ");
         wr_print_term(g,res); 
         printf("\n");      
-      } 
-     
+      }         
     }
     return res;
   }   
@@ -709,7 +708,7 @@ gint wr_build_calc_term_replace(glb* g, gint x, int replpos, gint replterm, int*
 
 /* ----------------
 
- answer preds
+ answer preds and specialcomp preds
 
   ------------------- */
 
@@ -725,6 +724,85 @@ int wr_answer_lit(glb* g, gint atom) {
     str = wg_decode_uri(g->db,fun);    
     if (str[0]=='$' && str[1]=='a' && str[2]=='n' && str[3]=='s' && str[4]=='\0' &&
         wg_decode_uri_prefix(g->db,fun)==NULL) return 1;
+    else return 0;
+  }  
+  return 0;  
+}  
+
+
+int wr_specialcomp_lit(glb* g, gint atom) {
+  gptr tptr;
+  gint fun;
+  //gint nr;
+  char *str;
+  if (!(g->use_comp_arithmetic)) return 0;
+  tptr=rotp(g,atom);
+  fun=tptr[RECORD_HEADER_GINTS+(g->unify_funpos)];
+  if (wg_get_encoded_type(g->db,fun)==WG_URITYPE) {    
+    str = wg_decode_uri(g->db,fun);  
+
+    if ((str[0]=='<') && (str[1]=='\0')) return 1;
+
+    if (str[0]!='$') return 0;    
+
+    // less
+    if (str[1]=='l' && str[2]=='e' && str[3]=='s' && str[4]=='s' && str[5]=='\0')
+       return 1; 
+    // lesseq   
+    if (str[1]=='l' && str[2]=='e' && str[3]=='s' && str[4]=='s'  
+        && str[5]=='e' && str[6]=='q' && str[7]=='\0')
+       return 1; 
+    // greater
+    if (str[1]=='g' && str[2]=='r' && str[3]=='e' && str[4]=='a' && str[5]=='t'
+        && str[6]=='e' && str[7]=='r' && str[8]=='\0')
+       return 1;  
+     // greatereq
+    if (str[1]=='g' && str[2]=='r' && str[3]=='e' && str[4]=='a' && str[5]=='t'
+        && str[6]=='e' && str[7]=='r' && str[8]=='e' && str[9]=='q' && str[10]=='\0')
+       return 1;    
+
+    if (str[1]!='i' && str[2]!='s' && str[3]!='_') return 0;
+
+    // atom
+    if (str[4]=='a' && str[5]=='t' 
+        && str[6]=='o' && str[7]=='m' && str[8]=='\0' &&        
+        wg_decode_uri_prefix(g->db,fun)==NULL) return 1;
+    // list    
+    if (str[4]=='l' && str[5]=='i' 
+        && str[6]=='s' && str[7]=='t' && str[8]=='\0' &&
+        wg_decode_uri_prefix(g->db,fun)==NULL) return 1;   
+    // int         
+    if (str[4]=='i' && str[5]=='n' 
+        && str[6]=='t' && str[7]=='\0' &&
+        wg_decode_uri_prefix(g->db,fun)==NULL) return 1;   
+    // real    
+    if (str[4]=='r' && str[5]=='e' 
+        && str[6]=='a' && str[7]=='l' && str[8]=='\0' &&
+        wg_decode_uri_prefix(g->db,fun)==NULL) return 1;       
+    // number    
+    if (str[4]=='n' && str[5]=='u' 
+        && str[6]=='m' && str[7]=='b' && str[8]=='e' && str[9]=='r' && str[10]=='\0' &&
+        wg_decode_uri_prefix(g->db,fun)==NULL) return 1;     
+
+    /*
+           //if (!strcmp(str,"$less")) return COMP_FUN_LESS;
+        if (!strcmp(str,"$lesseq")) return COMP_FUN_LESSEQ;
+        if (!strcmp(str,"$greatereq"))  return COMP_FUN_GREATEREQ;
+        if (!strcmp(str,"$greater"))  return COMP_FUN_GREATER;          
+    */
+    /*
+          if (!strcmp(str,"$is_int"))  return COMP_FUN_IS_INT;
+          if (!strcmp(str,"$is_real"))  return COMP_FUN_IS_REAL;
+          if (!strcmp(str,"$is_number"))  return COMP_FUN_IS_NUMBER;
+          if (!strcmp(str,"$is_list"))  return COMP_FUN_IS_LIST;
+          if (!strcmp(str,"$is_map"))  return COMP_FUN_IS_MAP;
+          if (!strcmp(str,"$is_atom"))  return COMP_FUN_IS_ATOM;
+    */          
+    /*
+    if (str[1]=='i' && str[2]=='s' && str[3]=='_' && str[4]=='a' && str[5]=='t' 
+        && str[6]=='o' && str[7]=='m' && str[8]=='\0' &&
+        wg_decode_uri_prefix(g->db,fun)==NULL) return 1;
+    */    
     else return 0;
   }  
   return 0;  
@@ -863,6 +941,7 @@ int wr_computable_termptr(glb* g, gptr tptr) {
           if (!strcmp(str,"$is_atom"))  return COMP_FUN_IS_ATOM;
           return 0;
         }
+        //if (!strcmp(str,"$less")) return COMP_FUN_LESS;
         if (!strcmp(str,"$lesseq")) return COMP_FUN_LESSEQ;
         if (!strcmp(str,"$greatereq"))  return COMP_FUN_GREATEREQ;
         if (!strcmp(str,"$greater"))  return COMP_FUN_GREATER;
@@ -1250,8 +1329,11 @@ gint wr_compute_fun_arith1(glb* g, gptr tptr, int comp) {
   gint ri;
   char* str;
   double rd;
-   
-  //printf("wr_compute_fun_arith1 called\n");
+/*   
+  printf("\nwr_compute_fun_arith1 called\n");
+  wg_print_record(db,tptr);
+  printf("\n");
+*/
   len=get_record_len(tptr); 
   if (len<(g->unify_firstuseterm)+2) return encode_record(db,tptr);     
   a=tptr[RECORD_HEADER_GINTS+(g->unify_funarg1pos)];
@@ -1376,12 +1458,11 @@ gint wr_compute_fun_arith1(glb* g, gptr tptr, int comp) {
         return encode_record(db,tptr);
     }               
   } else if (atype==WG_RECORDTYPE) {
-    switch (comp) {
-      /*
-      case COMP_FUN_ISATOM:          
+    switch (comp) {            
+      case COMP_FUN_IS_ATOM:     
+        if (wr_compute_fun_list(g,tptr,2)==ACONST_TRUE)
         return ACONST_FALSE;
-        break;
-      */  
+        break;            
       case COMP_FUN_IS_LIST:
         return wr_compute_fun_list(g,tptr,2);        
         break;
@@ -1406,16 +1487,21 @@ gint wr_compute_fun_arith1(glb* g, gptr tptr, int comp) {
         break;                
     }  
   }   
-  /*     
-  } else if (atype==WG_VARTYPE) {
+  /*    
+   else if (atype==WG_VARTYPE) {     
+    gint tmp; 
     switch (comp) {
-      case COMP_FUN_ISATOM:          
+      case COMP_FUN_IS_ATOM:
+        printf("\n");        
+        wr_print_vardata(g);
+        //wr_print_term(g,wr_varval(rotp(g,tptr),(g->varbanks))); 
+        printf("\n");     
         return ACONST_FALSE;       
     }    
-  } else if (comp==COMP_FUN_ISATOM) {
+  } else if (comp==COMP_FUN_IS_ATOM) {
     return ACONST_TRUE;
   } 
-  */ 
+  */
   return encode_record(db,tptr);  
 } 
 

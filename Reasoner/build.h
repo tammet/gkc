@@ -42,6 +42,7 @@ gint wr_build_calc_term_copyground(glb* g, gint x);
 gint wr_build_calc_term_replace(glb* g, gint x, int replpos, gint replterm, int* path);
 
 int wr_answer_lit(glb* g, gint atom);
+int wr_specialcomp_lit(glb* g, gint atom);
 int wr_prop_truefalsity_clause(glb* g, gptr cl);
 int wr_special_prop_lit(glb* g, gint atom, char* argstr);
 int wr_equality_atom(glb* g, gint atom);

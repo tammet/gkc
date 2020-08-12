@@ -362,7 +362,7 @@ void* wr_preprocess_clauselist
   }    
   // loop over clauses
   clnr=1;
-  if ((dbmemsegh(db)->convert) && (dbmemsegh(db)->json)) {
+  if ((dbmemsegh(db)->convert) && (dbmemsegh(db)->json) && !isincluded) {
     printf("[\n");
   }
   //wr_show_parse_error(g,"test %d",2);
@@ -409,7 +409,6 @@ void* wr_preprocess_clauselist
     }  
 */    
 #endif 
-
     if (wr_is_tptp_import_clause(db,cl)) {
       // tptp import clause 
       wr_process_tptp_import_clause(g,mpool,cl);
@@ -455,11 +454,12 @@ void* wr_preprocess_clauselist
 #endif      
 */
       if ((dbmemsegh(db)->convert) && (dbmemsegh(db)->tptp)) {
-        bpos=0;
+        bpos=0; 
         if (!wg_str_guarantee_space(db,&(g->tmp_printbuf),&blen,bpos+1000)) return NULL;
         bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,
-                       "cnf('%s',%s,",wg_atomstr1(db,clname),wg_atomstr1(db,clrole));
-        bpos=wg_print_frm_tptp(db,wg_nth(db,cl,3),&(g->tmp_printbuf),&blen,bpos);
+                       "cnf('%s',%s,",wg_atomstr1(db,clname),wg_atomstr1(db,clrole)); 
+        wg_expand_frm_for_print(db,mpool,cl);                             
+        bpos=wg_print_frm_tptp(db,wg_nth(db,cl,3),&(g->tmp_printbuf),&blen,bpos);  
         bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,").");                       
         printf("%s\n",(g->tmp_printbuf));
       } else if ((dbmemsegh(db)->convert) && (dbmemsegh(db)->json)) {  
@@ -467,15 +467,16 @@ void* wr_preprocess_clauselist
         if (!wg_str_guarantee_space(db,&(g->tmp_printbuf),&blen,
               strlen(wg_atomstr1(db,clname))+
               strlen(wg_atomstr1(db,clrole))+1000)) return NULL;
-        bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,"{\"name\":");
+        bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,"{\"@name\":");
         if (wg_contains_dquote(wg_atomstr1(db,clname))) {                   
           bpos+=wg_print_dquoted(&(g->tmp_printbuf),blen,bpos,wg_atomstr1(db,clname),0);        
         } else {
           bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,"\"%s\"",wg_atomstr1(db,clname));         
         }
-        bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,",\"role\":\"%s\",\"logic\":",
-                       wg_atomstr1(db,clrole));                 
-        bpos=wg_print_frm_json(db,wg_nth(db,cl,3),&(g->tmp_printbuf),&blen,bpos);
+        bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,",\"@role\":\"%s\",\"@logic\":",
+                       wg_atomstr1(db,clrole));   
+        wg_expand_frm_for_print(db,mpool,cl);                              
+        bpos=wg_print_frm_json(db,mpool,wg_nth(db,cl,3),&(g->tmp_printbuf),&blen,bpos);
         if (bpos<0) return NULL;
         if (wg_rest(db,lpart)) {
           printf("%s},\n",(g->tmp_printbuf));
@@ -524,6 +525,7 @@ void* wr_preprocess_clauselist
         if (!wg_str_guarantee_space(db,&(g->tmp_printbuf),&blen,bpos+1000)) return NULL;
         bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,
                        "fof('%s',%s,",wg_atomstr1(db,clname),wg_atomstr1(db,clrole));
+        wg_expand_frm_for_print(db,mpool,cl);                
         bpos=wg_print_frm_tptp(db,wg_nth(db,cl,3),&(g->tmp_printbuf),&blen,bpos);
         bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,").");                       
         printf("%s\n",(g->tmp_printbuf));
@@ -532,15 +534,16 @@ void* wr_preprocess_clauselist
         if (!wg_str_guarantee_space(db,&(g->tmp_printbuf),&blen,
               strlen(wg_atomstr1(db,clname))+
               strlen(wg_atomstr1(db,clrole))+1000)) return NULL;
-        bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,"{\"name\":");
+        bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,"{\"@name\":");
         if (wg_contains_dquote(wg_atomstr1(db,clname))) {                   
           bpos+=wg_print_dquoted(&(g->tmp_printbuf),blen,bpos,wg_atomstr1(db,clname),0);        
         } else {
           bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,"\"%s\"",wg_atomstr1(db,clname));         
         }
-        bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,",\"role\":\"%s\",\"logic\":",
-                       wg_atomstr1(db,clrole));                 
-        bpos=wg_print_frm_json(db,wg_nth(db,cl,3),&(g->tmp_printbuf),&blen,bpos);
+        bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,",\"@role\":\"%s\",\"@logic\":",
+                       wg_atomstr1(db,clrole));
+        wg_expand_frm_for_print(db,mpool,cl);                                 
+        bpos=wg_print_frm_json(db,mpool,wg_nth(db,cl,3),&(g->tmp_printbuf),&blen,bpos);
         if (bpos<0) return NULL;
         if (wg_rest(db,lpart)) {
           printf("%s},\n",(g->tmp_printbuf));
@@ -557,7 +560,7 @@ void* wr_preprocess_clauselist
       // otter clause  
       resultclause=cl;
       clrole=NULL;
-      clname=NULL;
+      clname=NULL;      
 #ifdef MARK_IMPORTED_NAMES      
       if (g->parse_is_included_file) {
         //printf("\n!!! clname %s\n",wg_atomstr1(db,clname));
@@ -586,22 +589,24 @@ void* wr_preprocess_clauselist
         //printf("\n clauseflag %d freevars: \n",clauseflag);
         //wg_mpool_print(db,freevars); 
         //printf("\n");       
+        wg_expand_frm_for_print(db,mpool,cl);
         if (clauseflag) {
           bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,
-                       "cnf('%s',%s,",wg_atomstr1(db,clname),wg_atomstr1(db,clrole));                                     
+                       "cnf('%s',%s,",wg_atomstr1(db,clname),wg_atomstr1(db,clrole));                                                           
           bpos=wg_print_cnf_tptp(db,cl,&(g->tmp_printbuf),&blen,bpos);          
         } else {
           if (freevars) cl=wg_mklist3(db,mpool,wg_makelogall(db,mpool),freevars,cl); 
           bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,
-                       "fof('%s',%s,",wg_atomstr1(db,clname),wg_atomstr1(db,clrole));                                     
+                       "fof('%s',%s,",wg_atomstr1(db,clname),wg_atomstr1(db,clrole));                                                                     
           bpos=wg_print_frm_tptp(db,cl,&(g->tmp_printbuf),&blen,bpos);
         } 
         bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,").");               
         printf("%s\n",(g->tmp_printbuf));
       } else if ((dbmemsegh(db)->convert) && (dbmemsegh(db)->json)) {  
         bpos=0;
-        if (!wg_str_guarantee_space(db,&(g->tmp_printbuf),&blen,1000)) return NULL;                  
-        bpos=wg_print_frm_json(db,cl,&(g->tmp_printbuf),&blen,bpos);
+        if (!wg_str_guarantee_space(db,&(g->tmp_printbuf),&blen,1000)) return NULL; 
+        wg_expand_frm_for_print(db,mpool,cl);                 
+        bpos=wg_print_frm_json(db,mpool,cl,&(g->tmp_printbuf),&blen,bpos);
         if (bpos<0) return NULL;
         if (wg_rest(db,lpart)) {
           printf("%s,\n",(g->tmp_printbuf));
@@ -629,8 +634,9 @@ void* wr_preprocess_clauselist
       resultlist=wg_mkpair(db,mpool,resultclause,resultlist);  
     }  
   } // end clause list loop 
-  if ((dbmemsegh(db)->convert) && (dbmemsegh(db)->json)) {
-    printf("]\n");
+  if ((dbmemsegh(db)->convert) && (dbmemsegh(db)->json))  {
+    if (!isincluded) printf("]\n");
+    else printf(",\n");
   }
   //free(vardata); // if taken from mpool, not freed
 #ifdef DEBUG
@@ -695,6 +701,71 @@ void* wr_preprocess_tptp_cnf_clause(glb* g, void* mpool, void* cl) {
   return res;
 }
 
+void wg_expand_frm_for_print(void* db, void* mpool, void* frm) {
+  void* part;
+  void* term;
+  void* expanded;
+
+  /*
+  printf("\ncalling wg_expand_frm_for_print:\n");
+  wg_mpool_print(db,frm);
+  printf("\n");
+  */
+  if (!frm) return;
+  if (wg_isatom(db,frm)) return;  
+  for(part=frm; part!=NULL; part=wg_rest(db,part)) {
+    term=wg_first(db,part);
+    if (wg_ispair(db,term) && wg_isatom(db,wg_first(db,term)) &&
+       wg_atomstr1(db,wg_first(db,term)) &&
+       !strcmp("$$lst",wg_atomstr1(db,wg_first(db,term))) ) {
+      if (!wg_ispair(db,wg_rest(db,term))) {
+        expanded=wg_mkatom(db,mpool,WG_URITYPE,"$nil",NULL);
+      } else {  
+        expanded=wg_expand_frm_for_print_aux(db,mpool,wg_first(db,wg_rest(db,term)));
+      }       
+      *((gint*)part)=(gint)expanded;    
+    } else {
+      wg_expand_frm_for_print(db,mpool,term);
+    }  
+  }
+}
+
+void* wg_expand_frm_for_print_aux(void* db, void* mpool, void* cl) { 
+  void* res=NULL;
+  void *term, *termpart, *fun;
+  /*
+  printf("\ncalling wg_expand_frm_for_print_aux:\n");
+  wg_mpool_print(db,cl);
+  printf("\n");
+  */
+  res=wg_mkatom(db,mpool,WG_URITYPE,"$nil",NULL);    
+  if (!cl) return res;
+  if (!wg_ispair(db,cl)) return cl;
+  fun=wg_mkatom(db,mpool,WG_URITYPE,"$list",NULL);
+  if (!res || !fun) return NULL;
+  if (wg_isatom(db,wg_first(db,cl)) &&
+      wg_atomstr1(db,wg_first(db,cl)) ) {
+    if (!strcmp("$$lst",wg_atomstr1(db,wg_first(db,cl)))) {
+      // $$lst term
+      if (!wg_ispair(db,wg_rest(db,cl))) {
+        term=wg_mkatom(db,mpool,WG_URITYPE,"$nil",NULL);
+      } else {  
+        term=wg_expand_frm_for_print_aux(db,mpool,wg_first(db,wg_rest(db,cl)));
+      }    
+      return term;
+    } 
+  } 
+  term=NULL;
+  termpart=wg_inplace_reverselist(db,mpool,cl);  
+  for(;wg_ispair(db,termpart);termpart=wg_rest(db,termpart)) {        
+    wg_expand_frm_for_print(db,mpool,termpart); 
+    term=wg_first(db,termpart);     
+    res=wg_mklist3(db,mpool,fun,term,res);
+    if (!res) return NULL;
+  }
+  return res;
+}
+
 /*
 int wr_check_fof_cnf_freevars(glb* g, void* mpool, void* cl, void** freevarsptr) {
   
@@ -719,8 +790,10 @@ void *wr_parse_freeoccs(glb* g, void* mpool, void* vars, void* frm, int* clausef
   if (frm==NULL) return NULL;
   if (wg_isatom(db,frm)) {
     // simple atom
-    if ((g->parse_caps_as_var && isupper(wg_atomstr1(db,frm)[0])) ||
-        (g->parse_question_as_var && wg_atomstr1(db,frm)[0]=='?') ) { 
+    if ((g->parse_caps_as_var && wg_atomstr1(db,frm) &&
+        isupper(wg_atomstr1(db,frm)[0])) ||
+        (g->parse_question_as_var && wg_atomstr1(db,frm) &&
+         wg_atomstr1(db,frm)[0]=='?') ) { 
       if (!wr_freeoccs_invars(g,mpool,vars,frm)) {
         return wg_mkpair(db,mpool,frm,NULL);
       }                 
@@ -757,6 +830,7 @@ void *wr_parse_freeoccs(glb* g, void* mpool, void* vars, void* frm, int* clausef
     }  
     for(; termpart!=NULL; termpart=wg_rest(db,termpart)) {
       term=wg_first(db,termpart);
+      if (!term) continue;
       termoccs=wr_parse_freeoccs(g,mpool,vars,term,clauseflag);     
       if (termoccs) freeoccs=wr_add_freeoccs(g,mpool,freeoccs,termoccs);      
     }
@@ -767,8 +841,13 @@ void *wr_parse_freeoccs(glb* g, void* mpool, void* vars, void* frm, int* clausef
 int wr_is_parse_var(glb* g,void* ptr) {
   void* db=g->db;
   char *s;
+  
   if (!wg_isatom(db,ptr) || wg_atomtype(db,ptr)!=WG_URITYPE) return 0;
   s=wg_atomstr1(db,ptr);
+  return wr_is_parse_varstr(g,s);  
+}
+
+int wr_is_parse_varstr(glb* g, char* s) {
   if ((*s)=='\0') return 0;
   if (*s >= 'A' && *s <= 'Z') return 1; 
   if (*s == '?') return 1;     
@@ -867,7 +946,7 @@ void* wr_process_tptp_import_clause(glb* g, void* mpool, void* cl) {
   char* p1;
   char* p2;
   char* str2;
-  //int tmp;
+  int tmp;
  
 #ifdef IDEBUG
   printf("\nwr_process_tptp_import_clause starts with\n");
@@ -953,7 +1032,9 @@ void* wr_process_tptp_import_clause(glb* g, void* mpool, void* cl) {
 #ifdef IDEBUG
   printf("\nfilename %s\n",filename);
 #endif   
+  tmp=(g->parse_is_included_file);
   wr_import_otter_file(g,filename,NULL,NULL,1);  
+  (g->parse_is_included_file)=tmp;
   return NULL;
 }
 
@@ -1129,7 +1210,7 @@ void* wr_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
 #endif        
       if (subterm!=NULL && wg_ispair(db,subterm)) { issimple=0; break; }     
       if (wg_atomtype(db,subterm)==WG_VARTYPE) { issimple=0; break; } 
-      if (wg_atomtype(db,subterm)==WG_URITYPE &&  
+      if (wg_atomtype(db,subterm)==WG_URITYPE && wg_atomstr1(db,subterm) && 
           ( (g->parse_caps_as_var && isupper(wg_atomstr1(db,subterm)[0])) ||
             (g->parse_question_as_var && wg_atomstr1(db,subterm)[0]=='?') )) {issimple=0; break;} 
     }      
@@ -1321,6 +1402,7 @@ void* wr_parse_atom(glb* g,void* mpool,void* term, int isneg, int issimple, char
   gint tmpres2;
   gint setres;
   void* record;   
+  gint primitiveres;
 
   DPRINTF("\nwg_parse_atom starting with isneg %d atom\n",isneg);
 #ifdef DEBUG  
@@ -1368,12 +1450,16 @@ void* wr_parse_atom(glb* g,void* mpool,void* term, int isneg, int issimple, char
       }  
     } else {
       DPRINTF("term nr %d is nonprimitive \n",termnr);
-      tmpres=wr_parse_term(g,mpool,term,vardata);
-      if (tmpres==NULL) {
+      primitiveres=0;
+      tmpres=wr_parse_term(g,mpool,term,vardata,&primitiveres);
+      if (primitiveres) {
+        tmpres2=primitiveres;
+      } else if (tmpres==NULL) {
         // wg_delete_record(db,record); // might leak memory
         return NULL;
-      }       
-      tmpres2=wg_encode_record(db,tmpres);       
+      } else {            
+        tmpres2=wg_encode_record(db,tmpres);       
+      }  
     }     
     if (!tmpres2 || tmpres2==WG_ILLEGAL) return NULL;        
     setres=wr_set_kb_atom_subterm(g,record,termnr,tmpres2);    
@@ -1389,7 +1475,7 @@ void* wr_parse_atom(glb* g,void* mpool,void* term, int isneg, int issimple, char
 
 
 
-void* wr_parse_term(glb* g,void* mpool,void* term, char** vardata) {
+void* wr_parse_term(glb* g,void* mpool,void* term, char** vardata, gint* primitiveres) {
   void* db=g->db;
   void* termpart; 
   void* ret;
@@ -1401,6 +1487,7 @@ void* wr_parse_term(glb* g,void* mpool,void* term, char** vardata) {
   gint tmpres2;
   gint setres;
   void* record;
+  gint myprimitiveres;
 
 #ifdef DEBUG  
   DPRINTF("\nwg_parse_term starting with ");
@@ -1408,10 +1495,21 @@ void* wr_parse_term(glb* g,void* mpool,void* term, char** vardata) {
   printf("\n");
 #endif
   
+  // convert list
+  if (wg_ispair(db,term) && wg_isatom(db,wg_first(db,term)) && 
+      !strcmp(wg_atomstr1(db,wg_first(db,term)),"$$lst")) {     
+    tmpres=wr_parse_preprocess_list(g,mpool,term);
+    if (tmpres==NULL) return NULL;                
+    term=tmpres;
+    if (!wg_ispair(db,term)) {
+      *primitiveres=wr_parse_primitive(g,mpool,term,vardata,0);
+      return NULL;
+    }
+  }    
   // examine term
   termnr=0;
   deeptcount=0;
-  vartcount=0;
+  vartcount=0;  
   for(termpart=term;wg_ispair(db,termpart);termpart=wg_rest(db,termpart),termnr++) {
     subterm=wg_first(db,termpart);
     if (subterm!=NULL && wg_ispair(db,subterm)) deeptcount++;      
@@ -1453,15 +1551,19 @@ void* wr_parse_term(glb* g,void* mpool,void* term, char** vardata) {
       if (tmpres2==WG_ILLEGAL) { 
         //wg_delete_record(db,record); // might leak memory !!
         return NULL;
-      }  
+      }           
     } else {     
       DPRINTF("term nr %d is nonprimitive \n",termnr);
-      tmpres=wr_parse_term(g,mpool,term,vardata);
-      if (tmpres==NULL) {
-        //wg_delete_record(db,record); // might leak memory !!
+      myprimitiveres=0;
+      tmpres=wr_parse_term(g,mpool,term,vardata,&myprimitiveres);
+      if (myprimitiveres) {
+        tmpres2=myprimitiveres;
+      } else if (tmpres==NULL) {
+        // wg_delete_record(db,record); // might leak memory
         return NULL;
+      } else {            
+        tmpres2=wg_encode_record(db,tmpres);       
       } 
-      tmpres2=wg_encode_record(db,tmpres);  
     }       
     if (tmpres2==WG_ILLEGAL) return NULL;
     //setres=wr_set_term_subterm(g,record,termnr,tmpres2);
@@ -1475,6 +1577,27 @@ void* wr_parse_term(glb* g,void* mpool,void* term, char** vardata) {
   //if (ret==NULL) printf("\nwg_parse_term returns NULL\n");
   return ret;  
 }
+
+void* wr_parse_preprocess_list(glb* g,void* mpool,void* term) {
+  void* db=g->db;
+  void* res=NULL;
+  void *termpart, *fun;
+  
+  res=wg_mkatom(db,mpool,WG_URITYPE,"$nil",NULL);  
+  termpart=wg_rest(db,term);
+  if (!termpart) return res;
+  termpart=wg_first(db,termpart);
+  if (!termpart) return res;
+  termpart=wg_inplace_reverselist(db,mpool,termpart);
+  fun=wg_mkatom(db,mpool,WG_URITYPE,"$list",NULL);
+  for(;wg_ispair(db,termpart);termpart=wg_rest(db,termpart)) {
+    if (g->parse_errflag) return NULL;
+    term=wg_first(db,termpart);
+    res=wg_mklist3(db,mpool,fun,term,res);
+  }
+  return res;
+}
+
 
 gint wr_parse_primitive(glb* g,void* mpool,void* atomptr, char** vardata, int pos) {
   void *db=g->db;
@@ -1490,8 +1613,9 @@ gint wr_parse_primitive(glb* g,void* mpool,void* atomptr, char** vardata, int po
   printf("\nwg_parse_primitive starting with ");
   wg_mpool_print(db,atomptr); 
   printf("\n");  
+  printf("\n type %d is anon %d\n",wg_atomtype(db,atomptr),wg_atomtype(db,atomptr)==WG_ANONCONSTTYPE);  
 #endif  
-  
+    
   if (atomptr==NULL) {
     ret=wg_encode_null(db,NULL);
   } else {    
@@ -1534,7 +1658,7 @@ gint wr_parse_primitive(glb* g,void* mpool,void* atomptr, char** vardata, int po
         ret=wg_encode_xmlliteral(db,str1,str2); 
         break; 
       case WG_URITYPE: 
-        if (!pos || !str1 || str2) {
+        if (!pos || !str1 || str2) {         
           ret=wg_encode_uri(db,str1,str2); 
         } else if ((g->parse_caps_as_var && isupper(str1[0])) ||
                    (g->parse_question_as_var && str1[0]=='?') ) {

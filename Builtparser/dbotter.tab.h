@@ -65,7 +65,8 @@ extern int wg_yyotterdebug;
     RIMP = 275,
     NOR = 276,
     NAND = 277,
-    AT = 278
+    AT = 278,
+    EMPTYSTRING = 279
   };
 #endif
 

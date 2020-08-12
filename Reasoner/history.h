@@ -199,5 +199,6 @@ gint wr_decode_priority(glb* g, gint encpriority);
 int wr_register_answer(glb* g, gptr cl, gint history);
 int wr_enough_answers(glb* g);
 int wr_have_answers(glb* g);
+int wr_same_answers(glb* g, gptr cl1, gptr cl2, int uniquestrflag);
 
 #endif

@@ -33,6 +33,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <ctype.h>
 
 #include "../Db/dbdata.h"
 #include "../Db/dbmem.h"
@@ -2003,16 +2004,17 @@ int wg_print_term_tptp(void* db, void* ptr,int depth,int pflag,char** buf, int *
 
 
 
-int wg_print_frm_json(void* db, void* ptr, char** buf, int *len, int pos) {  
+int wg_print_frm_json(void* db, void* mpool, void* ptr, char** buf, int *len, int pos) {  
   int p;
-  p=wg_print_subfrm_json(db,ptr,0,0,0,buf,len,pos,0);
+  void* boundvars=NULL;
+  p=wg_print_subfrm_json(db,mpool,ptr,0,0,0,buf,len,pos,0,boundvars);
   //printf("\nwg_print_frm_json calcs p: %d\n",p);
   return p;
 }
 
 
-int wg_print_subfrm_json(void* db, void* ptr,int depth,int pflag, 
-                         int termflag, char** buf, int *len, int pos, int negflag) {
+int wg_print_subfrm_json(void* db, void* mpool, void* ptr,int depth,int pflag, 
+       int termflag, char** buf, int *len, int pos, int negflag, void* boundvars) {
   /*
   gptr recptr;
   gint  enc;
@@ -2033,8 +2035,11 @@ int wg_print_subfrm_json(void* db, void* ptr,int depth,int pflag,
   void* varlst;
   void* varptr;
   int varcount;
-
-  //printf("\nwg_print_subfrm_json called\n"); 
+/*
+  printf("\nwg_print_subfrm_json called\n"); 
+  wg_mpool_print(db,ptr);
+  printf("\n");
+*/  
   if (!wg_str_guarantee_space(db,buf,len,pos+1000)) {
     wg_printerr_json(db,"wg_print_subfrm_json cannot guarantee buffer space"); 
     if (buf) sys_free(buf);
@@ -2091,6 +2096,14 @@ int wg_print_subfrm_json(void* db, void* ptr,int depth,int pflag,
         } else if (!strncmp(p,"$false",6)) {
           if (negflag) pos+=snprintf((*buf)+pos,(*len)-pos,"true");
           else pos+=snprintf((*buf)+pos,(*len)-pos,"false");
+        } else if (WG_URITYPE && pos && termflag && 
+                   (isupper(*p) || *p=='?') &&
+                   !wg_list_memberuri(db,boundvars,ptr) ) {            
+            if (wg_contains_dquote(p)) {
+              pos+=snprintf((*buf)+pos,(*len)-pos,"\"?:%s\"",p);
+            } else {
+              pos+=snprintf((*buf)+pos,(*len)-pos,"\"?:%s\"",p);
+            }
         } else if (wg_contains_dquote(p)) { 
           if (negflag) {                  
             pos+=wg_print_dquoted(buf,*len,pos,p,1);        
@@ -2135,11 +2148,11 @@ int wg_print_subfrm_json(void* db, void* ptr,int depth,int pflag,
        !(wg_atomstr1(db,op))[1]) {
       // equality predicate
       pos+=snprintf((*buf)+pos,(*len)-pos,"[");
-      pos=wg_print_subfrm_json(db,wg_nth(db,ptr,1),depth+1,0,1,buf,len,pos,0);
+      pos=wg_print_subfrm_json(db,mpool,wg_nth(db,ptr,1),depth+1,0,1,buf,len,pos,0,boundvars);
       if (pos<0) return pos;
       if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
       pos+=snprintf((*buf)+pos,(*len)-pos,", \"=\", ");
-      pos=wg_print_subfrm_json(db,wg_nth(db,ptr,2),depth+1,0,1,buf,len,pos,0);
+      pos=wg_print_subfrm_json(db,mpool,wg_nth(db,ptr,2),depth+1,0,1,buf,len,pos,0,boundvars);
       if (pos<0) return pos;
       if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
       pos+=snprintf((*buf)+pos,(*len)-pos,"]");
@@ -2152,12 +2165,12 @@ int wg_print_subfrm_json(void* db, void* ptr,int depth,int pflag,
       if (wg_islogneg(db,op)) {              
         if (lstlen==2 && wg_list_is_term(db,wg_nth(db,ptr,1))) {
           // add neg to first el of the ptr list
-          pos=wg_print_subfrm_json(db,wg_nth(db,ptr,1),depth+1,0,termflag,buf,len,pos,1);
+          pos=wg_print_subfrm_json(db,mpool,wg_nth(db,ptr,1),depth+1,0,termflag,buf,len,pos,1,boundvars);
           if (pos<0) return pos; 
         } else {
           // write neg as a separate op
           pos+=snprintf((*buf)+pos,(*len)-pos,"[\"~\", ");
-          pos=wg_print_subfrm_json(db,wg_nth(db,ptr,1),depth+1,0,termflag,buf,len,pos,0);
+          pos=wg_print_subfrm_json(db,mpool,wg_nth(db,ptr,1),depth+1,0,termflag,buf,len,pos,0,boundvars);
           if (pos<0) return pos; 
           if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
           pos+=snprintf((*buf)+pos,(*len)-pos,"]");
@@ -2170,11 +2183,11 @@ int wg_print_subfrm_json(void* db, void* ptr,int depth,int pflag,
         if (wg_islogeqv(db,op)) symb=", \"<=>\", ";
         if (wg_islogat(db,op)) symb=", \"@\", ";
         pos+=snprintf((*buf)+pos,(*len)-pos,"[");
-        pos=wg_print_subfrm_json(db,wg_nth(db,ptr,1),depth+1,0,termflag,buf,len,pos,0);
+        pos=wg_print_subfrm_json(db,mpool,wg_nth(db,ptr,1),depth+1,0,termflag,buf,len,pos,0,boundvars);
         if (pos<0) return pos;
         if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;        
         pos+=snprintf((*buf)+pos,(*len)-pos,"%s",symb);        
-        pos=wg_print_subfrm_json(db,wg_nth(db,ptr,2),depth+1,0,termflag,buf,len,pos,0);
+        pos=wg_print_subfrm_json(db,mpool,wg_nth(db,ptr,2),depth+1,0,termflag,buf,len,pos,0,boundvars);
         if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1; 
         pos+=snprintf((*buf)+pos,(*len)-pos,"]");
         if (pos<0) return pos;        
@@ -2188,7 +2201,8 @@ int wg_print_subfrm_json(void* db, void* ptr,int depth,int pflag,
         for(varptr=varlst, varcount=0;
             varptr!=NULL && !wg_isatom(db,varlst);
             varptr=wg_rest(db,varptr), varcount++) {
-          pos=wg_print_subfrm_json(db,wg_first(db,varptr),depth+1,0,1,buf,len,pos,0);
+          boundvars=wg_mkpair(db,mpool,wg_first(db,varptr),boundvars);    
+          pos=wg_print_subfrm_json(db,mpool,wg_first(db,varptr),depth+1,0,1,buf,len,pos,0,boundvars);
           if (pos<0) return pos;
           if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
           if (wg_rest(db,varptr)) {
@@ -2196,7 +2210,7 @@ int wg_print_subfrm_json(void* db, void* ptr,int depth,int pflag,
           }    
         }      
         pos+=snprintf((*buf)+pos,(*len)-pos,"], ");
-        pos=wg_print_subfrm_json(db,wg_nth(db,ptr,2),depth+1,0,termflag,buf,len,pos,0);
+        pos=wg_print_subfrm_json(db,mpool,wg_nth(db,ptr,2),depth+1,0,termflag,buf,len,pos,0,boundvars);
         if (pos<0) return pos;
         if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;              
         pos+=snprintf((*buf)+pos,(*len)-pos,"]");
@@ -2218,7 +2232,7 @@ int wg_print_subfrm_json(void* db, void* ptr,int depth,int pflag,
             if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
           }  
         }        
-        pos=wg_print_subfrm_json(db,wg_first(db,curptr),depth+1,0,1,buf,len,pos,0);
+        pos=wg_print_subfrm_json(db,mpool,wg_first(db,curptr),depth+1,0,1,buf,len,pos,0,boundvars);
         if (pos<0) return pos;
         if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
         if ((count+1)<lstlen) {
@@ -2231,7 +2245,7 @@ int wg_print_subfrm_json(void* db, void* ptr,int depth,int pflag,
         if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
         //printf ("(");
         pos+=snprintf((*buf)+pos,(*len)-pos,"[");
-        pos=wg_print_subfrm_json(db,wg_first(db,curptr),depth+1,0,1,buf,len,pos,negflag);
+        pos=wg_print_subfrm_json(db,mpool,wg_first(db,curptr),depth+1,0,1,buf,len,pos,negflag,boundvars);
         if (pos<0) return pos;
         if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
         //printf ("(");
@@ -2244,7 +2258,7 @@ int wg_print_subfrm_json(void* db, void* ptr,int depth,int pflag,
     if (wg_isatom(db,curptr)) {
       //printf(" . ");
       pos+=snprintf((*buf)+pos,(*len)-pos," . ");
-      pos=wg_print_subfrm_json(db,curptr,depth+1,pflag,1,buf,len,pos,0);
+      pos=wg_print_subfrm_json(db,mpool,curptr,depth+1,pflag,1,buf,len,pos,0,boundvars);
       if (pos<0) return pos;
       if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
     }

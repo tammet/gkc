@@ -66,8 +66,12 @@ void* wr_parse_clauselist(glb* g,void* mpool,cvec clvec,void* clauselist);
 void* wr_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
        char** vardata,void* propfun, void* name, void* role);
 void* wr_parse_atom(glb* g,void* mpool,void* term, int isneg, int issimple, char** vardata);
-void* wr_parse_term(glb* g,void* mpool,void* term, char** vardata);
+void* wr_parse_term(glb* g,void* mpool,void* term, char** vardata, gint* primitiveres);
+void* wr_parse_preprocess_list(glb* g,void* mpool,void* term);
 gint wr_parse_primitive(glb* g,void* mpool,void* atomptr, char** vardata, int pos);
+
+void wg_expand_frm_for_print(void* db, void* mpool, void* frm);
+void* wg_expand_frm_for_print_aux(void* db, void* mpool, void* cl);
 
 gint wr_parse_and_encode_otter_prim(glb* g, char *buf);
 gint wr_parse_and_encode_otter_uri(glb* g, char *buf);
@@ -75,6 +79,8 @@ gint wr_parse_and_encode_otter_uri(glb* g, char *buf);
 gint wr_print_parseres(glb* g, gint x);
 
 void* wr_preprocess_tptp_cnf_clause(glb* g, void* mpool, void* cl);
+int wr_is_parse_var(glb* g,void* ptr);
+int wr_is_parse_varstr(glb* g, char* s);
 void* wr_preprocess_tptp_fof_clause(glb* g, void* mpool, void* cl, void* clname);
 void* wr_process_tptp_import_clause(glb* g, void* mpool, void* cl);
 
