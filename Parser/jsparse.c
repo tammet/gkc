@@ -1261,8 +1261,8 @@ void* wr_process_json_formula(glb* g,parse_parm* pp, void* cl, int isincluded) {
       bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,"fof(%s,%s,",namestr,rolestr);
     }  
     wg_expand_frm_for_print(db,mpool,preres);
-    wg_mpool_print(db,preres);
-    printf("\n"); 
+    //wg_mpool_print(db,preres);
+    //printf("\n"); 
     bpos=wg_print_frm_tptp(db,wg_nth(db,preres,3),&(g->tmp_printbuf),&blen,bpos); 
     if (!wr_str_guarantee_space(g,&(g->tmp_printbuf),&blen,bpos+100)) {
       if (g->tmp_printbuf) wr_free(g,(g->tmp_printbuf));
