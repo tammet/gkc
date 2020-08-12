@@ -126,8 +126,6 @@ int wr_is_tptp_cnf_clause(void* db, void* cl);
 int wr_is_tptp_fof_clause(void* db, void* cl);
 int wr_is_tptp_import_clause(void* db, void* cl);
 
-void *wr_parse_freeoccs(glb* g, void* mpool, void* vars, void* frm, int* clauseflag);
-
 //void* wr_preprocess_tptp_cnf_clause(glb* g, void* mpool, void* cl);
 //void* wr_preprocess_tptp_fof_clause(glb* g, void* mpool, void* cl, void* clname);
 void* wr_process_tptp_import_clause(glb* g, void* mpool, void* cl);

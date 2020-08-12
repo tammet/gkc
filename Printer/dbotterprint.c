@@ -1294,15 +1294,19 @@ void wg_tptp_print(void* db, void* ptr) {
     return;
   }
   //bpos+=snprintf(buf+bpos,blen-bpos,"buf start");
+  /*
   printf("\nTPTP starts\n");
   wg_tptp_print_aux(db,ptr,0,1);
   printf("\nCP");
+  */
   bpos=wg_print_frm_tptp(db,ptr,&buf,&blen,bpos); 
   //bpos=wg_print_subfrm_tptp(db,ptr,0,0,0,&buf,&blen,bpos);
+  /*
   printf("\npos %d \n",bpos);
   printf("buf: %s\n",buf); 
+  */
   if (buf) sys_free(buf);
-  printf("\nTPTP ends\n");
+  //printf("\nTPTP ends\n");
 }
 
 

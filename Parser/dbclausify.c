@@ -93,6 +93,8 @@ void* wr_clausify_formula(glb* g, void* mpool, void* frm,
   void* skclause;
   gint cell;
   gcell *cellptr;
+  int clauseflag=0;
+  void* freevars=NULL;
 
 #ifdef TDEBUG   
   printf("wr_clausify_formula starting with frm\n");  
@@ -100,7 +102,7 @@ void* wr_clausify_formula(glb* g, void* mpool, void* frm,
   printf("\n");
   wg_tptp_print(db,frm); 
   printf("\n");
-#endif
+#endif  
   if (g->parse_errflag) return NULL;
   if (wg_isatom(db,frm)) {
     // constant
@@ -111,6 +113,14 @@ void* wr_clausify_formula(glb* g, void* mpool, void* frm,
     // nonlogical term
     return frm;
   }
+  // collect freevars
+  freevars=wr_parse_freeoccs(g,mpool,NULL,frm,&clauseflag);
+  /*
+  printf("\nfreevars\n");
+  wg_mpool_print(db,freevars);
+  printf("\n");
+  */
+  if (freevars) frm=wg_mklist3(db,mpool,wg_makelogall(db,mpool),freevars,frm); 
   if (!wg_isatom(db,head)) {
     // first el is a list itself
     if (!wg_rest(db,frm)) {

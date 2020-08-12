@@ -59,7 +59,7 @@ int wr_import_json_file(glb* g, char* filename, char* strasfile, cvec clvec, int
 int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, int isincluded);
 //int wg_import_otter_file(void* db, char* filename, int printlevel);
 int wr_import_prolog_file(glb* g, char* filename, char* strasfile, cvec clvec);
-
+void *wr_parse_freeoccs(glb* g, void* mpool, void* vars, void* frm, int* clauseflag);
 
 void* wr_preprocess_clauselist(glb* g,void* mpool,cvec clvec,void* clauselist,int isincluded);
 void* wr_parse_clauselist(glb* g,void* mpool,cvec clvec,void* clauselist);
