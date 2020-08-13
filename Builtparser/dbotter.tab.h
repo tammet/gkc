@@ -49,7 +49,7 @@ extern int wg_yyotterdebug;
     FILEEND = 259,
     TINT = 260,
     TFLOAT = 261,
-    DATE = 262,
+    TDATE = 262,
     TIME = 263,
     STRING = 264,
     ID = 265,

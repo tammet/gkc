@@ -117,7 +117,7 @@ extern int wg_yyotterdebug;
     FILEEND = 259,
     TINT = 260,
     TFLOAT = 261,
-    DATE = 262,
+    TDATE = 262,
     TIME = 263,
     STRING = 264,
     ID = 265,
@@ -467,7 +467,7 @@ static const yytype_uint16 yyrline[] =
 static const char *const yytname[] =
 {
   "$end", "error", "$undefined", "VARIABLE", "FILEEND", "TINT", "TFLOAT",
-  "DATE", "TIME", "STRING", "ID", "URI", "TCONST", "VAR", "NEQ", "EQ",
+  "TDATE", "TIME", "STRING", "ID", "URI", "TCONST", "VAR", "NEQ", "EQ",
   "IMP", "AND", "EQV", "NEQV", "RIMP", "NOR", "NAND", "AT", "EMPTYSTRING",
   "'&'", "'|'", "'?'", "'!'", "'-'", "'~'", "'.'", "'('", "')'", "'+'",
   "'*'", "'['", "']'", "','", "':'", "$accept", "input", "sentence",

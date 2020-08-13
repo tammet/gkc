@@ -53,7 +53,7 @@
  
 %token TINT
 %token TFLOAT
-%token DATE
+%token TDATE
 %token TIME
 %token STRING
 %token ID 
@@ -305,7 +305,7 @@ loglist:   log                   { $$ = MKWGPAIR(PP,$1,MKWGNIL); }
 
 prim:     TINT             { $$ = MKWGINT(PP,$1); }
         | TFLOAT           { $$ = MKWGFLOAT(PP,$1); }        
-      	| DATE            { $$ = MKWGDATE(PP,$1); }
+      	| TDATE            { $$ = MKWGDATE(PP,$1); }
 	      | TIME            { $$ = MKWGTIME(PP,$1); }
         | STRING          { $$ = MKWGSTRING(PP,$1); }
 	      | VAR             { $$ = MKWGVAR(PP,$1); }

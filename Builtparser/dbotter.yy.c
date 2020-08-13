@@ -1110,7 +1110,7 @@ YY_RULE_SETUP
 {
               parseprintf( "A date: %s\n", yytext);
               *yylval=yytext;	      
-              return DATE;      
+              return TDATE;      
       }
 	YY_BREAK
 case 15:

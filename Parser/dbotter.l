@@ -199,7 +199,7 @@ ID       [a-zA-Z][a-zA-Z0-9_:+\-*/<>]*
 {DIGIT}{DIGIT}{DIGIT}{DIGIT}"-"{DIGIT}{DIGIT}"-"{DIGIT}{DIGIT} {
               parseprintf( "A date: %s\n", yytext);
               *yylval=yytext;	      
-              return DATE;      
+              return TDATE;      
       }
       
 {DIGIT}{DIGIT}":"{DIGIT}{DIGIT}":"{DIGIT}{DIGIT} {

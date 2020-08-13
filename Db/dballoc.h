@@ -40,6 +40,7 @@
 #ifdef _WIN32
 #include "../config-w32.h"
 #include <windows.h>
+#include <time.h>
 #else
 #include "../config.h"
 #include <time.h>

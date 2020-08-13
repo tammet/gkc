@@ -1035,7 +1035,7 @@ static void wg_mpool_print_aux(void* db, void* ptr, int depth, int pflag) {
 int wg_mpool_bad_ptr(void* db, void* ptr) {
   gint tmp;
 
-  tmp=(gint)((ptrdiff_t)(ptr-db));
+  tmp=(gint)((ptrdiff_t)((char*)ptr-(char*)db));
   if (tmp<0) tmp=0-tmp;
   //printf("\ntmp %ld\n",tmp);
   if (tmp>(dbmemsegh(db)->size)) {
