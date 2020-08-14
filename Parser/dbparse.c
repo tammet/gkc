@@ -467,7 +467,7 @@ void* wr_preprocess_clauselist
               strlen(wg_atomstr1(db,clrole))+1000)) return NULL;
         bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,"{\"@name\":");
         if (wg_contains_dquote(wg_atomstr1(db,clname))) {                   
-          bpos+=wg_print_dquoted(&(g->tmp_printbuf),blen,bpos,wg_atomstr1(db,clname),0);        
+          bpos+=wg_print_dquoted(&(g->tmp_printbuf),blen,bpos,wg_atomstr1(db,clname),0,0);        
         } else {
           bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,"\"%s\"",wg_atomstr1(db,clname));         
         }
@@ -534,7 +534,7 @@ void* wr_preprocess_clauselist
               strlen(wg_atomstr1(db,clrole))+1000)) return NULL;
         bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,"{\"@name\":");
         if (wg_contains_dquote(wg_atomstr1(db,clname))) {                   
-          bpos+=wg_print_dquoted(&(g->tmp_printbuf),blen,bpos,wg_atomstr1(db,clname),0);        
+          bpos+=wg_print_dquoted(&(g->tmp_printbuf),blen,bpos,wg_atomstr1(db,clname),0,0);        
         } else {
           bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,"\"%s\"",wg_atomstr1(db,clname));         
         }
@@ -584,9 +584,11 @@ void* wr_preprocess_clauselist
         if (!wg_str_guarantee_space(db,&(g->tmp_printbuf),&blen,bpos+1000)) return NULL;              
         clauseflag=1;
         freevars=wr_parse_freeoccs(g,mpool,NULL,cl,&clauseflag);
-        //printf("\n clauseflag %d freevars: \n",clauseflag);
-        //wg_mpool_print(db,freevars); 
-        //printf("\n");       
+        /*
+        printf("\n clauseflag %d freevars: \n",clauseflag);
+        wg_mpool_print(db,freevars); 
+        printf("\n");       
+        */
         wg_expand_frm_for_print(db,mpool,cl);
         if (clauseflag) {
           bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,
@@ -788,10 +790,13 @@ void *wr_parse_freeoccs(glb* g, void* mpool, void* vars, void* frm, int* clausef
   if (frm==NULL) return NULL;
   if (wg_isatom(db,frm)) {
     // simple atom
-    if ((g->parse_caps_as_var && wg_atomstr1(db,frm) &&
+    if ((wg_atomtype(db,frm)!=WG_URITYPE) && (wg_atomtype(db,frm)!=WG_VARTYPE)) return NULL;
+    if (wg_atomstr2(db,frm)!=NULL) return NULL;
+    if((wg_atomtype(db,frm)==WG_VARTYPE) ||
+      ((g->parse_caps_as_var && wg_atomstr1(db,frm) &&
         isupper(wg_atomstr1(db,frm)[0])) ||
         (g->parse_question_as_var && wg_atomstr1(db,frm) &&
-         wg_atomstr1(db,frm)[0]=='?') ) { 
+         wg_atomstr1(db,frm)[0]=='?') )) { 
       if (!wr_freeoccs_invars(g,mpool,vars,frm)) {
         return wg_mkpair(db,mpool,frm,NULL);
       }                 
@@ -1209,6 +1214,7 @@ void* wr_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
       if (subterm!=NULL && wg_ispair(db,subterm)) { issimple=0; break; }     
       if (wg_atomtype(db,subterm)==WG_VARTYPE) { issimple=0; break; } 
       if (wg_atomtype(db,subterm)==WG_URITYPE && wg_atomstr1(db,subterm) && 
+          wg_atomstr2(db,subterm)!=NULL &&
           ( (g->parse_caps_as_var && isupper(wg_atomstr1(db,subterm)[0])) ||
             (g->parse_question_as_var && wg_atomstr1(db,subterm)[0]=='?') )) {issimple=0; break;} 
     }      
@@ -1656,6 +1662,7 @@ gint wr_parse_primitive(glb* g,void* mpool,void* atomptr, char** vardata, int po
         ret=wg_encode_xmlliteral(db,str1,str2); 
         break; 
       case WG_URITYPE: 
+        str2=wg_atomstr2(db,atomptr);
         if (!pos || !str1 || str2) {         
           ret=wg_encode_uri(db,str1,str2); 
         } else if ((g->parse_caps_as_var && isupper(str1[0])) ||
@@ -1686,7 +1693,7 @@ gint wr_parse_primitive(glb* g,void* mpool,void* atomptr, char** vardata, int po
           ret=wg_encode_var(db,intdata);
           DPRINTF("var %d encoded ok\n",intdata);
         } else {
-          ret=wg_encode_uri(db,str1,str2);
+          ret=wg_encode_uri(db,str1,NULL);
         }
         break; 
       //case WG_BLOBTYPE: 
@@ -1713,7 +1720,13 @@ gint wr_parse_primitive(glb* g,void* mpool,void* atomptr, char** vardata, int po
         ret=wg_encode_time(db,intdata);
         break; 
       case WG_ANONCONSTTYPE: 
-        ret=wg_encode_anonconst(db,str1); 
+        //printf("\nanonconst %s\n",str1);
+        str2=wg_atomstr2(db,atomptr);
+        if (!str2 && str1 && *str1=='#' && *(str1+1)==':') {
+          ret=wg_encode_uri(db,str1+2,"#");
+        } else {
+          ret=wg_encode_anonconst(db,str1);
+        }  
         break; 
       case WG_VARTYPE:
         intdata=0;

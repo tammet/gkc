@@ -58,6 +58,8 @@
 %token STRING
 %token ID 
 %token URI
+%token CONSTURI
+%token UNIQUEURI
 %token TCONST
 %token VAR
 
@@ -310,6 +312,8 @@ prim:     TINT             { $$ = MKWGINT(PP,$1); }
         | STRING          { $$ = MKWGSTRING(PP,$1); }
 	      | VAR             { $$ = MKWGVAR(PP,$1); }
         | URI	            { $$ = MKWGURI(PP,$1); }
+        | CONSTURI	      { $$ = MKWGCONSTURI(PP,$1); }
+        | UNIQUEURI	      { $$ = MKWGUNIQUEURI(PP,$1); }
         | ID	            { $$ = MKWGCONST(PP,$1); }
         | TCONST	           { $$ = MKWGCONST(PP,$1); }
         | EMPTYSTRING	       { $$ = MKWGCONST(PP,$1); }

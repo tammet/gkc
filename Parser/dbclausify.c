@@ -103,6 +103,13 @@ void* wr_clausify_formula(glb* g, void* mpool, void* frm,
   wg_tptp_print(db,frm); 
   printf("\n");
 #endif  
+  /*
+  printf("wr_clausify_formula starting with frm\n");  
+  wg_mpool_print(db,frm); 
+  printf("\n");
+  wg_tptp_print(db,frm); 
+  printf("\n");
+  */
   if (g->parse_errflag) return NULL;
   if (wg_isatom(db,frm)) {
     // constant
@@ -669,7 +676,8 @@ void* wr_clausify_skolemize(glb* g, void* mpool, void* frm, void* vars, int* var
   printf("wr_clausify_skolemize starting on\n");  
   wg_mpool_print(db,frm); 
   printf("\n");
-#endif  
+#endif 
+
   if (wg_isatom(db,frm)) {
     // simple atom
     return frm;

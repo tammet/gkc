@@ -215,7 +215,7 @@ ID       [a-zA-Z][a-zA-Z0-9_:+\-*/<>]*
 <STRSTATE>\"    { *s = 0; BEGIN 0; 
                   parseprintf("found '%s'\n", elmparsestrbuf); 
 		              *yylval=elmparsestrbuf;
-		              return STRING;
+		              return UNIQUEURI;
                 } 
 <STRSTATE>\n    { *s++ = '\n'; 
                  /* parseprintf("elm parser error: invalid string (newline in string)"); 
@@ -232,7 +232,7 @@ ID       [a-zA-Z][a-zA-Z0-9_:+\-*/<>]*
 <QUOTESTATE>\'    { *s = 0; BEGIN 0; 
                   parseprintf("found '%s'\n", elmparsestrbuf); 
 		              *yylval=elmparsestrbuf;
-		              return URI;
+		              return CONSTURI;
                 } 
 <QUOTESTATE>\n    { *s++ = '\n'; 
                  /* parseprintf("elm parser error: invalid string (newline in quote)"); 

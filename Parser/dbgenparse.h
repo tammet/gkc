@@ -44,6 +44,8 @@
 #define MKWGTIME(pp,x)  (wg_mkatom(((parse_parm*)pp)->db,((parse_parm*)pp)->mpool,WG_TIMETYPE,x,NULL))
 #define MKWGID(pp,x)      (wg_mkatom(((parse_parm*)pp)->db,((parse_parm*)pp)->mpool,WG_URITYPE,x,NULL))
 #define MKWGURI(pp,x)     (wg_mkatom(((parse_parm*)pp)->db,((parse_parm*)pp)->mpool,WG_URITYPE,x,NULL))
+#define MKWGCONSTURI(pp,x)     (wg_mkatom(((parse_parm*)pp)->db,((parse_parm*)pp)->mpool,WG_URITYPE,x,"c"))
+#define MKWGUNIQUEURI(pp,x)     (wg_mkatom(((parse_parm*)pp)->db,((parse_parm*)pp)->mpool,WG_URITYPE,x,"#"))
 #define MKWGSTRING(pp,x)  (wg_mkatom(((parse_parm*)pp)->db,((parse_parm*)pp)->mpool,WG_STRTYPE,x,NULL))
 #define MKWGCONST(pp,x)  (wg_mkatom(((parse_parm*)pp)->db,((parse_parm*)pp)->mpool,WG_ANONCONSTTYPE,x,NULL))
 #define MKWGVAR(pp,x)     (wg_mkatom(((parse_parm*)pp)->db,((parse_parm*)pp)->mpool,WG_VARTYPE,x,NULL))

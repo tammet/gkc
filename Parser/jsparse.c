@@ -1241,7 +1241,7 @@ void* wr_process_json_formula(glb* g,parse_parm* pp, void* cl, int isincluded) {
   printf("\nbefore wr_preprocess_tptp_fof_clause\n");
   wg_mpool_print(db,preres);
   printf("\n");
-#endif  
+#endif   
   
   if ((pp->parse_top_level) && (dbmemsegh(db)->convert) && (dbmemsegh(db)->tptp)) {
     // conversion to tptp
@@ -1260,9 +1260,16 @@ void* wr_process_json_formula(glb* g,parse_parm* pp, void* cl, int isincluded) {
     } else {
       bpos+=snprintf((g->tmp_printbuf)+bpos,blen-bpos,"fof(%s,%s,",namestr,rolestr);
     }  
+    /*
+    printf("\npreres before\n");
+    wg_mpool_print(db,preres);
+    printf("\npreres after\n");
+    */
     wg_expand_frm_for_print(db,mpool,preres);
-    //wg_mpool_print(db,preres);
-    //printf("\n"); 
+    /*
+    wg_mpool_print(db,preres);
+    printf("\n"); 
+    */
     bpos=wg_print_frm_tptp(db,wg_nth(db,preres,3),&(g->tmp_printbuf),&blen,bpos); 
     if (!wr_str_guarantee_space(g,&(g->tmp_printbuf),&blen,bpos+100)) {
       if (g->tmp_printbuf) wr_free(g,(g->tmp_printbuf));
@@ -1405,26 +1412,6 @@ void* wr_process_json_formula_aux(glb* g, parse_parm* pp, void* cl) {
         r2el=wr_process_json_term(g,pp,wg_first(db,r2),0,2);
         preres=wg_mklist3(db,mpool,r1el,head,r2el);
       }  
-    /*  
-    } else if (!strcmp(wg_atomstr1(db,r1el),"+") && head && wg_ispair(db,r2)) {      
-      str=wg_atomstr1(db,r1el);
-      if (*str!='=') {
-        // not a positive equality, hence negative
-        head=wr_process_json_term(g,pp,head,0,1);
-        r2el=wr_process_json_term(g,pp,wg_first(db,r2),0,2);
-        preres=wg_mklist2(db,mpool,
-                wg_makelogneg(db,mpool), 
-                wg_mklist3(db,mpool,
-                  wg_makeatomeq(db,mpool),
-                  head,
-                  r2el));
-      } else {
-        // a positive equality
-        head=wr_process_json_term(g,pp,head,0,1);
-        r2el=wr_process_json_term(g,pp,wg_first(db,r2),0,2);
-        preres=wg_mklist3(db,mpool,r1el,head,r2el);
-      }                              
-    */  
     } else if (wg_isatom(db,head) &&
                (!strcmp("not",wg_atomstr1(db,head)) ||
                 !strcmp("-",wg_atomstr1(db,head)) ||
@@ -1734,17 +1721,6 @@ void* wr_add_struct_key_atoms(glb* g, parse_parm* pp,
   if (!wg_ispair(db,values)) {
     // simple value
     if (values==pp->jsonnull) {
-      /*
-      modvalue=wr_json_make_nullvar(g,pp);
-      if (!modvalue) return extended;
-      pp->nullvars=wg_mkpair(db,mpool,modvalue,pp->nullvars);
-      atom=wg_mklist4(db,mpool,
-        wg_mkatom(db,mpool,WG_URITYPE,MPOOL_JSON_ARC,NULL),
-        id,
-        wg_mkatom(db,mpool,WG_URITYPE,keystr,NULL),       
-        modvalue);   
-      extended=wr_json_add_with_and(g,pp,atom,extended);  
-      */
       return extended;
     }  
     if (values && wg_atomtype(db,values)==WG_URITYPE) {                  
@@ -1759,16 +1735,7 @@ void* wr_add_struct_key_atoms(glb* g, parse_parm* pp,
     }  
     atom=wr_json_mkarc(db,pp,
         id,wg_mkatom(db,mpool,WG_URITYPE,keystr,NULL),modvalue);
-    /*    
-    atom=wg_mklist4(db,mpool,
-      wg_mkatom(db,mpool,WG_URITYPE,MPOOL_JSON_ARC,NULL),
-      id,
-      wg_mkatom(db,mpool,WG_URITYPE,keystr,NULL),
-      //values);
-      modvalue);   
-    */  
     extended=wr_json_add_with_and(g,pp,atom,extended);  
-    //extended=wg_mkpair(db,mpool,atom,extended);
   } else if (wg_first(db,values)==(pp->jsonstruct)) {
     // value is a structure
     if (!wg_ispair(db,wg_rest(db,values))) return extended;
@@ -1790,25 +1757,11 @@ void* wr_add_struct_key_atoms(glb* g, parse_parm* pp,
         res1=wr_process_json_list(g,pp,list);
       atom=wr_json_mkarc(db,pp,
         id,wg_mkatom(db,mpool,WG_URITYPE,keystr,NULL),res1);
-      /*    
-      atom=wg_mklist4(db,mpool,
-        wg_mkatom(db,mpool,WG_URITYPE,MPOOL_JSON_ARC,NULL),
-        id,
-        wg_mkatom(db,mpool,WG_URITYPE,keystr,NULL),
-        res1);   
-      */  
       extended=wr_json_add_with_and(g,pp,atom,extended);  
     } else if (modvalue) {
       // @value object
       atom=wr_json_mkarc(db,pp,
         id,wg_mkatom(db,mpool,WG_URITYPE,keystr,NULL),modvalue);
-      /*  
-      atom=wg_mklist4(db,mpool,
-        wg_mkatom(db,mpool,WG_URITYPE,MPOOL_JSON_ARC,NULL),
-        id,
-        wg_mkatom(db,mpool,WG_URITYPE,keystr,NULL),
-        modvalue);   
-      */  
       extended=wr_json_add_with_and(g,pp,atom,extended);   
     } else {
       // nested structure case
@@ -1824,52 +1777,13 @@ void* wr_add_struct_key_atoms(glb* g, parse_parm* pp,
       }  
       atom=wr_json_mkarc(db,pp,
         id,wg_mkatom(db,mpool,WG_URITYPE,keystr,NULL),newid);
-      /*  
-      atom=wg_mklist4(db,mpool,
-        wg_mkatom(db,mpool,WG_URITYPE,MPOOL_JSON_ARC,NULL),
-        id,
-        wg_mkatom(db,mpool,WG_URITYPE,keystr,NULL),
-        newid);    
-      */  
       res1=wr_json_add_with_and(g,pp,atom,extended); 
-      //res1=wg_mkpair(db,mpool,atom,extended); 
-      
-      //tmp=pp->parse_top_level;    
-      //pp->parse_top_level=0;
-    
       wr_json_push_context(g,pp,array);
-      /*
-      tmp_formulaname=pp->formulaname;
-      tmp_formularole=pp->formularole;
-      tmp_freevars=pp->freevars;
-      tmp_freevarsnr=pp->freevarsnr;
-      tmp_nullvars=pp->nullvars;
-      tmp_nullvarsnr=pp->nullvarsnr;
-      tmp_boundvars=pp->boundvars;
-      tmp_ctxt=pp->jsonld_ctxt;
-      tmp_base=pp->jsonld_base;
-      */
       pp->parse_top_level=0;
       resultclause=wr_process_json_formula(g,pp,values,0);    
       wr_json_pop_context(g,pp,array); 
-      /*
-      pp->formulaname=tmp_formulaname;
-      pp->formularole=tmp_formularole;
-      pp->freevars=tmp_freevars;
-      pp->freevarsnr=tmp_freevarsnr;
-      pp->nullvars=tmp_nullvars;
-      pp->nullvarsnr=tmp_nullvarsnr;
-      pp->boundvars=tmp_boundvars;     
-      pp->jsonld_ctxt=tmp_ctxt;
-      pp->jsonld_base=tmp_base;
-      */
-      //pp->parse_top_level=tmp;  
-
-
       if (resultclause){        
-        //resultclause=wg_nth(db,resultclause,2);
         extended=wr_json_add_with_and(g,pp,resultclause,res1); 
-        //extended=wg_mkpair(db,mpool,resultclause,res1);     
       } else {
         extended=res1;
       }
@@ -1991,11 +1905,6 @@ void* wr_json_mkid(glb* g, void* mpool, parse_parm* pp, void* givenid, void* map
     if (*str=='_' && *(str+1)==':') {
       // blank node
       res=givenid;
-      /*
-      if (strlen(str)>280) return NULL;
-      sprintf(buf,"%s_%s",str,wg_atomstr1(db,pp->jsonld_blankprefatom));      
-      res=wg_mkatom(db,mpool,WG_ANONCONSTTYPE,buf,NULL);  
-      */
     } else if (wr_json_isvar(g,pp,givenid)) {
       res=givenid;
     } else {
@@ -2383,7 +2292,6 @@ void* wr_process_json_term(glb* g, parse_parm* pp, void* cl, int atomlevel, int 
       tmp=wr_process_json_term(g,pp,wg_first(db,r2),1,1);
       (pp->boundvars)=wg_rest(db,(pp->boundvars));
       if (tmp==NULL) return NULL;
-      //*((gint*)cl)=(gint)(pp->logexists);
       *((gint*)r2)=(gint)tmp;
       preres=cl;
     } else {       
@@ -2392,8 +2300,6 @@ void* wr_process_json_term(glb* g, parse_parm* pp, void* cl, int atomlevel, int 
         if (tmp==NULL) return NULL;
         *((gint*)part)=(gint)tmp;
       }     
-      //tmp=wg_mkatom(db,mpool,WG_URITYPE,(wg_atomstr1(db,head)),NULL);         
-      //*((gint*)cl)=(gint)tmp;
       preres=cl;
     }
   } 
@@ -2449,26 +2355,6 @@ void* wr_process_json_list(glb* g, parse_parm* pp, void* cl) {
   return res;
 }
 
-
-/*
-void* wg_make_nested_conn(void* db, void* mpool, void* op, void* cl) {
-  void* tmp;
-  int len;
-  len=wg_list_len(db,cl);
-  if (len==0) {
-    return wg_mkpair(db,mpool,op,NULL); 
-  } else if (len==1) {
-    return wg_first(db,cl);
-  } else if (len==2) {
-    return wg_mkpair(db,mpool,op,cl);    
-  } else {
-    return wg_mklist3(db,mpool,
-                      op,
-                      wg_first(db,cl),
-                      wg_make_nested_conn(db,mpool,op,wg_rest(db,cl))); 
-  }
-}
-*/
 void* wr_json_list_logconn(glb* g, parse_parm* pp, void* cl) {
   void* db=g->db;
   void* part;

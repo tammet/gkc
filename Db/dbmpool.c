@@ -596,7 +596,7 @@ void* wg_mkatom(void* db, void* mpool, int type, char* str1, char* str2) {
   char* ptr;
   char* curptr;
   int size=2;
-
+  
   if (str1!=NULL) size=size+strlen(str1);
   size++;
   if (str2!=NULL) size=size+strlen(str2);
@@ -616,13 +616,13 @@ void* wg_mkatom(void* db, void* mpool, int type, char* str1, char* str2) {
     *curptr=(char)0;
     curptr++;
   }
-  if (str2!=NULL) {
+  if (str2!=NULL) {    
     while((*curptr++ = *str2++));
   } else {
     *curptr=(char)0;
     curptr++;
-  }
-  return ptr;
+  } 
+  return ptr; 
 }
 
 
@@ -759,7 +759,10 @@ char* wg_atomstr1(void* db, void* ptr) {
 
 char* wg_atomstr2(void* db, void* ptr) {
   if (ptr==NULL) return NULL;
-  ptr=(char*)ptr+strlen((char*)((char*)ptr+1))+1;
+  //printf("\nwg_atomstr2 called with str1 %s and strlen((char*)((char*)ptr+1)) %d\n",
+  //  ((char*)ptr+1),strlen((char*)((char*)ptr+1)));
+  ptr=(char*)ptr+strlen((char*)((char*)ptr+1))+2;
+  //printf("\nstr2 pos1 %s pos2 %s\n",(char*)ptr,((char*)ptr)+1);
   if (*((char*)ptr)==(char)0) return NULL;
   else return ((char*)ptr);
 }
@@ -972,7 +975,6 @@ static void wg_mpool_print_aux(void* db, void* ptr, int depth, int pflag) {
     printf(" compp:%d at %d",100,(int)p);
     p=wg_atomstr1(db,ptr); 
     */
-
     if (p!=NULL) {
       if (strchr(p,' ')!=NULL || strchr(p,'\n')!=NULL || strchr(p,'\t')!=NULL) {
         printf("\"%s\"",p);

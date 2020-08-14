@@ -825,6 +825,7 @@ int wr_strprint_simpleterm_otter(glb* g, gint enc,int printlevel, char** buf, in
   double doubledata;
   char strbuf[80];
   int len1=0,len2=0;
+  int uniqueflag;
 
 #ifdef DEBUG  
   printf("simpleterm called with enc %d and type %d \n",(int)enc,wg_get_encoded_type(db,enc)); 
@@ -866,12 +867,13 @@ int wr_strprint_simpleterm_otter(glb* g, gint enc,int printlevel, char** buf, in
       exdata = wg_decode_uri_prefix(db, enc);
       if (strdata) len1=strlen(strdata);
       if (exdata) len2=strlen(exdata);
+      //printf("\nstrdata %s exdata %s\n",strdata,exdata);
       if (!wr_str_guarantee_space(g,buf,len,pos+len1+len2+100)) return -1;
       if (exdata==NULL) {        
         if (g->print_clauses_json) {
           if (isneg) {          
             if (wg_contains_dquote(strdata)) {                        
-              pos+=wg_print_dquoted(buf,*len,pos,strdata,1);                
+              pos+=wg_print_dquoted(buf,*len,pos,strdata,1,0);                
               return pos;
             } else {    
               return pos+snprintf((*buf)+pos,(*len)-pos,"\"-%s\"", strdata);
@@ -882,7 +884,7 @@ int wr_strprint_simpleterm_otter(glb* g, gint enc,int printlevel, char** buf, in
             } else if (!strcmp(strdata,EMPTYSTRING)) {
               return pos+snprintf((*buf)+pos,(*len)-pos,"\"\"");             
             } else if (wg_contains_dquote(strdata)) {                       
-              pos+=wg_print_dquoted(buf,*len,pos,strdata,0);                          
+              pos+=wg_print_dquoted(buf,*len,pos,strdata,0,0);                          
               return pos;
             } else {  
               return pos+snprintf((*buf)+pos,(*len)-pos,"\"%s\"", strdata);
@@ -915,20 +917,27 @@ int wr_strprint_simpleterm_otter(glb* g, gint enc,int printlevel, char** buf, in
             //return pos+snprintf((*buf)+pos,(*len)-pos,"%s%ld", strdata,wg_decode_uri_id(db,enc));
           }           
         }        
-      } else {       
+      } else {  
+        // here exdata is not null     
         if (g->print_clauses_json) {
+          if (exdata && *exdata=='#' && *(exdata+1)=='\0') uniqueflag=1;
+          else uniqueflag=0;
           if (isneg) {
-             if (wg_contains_dquote(strdata)) {                        
-              pos+=wg_print_dquoted(buf,*len,pos,strdata,1);                
+            if (wg_contains_dquote(strdata)) {                        
+              pos+=wg_print_dquoted(buf,*len,pos,strdata,1,uniqueflag);                
               return pos;
+            } else if (uniqueflag) {    
+              return pos+snprintf((*buf)+pos,(*len)-pos,"\"-#:%s\"", strdata);                
             } else {    
               return pos+snprintf((*buf)+pos,(*len)-pos,"\"-%s\"", strdata);
             }  
             //return pos+snprintf((*buf)+pos,(*len)-pos,"\"-%s:%s\"", exdata, strdata);
           } else {
             if (wg_contains_dquote(strdata)) {                       
-              pos+=wg_print_dquoted(buf,*len,pos,strdata,0);                          
+              pos+=wg_print_dquoted(buf,*len,pos,strdata,0,uniqueflag);                          
               return pos;
+            } else if (uniqueflag) {    
+              return pos+snprintf((*buf)+pos,(*len)-pos,"\"#:%s\"", strdata);             
             } else {  
               return pos+snprintf((*buf)+pos,(*len)-pos,"\"%s\"", strdata);
             } 
@@ -1116,12 +1125,19 @@ int wg_print_quoted(char** buf, int len, int pos, char* s) {
 
 int wg_print_quoted2(char** buf, int len, int pos, char* es, char* s) {
   char c;
-  int i,j;
-  char* origes=es;
+  int i=0,j=0;
+  //char* origes=es;
+  int dquote=0;
 
-  //printf("\n len %d str %s\n",len,s);
-  if (!s || !buf || !len || len<2) return 0;    
-  *((*buf)+pos)='\'';
+  //printf("\n len %d es %s s %s\n",len,es,s);
+  if (!s || !buf || !len || len<2) return 0;     
+  if (es && *es=='#' && *(es+1)=='\0') {
+    *((*buf)+pos)='\"';
+    dquote=1;
+  }  
+  else *((*buf)+pos)='\'';
+  
+  /*
   for(i=1; *es!=0; es++, i++) {
     c=*es;
     if (c=='\'') {
@@ -1136,34 +1152,51 @@ int wg_print_quoted2(char** buf, int len, int pos, char* es, char* s) {
     *((*buf)+pos+i)=':';
     i++;
   }
-
+  */ 
+  i=1; 
   for(j=0; *s!=0; s++, j++) {
     c=*s;
-    if (c=='\'') {
-      *((*buf)+pos+i+j)='\\';
-      j++;
-    }     
+    if (dquote) {
+      if (c=='\"') {
+        *((*buf)+pos+i+j)='\\';
+        j++;
+      }
+    } else {
+      if (c=='\'') {
+        *((*buf)+pos+i+j)='\\';
+        j++;
+      }     
+    }
     *((*buf)+pos+i+j)=c;   
     if ((i+j+pos)>=len) return i+j;
   }      
-  
-  *((*buf)+pos+i+j)='\'';
+
+  if (dquote) *((*buf)+pos+i+j)='\"';
+  else *((*buf)+pos+i+j)='\'';
+
+  //*((*buf)+pos+i+j)='\'';
   //printf("\n i %d\n",i);
   return i+j+1;
 }
 
 
-int wg_print_dquoted(char** buf, int len, int pos, char* s, int negflag) {
+int wg_print_dquoted(char** buf, int len, int pos, char* s, int negflag, int uniqueflag) {
   char c;
   int i;
 
   //printf("\n len %d str %s\n",len,s);
-  if (!s || !buf || !len || len<2) return 0;    
+  if (!s || !buf || !len || len<2) return 0;      
   *((*buf)+pos)='"';
   if (negflag) {
     pos++;
     *((*buf)+pos)='-';
   }  
+  if (uniqueflag) {
+    pos++;
+    *((*buf)+pos)='#';
+    pos++;
+    *((*buf)+pos)=':';    
+  }
   for(i=1; *s!=0; s++, i++) {
     c=*s;
     if (c=='"') {
@@ -1176,8 +1209,8 @@ int wg_print_dquoted(char** buf, int len, int pos, char* s, int negflag) {
   *((*buf)+pos+i)='"';
   i++;
   //printf("\n i %d\n",i);
-  if (negflag) return i+1;
-  else return i;
+  if (negflag) return i+1+(uniqueflag ? 2 : 0);
+  else return i+(uniqueflag ? 2 : 0);
 }
 
 /*
@@ -1407,6 +1440,7 @@ void wg_tptp_print_aux(void* db, void* ptr, int depth, int pflag) {
 
 int wg_print_frm_tptp(void* db, void* ptr, char** buf, int *len, int pos) {  
   int p;
+  //printf("\nwg_print_frm_tptp called\n");
   p=wg_print_subfrm_tptp(db,ptr,0,0,0,buf,len,pos);  
   //printf("\nwg_print_frm_tptp calcs p: %d\n",p);
   return p;
@@ -1423,7 +1457,7 @@ int wg_print_subfrm_tptp(void* db, void* ptr,int depth,int pflag, int termflag, 
   printf("print_term called"); 
 #endif   
   int type;
-  char *p; // *p2;
+  char *p, *p2;
   int count;
   int ppflag=0;
   int i;
@@ -1492,16 +1526,20 @@ int wg_print_subfrm_tptp(void* db, void* ptr,int depth,int pflag, int termflag, 
       */  
       case WG_ANONCONSTTYPE : {
         // no negation assumed here!
-        if (!strcmp(p,EMPTYSTRING)) {
+        p2=wg_atomstr2(db,ptr);
+        //printf("\n type==WG_ANONCONSTTYPE %d p %s p2 %s\n",type==WG_ANONCONSTTYPE,p,p2);
+        if (p && *p=='#' && *(p+1)==':') {            
+            pos+=wg_print_dquoted(buf,*len,pos,p+2,0,0);          
+        } else if (p && *p=='#' && *(p+1)==':') {
+          pos+=wg_print_dquoted(buf,*len,pos,p+2,0,1);
+        } else if (!strcmp(p,EMPTYSTRING)) {
           pos+=snprintf((*buf)+pos,(*len)-pos,"''");            
         } else if (p!=NULL && *p && (*p >= 'A') && (*p <= 'Z')) {
           // must add c: prefix    
-          pos+=wg_print_quoted2(buf,*len,pos,"c",p);      
-          //pos+=snprintf((*buf)+pos,(*len)-pos,"\'c:%s\'",p);          
+          pos+=wg_print_quoted2(buf,*len,pos,"c",p);                        
         } else if (wg_contains_quote(p)) {            
           pos+=wg_print_quoted(buf,*len,pos,p); 
-        } else if (wg_should_quote(p)) {
-            //printf("\"%s\"",p);
+        } else if (wg_should_quote(p)) {            
           pos+=snprintf((*buf)+pos,(*len)-pos,"\'%s\'",p);  
         } else {
           pos+=snprintf((*buf)+pos,(*len)-pos,"%s",p);
@@ -1510,31 +1548,39 @@ int wg_print_subfrm_tptp(void* db, void* ptr,int depth,int pflag, int termflag, 
       }
       default: {         
         if (p!=NULL) {
+          if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
           if (!strcmp(p,EMPTYSTRING)) {
             pos+=snprintf((*buf)+pos,(*len)-pos,"''");
             return pos;
-          } else if (*p=='?' && *(p+1)==':') {
-            //printf("\nVAR \"%s\"\n",p);            
+          }            
+          if (type==WG_URITYPE) p2=wg_atomstr2(db,ptr);
+          else p2=NULL;         
+          //printf("\n type==WG_URITYPE %d p %s p2 %s\n",type==WG_URITYPE,p,p2);
+          if (type==WG_VARTYPE && p && *p!='\0') {            
+            pos+=snprintf((*buf)+pos,(*len)-pos,"X%s",p+1);             
+            return pos;
+          } else if  (*p=='?' && *(p+1)==':' && !p2) {                   
             if (*(p+2) >= 'A' && *(p+2) <= 'Z') {
               p=p+2;
             } else {
-              pos+=wg_print_quoted2(buf,*len,pos,"V",p+2);             
+              pos+=snprintf((*buf)+pos,(*len)-pos,"X%s",p+2);  
+              //pos+=wg_print_quoted2(buf,*len,pos,"V",p+2);             
               return pos;       
             }  
           } 
-          if (wg_contains_quote(p)) {            
+          if ((p2 && *p2=='#' && *(p2+1)=='\0')) {            
+            pos+=wg_print_dquoted(buf,*len,pos,p,0,0);            
+          } else if (wg_contains_quote(p)) {                       
             pos+=wg_print_quoted(buf,*len,pos,p); 
-          } else if (wg_should_quote(p)) {
-            //printf("\"%s\"",p);
-            pos+=snprintf((*buf)+pos,(*len)-pos,"\'%s\'",p);
-          } else {
-            //printf("%s",p);
+          } else if ((p2 && *p2=='c' && *(p2+1)=='\0') || wg_should_quote(p)) {            
+            pos+=snprintf((*buf)+pos,(*len)-pos,"\'%s\'",p);          
+          } else {        
             pos+=snprintf((*buf)+pos,(*len)-pos,"%s",p);
           }
-        } else {
-          //printf("\'\'");
+        } else {          
           pos+=snprintf((*buf)+pos,(*len)-pos,"\' \'" );
         }
+        /*
         p=wg_atomstr2(db,ptr);
         if (p!=NULL) {
           if (wg_contains_quote(p)) {   
@@ -1548,6 +1594,7 @@ int wg_print_subfrm_tptp(void* db, void* ptr,int depth,int pflag, int termflag, 
             pos+=snprintf((*buf)+pos,(*len)-pos,"^^%s",p);
           }
         }
+        */
       }
     }   
     return pos;
@@ -1674,6 +1721,8 @@ int wg_print_subfrm_tptp(void* db, void* ptr,int depth,int pflag, int termflag, 
 
 int wg_print_cnf_tptp(void* db, void* ptr, char** buf, int *len, int pos) {  
   int p;
+  //printf("\nwg_print_cnf_tptp called\n");
+  //wg_mpool_print(db,ptr);
   p=wg_print_subcnf_tptp(db,ptr,0,0,0,buf,len,pos);  
   //printf("\nwg_print_frm_tptp calcs p: %d\n",p);
   return p;
@@ -1682,7 +1731,7 @@ int wg_print_cnf_tptp(void* db, void* ptr, char** buf, int *len, int pos) {
 
 int wg_print_subcnf_tptp(void* db, void* ptr,int depth,int pflag, int termflag, char** buf, int *len, int pos) {
   int type;
-  char* p;
+  char *p, *p2;
   int count;
   int ppflag=0;
   int i;
@@ -1742,47 +1791,36 @@ int wg_print_subcnf_tptp(void* db, void* ptr,int depth,int pflag, int termflag, 
           if (!strcmp(p,EMPTYSTRING)) {
             pos+=snprintf((*buf)+pos,(*len)-pos,"''");
             return pos;
-          } else if (*p=='?' && *(p+1)==':') {
-            //printf("\nVAR \"%s\"\n",p);
+          }            
+          if (type==WG_URITYPE) p2=wg_atomstr2(db,ptr);
+          else p2=NULL;
+          //printf("\np %s p2 %s\n",p,p2); 
+          if (type==WG_VARTYPE && p && *p!='\0') {           
+            pos+=snprintf((*buf)+pos,(*len)-pos,"VAR%s",p+1);             
+            return pos;
+          } else if  (*p=='?' && *(p+1)==':' 
+             && !p2) {                    
             if (*(p+2) >= 'A' && *(p+2) <= 'Z') {
               p=p+2;
             } else {
               pos+=wg_print_quoted2(buf,*len,pos,"V",p+2);             
               return pos;       
             }  
-          }
-          if (wg_contains_quote(p)) {            
+          }           
+          if ((p2 && *p2=='#' && *(p2+1)=='\0')) {          
+            pos+=wg_print_dquoted(buf,*len,pos,p,0,0);         
+          } else if (wg_contains_quote(p)) {                        
             pos+=wg_print_quoted(buf,*len,pos,p); 
-          /*  
-          } else if (*p=='?' && *(p+1)==':') {
-            //printf("\"%s\"",p);
-            pos+=snprintf((*buf)+pos,(*len)-pos,"\'V%s\'",p);            
-          */  
-          } else if (wg_should_quote(p)) {
-            //printf("\"%s\"",p);
+          } else if ((p2 && *p2=='c' && *(p2+1)=='\0') || wg_should_quote(p)) {           
             pos+=snprintf((*buf)+pos,(*len)-pos,"\'%s\'",p);
-          } else {
-            //printf("%s",p);
+          } else if ((p2 && *p2=='#' && *(p2+1)=='\0')) {            
+            pos+=snprintf((*buf)+pos,(*len)-pos,"\"%s\"",p);  
+          } else {           
             pos+=snprintf((*buf)+pos,(*len)-pos,"%s",p);
           }
-        } else {
-          //printf("\'\'");
+        } else {        
           pos+=snprintf((*buf)+pos,(*len)-pos,"\' \'" );
-        }
-        p=wg_atomstr2(db,ptr);
-        if (p!=NULL) {
-          if (!wg_str_guarantee_space(db,buf,len,pos+1000)) return -1;
-          if (wg_contains_quote(p)) {   
-            pos+=snprintf((*buf)+pos,(*len)-pos,"^^");         
-            pos+=wg_print_quoted(buf,*len,pos,p); 
-          } else if (wg_should_quote(p)) {
-            //printf("^^\"%s\"",p);
-            pos+=snprintf((*buf)+pos,(*len)-pos,"^^\"%s\"",p);
-          } else {
-            //printf("^^%s",p);
-            pos+=snprintf((*buf)+pos,(*len)-pos,"^^%s",p);
-          }
-        }
+        }      
       }
     }   
     return pos;
@@ -2028,7 +2066,7 @@ int wg_print_subfrm_json(void* db, void* mpool, void* ptr,int depth,int pflag,
   printf("print_term called"); 
 #endif   
   //int type;
-  char *p;
+  char *p, *p2;
   int count;
   int ppflag=0;
   int i;
@@ -2039,6 +2077,7 @@ int wg_print_subfrm_json(void* db, void* mpool, void* ptr,int depth,int pflag,
   void* varlst;
   void* varptr;
   int varcount;
+  int unique;
 /*
   printf("\nwg_print_subfrm_json called\n"); 
   wg_mpool_print(db,ptr);
@@ -2089,7 +2128,7 @@ int wg_print_subfrm_json(void* db, void* mpool, void* ptr,int depth,int pflag,
       case WG_ANONCONSTTYPE: printf("a:"); break;
       case WG_VARTYPE: printf("?:"); break;
       */
-      default: {        
+      default: {              
         if (p==NULL) {     
           pos+=snprintf((*buf)+pos,(*len)-pos,"\"\"" );  
         } else if (!strcmp(p,EMPTYSTRING)) {
@@ -2100,19 +2139,46 @@ int wg_print_subfrm_json(void* db, void* mpool, void* ptr,int depth,int pflag,
         } else if (!strncmp(p,"$false",6)) {
           if (negflag) pos+=snprintf((*buf)+pos,(*len)-pos,"true");
           else pos+=snprintf((*buf)+pos,(*len)-pos,"false");
-        } else if (WG_URITYPE && pos && termflag && 
+         } else if (WG_URITYPE) {
+            p2=wg_atomstr2(db,ptr);
+            if (pos && termflag && p2==NULL &&
                    (isupper(*p) || *p=='?') &&
-                   !wg_list_memberuri(db,boundvars,ptr) ) {            
-            if (wg_contains_dquote(p)) {
+                   !wg_list_memberuri(db,boundvars,ptr) ) {                        
+              // var       
               pos+=snprintf((*buf)+pos,(*len)-pos,"\"?:%s\"",p);
             } else {
-              pos+=snprintf((*buf)+pos,(*len)-pos,"\"?:%s\"",p);
-            }
+              // not var
+              if (p2 && *p2 && *p2=='#' && *(p2+1)=='\0') {
+                // unique 
+                unique=1;
+              } else {
+                unique=0;
+              }  /*
+                if (negflag) {
+                  pos+=wg_print_dquoted(buf,*len,pos,p,1,0);
+                } else {
+                  pos+=wg_print_dquoted(buf,*len,pos,p,0,0);
+                }  
+                */                
+              if (1) { //(wg_contains_dquote(p)) { 
+                if (negflag) {                  
+                  pos+=wg_print_dquoted(buf,*len,pos,p,1,unique);        
+                } else {
+                  pos+=wg_print_dquoted(buf,*len,pos,p,0,unique); 
+                }  
+              }/* else {
+                if (negflag) {
+                  pos+=snprintf((*buf)+pos,(*len)-pos,"\"~%s\"",p);
+                } else {
+                  pos+=snprintf((*buf)+pos,(*len)-pos,"\"%s\"",p);
+                }  
+              } */
+            }          
         } else if (wg_contains_dquote(p)) { 
           if (negflag) {                  
-            pos+=wg_print_dquoted(buf,*len,pos,p,1);        
+            pos+=wg_print_dquoted(buf,*len,pos,p,1,0);        
           } else {
-            pos+=wg_print_dquoted(buf,*len,pos,p,0); 
+            pos+=wg_print_dquoted(buf,*len,pos,p,0,0); 
           }  
         } else {
           if (negflag) {
