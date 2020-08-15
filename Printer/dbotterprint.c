@@ -343,6 +343,10 @@ void wr_print_simpleterm_otter(glb* g, gint enc,int printlevel) {
       exdata = wg_decode_uri_prefix(db, enc);
       if (exdata==NULL) {
         printf("%s", strdata);        
+      } else if (*exdata=='#' && *(exdata+1)=='\0') {
+        printf("\"%s\"",strdata); 
+      } else if (*exdata=='c' && *(exdata+1)=='\0') {
+        printf("\'%s\'",strdata);            
       } else
         printf("%s:%s", exdata, strdata);
       break;      
@@ -1529,7 +1533,16 @@ int wg_print_subfrm_tptp(void* db, void* ptr,int depth,int pflag, int termflag, 
         p2=wg_atomstr2(db,ptr);
         //printf("\n type==WG_ANONCONSTTYPE %d p %s p2 %s\n",type==WG_ANONCONSTTYPE,p,p2);
         if (p && *p=='#' && *(p+1)==':') {            
-            pos+=wg_print_dquoted(buf,*len,pos,p+2,0,0);          
+            pos+=wg_print_dquoted(buf,*len,pos,p+2,0,0);   
+
+        } else if (p && *p=='+' && *(p+1)=='\0') {
+          pos+=snprintf((*buf)+pos,(*len)-pos,"$sum"); 
+        } else if (p && *p=='*' && *(p+1)=='\0') {
+          pos+=snprintf((*buf)+pos,(*len)-pos,"$product");  
+        } else if (p && *p=='-' && *(p+1)=='\0') {
+          pos+=snprintf((*buf)+pos,(*len)-pos,"$difference");  
+        } else if (p && *p=='/' && *(p+1)=='\0') {
+          pos+=snprintf((*buf)+pos,(*len)-pos,"$quotient");    
         } else if (p && *p=='#' && *(p+1)==':') {
           pos+=wg_print_dquoted(buf,*len,pos,p+2,0,1);
         } else if (!strcmp(p,EMPTYSTRING)) {
@@ -1741,7 +1754,7 @@ int wg_print_subcnf_tptp(void* db, void* ptr,int depth,int pflag, int termflag, 
   void* el;
   char* symb;  
 
-  //printf("\nwg_print_subfrm_tptp called\n"); 
+  //printf("\nwg_print_subcnf_tptp called\n"); 
   if (!wg_str_guarantee_space(db,buf,len,pos+1000)) {
     wg_printerr_tptp(db,"wg_print_subcnf_tptp cannot guarantee buffer space"); 
     if (buf) sys_free(buf);

@@ -10,47 +10,46 @@
 %   a   b   d
 %  ------------------------------
 
-holds(on('#:a','#:table'),s0).
+holds(on("a","table"),s0).
 
-holds(on('#:b','#:table'),s0).
+holds(on("b","table"),s0).
 
-holds(on('#:c','#:d'),s0).
+holds(on("c","d"),s0).
 
-holds(on('#:d','#:table'),s0).
+holds(on("d","table"),s0).
 
-holds(clear('#:a'),s0).
+holds(clear("a"),s0).
 
-holds(clear('#:b'),s0).
+holds(clear("b"),s0).
 
-holds(clear('#:c'),s0).
+holds(clear("c"),s0).
 
 holds(empty,s0).
 
-holds(clear('#:table'),State).
+holds(clear("table"),State).
 
 % ------ difference axioms --------
 
-'#:a'!='#:b'.
-'#:b'!='#:c'.
-'#:c'!='#:d'.
-'#:d'!='#:table'.
+% special unique proof search speedup axiom 
 
-/* 
+-$is_unique(X) | -$is_unique(Y) | X=Y | X!=Y.
+
 %
 % a full list of difference axioms:
 % commented out, since not needed for the queries below
 %
 
-'#:a'!='#:b'.
-'#:a'!='#:c'.
-'#:a'!='#:d'.
-'#:a'!='#:table'.
-'#:b'!='#:c'.
-'#:b'!='#:d'.
-'#:b'!='#:table'.
-'#:c'!='#:d'.
-'#:c'!='#:table'.
-'#:d'!='#:table'.
+/*
+"a"!="b".
+"a"!="c".
+"a"!="d".
+"a"!="table".
+"b"!="c".
+"b"!="d".
+"b"!="table".
+"c"!="d".
+"c"!="table".
+"d"!="table".
 */
 
 % ----- pickup rules  ------
@@ -58,7 +57,7 @@ holds(clear('#:table'),State).
 holds(holding(X),do(pickup(X),State))
     | -holds(empty,State)
     | -holds(clear(X),State)
-    | =(X,'#:table').
+    | =(X,"table").
 
 holds(clear(Y),do(pickup(X),State))
     | -holds(on(X,Y),State)
@@ -116,7 +115,7 @@ holds(clear(Z),do(putdown(X,Y),State))
 
 
 cnf(prove,negated_conjecture,
-    -holds(on('#:b','#:a'),State) | -holds(on('#:c','#:b'),State) | $ans(State)).
+    -holds(on("b","a"),State) | -holds(on("c","b"),State) | $ans(State)).
  
 
 % ----- query 2 -----------------
@@ -135,8 +134,8 @@ cnf(prove,negated_conjecture,
 
 
 
-% cnf(prove,negated_conjecture,
-%    -holds(on('#:a','#:d'),State) | -holds(on('#:b','#:a'),State) | -holds(on('#:c','#:b'),State) | $ans(State)).   
+%cnf(prove,negated_conjecture,
+%    -holds(on("a","d"),State) | -holds(on("b","a"),State) | -holds(on("c","b"),State) | $ans(State)).   
  
  
 % ----- query 3 -----------------
@@ -156,4 +155,4 @@ cnf(prove,negated_conjecture,
 
 
 % cnf(prove,negated_conjecture,
-%   -holds(on('#:d','#:c'),State) | -holds(on('#:a','#:d'),State) | -holds(on('#:b','#:a'),State) | $ans(State)). 
+%   -holds(on("d","c"),State) | -holds(on("a","d"),State) | -holds(on("b","a"),State) | $ans(State)). 

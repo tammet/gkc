@@ -2881,7 +2881,7 @@ void* wr_js_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
   printf("\n++ in wr_js_parse_clause context is: \n");    
   wg_mpool_print(db,context); 
   printf("\n");
-#endif    
+#endif
   if (!wg_ispair(db,cl)) {    
     //show_parse_warning(db,"clause nr %d is atomic: ",clnr); 
     cl=wg_mklist1(db,mpool,cl);

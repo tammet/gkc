@@ -653,7 +653,8 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
       }
       // if no equality, do not initialize indexes and do not try to use
       
-      if (!(g->in_poseq_clause_count) && !(rglb->in_poseq_clause_count)) (g->use_equality)=0;
+      if (!(g->in_poseq_clause_count) && !(rglb->in_poseq_clause_count) &&
+          !(g->in_negeq_clause_count) && !(rglb->in_negeq_clause_count)) (g->use_equality)=0;
       else (g->use_equality)=(g->use_equality_strat);
       
       // if two db-s, this will take the clauses from the local db:
@@ -685,7 +686,8 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
       }
       // if no equality, do not initialize indexes and do not try to use
       
-      if (!(g->in_poseq_clause_count)) (g->use_equality)=0;
+      //if (!(g->in_poseq_clause_count)) (g->use_equality)=0;
+      if (!(g->in_poseq_clause_count) &&  !(g->in_negeq_clause_count)) (g->use_equality)=0;
       else (g->use_equality)=(g->use_equality_strat);
       
       /// ----
@@ -1542,7 +1544,7 @@ int wr_print_all_clauses(glb* g, void* child_db) {
       if ((nameflag && namestr[0]) && (decprior && decprior!=WR_HISTORY_AXIOM_ROLENR)) {        
         if (wg_contains_dquote(namestr)) {
           bpos+=snprintf(buf+bpos,blen-bpos,"\n{\"@name\":");
-          bpos+=wg_print_dquoted(&buf,blen,bpos,namestr,0);
+          bpos+=wg_print_dquoted(&buf,blen,bpos,namestr,0,0);
           bpos+=snprintf(buf+bpos,blen-bpos,",\"@role\":\"%s\",\"@logic\":",priorstr);
         } else {
           bpos+=snprintf(buf+bpos,blen-bpos,"\n{\"@name\":\"%s\",\"@role\":\"%s\",\"@logic\":",
@@ -1554,7 +1556,7 @@ int wr_print_all_clauses(glb* g, void* child_db) {
       } else if (nameflag && namestr[0]) {
          if (wg_contains_dquote(namestr)) {
           bpos+=snprintf(buf+bpos,blen-bpos,"\n{\"@name\":");
-          bpos+=wg_print_dquoted(&buf,blen,bpos,namestr,0);
+          bpos+=wg_print_dquoted(&buf,blen,bpos,namestr,0,0);
           bpos+=snprintf(buf+bpos,blen-bpos,",\"@logic\":");
         } else {
           bpos+=snprintf(buf+bpos,blen-bpos,"\n{\"@name\":\"%s\",\"@logic\":",namestr);

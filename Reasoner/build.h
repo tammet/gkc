@@ -55,6 +55,7 @@ gint wr_compute_fun_equal(glb* g, gptr tptr);
 gint wr_compute_fun_equal_terms(glb* g, gint a, gint b, gptr tptr);
 gint wr_compute_fun_lesseq_core(glb* g, gptr tptr, gint ifequal, int isless);
 gint wr_compute_fun_arith2(glb* g, gptr tptr, int comp);
+gint wr_compute_fun_str(glb* g, gptr tptr, int comp);
 gint wr_compute_fun_arith1(glb* g, gptr tptr, int comp);
 int wr_uri_is_unique(glb* g, gint fun);
 int wr_uri_is_list(glb* g, gint fun);
@@ -91,6 +92,7 @@ gint wr_compute_fun_list(glb* g, gptr tptr, int opcode);
 #define COMP_FUN_IS_LIST 23
 #define COMP_FUN_IS_MAP 24
 #define COMP_FUN_IS_ATOM 25
+#define COMP_FUN_IS_UNIQUE 26
 
 // single argument computing funs
 
@@ -101,9 +103,15 @@ gint wr_compute_fun_list(glb* g, gptr tptr, int opcode);
 #define COMP_FUN_TRUNCATE 34
 #define COMP_FUN_ROUND 35
 #define COMP_FUN_UMINUS 36
+#define COMP_FUN_STRLEN 37
+#define COMP_FUN_IS_SUBSTR 38
 
 #define COMP_FUN_FIRST 40
 #define COMP_FUN_REST 41
+
+// three argument funs
+
+#define COMP_FUN_IS_SUBSTRAT 50
 
 
 

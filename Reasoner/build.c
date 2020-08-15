@@ -741,7 +741,7 @@ int wr_specialcomp_lit(glb* g, gint atom) {
   if (wg_get_encoded_type(g->db,fun)==WG_URITYPE) {    
     str = wg_decode_uri(g->db,fun);  
 
-    if ((str[0]=='<') && (str[1]=='\0')) return 1;
+    //if ((str[0]=='<') && (str[1]=='\0')) return 1;
 
     if (str[0]!='$') return 0;    
 
@@ -756,9 +756,17 @@ int wr_specialcomp_lit(glb* g, gint atom) {
     if (str[1]=='g' && str[2]=='r' && str[3]=='e' && str[4]=='a' && str[5]=='t'
         && str[6]=='e' && str[7]=='r' && str[8]=='\0')
        return 1;  
-     // greatereq
+    // greatereq
     if (str[1]=='g' && str[2]=='r' && str[3]=='e' && str[4]=='a' && str[5]=='t'
         && str[6]=='e' && str[7]=='r' && str[8]=='e' && str[9]=='q' && str[10]=='\0')
+       return 1; 
+    // substr      
+    if (str[1]=='s' && str[2]=='u' && str[3]=='b' && str[4]=='s' && str[5]=='t'
+        && str[6]=='r' && str[7]=='\0')
+       return 1; 
+    // substrat       
+    if (str[1]=='s' && str[2]=='u' && str[3]=='b' && str[4]=='s' && str[5]=='t'
+        && str[6]=='r' && str[7]=='a'&& str[8]=='t' && str[9]=='\0')
        return 1;    
 
     if (str[1]!='i' && str[2]!='s' && str[3]!='_') return 0;
@@ -767,6 +775,10 @@ int wr_specialcomp_lit(glb* g, gint atom) {
     if (str[4]=='a' && str[5]=='t' 
         && str[6]=='o' && str[7]=='m' && str[8]=='\0' &&        
         wg_decode_uri_prefix(g->db,fun)==NULL) return 1;
+    // unique    
+    if (str[4]=='u' && str[5]=='n' 
+        && str[6]=='i' && str[7]=='q' && str[8]=='u' && str[9]=='e' && str[10]=='\0' &&        
+        wg_decode_uri_prefix(g->db,fun)==NULL) return 1;    
     // list    
     if (str[4]=='l' && str[5]=='i' 
         && str[6]=='s' && str[7]=='t' && str[8]=='\0' &&
@@ -932,16 +944,23 @@ int wr_computable_termptr(glb* g, gptr tptr) {
     if (*str=='$') {
       if (str[1]=='a') return 0; // quick elimination of $ans
       if (g->use_comp_arithmetic) {        
-        if (str[1]=='i') {
+        if (str[1]=='i') {          
           if (!strcmp(str,"$is_int"))  return COMP_FUN_IS_INT;
           if (!strcmp(str,"$is_real"))  return COMP_FUN_IS_REAL;
           if (!strcmp(str,"$is_number"))  return COMP_FUN_IS_NUMBER;
           if (!strcmp(str,"$is_list"))  return COMP_FUN_IS_LIST;
           if (!strcmp(str,"$is_map"))  return COMP_FUN_IS_MAP;
           if (!strcmp(str,"$is_atom"))  return COMP_FUN_IS_ATOM;
+          if (!strcmp(str,"$is_unique"))  return COMP_FUN_IS_UNIQUE;
+          if (!strcmp(str,"$is_substr"))  return COMP_FUN_IS_SUBSTR;
           return 0;
         }
-        //if (!strcmp(str,"$less")) return COMP_FUN_LESS;
+        if (!strcmp(str,"$sum")) return COMP_FUN_PLUS;
+        if (!strcmp(str,"$product")) return COMP_FUN_MULT;
+        if (!strcmp(str,"$difference"))  return COMP_FUN_MINUS;
+        if (!strcmp(str,"$quotient"))  return COMP_FUN_DIV;
+
+        if (!strcmp(str,"$less")) return COMP_FUN_LESS;
         if (!strcmp(str,"$lesseq")) return COMP_FUN_LESSEQ;
         if (!strcmp(str,"$greatereq"))  return COMP_FUN_GREATEREQ;
         if (!strcmp(str,"$greater"))  return COMP_FUN_GREATER;
@@ -956,6 +975,10 @@ int wr_computable_termptr(glb* g, gptr tptr) {
 
         if (!strcmp(str,"$first")) return COMP_FUN_FIRST;
         if (!strcmp(str,"$rest")) return COMP_FUN_REST;
+        
+        if (!strcmp(str,"$strlen")) return COMP_FUN_STRLEN;
+        if (!strcmp(str,"$substr")) return COMP_FUN_IS_SUBSTR;
+        if (!strcmp(str,"$substrat")) return COMP_FUN_IS_SUBSTRAT;
 
         if (str[1]=='q' && str[2]=='u') {
           if (!strcmp(str,"$quotient_e"))  return COMP_FUN_QUOTIENT_E;
@@ -975,8 +998,8 @@ int wr_computable_termptr(glb* g, gptr tptr) {
       if (wg_decode_uri_prefix(g->db,fun)!=NULL) return 0;
       if (str[0]=='=' && str[1]=='\0') return COMP_FUN_EQUAL;
       if (g->use_comp_arithmetic) {
-        if (str[0]=='<') return COMP_FUN_LESS;
-        else if (str[0]=='+') return COMP_FUN_PLUS;
+        //if (str[0]=='<') return COMP_FUN_LESS;
+        if (str[0]=='+') return COMP_FUN_PLUS;
         else if (str[0]=='-') return COMP_FUN_MINUS;
         else if (str[0]=='*') return COMP_FUN_MULT;
         else if (str[0]=='/') return COMP_FUN_DIV;
@@ -1023,6 +1046,7 @@ gint wr_compute_from_termptr(glb* g, gptr tptr, int comp) {
     case COMP_FUN_IS_LIST:
     case COMP_FUN_IS_MAP:
     case COMP_FUN_IS_ATOM:
+    case COMP_FUN_IS_UNIQUE:
 
     case COMP_FUN_TO_INT:
     case COMP_FUN_TO_REAL:
@@ -1030,15 +1054,20 @@ gint wr_compute_from_termptr(glb* g, gptr tptr, int comp) {
     case COMP_FUN_CEILING:
     case COMP_FUN_TRUNCATE:
     case COMP_FUN_ROUND:
-    case COMP_FUN_UMINUS:
-      res=wr_compute_fun_arith1(g,tptr,comp);
-      break;
+    case COMP_FUN_UMINUS:    
     case COMP_FUN_FIRST:  
       res=wr_compute_fun_list(g,tptr,1);
       break;
     case COMP_FUN_REST:  
       res=wr_compute_fun_list(g,tptr,0);  
       break;
+    case COMP_FUN_STRLEN:
+      res=wr_compute_fun_arith1(g,tptr,comp);
+      break;  
+    case COMP_FUN_IS_SUBSTR:  
+    case COMP_FUN_IS_SUBSTRAT:
+      res=wr_compute_fun_str(g,tptr,comp);  
+      break;  
     default:
       res=encode_record(g->db,tptr);      
   }
@@ -1321,6 +1350,52 @@ gint wr_compute_fun_arith2(glb* g, gptr tptr, int comp) {
   }  
 } 
 
+gint wr_compute_fun_str(glb* g, gptr tptr, int comp) {
+  void* db=g->db;
+  gint len, len2;
+  gint ci,itmp;
+  gint a,b,c;
+  gint atype, btype, ctype;
+  char *as, *bs, *tmp;
+
+   
+  //printf("wr_compute_fun_str called\n");
+  len=get_record_len(tptr); 
+  if (len<(g->unify_firstuseterm)+3) return encode_record(db,tptr);     
+  a=tptr[RECORD_HEADER_GINTS+(g->unify_funarg1pos)];
+  atype=wg_get_encoded_type(db,a);
+  if (atype!=WG_URITYPE) return encode_record(db,tptr);
+  b=tptr[RECORD_HEADER_GINTS+(g->unify_funarg2pos)];
+  btype=wg_get_encoded_type(db,b);
+  if (btype!=WG_URITYPE) return encode_record(db,tptr);
+  as=wg_decode_uri(db,a);
+  bs=wg_decode_uri(db,b);
+  if(!as || !bs) return encode_record(db,tptr);
+  switch(comp) {
+    case COMP_FUN_IS_SUBSTR: 
+      tmp=strstr(bs,as);
+      if (tmp==NULL) return ACONST_FALSE;
+      else return ACONST_TRUE;
+      break;
+    case COMP_FUN_IS_SUBSTRAT: 
+      c=tptr[RECORD_HEADER_GINTS+(g->unify_funarg2pos)+1];
+      ctype=wg_get_encoded_type(db,c);
+      if (ctype!=WG_INTTYPE) return encode_record(db,tptr);
+      ci=wg_decode_int(db,c);
+      if (ci<0) return encode_record(db,tptr);
+      len=strlen(bs);
+      if (ci>len) return encode_record(db,tptr);      
+      len2=strlen(as);
+      if (len2+ci>len) return encode_record(db,tptr);
+      itmp=memcmp(bs+ci,as,1);
+      if (!itmp) return ACONST_TRUE;  
+      else return ACONST_FALSE;     
+      break;
+  }
+  return encode_record(db,tptr);
+}  
+
+
 gint wr_compute_fun_arith1(glb* g, gptr tptr, int comp) {
   void* db=g->db;
   gint len;
@@ -1360,6 +1435,9 @@ gint wr_compute_fun_arith1(glb* g, gptr tptr, int comp) {
       case COMP_FUN_IS_ATOM:
         return ACONST_TRUE;
         break;   
+      case COMP_FUN_IS_UNIQUE:
+        return ACONST_FALSE;
+        break;  
 
       case COMP_FUN_TO_INT:
         return a; 
@@ -1418,6 +1496,9 @@ gint wr_compute_fun_arith1(glb* g, gptr tptr, int comp) {
       case COMP_FUN_IS_ATOM:
         return ACONST_TRUE;
         break;   
+      case COMP_FUN_IS_UNIQUE:
+        return ACONST_FALSE;
+        break;  
 
       case COMP_FUN_TO_INT:         
         rd=wg_decode_double(db,a); 
@@ -1463,6 +1544,10 @@ gint wr_compute_fun_arith1(glb* g, gptr tptr, int comp) {
         if (wr_compute_fun_list(g,tptr,2)==ACONST_TRUE)
         return ACONST_FALSE;
         break;            
+      case COMP_FUN_IS_UNIQUE:     
+        if (wr_compute_fun_list(g,tptr,2)==ACONST_TRUE)
+        return ACONST_FALSE;
+        break;  
       case COMP_FUN_IS_LIST:
         return wr_compute_fun_list(g,tptr,2);        
         break;
@@ -1473,20 +1558,57 @@ gint wr_compute_fun_arith1(glb* g, gptr tptr, int comp) {
         return wr_compute_fun_list(g,tptr,0);        
         break;    
     }
-  } else if  (atype==WG_URITYPE) {
-    switch (comp) {
-      case COMP_FUN_IS_ATOM:          
-        return ACONST_TRUE; 
-        break;
-      case COMP_FUN_IS_LIST:
-        str=wg_decode_uri(db,a);  
-        if (str && 
-            str[0]=='$' && str[1]=='n' && str[2]=='i' && str[3]=='l' &&
-            str[4]=='\0')         
+  } else if  (atype==WG_URITYPE) {    
+    str=wg_decode_uri_prefix(db,a); 
+    if (str && str[0]=='#' && str[1]=='\0') {
+      // unique uri
+      switch (comp) {
+        case COMP_FUN_IS_INT:
+          return ACONST_FALSE;
+          break;
+        case COMP_FUN_IS_REAL:
+          return ACONST_FALSE;
+          break;  
+        case COMP_FUN_IS_NUMBER:
+          return ACONST_FALSE;
+          break;  
+        case COMP_FUN_IS_LIST:
+          return ACONST_FALSE;
+          break;  
+        case COMP_FUN_IS_MAP:
+          return ACONST_FALSE;
+          break;
+        case COMP_FUN_IS_ATOM:
+          return ACONST_TRUE;
+          break;   
+        case COMP_FUN_IS_UNIQUE:
+          return ACONST_TRUE;
+          break;  
+        case COMP_FUN_STRLEN:
+          str=wg_decode_uri(db,a);
+          if (str) {
+            return wg_encode_int(db,(gint)(strlen(str)));
+            break; 
+          } else {
+            break;  
+          }  
+      }    
+    } else {
+      // not a unique uri
+      switch (comp) {
+        case COMP_FUN_IS_ATOM:          
           return ACONST_TRUE; 
-        break;                
+          break;
+        case COMP_FUN_IS_LIST:
+          str=wg_decode_uri(db,a);  
+          if (str && 
+              str[0]=='$' && str[1]=='n' && str[2]=='i' && str[3]=='l' &&
+              str[4]=='\0')         
+            return ACONST_TRUE; 
+          break;                
+      }  
     }  
-  }   
+  }
   /*    
    else if (atype==WG_VARTYPE) {     
     gint tmp; 
@@ -1508,9 +1630,9 @@ gint wr_compute_fun_arith1(glb* g, gptr tptr, int comp) {
 int wr_uri_is_unique(glb* g, gint fun) {
   char* funstr;
   
-  funstr=wg_decode_uri(g->db,fun);    
+  funstr=wg_decode_uri_prefix(g->db,fun);    
   if (funstr &&
-      funstr[0]=='#' && funstr[1]==':') 
+      funstr[0]=='#' && funstr[1]=='\0') 
     return 1;
   else
     return 0;

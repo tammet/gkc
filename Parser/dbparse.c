@@ -93,6 +93,7 @@
 //static int show_parse_error(void* db, char* format, ...);
 //static int show_parse_warning(void* db, char* format, ...);
 
+int wg_parser_should_quote(char* s);
 
 /* ======== Data ========================= */
 
@@ -716,14 +717,16 @@ void wg_expand_frm_for_print(void* db, void* mpool, void* frm) {
   for(part=frm; part!=NULL; part=wg_rest(db,part)) {
     term=wg_first(db,part);
     if (wg_ispair(db,term) && wg_isatom(db,wg_first(db,term)) &&
-       wg_atomstr1(db,wg_first(db,term)) &&
-       !strcmp("$$lst",wg_atomstr1(db,wg_first(db,term))) ) {
-      if (!wg_ispair(db,wg_rest(db,term))) {
-        expanded=wg_mkatom(db,mpool,WG_URITYPE,"$nil",NULL);
-      } else {  
-        expanded=wg_expand_frm_for_print_aux(db,mpool,wg_first(db,wg_rest(db,term)));
-      }       
-      *((gint*)part)=(gint)expanded;    
+       wg_atomstr1(db,wg_first(db,term)) ) {
+       
+      if (!strcmp("$$lst",wg_atomstr1(db,wg_first(db,term)))) {
+        if (!wg_ispair(db,wg_rest(db,term))) {
+          expanded=wg_mkatom(db,mpool,WG_URITYPE,"$nil",NULL);
+        } else {  
+          expanded=wg_expand_frm_for_print_aux(db,mpool,wg_first(db,wg_rest(db,term)));
+        }
+        *((gint*)part)=(gint)expanded;
+      }
     } else {
       wg_expand_frm_for_print(db,mpool,term);
     }  
@@ -752,8 +755,8 @@ void* wg_expand_frm_for_print_aux(void* db, void* mpool, void* cl) {
       } else {  
         term=wg_expand_frm_for_print_aux(db,mpool,wg_first(db,wg_rest(db,cl)));
       }    
-      return term;
-    } 
+      return term;      
+    }     
   } 
   term=NULL;
   termpart=wg_inplace_reverselist(db,mpool,cl);  
@@ -1440,12 +1443,14 @@ void* wr_parse_atom(glb* g,void* mpool,void* term, int isneg, int issimple, char
 #endif    
     if (!wg_ispair(db,term)) {      
       DPRINTF("term nr %d is primitive \n",termnr); 
-      // convert some primitives to others
+      // convert some primitives to others    
+      /*  
       if (!termnr && wg_atomstr1(db,term) && wg_atomstr1(db,term)[0]=='$') {
         if (!strcmp("$less",wg_atomstr1(db,term))) {
           term=wg_mkatom(db,mpool,WG_URITYPE,"<",NULL);
         }
-      }     
+      } 
+      */    
       // conversion ends
       tmpres2=wr_parse_primitive(g,mpool,term,vardata,termnr);    
       if (!tmpres2 || tmpres2==WG_ILLEGAL) {
@@ -1719,14 +1724,36 @@ gint wr_parse_primitive(glb* g,void* mpool,void* atomptr, char** vardata, int po
         intdata=wg_strp_iso_time(db,str1); 
         ret=wg_encode_time(db,intdata);
         break; 
-      case WG_ANONCONSTTYPE: 
-        //printf("\nanonconst %s\n",str1);
+      case WG_ANONCONSTTYPE:         
         str2=wg_atomstr2(db,atomptr);
+        //printf("\nanonconst pos %d str1 %s str2 %s\n",pos,str1,str2);
         if (!str2 && str1 && *str1=='#' && *(str1+1)==':') {
           ret=wg_encode_uri(db,str1+2,"#");
+         
+        } else if (!pos) {
+          if (str1 && *str1!='\0' && (*(str1+1)=='\0') &&
+              ((*str1=='=') || (*str1=='-') || (*str1=='+') || (*str1=='*') || (*str1=='/')) ) {
+            ret=wg_encode_anonconst(db,str1);
+          } else {
+            if (str1 && (isupper(str1[0]) || wg_parser_should_quote(str1))) {              
+              ret=wg_encode_uri(db,str1,"c");  
+            } else {
+              ret=wg_encode_uri(db,str1,NULL);
+            }            
+          }
+        } else if (pos) {
+          if (str1 && (isupper(str1[0]) || wg_parser_should_quote(str1))) {              
+            ret=wg_encode_uri(db,str1,"c");  
+          } else {
+            ret=wg_encode_uri(db,str1,NULL);
+          }
+        }
+        /*
+                
         } else {
           ret=wg_encode_anonconst(db,str1);
-        }  
+        } 
+        */       
         break; 
       case WG_VARTYPE:
         intdata=0;
@@ -1760,6 +1787,36 @@ gint wr_parse_primitive(glb* g,void* mpool,void* atomptr, char** vardata, int po
     }      
   } 
   return ret;
+}
+
+int wg_parser_should_quote(char* s) {
+  char* p;
+  char c;
+
+  if (!s) return 0;
+  if (*s=='0') return 1;
+  /*
+  if ((*s)!='\0' && *(s+1)==0) {
+    c=*s;
+    if (c=='=') return 0;
+    if (c=='-') return 0;
+    if (c=='+') return 0;
+    if (c=='*') return 0;
+    if (c=='/') return 0;
+    //if (c=='>') return 0;
+    if (c=='<') return 0;
+  } 
+  //if (*s=='=' && *(s+1)==0) return 0;
+  */
+  for(p=s; *p!=0; p++) {
+    c=*p;
+    if (c=='$' || c=='_') continue;
+    if (c<48) return 1;
+    if (c>57 && c<64) return 1;
+    if (c>90 && c<97) return 1;
+    if (c>122) return 1;
+  }
+  return 0;
 }
 
 /* -------------- parsing utilities ----------------------- */
