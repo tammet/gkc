@@ -1741,7 +1741,7 @@ gint wr_parse_primitive(glb* g,void* mpool,void* atomptr, char** vardata, int po
               ret=wg_encode_uri(db,str1,NULL);
             }            
           }
-        } else if (pos) {
+        } else {
           if (str1 && (isupper(str1[0]) || wg_parser_should_quote(str1))) {              
             ret=wg_encode_uri(db,str1,"c");  
           } else {

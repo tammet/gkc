@@ -29,6 +29,8 @@
 <!-- Bootstrap core CSS -->
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
 <!-- Custom styles for this template -->
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap" rel="stylesheet"> 
+<link href="https://fonts.googleapis.com/css2?family=Inconsolata&display=swap" rel="stylesheet"> 
 <link href="wdb.css" rel="stylesheet">
 <style>
 .result {
@@ -37,7 +39,10 @@
 }
 .result_wiblock {
   padding: 0px; 
-}   
+  color: black;
+  font-family: 'Inconsolata','Roboto Mono','Courier New', Courier, monospace; 
+} 
+
 .syntax {  
   width: 70px; height: 30px; text-align: center; 
   padding: 0px 0px 1px 0px;  font-size: 12px;
@@ -66,12 +71,13 @@
 }
 
 code {
-    padding: .2em .4em;
-    margin: 0px 5px 0px 5px;
+    padding: .1em .4em;
+    margin: 2px 5px 2px 5px;   
     font-size: 100%;
     color:black !important;
     background-color: #f4f4f4 !important;
-    border-radius: 5px;
+    border-radius: 4px;
+    font-family: 'Inconsolata','Roboto Mono','Courier New', Courier, monospace;
 }
 
 pre {    
@@ -408,7 +414,8 @@ window.onerror=function(e){
     <div class="wblock">      
       <div id="gkc_1">     
         <textarea class="form-control" id="gkc_1_input" spellcheck="false"
-        style="height: 200px; width:100%; margin-bottom: 20px;">% a simple example: using two facts and two rules, find a grandson of john
+        style="height: 200px; width:100%; margin-bottom: 20px; color: black;
+        font-family: 'Inconsolata','Roboto Mono','Courier New', Courier, monospace; ">% a simple example: using two facts and two rules, find a grandson of john
 
 father(john,pete).
 father(pete,mark).
@@ -427,17 +434,12 @@ grandson(X,john) => $ans(X).</textarea>
           <option value="4">or-answers</option>
           <option value="5">more rules</option>
           <option value="6">functions</option>
-          <option value="7">gf with fun</option>
-          <option value="8">equalities</option>
-          <option value="9">reflexivity</option>
-          <option value="10">multi-answers</option>
-          <option value="11">algebra</option>
-          <option value="12">unprovable</option>
-          <option value="13">hard</option>
-          <option value="arithmetic1">arithmetic 1</option>
-          <option value="arithmetic2">arithmetic 2</option>
-          <option value="arithmetic3">arithmetic 3</option>
-          <option value="arithmetic4">arithmetic 4</option>          
+          <option value="7">reflexivity</option>
+          <option value="8">multiple answers</option>
+          <option value="9">algebra</option>
+          <option value="10">unprovable</option>
+          <option value="11">hard</option>
+          <option value="12">blocks world</option>      
         </select>
         &nbsp;or&nbsp;
         <span class="btn btn-default btn-file">
@@ -476,23 +478,13 @@ grandson(X,john) => $ans(X).</textarea>
           <select class="form-control" style="width: 110px;" id="select_advanced_example"
             onchange="selectExample('advanced')">
             <option value="examples">examples</option>
-            <option value="1">basics</option>
-            <option value="2">answers</option>
-            <option value="3">rules</option>
-            <option value="4">or-answers</option>
-            <option value="5">more rules</option>
-            <option value="6">functions</option>
-            <option value="7">gf with fun</option>
-            <option value="8">equalities</option>
-            <option value="9">reflexivity</option>
-            <option value="10">multi-answers</option>
-            <option value="11">algebra</option>
-            <option value="12">unprovable</option>
-            <option value="13">hard</option>
-            <option value="arithmetic1">arithmetic 1</option>
-            <option value="arithmetic2">arithmetic 2</option>
-            <option value="arithmetic3">arithmetic 3</option>
-            <option value="arithmetic4">arithmetic 4</option>          
+            <option value="13">characters</option>
+            <option value="14">TPTP FOF language</option>
+            <option value="15">simple FOF language</option>
+            <option value="16">strategy</option>
+            <option value="17">arithmetic</option>
+            <option value="18">lists</option>
+            <option value="19">distinct symbols</option>                                
           </select>  
           <div style="display: inline-block; width: 70px;  margin-left: 15px;">Seconds</div>
           <input type="text" id="seconds" value="5" style="width: 50px"></input>
@@ -748,96 +740,6 @@ or just
 
 <div hidden>
 
-<h1>Examples for gkc </h1>
-
-<p>We will first give a brief introduction to gkc input and output,
-then look at several simple <a href="#Introductory-examples">introductory examples</a>
-and continue towards <a href="#Advanced-examples">more advanced use</a>. </p>
-
-<p>On Linux the pre-compiled executable is called gkc, on Windows gkc.exe
-and on OS X (macOS) it is gkcosx. Please change the filename on OS X
-to gkc or just use gkcosx in the following examples instead of gkc.</p>
-
-<p>Call gkc from the command line from UNIX (i.e. Linux or OS X) like this:</p>
-
-<pre><code>./gkc problemfilename
-</code></pre>
-
-<p>and from Windows like this:</p>
-
-<pre><code>gkc problemfilename
-</code></pre>
-
-<p>Try it out on a trivial problem in the Examples folder:</p>
-
-<pre><code>./gkc example1.txt
-</code></pre>
-
-<p>Unless gkc is already in the Examples folder, you may want to copy it there:</p>
-
-<pre><code>cp gkc Examples/
-</code></pre>
-
-<p>You may want to send output to a file in a standard way like this:</p>
-
-<pre><code>./gkc example1.txt &gt; out.txt
-</code></pre>
-
-<p>In case you have very little memory on your computer, gkc may
-complain about memory and terminate. In this case tell it to use
-less memory like this:</p>
-
-<pre><code>./gkc example1.txt -mbsize 500
-</code></pre>
-
-<p>which would make it use only half a gigabyte of memory. 
-The default for UNIX and Windows 64 is 5 gigabytes, i.e. -mbsize 5000</p>
-
-<p>By default gkc uses four parallel processes on UNIX and a single
-process on Windows. On UNIX you can tell it a number of parallel
-processes to use like this (0 and 1 mean no parallel processes, any number
-larger than 1 means this number of parallel processes):</p>
-
-<pre><code>./gkc example1.txt -parallel 0
-</code></pre>
-
-<p>On UNIX you can also force gkc to stop after N seconds by giving a time limit
-parameter like this:</p>
-
-<pre><code>./gkc example1.txt -seconds 2
-</code></pre>
-
-<h2>Introductory examples</h2>
-
-<p>Topics covered:</p>
-
-<ul>
-<li><a href="#Example-1-for-basics">Example 1 for basics</a></li>
-<li><a href="#Example-2-for-answers">Example 2 for answers</a></li>
-<li><a href="#Example-3-for-rules">Example 3 for rules</a></li>
-<li><a href="#Example-4-for-indefinite-answers">Example 4 for indefinite answers</a></li>
-<li><a href="#Example-5-for-more-rules">Example 5 for more rules</a></li>
-<li><a href="#Example-6-for-equalities-and-functions">Example 6 for equalities and functions</a></li>
-<li><a href="#Example-7-for-grandfather-with-functions">Example 7 for grandfather with functions</a></li>
-<li><a href="#Example-8-for-equalities-used-in-proof">Example 8 for equalities used in proof</a></li>
-<li><a href="#Example-9-for-reflexivity-used-in-proof">Example 9 for reflexivity used in proof</a></li>
-<li><a href="#Example-10-for-multiple-answers">Example 10 for multiple answers</a></li>
-<li><a href="#Example-algebra">Example algebra</a></li>
-<li><a href="#Example-with-an-unprovable-problem">Example with an unprovable problem</a></li>
-<li><a href="#Example-with-a-hard-problem">Example with a hard problem</a></li>
-<li><a href="#Examples-with-medium-hard-blocks-world-problems">Examples with medium-hard blocks world problems</a></li>
-</ul>
-
-<p>These simple examples explain the input, output and basic
-functioning of gkc. Run these yourself like</p>
-
-<pre><code>./gkc example1.txt
-</code></pre>
-
-<p>The simple logical language used in these examples is inspired
-by the <a href="https://www.cs.unm.edu/~mccune/otter/">Otter syntax</a>. 
-Gkc can also use other, richer input languages: more about these later.</p>
-
 <div id="example_1_input_notes"><h3>Example 1 for basics</h3>
 
 <p>This is a really trivial example.</p>
@@ -862,8 +764,6 @@ special about it.</p>
 
 </div>
 
-<p>Input file example1.txt:</p>
-
 <pre><code id="example_1_input_code">father(john,pete).
 father(pete,mark).
 
@@ -872,8 +772,7 @@ father(pete,mark).
 % What this means?
 % We want to prove that from the first two facts the third is derived.
 % To do so, we prove that if we negate the third (the conclusion),
-% the conjunction of all the facts gives a contradiction.
-</code></pre>
+% the conjunction of all the facts gives a contradiction.</code></pre>
 
 
 <p>Notice that each statement in the input file is terminated with a period sign.
@@ -884,22 +783,10 @@ Minus sign - means negation. Thus <code>-father(john,pete)</code> means
 <p>Percentage character % is a line comment. Multi-line comments <code>/* .... */</code>
 can be used as well. </p>
 
-<p>The order of statements in the file is not really important, although it may cause minor
+<p>The order of statements is not really important, although it may cause minor
 and essentially unpredictable differences in search behaviour. Essentially, gkc
 creates and tries out its own search strategies, like SQL databases. It does not
 follow a pre-determined predictable search strategy like PROLOG.</p>
-
-<p>Output from gkc:</p>
-
-<pre><code>result: proof found
-for example1.txt
-by run 2 fork 1 strategy {"max_seconds":1,"strategy":["unit"],"query_preference":1}
-
-proof:
- 1: [in, axiom] -father(john,pete).
- 2: [in, axiom] father(john,pete).
- 3: [simp, 1, 2, fromaxiom] false
-</code></pre>
 
 <div id="example_1_proof_notes">
 
@@ -922,18 +809,17 @@ is a good short intro to the general principles of the derivation rules with the
 <a href="http://lambda.ee/w/images/0/06/Geoffreasoningnotes.pdf">course materials of Geoff Sutcliffe</a> 
 being a suitable continuation towards deeper understanding. However, the following examples are understandable without in-depth theoretical background.</p>
 
-<p>Try to modify the file example1.txt by removing the statement <code>-father(john,pete).</code> and
-run gkc again. After ca one second gkc will stop and output</p>
+<p>Try to modify the example by removing the statement <code>-father(john,pete).</code> and
+run the prover again. After ca one second it will stop and output</p>
 
 <pre><code>result: proof not found.
 </code></pre>
 
 <p>Although the task is trivial, gkc does not attempt to be clever and tries out a large number
 of search strategies: this is why it takes a second to terminate. You can try running gkc
-with the optional switch producing more information to see the whole process:</p>
-
-<pre><code>./gkc example1.txt -tptp 1
-</code></pre>
+with the optional switch producing more information to see the whole process: click
+on the <i>Advanced</i> button and select a higher print level or set the <i>Show derived</i>
+to <i>on</i></p>
 
 <p>In case gkc does not understand the syntax of the input file it will give a json-formatted
 error indicating a culprit line and piece of input like this:</p>
@@ -947,7 +833,7 @@ foo bar ("}
 <div id="example_2_input_notes"><h3>Example 2 for answers</h3>
 
 <p>Like example 1, but we want to find a concrete person as an answer: we use the special
-<i>$ans</i> predicate for this. Observe the <code>answer: $ans(pete).</code> line in the output
+<code>$ans</code> predicate for this. Observe the <code>answer: $ans(pete).</code> line in the output
 stemming from this answer predicate.</p>
 
 <p>We are using a variable here: any word starting with a capital letter is considered
@@ -1016,40 +902,6 @@ father(pete,mark).
 -grandfather(john,X) | $ans(X).
 </code></pre>
 
-<p>Output:</p>
-
-<pre><code>result: proof found
-for example3.txt
-by run 4 fork 3 strategy {"max_seconds":1,"strategy":["negative_pref"],"query_preference":1}
-
-answer: $ans(mark).
-proof:
- 1: [in, axiom] -father(X,Y) | -father(Z,X) | grandfather(Z,Y).
- 2: [in, axiom] father(pete,mark).
- 3: [mp, 1, 2, fromaxiom] -father(X,pete) | grandfather(X,mark).
- 4: [in, axiom] father(john,pete).
- 5: [mp, 3, 4, fromaxiom] grandfather(john,mark).
- 6: [in, axiom] -grandfather(john,X) | $ans(X).
- 7: [mp, 5, 6, fromaxiom] $ans(mark).
-</code></pre>
-<!--
-<div id="example_3_proof_notes">
-Notice that the grandfather rule
-<pre><code>1: [in, axiom] -father(X,Y) | -father(Z,X) | grandfather(Z,Y).
-</code></pre>
-is used in two steps in the proof: the first step combines it with the
-<code>-grandfather(john,X) | $ans(X)</code>
-answer-giving rule and produces a new specialized rule
-<pre><code>3: [mp, 1.2, 2, fromaxiom] -father(john,X) | -father(X,Y) | $ans(Y).
-</code></pre>
-which is then applied to the <code>father(pete,mark)</code> and
-<code>father(john,pete)</code> in one big step to give the final <code>$ans(mark).</code>
-
-<p>Generally - depending on the chosen strategy - gkc decides itself whether to combine several rules, apply a rule to one
-  argument or several at once. </p>
-
-</div>
--->
 
 <div id="example_4_input_notes"><h3>Example 4 for indefinite answers</h3>
 
@@ -1067,25 +919,6 @@ father(pete,mark) | father(pete,mickey).
 -father(X,Y) | -father(Y,Z) | grandfather(X,Z).
 
 -grandfather(john,X) | $ans(X).
-</code></pre>
-
-<p>Output:</p>
-
-<pre><code>result: proof found
-for example4.txt
-by run 1 fork 0 strategy {"max_seconds":1,"strategy":["unit"],"query_preference":0}
-
-answer: $ans(mark) | $ans(mickey).
-proof:
- 1: [in, axiom] -father(X,Y) | -father(Z,X) | grandfather(Z,Y).
- 2: [in, axiom] -grandfather(john,X) | $ans(X).
- 3: [mp, 1.2, 2, fromaxiom] -father(john,X) | -father(X,Y) | $ans(Y).
- 4: [in, axiom] father(john,pete).
- 5: [mp, 3, 4, fromaxiom] -father(pete,X) | $ans(X).
- 6: [in, axiom] father(pete,mickey) | father(pete,mark).
- 7: [mp, 5, 6.1, fromaxiom] father(pete,mickey) | $ans(mark).
- 8: [in, axiom] father(john,pete).
- 9: [mp, 7, 3.1, 8, fromaxiom] $ans(mark) | $ans(mickey).
 </code></pre>
 
 <div id="example_4_proof_notes">
@@ -1119,21 +952,7 @@ father(pete,mark).
 -ancestor(X,mark) | $ans(X).
 </code></pre>
 
-<p>Output:</p>
-
-<pre><code>result: proof found
-for example5.txt
-by run 3 fork 2 strategy {"max_seconds":1,"strategy":["negative_pref"],"query_preference":0}
-
-
-answer: $ans(pete).
-proof:
- 1: [in, axiom] -father(X,Y) | ancestor(X,Y).
- 2: [in, axiom] father(pete,mark).
- 3: [mp, 1, 2, fromaxiom] ancestor(pete,mark).
- 4: [in, axiom] -ancestor(X,mark) | $ans(X).
- 5: [mp, 3, 4, fromaxiom] $ans(pete).
-</code></pre>
+<div id="example_5_proof_notes"></div>
 
 <div id="example_6_input_notes"><h3>Example 6 for equalities and functions</h3>
 
@@ -1146,16 +965,11 @@ pete and lucas are the same object, i.e. pete=lucas.</p>
 
 <p>Importantly, two different constants are not considered inequal
 by default (think of the constants as labels on objects: there could
-be several different labels on one object):</p>
-
-<pre><code>a=b.
-</code></pre>
-
-<p>does not give a contradiction.</p>
+be several different labels on one object):
+<code>a=b</code> does not give a contradiction.</p>
 
 <p>Notice that the following proof does not use equalities, just functions.</p>
 </div>
-<p>Input file example6.txt:</p>
 
 <pre><code id="example_6_input_code">% previously we had father(john,pete).
 father(john)=pete.
@@ -1165,22 +979,8 @@ father(pete)=mark.
 grandfather(father(father(X)),X).
 -ancestor(X,Y) | -ancestor(Y,Z) | ancestor(X,Z).
 ancestor(father(X),X).
+-ancestor(X,mark) | $ans(X).</code></pre>
 
--ancestor(X,mark) | $ans(X).
-</code></pre>
-
-<p>Output:</p>
-
-<pre><code>result: proof found
-for example6.txt
-by run 4 fork 3 strategy {"max_seconds":1,"strategy":["negative_pref"],"query_preference":1}
-
-answer: $ans(father(mark)).
-proof:
- 1: [in, axiom] ancestor(father(X),X).
- 2: [in, axiom] -ancestor(X,mark) | $ans(X).
- 3: [mp, 1, 2, fromaxiom] $ans(father(mark)).
-</code></pre>
 <div id="example_6_proof_notes">
 <p>See that gkc was happily answering <code>father(mark)</code> although we have
 not said who the father of mark actually is! The functions like <code>father</code> 
@@ -1188,14 +988,12 @@ do not have to be defined on all the possible objects, they can be partially
 known and partially unknown.</p>
 </div>
 
-<div id="example_7_input_notes"><h3>Example 7 for grandfather with functions</h3>
 
-<p>Returning to asking about grandfathers, this time using equalities
-and functions. Again, notice that the proof does not use equalities, just functions.</p>
+<div id="example_7_input_notes"><h3>Example 7 for reflexivity</h3>
+Here we directly ask for a father of a father of John.
 </div>
-<p>Input file example7.txt:</p>
 
-<pre><code id="example_7_input_code">%previously we had father(john,pete).
+<pre><code id="example_7_input_code">% previously we had father(john,pete).
 father(john)=pete.
 % previously we had father(pete,mark).
 father(pete)=mark.
@@ -1203,205 +1001,61 @@ father(pete)=mark.
 grandfather(father(father(X)),X).
 -ancestor(X,Y) | -ancestor(Y,Z) | ancestor(X,Z).
 
--grandfather(X,mark) | $ans(X).
-</code></pre>
-
-<p>Output:</p>
-
-<pre><code>result: proof found
-for example7.txt
-by run 3 fork 2 strategy {"max_seconds":1,"strategy":["negative_pref"],"query_preference":0}
-
-answer: $ans(father(father(mark))).
-proof:
- 1: [in, axiom] grandfather(father(father(X)),X).
- 2: [in, axiom] -grandfather(X,mark) | $ans(X).
- 3: [mp, 1, 2, fromaxiom] $ans(father(father(mark))).
-</code></pre>
+father(father(john)) != X | $ans(X).</code></pre>
 
 <div id="example_7_proof_notes">
-<p>Again, father of mark is unknown (undefined) in our example, as well as the
-father of the father of mark. </p>
-</div>
-
-<div id="example_8_input_notes"><h3>Example 8 for equalities used in proof</h3>
-
-<p>Next we ask very concretely whether the father of the father of john is mark.
-Here the proof actually does use equalities, but only for simplification.</p>
-</div>
-
-<p>Input file example8.txt:</p>
-
-<pre><code id="example_8_input_code">%previously we had father(john,pete).
-father(john)=pete.
-% previously we had father(pete,mark).
-father(pete)=mark.
-% previously we had -father(X,Y) | -father(Y,Z) | grandfather(X,Z).
-grandfather(father(father(X)),X).
--ancestor(X,Y) | -ancestor(Y,Z) | ancestor(X,Z).
-
-father(father(john)) != mark.
-</code></pre>
-
-<p>Output:</p>
-
-<pre><code>result: proof found
-for example8.txt
-by run 1 fork 0 strategy {"max_seconds":1,"strategy":["unit"],"query_preference":0}
-
-proof:
- 1: [in, axiom] -=(father(father(john)),mark).
- 2: [in, axiom] =(father(john),pete).
- 3: [in, axiom] =(father(pete),mark).
- 4: [simp, 1, 2, 3, fromaxiom] false
-</code></pre>
-<div id="example_8_proof_notes">
-<p>Observe that gkc outputs equalities in a prefix form: instead of
-infix a=b it writes =(a,b). These two forms have the same meaning
-for gkc: you could use both.</p>
-
-<p>Negation of equality can be also written either in the infix form as</p>
-
-<pre><code>a!=b
-</code></pre>
-
-<p>or in the prefix form as</p>
-
-<pre><code>-=(a,b)
-</code></pre>
-
-<p>The last step of the proof uses the <code>simp</code> rule which here replaces 
-father(john) subterm in the -=(father(father(john)),mark) statement with
-pete using the equality at step 2, 
-giving -=(father(pete),mark), which then contradicts the step 3.</p>
-</div>
-
-<div id="example_9_input_notes"><h3>Example 9 for reflexivity used in proof</h3>
-
-<p>We will ask the same question as in the previous example, but this time
-using the $ans predicate to find a grandfather of john. </p>
-</div>
-<p>Input file example9.txt:</p>
-
-<pre><code id="example_9_input_code">%previously we had father(john,pete).
-father(john)=pete.
-% previously we had father(pete,mark).
-father(pete)=mark.
-% previously we had -father(X,Y) | -father(Y,Z) | grandfather(X,Z).
-grandfather(father(father(X)),X).
--ancestor(X,Y) | -ancestor(Y,Z) | ancestor(X,Z).
-
-father(father(john)) != X | $ans(X).
-</code></pre>
-
-<p>Output:</p>
-
-<pre><code>result: proof found
-for example9.txt
-by run 2 fork 1 strategy {"max_seconds":1,"strategy":["unit"],"query_preference":1}
-
-answer: $ans(mark).
-proof:
- 1: [in, axiom] -=(father(father(john)),?0) | $ans(?0).
- 2: [in, axiom] =(father(john),pete).
- 3: [in, axiom] =(father(pete),mark).
- 4: [simp, 1, 2, 3, fromaxiom] -=(mark,X) | $ans(X).
- 5: [r=, 4.0, fromaxiom] $ans(mark).
-</code></pre>
-<div id="example_9_proof_notes">
 <p>Here the proof uses the reflexivity rule <code>r=</code> which is basically the
 standard property of equality: <code>X=X</code>.</p>
 </div>
 
-<div id="example_10_input_notes"><h3>Example 10 for multiple answers</h3>
+<div id="example_8_input_notes"><h3>Example 8 for multiple answers</h3>
 
 <p>Now let us look at how to get several answers, not just one.
 We will also introduce mothers and a mother-side grandfather
 rule.</p>
 
-
-  We will also use a separate json-syntax strategy text
-  to tell gkc specific details of what
-  to look for and how.</p>
-  
-  <p>The <code>"max_answers":2</code> part tells gkc that it should
-  try to find at least 2 answers and stop after that.</p>
-  
-  <p>The "strategy": ["negative_pref"] indicates that one specific
-  strategy (here a conventional negative-preference ordered binary resolution)
-  is to be used for proof search, without any parallel or sequential attempts
-  with different search strategies.</p>
+We will use a separate json-syntax strategy text
+to tell gkc specific details of what
+to look for and how.</p>
 
 Please click on the <b>Advanced</b> button above and copy-paste the multineg.txt json 
-into the <b>Strategy</b> box, then click <b>Prove.</b>
-
+into the <b>Strategy</b> box, then click <b>Prove</b>.
+<p>
 <pre><code>{
 "max_answers":2,
 "strategy": ["negative_pref"]
 }
 </code></pre>
 
+<p>The <code>"max_answers":2</code> part tells gkc that it should
+try to find at least 2 answers and stop after that.</p>
+
+<p>The <code>"strategy": ["negative_pref"]</code> indicates that one specific
+strategy (here a conventional negative-preference ordered binary resolution)
+is to be used for proof search, without any parallel or sequential attempts
+with different search strategies.</p>
 </div>
-<!--
-  <p>And you should run gkc like this to make it use the multineg.txt strategy file:</p>
-  
-  <pre><code>./gkc example10.txt multineg.txt
-  </code></pre>
--->
- 
-  <p>Output:</p>
-
-<p>Input:</p>
-
-<pre><code id="example_10_input_code">father(john) = pete.
+<pre><code id="example_8_input_code">
+father(john) = pete.
 father(mike) = pete.
 mother(john) = eve.
 mother(mike) = eve.
+
 father(pete) = mark.
 mother(eve) = mary.
+
 grandfather(father(father(X)),X).
 grandfather(father(mother(X)),X).
--grandfather(mark,X) | $ans(X).
-</code></pre>
 
+-grandfather(mark,X) | $ans(X).</code></pre>
 
-<pre><code>result: proof found
-for example10.txt
-
-answers and proofs:
-
-answer: $ans(mike).
-proof:
- 1: [in, axiom] =(father(mike),pete).
- 2: [in, axiom] grandfather(father(father(X)),X).
- 3: [=, 1, 2.0.2, fromaxiom] grandfather(father(pete),mike).
- 4: [in, axiom] =(father(pete),mark).
- 5: [simp, 3, 4, fromaxiom] grandfather(mark,mike).
- 6: [in, axiom] -grandfather(mark,X) | $ans(X).
- 7: [mp, 5, 6, fromaxiom] $ans(mike).
-
-answer: $ans(john).
-proof:
- 1: [in, axiom] =(father(john),pete).
- 2: [in, axiom] grandfather(father(father(X)),X).
- 3: [=, 1, 2.0.2, fromaxiom] grandfather(father(pete),john).
- 4: [in, axiom] =(father(pete),mark).
- 5: [simp, 3, 4, fromaxiom] grandfather(mark,john).
- 6: [in, axiom] -grandfather(mark,X) | $ans(X).
- 7: [mp, 5, 6, fromaxiom] $ans(john).
-</code></pre>
-
-<div id="example_10_proof_notes">
-<p>The [=, 1, 2.0.2, fromaxiom] means that the clause at step 1 was used to replace a 2th subterm
+<div id="example_8_proof_notes">
+<p>The <code>[=, 1, 2.0.2, fromaxiom]</code> means that the clause at step 1 was used to replace a 2th subterm
 (numbering 0,1,2,...) of the 0th atom of a clause at step 2 using equality.</p>
 
 <p>Observe that the two answers have (obviously) different proofs.</p>
 
-<p>Importantly, gkc will not really attempt to find two different <code>$ans(...)</code> answers,
-but two different proofs, which could (or not, as in our case) actually lead to
-the same <code>$ans(...)</code> answers.</p>
-
-<p>Try to modify the multineg.txt file to ask for three answers: "max_answers":3,
+<p>Try to modify the strategy into ask for three answers: "max_answers":3,
 and then run gkc again. It will give the same output as before, but will add the 
 last line at the end:</p>
 
@@ -1409,13 +1063,14 @@ last line at the end:</p>
 </code></pre>
 
 <p>essentially indicating that the required number of different proofs (3) were not found.  </p>
+</div>
 
-<div id="example_11_input_notes"><h3>Example algebra</h3>
+<div id="example_9_input_notes"><h3>Example algebra</h3>
 
 <p>Next we will take a question from abstract algebra,
 axiomatized wholly by equalities.</p>
 </div>
-<pre><code id="example_11_input_code">% A question from abstract algebra. Here m is an arbitrary binary
+<pre><code id="example_9_input_code">% A question from abstract algebra. Here m is an arbitrary binary
 % operation (similar to arithmetic multiplication) for 
 % which the following three axioms hold.
 
@@ -1436,45 +1091,23 @@ m(X,m(Y,Z)) = m(m(X,Y),Z) . % m is an associative operation
 m(e,c) != c .
 </code></pre>
 
-<pre><code>result: proof found
-  for algebra.txt
-  by run 3 fork 2 strategy {"max_seconds":1,"strategy":["unit"],"query_preference":1,"weight_select_ratio":20}
-  
-  proof:
-   1: [in, axiom] =(m(X,i(X)),e).
-   2: [in, axiom] =(m(X,m(Y,Z)),m(m(X,Y),Z)).
-   3: [=, 1, 2.0.3, fromaxiom] =(m(X3,e),m(m(X3,Y3),i(Y3))).
-   4: [in, axiom] =(m(X,e),X).
-   5: [simp, 3, 4, fromaxiom] =(X,m(m(X,Y),i(Y))).
-   6: [=, 1, 5.0.3, fromaxiom] =(X,m(e,i(i(X)))).
-   7: [=, 5.0.R, 5.0.3, fromaxiom] =(m(X,Y),m(X,i(i(Y)))).
-   8: [in, axiom] -=(m(e,c),c).
-   9: [=, 6.0.R, 7.0.4, 8, fromaxiom] false
-  </code></pre>
-
-<div id="example_11_proof_notes"></div>
+<div id="example_9_proof_notes">
 <p>The proof uses given equalities to derive several new equalities.
 The <code>=</code> rule basically replaces parts of one premiss matching (unifying)
 one side of the second premiss equality with the other side of the equality.</p>
 
-<p>The <code>simp</code> rule also replaces a part of a premiss, but does so in a <code>permanent</code> manner,
+<p>The <code>simp</code> rule also replaces a part of a premiss, but does so by <i>rewriting</i>,
 meaning that the original unchanged premiss is not used in the search after
 the simplification replacement.</p>
 
-<p>The [=, 1, 2.0.3, fromaxiom] means that the clause at step 1 was used to replace a 3th subterm
+<p>The <code>[=, 1, 2.0.3, fromaxiom]</code> line means that the clause at step 1 was used to replace a 3th subterm
 (numbering 0,1,2,...) of the 0th atom of a clause at step 2 using equality.</p>
 
 </div>
 
-<div id="example_12_input_notes"><h3>Example with an unprovable problem</h3>
+<div id="example_10_input_notes"><h3>Example with an unprovable problem</h3>
 
-<p>A simple clause set </p>
-
-<pre><code id="example_12_input_code">p(a).
--p(X) | p(f(X)).
-</code></pre>
-
-<p>in this example produces an unlimited number of clauses like</p>
+<p>A simple clause set in this example produces an unlimited number of clauses like</p>
 
 <pre><code>p(f(a))
 p(f(f(a)))
@@ -1489,59 +1122,47 @@ run either forever or for a very long time, until the browser complains
 and asks you to stop, or it runs out of allocated time or memory.</p>
 <p><b>NB!</b> You will have to <b>reload</b> the page after you stop the script, otherwise
 the page will be unresponsive.</p>
-<!--
-<pre><code>./gkc example11.txt
-</code></pre>
 
-<p>will produce no output for quite some time.</p>
-<div id="example_12_proof_notes">
-
-<p>Running gkc with the -tptp 1 parameter added will cause it
-to produce a lot of output, indicating the progress of proof
-search runs. Try it:</p>
+<p>
+It is a good idea to click on the <b>Advanced</b> button and enter a sensible
+time limit to the <b>Seconds</b> box.
 </div>
 
+<pre><code id="example_10_input_code">p(a).
+-p(X) | p(f(X)).
+  </code></pre>
 
-<pre><code>./gkc example11.txt -tptp 1
-</code></pre>
+<div id="example_10_proof_notes"></div>
 
-<p>and you will see that for some strategies
-gkc terminates very quickly, while for others it runs until the
-given time is out.</p>
-</div>
--->
-<div id="example_13_input_notes"><h3>Example with a hard problem</h3>
+<div id="example_11_input_notes"><h3>Example with a hard problem</h3>
 
 <p>As an example of a small but a really hard problem for gkc which is
-nevertheless actually provable, try the fof-format problem 
-<a href="example12.txt">example12.txt</a> (LCL876+1 from the TPTP collection):</p>
+nevertheless actually provable, try the problem 
+<a href="http://www.tptp.org/cgi-bin/SeeTPTP?Category=Problems&Domain=LCL&File=LCL876+1.p">LCL876+1</a>
+from the <a href="http://www.tptp.org/">TPTP</a> collection.
 
 <p>It will probably run until the browser complains badly 
 or time given by the automatic strategy selection runs out.</p>
 
 <p><b>NB!</b> You will have to <b>reload</b> the page after you stop the script, otherwise
-  the page will be unresponsive.</p>
+  the page will be unresponsive.</p>  
 
-<!--
-<p>You can check out </p>
-
-<pre><code>./gkc example12.txt -tptp 1
-</code></pre>
-
-<p>to see the progress.</p>
--->
 <p>Of course, it is likely that with a suitable search strategy
-gkc will find a proof in a sensible amount of time and memory. Currently
+gkc will find a proof using a sensible amount of time and memory. Currently
 we are simply unaware of which strategy it would be!</p>
+</div>
 
-<p>Using a time limit like</p>
-
-<pre><code>./gkc example12.txt -seconds 20
+<pre><code id="example_11_input_code">(is_a_theorem(implies(X,Y)) & is_a_theorem(X)) => is_a_theorem(Y).
+is_a_theorem(implies(X,implies(Y,X))).
+is_a_theorem(implies(implies(X,Y),implies(implies(Y,Z),implies(X,Z)))).
+is_a_theorem(implies(implies(implies(X,Y),Y),implies(implies(Y,X),X))).
+is_a_theorem(implies(implies(not(X),not(Y)),implies(Y,X))).
+is_a_theorem(implies(implies(implies(X,Y),implies(Y,X)),implies(Y,X))).
 </code></pre>
 
-<p>is useful to avoid very long runs.</p>
-</div>
-<h3>Examples with medium-hard blocks world problems</h3>
+<div id="example_11_proof_notes"></div>
+
+<div id="example_12_input_notes"><h3>Blocks world</h3>
 
 <p><a href="https://en.wikipedia.org/wiki/Blocks_world">Blocks world</a>
 is a classic family of toy problems: there is a robot arm
@@ -1552,138 +1173,213 @@ a required configuration of blocks: for example, a tower.</p>
 
 <p>Without a specialized search strategy these planning problems
 tend to be surprisingly hard for provers, including gkc.</p>
+</div>
+<pre><code id="example_12_input_code">% -----------------------------------
+%
+% See https://en.wikipedia.org/wiki/Blocks_world
+% 
+% -----------------------------------
 
-<p>Try out progressively harder versions of the blocks world problem:</p>
+% ----- initial situation s0 ------
+%
+%           c 
+%   a   b   d
+%  ------------------------------
 
-<pre><code>./gkc blocks1.txt
-./gkc blocks2.txt
-./gkc blocks3.txt
-./gkc blocks4.txt
-./gkc blocks5.txt
+holds(on(a,table),s0).
+holds(on(b,table),s0).
+holds(on(c,d),s0).
+holds(on(d,table),s0).
+holds(clear(a),s0).
+holds(clear(b),s0).
+holds(clear(c),s0).
+holds(empty,s0).
+holds(clear(table),State).
+
+% ---- difference of objects -----
+
+    
+differ(X,Y)
+    | -differ(Y,X).
+
+differ(a,b).
+differ(a,c).
+differ(a,d).
+differ(a,table).
+differ(b,c).
+differ(b,d).
+differ(b,table).
+differ(c,d).
+differ(c,table).
+differ(d,table).
+
+% ----- pickup rules  ------
+
+holds(holding(X),do(pickup(X),State))
+    | -holds(empty,State)
+    | -holds(clear(X),State)
+    | -differ(X,table).
+
+holds(clear(Y),do(pickup(X),State))
+    | -holds(on(X,Y),State)
+    | -holds(clear(X),State)
+    | -holds(empty,State).
+
+% --- frame axioms for pickup ----
+%
+% see https://en.wikipedia.org/wiki/Frame_problem
+% 
+
+holds(on(X,Y),do(pickup(Z),State))
+    | -holds(on(X,Y),State)
+    | -differ(X,Z).
+
+holds(clear(X),do(pickup(Z),State))
+    | -holds(clear(X),State)
+    | -differ(X,Z).
+
+% ---- putdown rules -----
+
+holds(empty,do(putdown(X,Y),State))
+    | -holds(holding(X),State)
+    | -holds(clear(Y),State).
+
+holds(on(X,Y),do(putdown(X,Y),State))
+    | -holds(holding(X),State)
+    | -holds(clear(Y),State).
+
+holds(clear(X),do(putdown(X,Y),State))
+    | -holds(holding(X),State)
+    | -holds(clear(Y),State).
+
+% ---- frame axioms for putdown -----
+%
+% see https://en.wikipedia.org/wiki/Frame_problem
+% 
+
+holds(on(X,Y),do(putdown(Z,W),State))
+    | -holds(on(X,Y),State).    
+
+holds(clear(Z),do(putdown(X,Y),State))
+    | -holds(clear(Z),State)
+    | -differ(Z,Y).
+
+% ----- query 1 -----------------
+%
+% build a tower:
+%
+%   c
+%   b        
+%   a   
+%
+% ------------------------------- 
+
+
+-holds(on(b,a),State) | -holds(on(c,b),State) | $ans(State).
+
+
+% ----- query 2 -----------------
+%
+% this is a harder problem: to try it out,
+% comment out query 1 and uncomment the following
+%
+% build a tower:
+%
+%   c
+%   b        
+%   a   
+%   d
+% -------------------------------
+
+
+% cnf(prove,negated_conjecture,
+%   -holds(on(a,d),State) | -holds(on(b,a),State) | -holds(on(c,b),State) | $ans(State)).   
+  
+  
+% ----- query 3 -----------------
+%
+% this harder problem is a case of Sussman anomaly
+% https://en.wikipedia.org/wiki/Sussman_anomaly :
+% to try it out,
+% comment out queries 1 and 2 and uncomment the following
+%
+% build a tower:
+%
+%   b
+%   a        
+%   d   
+%   c
+% -------------------------------
+
+
+%cnf(prove,negated_conjecture,
+%   -holds(on(d,c),State) | -holds(on(a,d),State) | -holds(on(b,a),State) | $ans(State)). 
 </code></pre>
 
-<p>All of these are modified versions of each other: some goals
-at the end of the file are commented out while one is kept.</p>
+<!--
+<div id="example_14_input_notes"><h3>Example 14 for</h3>
+intro 14 
+</div>
+<pre>
+<code id="example_14_input_code">code 14
+</code>
+</pre>
+<div id="example_14_proof_notes">
+note 14
+</div>
 
-<p>Look into any of these files (say, <a href="blocks1.txt">blocks1.txt</a>)
-to see an explanation of what facts and rules there are and how is the task encoded.</p>
+<div id="example_14_input_notes"><h3>Example 14 for</h3>
+intro 14 
+</div>
+<pre>
+<code id="example_14_input_code">code 14
+</code>
+</pre>
+<div id="example_14_proof_notes">
+note 14
+</div>
+-->
 
-<p>The first and second problems are easy, third and fifth should take a few seconds,
-the fourth ca one minute. The only difference between the third and fourth
-is that the fourth asks for an actual answer, while the third only asks 
-whether an answer exists. Clearly there is room for improving the answer-finding
-efficiency of gkc!</p>
+<div id="example_13_input_notes"><h3>Example 13 for various characters</h3>
 
-<p>In the <a href="#Advanced-examples">advanced examples chapter</a>we will look at guiding gkc search by using
-a strategy selection file. A suitable simple strategy for the third example 
-is given in the file blocks_strat2.txt:</p>
+<p>This is not a really advanced topic, but important. 
+</p>
 
-<pre><code>{
-  "print_level": 10,     
-  "max_seconds": 5,
-  "strategy":["query_focus"],
-  "query_preference": 2
-}
-</code></pre>
+<p>Gkc follows the
+<a href="http://tptp.org/TPTP/TR/TPTPTR.shtml#FormulaeSection">TPTP conventions</a> 
+in the way it treats special characters, with a few
+additions. A normal symbol must not contain any whitespace or non-alphanumeric characters
+like (, -, ~, =, ", comma etc: however, underscore _ and dollar $ are allowed, with
+predicates and functions with a special predefined meaning being prefixed
+with a dollar $.</p>
 
-<p>and for the fifth in the file blocks_strat3.txt:</p>
-
-<pre><code>{
-  "max_seconds":5,
-  "strategy":["query_focus"],
-  "query_preference":1
-}
-</code></pre>
-
-<p>Using these as</p>
-
-<pre><code>./gkc blocks3.txt blocks_strat2.txt -parallel 0
-./gkc blocks5.txt blocks_strat3.txt -parallel 0
-</code></pre>
-
-<p>gives us proofs in ca 50 milliseconds and 300 milliseconds, respectively.</p>
-
-<p>Looking at the output of the fourth we see
-that it uses a strategy {"max<em>seconds":25,"strategy":["unit"],"query</em>preference":1}
-which we can put into our strategy file blocks_strat.txt </p>
-
-<pre><code>{
-  "max_seconds":25,
-  "strategy":["unit"],
-  "query_preference":0
-}
-</code></pre>
-
-<p>to get the proof in ca eight seconds:</p>
-
-<pre><code>./gkc blocks4.txt blocks_strat.txt -parallel 0
-</code></pre>
-
-<p>There is a lot of interesting research on the topic of
-<a href="https://ai.dmi.unibas.ch/_files/teaching/hs12/search-opt-seminar/slides/08_blocks_world_revisited.pdf">improving blocks world planning</a>.</p>
-
-<h2>Advanced examples</h2>
-
-<p>Next we will look at richer input languages and more advanced capabilities of gkc. </p>
-
-<p>Topics considered:
-* <a href="#Whitespace-variables-numbers-encodings">Whitespace variables numbers encodings</a>
-* <a href="#Included-files-and-mixing-simple-syntax-with-fof-and-cnf-syntax">Included files and mixing simple syntax with fof and cnf syntax</a>
-* <a href="#Example-for-TPTP-fof-syntax-with-steam">Example for TPTP fof syntax with steam</a>
-* <a href="#Example-for-steam-with-a-shared-memory-database">Example for steam with a shared memory database</a>
-* <a href="#Example-for-steam-with-the-TPTP-format-output">Example for steam with the TPTP format output</a>
-* <a href="#Telling-gkc-what-is-actually-the-question-clause-in-input">Telling gkc what is actually the question clause in input</a>
-* <a href="#Directing-the-prover-and-changing-the-settings">Directing the prover and changing the settings</a>
-* <a href="#Example-with-json-output">Example with json output</a>
-* <a href="#Examples-with-arithmetic">Examples with arithmetic</a>
-* <a href="#Large-theory-batch-files">Large theory batch files</a></p>
-
-<p>Several examples will use the fof (first order formula) syntax used by
-the TPTP project:</p>
-
-<ul>
-<li><a href="http://www.tptp.org/">TPTP project</a></li>
-<li><a href="http://tptp.org/TPTP/TR/TPTPTR.shtml#FormulaeSection">fof syntax</a></li>
-<li><a href="http://www.tptp.org/cgi-bin/SeeTPTP?Category=Problems&amp;Domain=SYN&amp;File=SYN000+1.p">fof example</a></li>
-</ul>
-
-<h3>Whitespace variables numbers encodings</h3>
-
-<p>This is not a really advanced topic, but important.</p>
-
-<p>A normal symbol must not contain any whitespace or non-alphanumeric characters
-like (, -, ~, =, ", dollar $, comma etc: however, undercore _ is allowed.</p>
-
-<p>You can put whitespace or any symbol except a single quote
-into symbols by surrounding the symbol with single quote symbols like this:</p>
-
-<pre><code>'john smith'
-</code></pre>
-
-<p>which is treated as a constant, whereas 'John smith' will be treated
-as a variable, since it still starts with a capital letter, even though
-quoted.</p>
+<p>You can put whitespace or any symbol (single quotes inside quoted
+symbols must be prefixed by a backslash) into symbols by surrounding the symbol 
+with single quote symbols like this: 
+<code>'John \'Smith\'!'</code> which is treated as a constant, despite that
+it starts with a capital letter inside the quotes.
 
 <p>Any symbol containing a character except an ascii letter, digit, underscore _,
 or dollar $ will be printed out by surrounding it with single quotes.
-As an exception, equality = and aritmetic expressions +, *, -, /, &lt; will 
-not be surrounded by quotes. </p>
+As an exception in gkc, equality = and conveniece infix forms of
+arithmetic expressions +, *, -, /, will not be surrounded by quotes. </p>
 
-<p>Additionally you can make a symbol variable by prefixing it with a question
-mark like this:</p>
+<p><i>Double quotes</i> like <code>"John Smith"</code> indicate that
+a symbol is <i>distinct</i>, i.e. unequal to any other distinct symbol,
+number or a typed object. Double quotes inside double quoted symbols must
+be prefixed by a backslash. More about distinct symbols in the later examples.</p>
 
-<pre><code>?smth
-</code></pre>
-
-<p>As said before, any symbol starting with a capital letter or a question mark 
+<p>Additionally gkc allows to make a symbol variable by prefixing it with a question
+mark like this: <code>?smth</code>. Any symbol starting with a capital letter or a question mark 
 is assumed to be a variable, and the rest are not. </p>
 
 <p>This holds for both the simple syntax in the previous examples and the 
-fof formulas to be described next. </p>
+TPTP <i>fof</i> formulas to be described next. </p>
 
-<p>Thus, in fof formulas a capital-letter-starting symbol is a variable even if
-it is not explicitly quantified: since this will easily be confusing, it
-is better to avoid such symbols unless they are explicitly quantified.</p>
+<p>Thus, for gkc in <i>fof</i> formulas a capital-letter-starting symbol is a 
+<i>free</i> variable even if
+it is not explicitly quantified: since this could be confusing, it
+may be better to avoid such symbols unless they are explicitly quantified.</p>
 
 <p>You can also use integers like 71 or period-separated decimals like 1.35
 as constants.</p>
@@ -1691,129 +1387,71 @@ as constants.</p>
 <p>Gkc is agnostic towards using different character encodings: it uses
 c-strings, i.e. 0-terminated byte sequences and does not care about encodings.</p>
 
-<h3>Included files and mixing simple syntax with fof and cnf syntax</h3>
+</div>
+<pre>
+<code id="example_13_input_code">p('John \'Smith\'!').
+p(X) => $ans(X).
+</code>
+</pre>
+<div id="example_13_proof_notes">
+</div>
 
-<p>Problems may contain several include statements like</p>
+<div id="example_14_input_notes"><h3>Example 14 for TPTP syntax with steam</h3>
 
-<pre><code>include('Axioms/GEO004+2.ax').
-include('steam_kb.txt').
-</code></pre>
-
-<p>in which case the included path is searched sequentially from the following
-locations until found:
-* in the folder of the input problem path,
-* in the folder indicated by the environment variable TPTP,
-* in the folder /opt/TPTP.</p>
-
-<p>When an included file is found, its contents are treated as if they were a part of the
-main problem file. The include file may again contain includes. When an include file
-is not found, gkc will output an error and stop.</p>
-
-<p>The fof and cnf syntax described in the following section can be mixed with the
-simple syntax as in example13.txt:</p>
-
-<pre><code>include('steam_kb.txt'). % this is an include statement
-
-fof(a1, axiom, ( ! [X] : (wolf(X) =&gt; dangerous(X)))). % this is fof
-cnf(a2, axiom, (~dangerous(Y) | ~good(Y))). % this is cnf
-
-good(Z). % this is a simple syntax (saying that everything is good)
-</code></pre>
-
-<p>Running ./gkc example13.txt will output:</p>
-
-<pre><code>result: proof found
-for example13.txt
-by run 3 fork 2 strategy {"max_seconds":1,"strategy":["unit"],"query_preference":1}
-
-proof:
-1: [in,a1, axiom] -wolf(X) | dangerous(X).
-2: [in,a2, axiom] -good(XX0) | -dangerous(XX0).
-3: [in, axiom] good(XX0).
-4: [simp, 2, 3, fromaxiom] -dangerous(X).
-5: [in,$imp::pel47_1_2, extaxiom] wolf($sk7).
-6: [mp, 1.1, 4, 5, fromaxiom] false
-</code></pre>
-
-<p>where <code>[in,$imp::pel47_1_2, extaxiom]</code> indicates that the statement with the
-name <code>pel47_1_2</code> was in one of the imported files. </p>
-
-<p>For a search strategy with a setting "query_preference": 2, 
-gkc treats imported axioms as having a bit lower priorities
-than the statements in the main file. For all the other strategies being
-imported or not does not make a difference, although in the general case the order of clauses
-may sometimes cause minor unpredictable differences in proof search.</p>
-
-<p>The example also shows that when printing clauses, gkc does not generally use the same variable
-names as in the input file. Expect it to prefer variable names X,Y,Z,U,V,W (optionally
-followed by a number) in the printout. For input clauses the variables are sometimes
-printed as XXN for some number N.</p>
-
-<h3>Example for TPTP fof syntax with steam</h3>
-
-<p>The steam.txt file contains a classic "Schubert's Steamroller" puzzle taken from
-TPTP and written in fof syntax with connectives like implication =&gt;, quantifiers forall ! [X] ..,
-exists ? [X] ... etc. 
+This example is a classic "Schubert's Steamroller" puzzle taken from
+TPTP and written in fof syntax with connectives like implication as <code>=&gt;</code>, 
+quantifiers <i>for all</i> as <code>! [X] ..,</code>, <i>exists</i> as 
+<code>? [X] ... </code> etc.
+<p>
+The full list of infix binary connectives follows the TPTP language:
+<ul>
+<li><code>"|"</code> for disjunction,
+<li><code>"&"</code> for conjunction, 
+<li><code>"&lt;=>"</code> for equivalence, 
+<li><code>"=>"</code> for implication, 
+<li><code>"&lt;="</code> for reverse implication, 
+<li><code>"&lt;~>"</code> for non-equivalence (XOR), 
+<li><code>"~|"</code> for negated disjunction (NOR), 
+<li><code>"~&"</code> for negated conjunction (NAND), 
+<li><code>"@"</code> for application, used mainly in the higher-order context in TPTP.
+</ul>
+<p>
 See the official <a href="http://tptp.org/TPTP/TR/TPTPTR.shtml#FormulaeSection">fof syntax</a> and
 <a href="http://www.tptp.org/cgi-bin/SeeTPTP?Category=Problems&amp;Domain=SYN&amp;File=SYN000+1.p">fof example</a>
 in <a href="http://www.tptp.org">TPTP</a>.</p>
 
 <p>Gkc will first convert the complex formulas to a simple clause form (properly called
-clause normal form) used in the previous examples. The statements we had in these
-examples are called <code>clauses</code>. </p>
+<i>clause normal form</i>) used in the previous examples. The statements we had in these
+examples are called <i>clauses</i>. </p>
 
-<p>The first part of the <a href="steam.txt">steam.txt</a> file contains comments describing the problem.
-The rest contains full first order formulas like </p>
-
-<pre><code>fof(pel47_1_1,axiom,
-    ( ! [X] :
-        ( wolf(X)
-       =&gt; animal(X) ) )).
-
-fof(pel47_1_2,axiom,
-    ( ? [X1] : wolf(X1) )).
-
-fof(pel47,conjecture,
-    ( ? [X,Y] :
-        ( animal(X)
-        &amp; animal(Y)
-        &amp; ? [Z] :
-            ( grain(Z)
-            &amp; eats(Y,Z)
-            &amp; eats(X,Y) ) ) )).
-</code></pre>
-
-<p>Each statement is terminated with a period symbol . and has a structure</p>
+<p>Each statement in the <i>TPTP fof language</i> 
+  is terminated with a period symbol . and has a structure</p>
 
 <pre><code>fof(statement_name, statement_role, statement).
 </code></pre>
 
-<p>where the statement<em>name will be used in the proof, the statement</em>role indicates whether
+<p>where the statement <i>name</i> will be used in the proof, the statement <i>role</i> indicates whether
 it is an axiom, an assumption or hypothesis, or a goal to be proved from these: the latter is either
 conjecture (which has to be negated) or negated_conjecture (negated already).</p>
 
 <p>Indicating the role enables provers to find a more suitable strategy. It does not (except the
-conjecture case, which has to be negated) have a <code>logical</code> meaning.</p>
+conjecture case, which has to be negated) have a <i>logical</i> meaning.</p>
 
-<p>The first example statement above is universally quantified (! symbol) and will be converted by gkc to a clause</p>
+<p>The first formula in the example is universally quantified (<code>!</code> symbol)
+and will be converted by gkc to a <i>clause</i> <code>-wolf(X) | animal(X).</code>.
 
-<pre><code>-wolf(X) | animal(X).
-</code></pre>
-
-<p>The second statement is existentially quantified (? symbol) and will be converted by gkc to a clause</p>
-
-<pre><code>wolf($sk7).
-</code></pre>
-
-<p>where $sk7 is a new constant invented by gkc which should not occur in any other formula in the problem:
+<p>The second statement is existentially quantified (<code>?</code> symbol) and will 
+be converted by gkc to a clause <code>wolf($sk7).</code>
+where <code>$sk7</code> is a new constant invented by gkc which should not occur 
+in any other formula in the problem:
 this procedure is called <a href="https://en.wikipedia.org/wiki/Skolem_normal_form">Skolemization</a>.
-Gkc always uses the $sk prefix for such constants and functions, using a new number N for each
-new one. The original formula is assumed not to contain $skN form symbols.</p>
+Gkc always uses the <code>$sk</code> prefix for such constants and functions, using a new number <i>N</i>
+for each new one. The original formula is assumed not to contain <code>$skN</code> form symbols.</p>
 
-<p>The third statement expresses the question to be proved: is 
+<p>The last statement expresses the question to be proved: is 
 there an animal that likes to eat a grain eating animal?
 It has a conjecture role and has to be first negated and then converted to 
-clauses:</p>
+a clause:</p>
 
 <pre><code>-eats(X,Y) | -eats(Z,X) | -grain(Y) | -animal(X) | -animal(Z).
 </code></pre>
@@ -1822,306 +1460,175 @@ clauses:</p>
 algorithm for creating such clauses is nontrivial, sometimes involving mini-scoping and the creation of new
 definitions (new predicates) to make the size and number of generated clauses smaller.</p>
 
-<p>Ask gkc to prove steam.txt without using parallel processes:</p>
+</div>
+<pre><code id="example_14_input_code">
+fof(pel47_1_1,axiom,
+  ( ! [X] :
+      ( wolf(X)
+      => animal(X) ) )).
 
-<pre><code>./gkc steam.txt -parallel 0
+fof(pel47_1_2,axiom,
+  ( ? [X1] : wolf(X1) )).
+
+fof(pel47_2_1,axiom,
+  ( ! [X] :
+      ( fox(X)
+      => animal(X) ) )).
+
+fof(pel47_2_2,axiom,
+  ( ? [X1] : fox(X1) )).
+
+fof(pel47_3_1,axiom,
+  ( ! [X] :
+      ( bird(X)
+      => animal(X) ) )).
+
+fof(pel47_3_2,axiom,
+  ( ? [X1] : bird(X1) )).
+
+fof(pel47_4_1,axiom,
+  ( ! [X] :
+      ( caterpillar(X)
+      => animal(X) ) )).
+
+fof(pel47_4_2,axiom,
+  ( ? [X1] : caterpillar(X1) )).
+
+fof(pel47_5_1,axiom,
+  ( ! [X] :
+      ( snail(X)
+      => animal(X) ) )).
+
+fof(pel47_5_2,axiom,
+  ( ? [X1] : snail(X1) )).
+
+fof(pel47_6_1,axiom,
+  ( ? [X] : grain(X) )).
+
+fof(pel47_6_2,axiom,
+  ( ! [X1] :
+      ( grain(X1)
+      => plant(X1) ) )).
+
+fof(pel47_7,axiom,
+  ( ! [X] :
+      ( animal(X)
+      => ( ! [Y] :
+            ( plant(Y)
+            => eats(X,Y) )
+        | ! [Y1] :
+            ( ( animal(Y1)
+              & much_smaller(Y1,X)
+              & ? [Z] :
+                  ( plant(Z)
+                  & eats(Y1,Z) ) )
+            => eats(X,Y1) ) ) ) )).
+
+fof(pel47_8,axiom,
+  ( ! [X,Y] :
+      ( ( bird(Y)
+        & ( snail(X)
+          | caterpillar(X) ) )
+      => much_smaller(X,Y) ) )).
+
+fof(pel47_9,axiom,
+  ( ! [X,Y] :
+      ( ( bird(X)
+        & fox(Y) )
+      => much_smaller(X,Y) ) )).
+
+fof(pel47_10,axiom,
+  ( ! [X,Y] :
+      ( ( fox(X)
+        & wolf(Y) )
+      => much_smaller(X,Y) ) )).
+
+fof(pel47_11,axiom,
+  ( ! [X,Y] :
+      ( ( wolf(X)
+        & ( fox(Y)
+          | grain(Y) ) )
+      => ~ eats(X,Y) ) )).
+
+fof(pel47_12,axiom,
+  ( ! [X,Y] :
+      ( ( bird(X)
+        & caterpillar(Y) )
+      => eats(X,Y) ) )).
+
+fof(pel47_13,axiom,
+  ( ! [X,Y] :
+      ( ( bird(X)
+        & snail(Y) )
+      => ~ eats(X,Y) ) )).
+
+fof(pel47_14,axiom,
+  ( ! [X] :
+      ( ( caterpillar(X)
+        | snail(X) )
+      => ? [Y] :
+          ( plant(Y)
+          & eats(X,Y) ) ) )).
+
+fof(pel47,conjecture,
+  ( ? [X,Y] :
+      ( animal(X)
+      & animal(Y)
+      & ? [Z] :
+          ( grain(Z)
+          & eats(Y,Z)
+          & eats(X,Y) ) ) )).
 </code></pre>
+  
 
-<p>producing output:</p>
+<div id="example_14_proof_notes">
 
-<pre><code>result: proof found
-for steam.p
-by run 1 strategy {"max_seconds":1,"strategy":["negative_pref"],"query_preference":1}
-
-proof:
- 1: [in,pel47_7, axiom] -much_smaller(X,Y) | -eats(X,Z) | eats(Y,U) | eats(Y,X) | -plant(U) | -plant(Z) | -animal(X) | -animal(Y).
- 2: [in,pel47_6_2, axiom] -grain(X) | plant(X).
- 3: [in,pel47_6_1, axiom] grain($sk2).
- 4: [mp, 2, 3, fromaxiom] plant($sk2).
- 5: [mp, 1.4, 4, fromaxiom] -much_smaller(X,Y) | -eats(X,Z) | eats(Y,$sk2) | eats(Y,X) | -plant(Z) | -animal(Y) | -animal(X).
- 6: [in,pel47_14, axiom] plant($sk1(X)) | -snail(X).
- 7: [in,pel47_5_2, axiom] snail($sk3).
- 8: [mp, 6.1, 7, fromaxiom] plant($sk1($sk3)).
- 9: [mp, 5.4, 8, fromaxiom] -eats(X,$sk1($sk3)) | -much_smaller(X,Y) | eats(Y,$sk2) | eats(Y,X) | -animal(Y) | -animal(X).
- 10: [in,pel47_14, axiom] eats(X,$sk1(X)) | -snail(X).
- 11: [mp, 10.1, 7, fromaxiom] eats($sk3,$sk1($sk3)).
- 12: [in,pel47_5_1, axiom] -snail(X) | animal(X).
- 13: [mp, 12, 7, fromaxiom] animal($sk3).
- 14: [mp, 9, 11, 13, fromaxiom] -much_smaller($sk3,X) | eats(X,$sk2) | eats(X,$sk3) | -animal(X).
- 15: [in,pel47_8, axiom] much_smaller(X,Y) | -snail(X) | -bird(Y).
- 16: [mp, 15.1, 7, fromaxiom] much_smaller($sk3,X) | -bird(X).
- 17: [in,pel47_3_2, axiom] bird($sk5).
- 18: [mp, 16.1, 17, fromaxiom] much_smaller($sk3,$sk5).
- 19: [in,pel47_3_1, axiom] -bird(X) | animal(X).
- 20: [mp, 19, 17, fromaxiom] animal($sk5).
- 21: [mp, 14, 18, 20, fromaxiom] eats($sk5,$sk3) | eats($sk5,$sk2).
- 22: [merge, 1.4.5, fromaxiom] -much_smaller(X,Y) | -eats(X,Z) | eats(Y,Z) | eats(Y,X) | -plant(Z) | -animal(Y) | -animal(X).
- 23: [mp, 22.4, 4, fromaxiom] -much_smaller(X,Y) | -eats(X,$sk2) | eats(Y,$sk2) | eats(Y,X) | -animal(Y) | -animal(X).
- 24: [mp, 21.1, 23.1, 20, fromaxiom] eats($sk5,$sk3) | -much_smaller($sk5,X) | eats(X,$sk2) | eats(X,$sk5) | -animal(X).
- 25: [in,pel47_9, axiom] much_smaller(X,Y) | -bird(X) | -fox(Y).
- 26: [mp, 25.1, 17, fromaxiom] much_smaller($sk5,X) | -fox(X).
- 27: [in,pel47_2_2, axiom] fox($sk6).
- 28: [mp, 26.1, 27, fromaxiom] much_smaller($sk5,$sk6).
- 29: [in,pel47_2_1, axiom] -fox(X) | animal(X).
- 30: [mp, 29, 27, fromaxiom] animal($sk6).
- 31: [mp, 24.1, 28, 30, fromaxiom] eats($sk6,$sk5) | eats($sk5,$sk3) | eats($sk6,$sk2).
- 32: [in,pel47_13, axiom] -eats(X,Y) | -snail(Y) | -bird(X).
- 33: [mp, 32.1, 7, fromaxiom] -eats(X,$sk3) | -bird(X).
- 34: [in,pel47_3_2, axiom] bird($sk5).
- 35: [mp, 31.1, 33, 34, fromaxiom] eats($sk6,$sk5) | eats($sk6,$sk2).
- 36: [mp, 35.1, 23.1, 30, fromaxiom] eats($sk6,$sk5) | -much_smaller($sk6,X) | eats(X,$sk2) | eats(X,$sk6) | -animal(X).
- 37: [in,pel47_10, axiom] much_smaller(X,Y) | -fox(X) | -wolf(Y).
- 38: [mp, 37.1, 27, fromaxiom] much_smaller($sk6,X) | -wolf(X).
- 39: [in,pel47_1_2, axiom] wolf($sk7).
- 40: [mp, 38.1, 39, fromaxiom] much_smaller($sk6,$sk7).
- 41: [in,pel47_1_1, axiom] -wolf(X) | animal(X).
- 42: [mp, 41, 39, fromaxiom] animal($sk7).
- 43: [mp, 36.1, 40, 42, fromaxiom] eats($sk7,$sk6) | eats($sk6,$sk5) | eats($sk7,$sk2).
- 44: [in,pel47, goal] -eats(X,Y) | -eats(Z,X) | -grain(Y) | -animal(X) | -animal(Z).
- 45: [mp, 3, 44.2, fromgoal] -eats(X,Y) | -eats(Y,$sk2) | -animal(X) | -animal(Y).
- 46: [mp, 21.1, 45.1, 20, fromgoal] eats($sk5,$sk3) | -eats(X,$sk5) | -animal(X).
- 47: [mp, 43.1, 46.1, 30, fromgoal] eats($sk7,$sk6) | eats($sk7,$sk2) | eats($sk5,$sk3).
- 48: [mp, 47.2, 33, 34, fromgoal] eats($sk7,$sk6) | eats($sk7,$sk2).
- 49: [in,pel47_11, axiom] -eats(X,Y) | -grain(Y) | -wolf(X).
- 50: [mp, 49.1, 3, fromaxiom] -eats(X,$sk2) | -wolf(X).
- 51: [in,pel47_1_2, axiom] wolf($sk7).
- 52: [mp, 48.1, 50, 51, fromgoal] eats($sk7,$sk6).
- 53: [in,pel47_11, axiom] -eats(X,Y) | -fox(Y) | -wolf(X).
- 54: [mp, 53.1, 27, fromaxiom] -eats(X,$sk6) | -wolf(X).
- 55: [mp, 52, 54, 51, fromgoal] false
-</code></pre>
-
-<p>The proof contains only clauses created from the formulas: the original names of formulas used are indicated 
-like</p>
+<p>The simple format proof contains only clauses created from the formulas: the original names of
+formulas used are indicated like</p>
 
 <pre><code>[in,pel47_1_2, axiom] wolf($sk7).
 </code></pre>
 
-<p>Since the steamroller puzzle is a fairly easy problem for provers, several different search strategies
-are able to solve it very quickly. Thus, if you run the gkc without the -parallel 0 parameter on UNIX,
-four parallel processes are created with different search strategies, which start to run at approximately
-the same time and it sometimes happens that one finishes first, while at other times another one may 
-finish first. Thus you may get a different output in a somewhat unpredictable manner, for example</p>
-
-<pre><code>result: proof found
-for steam.p
-by run 3 fork 2 strategy {"max_seconds":1,"strategy":["unit"],"query_preference":1}
-...
-</code></pre>
-
-<p>or</p>
-
-<pre><code>result: proof found
-for steam.p
-by run 4 fork 3 strategy {"max_seconds":1,"strategy":["negative_pref"],"query_preference":0}
-...
-</code></pre>
-
-<p>where <code>run N</code> indicates the strategy used (numeration 1,2,...) and <code>fork M</code> indicates which parallel
-process found it (numeration 0,1,2,..). The run number N and the fork number M have a strict
-correspondence: the order by which runs are given to forks is pre-determined.</p>
-
-<p>The proofs found by different strategies are likely also somewhat different.</p>
-
-<p>As said before, gkc implements parallel processes using forks and only for UNIX, i.e. Linux and OS X.</p>
-
-<h3>Example for steam with a shared memory database</h3>
-
-<p>Examples in this section behave somewhat differently on Linux and
-Windows, and do not function on OS X (maxOS): more about this below.</p>
-
-<p>Very large axiom sets take a long time to parse and index. In case you have many different questions
-to ask, which all use the same large axiom set, it makes sense to parse, convert and index 
-the axiom set before the questions are asked, so that each individual question does not
-have to go through that process.</p>
-
-<p>In order to try this, there are two files created from steam.txt:
-* steam<em>kb.txt contains all axioms in steam.txt, but not the conjecture,
-* steam</em>query.txt contains only the conjecture.</p>
-
-<p>Read in an axiom set into persistant shared memory like this:</p>
-
-<pre><code>./gkc -readkb steam_kb.txt
-</code></pre>
-
-<p>which parses, converts and indexes the file steam_kb.txt, outputs</p>
-
-<pre><code>Data parsed into the shared memory db, starting to build indexes.
-Db ready in shared memory.
-</code></pre>
-
-<p>does not attempt to prove anything and stops.</p>
-
-<p>Since steam_kb.txt is a small file, loading it into memory does not really make proof
-search noticeably faster. Large axiom sets like 
-<a href="http://www.tptp.org/cgi-bin/SeeTPTP?Category=Axioms&amp;File=CSR002+5.ax">CSR002+5.ax in TPTP</a>
-contain several million statements: parsing and indexing this file takes ca 30
-seconds for gkc.</p>
-
-<p>You can then start asking questions from this persistant memory image like this:</p>
-
-<pre><code>./gkc -provekb steam_query.txt
-</code></pre>
-
-<p>Observe that even for such a small problem, the proof will be found faster,
-in a few milliseconds, as opposed to ca 70 milliseconds for the original
-proof without the prepared memory database.</p>
-
-<p>On Windows, the same machinery has additional requirements: </p>
-
-<p>First, the default amount of memory requested by gkc may be too large: run</p>
-
-<pre><code>gkc -readkb steam_kb.txt -mbsize 1000
-</code></pre>
-
-<p>to ask for just 1GB of memory. Second, the process does NOT stop, but says</p>
-
-<pre><code>Shared memory kb is available while this program is running.
-Press any key to free shared memory kb and exit . . .
-</code></pre>
-
-<p>and waits. Shared memory database is available while the process
-is still waiting, but once it is stopped, the database is no longer available. Thus
-on Windows the machinery has to be run in two separate command line windows.</p>
-
-<p>OS X severely restricts the size of the shared memory and it is really
-complicated to change the restriction. Hence you may simply assume the
-shared memory functionality of gkc is not available on OS X.</p>
-
-<p>On UNIX, once the memory database is no longer needed, delete it by doing</p>
-
-<pre><code>./gkc -deletekb
-</code></pre>
-
-<p>It is possible to have a number of different shared memory databases available at
-the same time. Thus the databases have a number, which by default is 1000.</p>
-
-<p>To indicate which shared memory database should be loaded, used or deleted,
-use the optional <code>-mbnr &lt;shared memory database nr&gt;</code> parameter like this:</p>
-
-<pre><code>./gkc -readkb steam_kb.txt -mbnr 1001
-./gkc -provekb steam_query.txt -mbnr 1001
-./gkc -deletekb -mbnr 1001
-</code></pre>
-
-<p>Only one memory database at a time can be used for answering one particular query.</p>
-
-<p>It is also possible to write the present shared memory database to a file for 
-faster loading later:</p>
-
-<pre><code>./gkc -writekb &lt;dump file&gt;
-</code></pre>
-
-<p>and then read it in later by doing:</p>
-
-<pre><code>./gkc -loadkb &lt;dump file&gt;
-</code></pre>
-
-<p>thus avoiding the prolonged parsing/converting/indexing process of reading
-a large file of statements.</p>
-
-<p>As a base technology for both the shared memory database and 
-its internal representation of data gkc uses <a href="http://whitedb.org">Whitedb</a>.</p>
-
-<h3>Example for steam with the TPTP format output</h3>
-
-<p>The simple output format used in all the previous examples does not directly contain
+<p>
+The simple output format used in all the previous examples does not directly contain
 the original input formulas of the fof language of TPTP and the steps in conversion, 
-only the names of the formulas. Additionally, TPTP suggests using a particular
-format of output, including proved-successfully-marker and the begin and end
-of proof.</p>
+only the names of the formulas. TPTP suggests using a particular
+format of output, including the original input before clausification,
+proved-successfully-marker, and the begin and end markers of proof.</p>
 
-<p>To use the TPTP suggested output format, say:</p>
+<p>To use the TPTP suggested output format, select <i>TPTP format</i> from the
+box after <b>Convert to</b> button and press <b>Prove</b> again. 
 
-<pre><code>./gkc steam.txt -tptp 1
-</code></pre>
+<p>
+Try out the <i>json</i> format as well: the details of the json syntax for
+formulas are given in the <a href="https://github.com/tammet/json-ld-logic">JSON-LD-LOGIC</a>
+specification proposal and examples can be tried out in the <a href="../json.html">json
+playground</a>.
+<p>
+You can also convert the input example to different equivalent input
+formats by selecting the format from the box and clicking 
+the <b>Convert to</b> button. In particular, check out the difference
+between <i>TPTP clauses</i> and the <i>simple clauses</i>: the former
+wraps all clauses with the special
+<code>cnf(statement_name, statement_role, statement)</code> form, otherwise
+these two are equivalent.
+</div>
 
-<p>which will both use the TPTP format for proofs and will also write
-more information about the problem, strategies selected, search process
-and statistics. The latter are not really required by the TPTP format, but
-gkc will add these anyway.</p>
 
-<p>We will not write the whole output here. The parts are:</p>
 
-<ul>
-<li>Statistics about the clauses obtained by conversion.</li>
-<li>Selected strategies to be run in json format.</li>
-<li>Running overview of proof search, just to follow what is happening.</li>
-<li>Proof in the TPTP format.</li>
-<li>Statistics about the successful search.</li>
-</ul>
+<div id="example_15_input_notes"><h3>Steam using simple formulas</h3>
 
-<p>The proof itself has the following structure:</p>
-
-<pre><code>result: proof found
-by run 1 strategy {"max_seconds":1,"strategy":["negative_pref"],"query_preference":1}
-% SZS status Theorem for steam.p.
-
-% SZS output start CNFRefutation for steam.p
-..
-
-fof('pel47_6_2_$sk', plain, (plant(X1) | ~grain(X1)),
-  inference(negpush_and_skolemize,[],['pel47_6_2'])).
-fof('pel47_6_2', axiom, (! [X1] : (grain(X1) =&gt; plant(X1))),
-  input). 
-fof('pel47_6_1_$sk', plain, grain($sk2),
-  inference(negpush_and_skolemize,[],['pel47_6_1'])).
-fof('pel47_6_1', axiom, (? [X] : grain(X)),
-  input). 
-...
-cnf('2', plain, (~grain(X) | plant(X)),
-  inference(cnf_transformation,[],['pel47_6_2_$sk'])).
-cnf('3', plain, (grain($sk2)),
-  inference(cnf_transformation,[],['pel47_6_1_$sk'])).
-...
-cnf('11', plain, (eats($sk3,$sk1($sk3))),
-  inference(resolution,[],['10','7'])).
-cnf('12', plain, (~snail(X) | animal(X)),
-  inference(cnf_transformation,[],['pel47_5_1_$sk'])).  
-...
-cnf('55', plain, ($false),
-  inference(resolution,[then_simplify],['52','54','51'])).
-% SZS output end CNFRefutation for steam.p
-</code></pre>
-
-<p>where each statement has either a form with a fof-formula</p>
-
-<pre><code>fof(formula_name, formula_role, formula, 
-    conversion_rule_and_sources).
-</code></pre>
-
-<p>or a form with a simple clause</p>
-
-<pre><code>cnf(formula_name, plain, clause, 
-    derivation_rule_and_sources).
-</code></pre>
-
-<p>The cnf-statements are also allowed in the TPTP format as valid input.</p>
-
-<p>The first block with fof formulas contains the input formulas after some trivial
-simplifications along with one intermediate step of pushing negation inwards and skolemizing
-like</p>
-
-<pre><code>inference(negpush_and_skolemize,[],['pel47_6_1'])).
-</code></pre>
-
-<p>The second block contains cnf clauses, which are either input like
-    inference(cnf<em>transformation,[],['pel47</em>6<em>1</em>$sk'])) 
-or derived by proof search like
-    inference(resolution,[then_simplify],['52','54','51'])).</p>
-
-<p>The cnf clauses are the same clauses as output by the simple default format,
-just presented in the TPTP language along with the TPTP-style derivation step
-and source information.</p>
-
-<h3>Telling gkc what is actually the question clause in input</h3>
-
-<p>Gkc does not know which clause is a question: this is ok,
+<p>
+Gkc allows the TPTP formula syntax to be used without the <code>fof(nam,role,formula)</code>
+wrapping. The current example is exactly the same as the previous example,
+but this time without wrapping, except for the last formula: it is useful to indicate
+the <i>role</i> of the question, which can be only done using the wrapped syntax.
+<p>
+Gkc does not know which clause is a question: this is ok,
 but it is bad for efficiency in case of large clause sets.</p>
-
-<p>There is a simple way to tell gkc that some clause or a formula is indeed a question
+<p>
+  There is a simple way to tell gkc that some clause or a formula is indeed a question
 and gkc should heavily focus on that clause or a formula.</p>
-
 <p>Instead of writing your negated question like</p>
 
 <pre><code>-father(john,pete).
@@ -2149,35 +1656,116 @@ assumption likely to be used in the proof:</p>
     person(john)).
 </code></pre>
 
-<p>These <code>negated_conjecture</code> and 'assumption` roles were already
-mentioned previously when describing fof syntax: it is worth stressing
-that they are useful and can be also intermingled with the simple
-syntax.</p>
+</div>
+<pre><code id="example_15_input_code">
+! [X] : ( wolf(X) => animal(X) ).
 
-<h3>Directing the prover and changing the settings</h3>
+? [X1] : wolf(X1).
 
-<p>By default gkc automatically selects a number of strategies to run one-by one
+! [X] :  ( fox(X) => animal(X) ).
+
+? [X1] : fox(X1).
+
+! [X] :  ( bird(X) => animal(X) ).
+
+? [X1] : bird(X1).
+
+! [X] :  ( caterpillar(X) => animal(X) ).
+
+? [X1] : caterpillar(X1).
+
+! [X] : ( snail(X) => animal(X) ).
+
+? [X1] : snail(X1).
+
+? [X] : grain(X).
+
+! [X1] : ( grain(X1) => plant(X1) ).
+
+! [X] :
+    ( animal(X)
+    => ( ! [Y] :
+          ( plant(Y)
+          => eats(X,Y) )
+      | ! [Y1] :
+          ( ( animal(Y1)
+            & much_smaller(Y1,X)
+            & ? [Z] :
+                ( plant(Z)
+                & eats(Y1,Z) ) )
+          => eats(X,Y1) ) ) ).
+
+! [X,Y] :
+    ( ( bird(Y)
+      & ( snail(X)
+        | caterpillar(X) ) )
+    => much_smaller(X,Y) ).
+
+! [X,Y] :
+    ( ( bird(X)
+      & fox(Y) )
+    => much_smaller(X,Y) ).
+
+! [X,Y] :
+    ( ( fox(X)
+      & wolf(Y) )
+    => much_smaller(X,Y) ).
+
+! [X,Y] :
+    ( ( wolf(X)
+      & ( fox(Y)
+        | grain(Y) ) )
+    => ~ eats(X,Y) ).
+
+! [X,Y] :
+    ( ( bird(X)
+      & caterpillar(Y) )
+    => eats(X,Y) ).
+
+! [X,Y] :
+    ( ( bird(X)
+      & snail(Y) )
+    => ~ eats(X,Y) ).
+
+! [X] :
+    ( ( caterpillar(X)
+      | snail(X) )
+    => ? [Y] :
+        ( plant(Y)
+        & eats(X,Y) ) ).
+
+fof(pel47,conjecture,
+    ( ? [X,Y] :
+        ( animal(X)
+        & animal(Y)
+        & ? [Z] :
+            ( grain(Z)
+            & eats(Y,Z)
+            & eats(X,Y) ) ) )).         
+</code></pre>
+
+
+<div id="example_15_proof_notes"></div>
+
+<div id="example_16_input_notes"><h3>Example 16 for the strategy</h3>
+By default gkc automatically selects a number of strategies to run one-by one
 and outputs either message that the proof was found along with the proof or a message
 that no proof was found.</p>
 
-<p>You can tell gkc the exact strategy and output level by writing a small
-json strategy file strat.txt like this:</p>
+<p>You can tell gkc the exact strategy by entering
+the json format strategy text like this into the 
+<i>Strategy as json text</i> box:</p>
 
 <pre><code>{
-  "print_level": 10,     
-  "max_seconds": 60,
-  "strategy":["query_focus"],
-  "query_preference": 1
+"print_level": 15,
+"max_seconds": 1,
+"strategy":["hardness_pref"],
+"query_preference":1  
 }
-</code></pre>
-
-<p>and then call the prover like this to make it use the strategy file:</p>
-
-<pre><code>./gkc example1.txt strat.txt
-</code></pre>
+</code></pre>  
 
 <p>There are two somewhat different ways to write the strategy file:
-either indicate a single strategy (single run) like in the previous example,
+either indicate a single strategy (single run) like in the example above
 or multiple runs like this:</p>
 
 <pre><code>{
@@ -2197,15 +1785,10 @@ or multiple runs like this:</p>
 }
 </code></pre>
 
-<p>In the latter case gkc will try out all these strategies in that order, by default using the parallel processes 
-so that each process gets a subsequence of these strategies.</p>
+<p>In the latter case gkc will try out all these strategies in that order</p>
 
-<p>A simple way to obtain such run sequences is to run</p>
-
-<pre><code>./gkc example1.txt -tptp 1
-</code></pre>
-
-<p>which will then automatically construct and print out a suitable full strategy json
+<p>A simple way to obtain such run sequences is to use the <i>Print level</i> select box
+value <i>+ Statistics</i> which will then automatically construct and print out a suitable full strategy json
 with many runs, which you can simply copy and paste into your own file for later modification.</p>
 
 <p>The default value for limit-type fields starting with max_ is 0, indicating that no limit is set.</p>
@@ -2223,8 +1806,8 @@ with knuth-bendix ordering for handling equality.</p>
 <li>"knuthbendix_pref" : use binary resolution with knuth-bendix ordering of literals</li>
 <li>"hyper" : use hyperresolution, with negative literals preferred</li>
 <li>"posunitpara": perform paramodulation from units only</li>
-<li>"prohibit<em>nested</em>para": disallow paramodulation if either parent is derived by paramodulation</li>
-<li>"max<em>ground</em>weight": use the weight of the heaviest literal as the base weight of a clause</li>
+<li>"prohibit_nested_para": disallow paramodulation if either parent is derived by paramodulation</li>
+<li>"max_ground_weight": use the weight of the heaviest literal as the base weight of a clause</li>
 <li>"unit", "double" or "triple" : use binary unit resolution or its generalization: (one of the arguments must be unit, a two-literal or three-literal clause, <br />
 respectively. These may be added to the list in addition to the previous strategy indicators, for example, like ["query_focus","unit"].</li>
 </ul>
@@ -2236,11 +1819,14 @@ respectively. These may be added to the list in addition to the previous strateg
 <li>"print_level": integer determining the level of output: useful values are between 0 and 50, default 10, for -tptp 1 gkc uses 15.</li>
 <li>"print_json": 0 or 1, where 0 is default and 1 forces json output.</li>
 <li>"print_tptp": 0 or 1, where 0 is default and 1 forces tptp-style proof output</li>
-<li>"max<em>size", "max</em>length", "max<em>depth", "max</em>weight" indicate limits on kept clauses, defaults are 0.</li>
+<li>"max_size", "max_length", "max_depth", "max_weight" indicate limits on kept clauses, defaults are 0.</li>
 <li>"equality" : 1 or 0, with 1 being default and 0 prohibiting equality handling.</li>
 <li>"rewrite" : 1 or 0, with 1 being default and 0 prohibiting using equations for rewriting.</li>
-<li>"max_seconds": N being an integer limit of seconds for one run, default 0 (no limit).</li>
-<li>"weight<em>select</em>ratio": N indicating the ratio of picking by order derived / clause weight, default is 5.</li>
+<li>"max_dseconds": N being an integer limit of tenths of seconds for one run, default 0 (no limit).</li>
+<li>"max_seconds": N being an integer limit of seconds for one run, default 0 (no limit). This is an alternative
+  to the "max_dseconds" key.
+</li>
+<li>"weight_select_ratio": N indicating the ratio of picking by order derived / clause weight, default is 5.</li>
 <li>"max_answers": N indicating the maximal number of proofs searched for until search stops, default is 1.</li>
 <li>"reverse_clauselist": N either default 0 or 1, where 1 follows the actual order for input clauses, starting from the end.</li>
 <li>"sine": input filter with N either 1 or 2 where 1 is a less restrictive (accepts more clauses) and 2 more restrictive. NB! Sine is automatically switched off if the -provekb switch is used.</li>
@@ -2257,257 +1843,172 @@ respectively. These may be added to the list in addition to the previous strateg
 
 <p>For "max_seconds"&lt;2 gkc will automatically use immediate check for contradiction when a clause is derived. </p>
 
-<h3>Example with json output</h3>
-
-<p>Json output in gkc is experimental and will not always produce a correct result.
-Gkc will produce json output if the strategy file contains a setting</p>
-
-<pre><code>"print_json": 1
-</code></pre>
-
-<p>The clauses in answers and proofs will be still presented as
-the simple language strings, not as json structures.</p>
-
-<p>NB! The tptp language setting does not match well with the "print_json": 1
-setting: using these together will produce a messy output, neither correct json
-nor tptp output.</p>
-
-<p>Given a multineg_json.txt file:</p>
-
+For the current example gkc tries out 16 search strategies before it hits a suitable one:
+you can give it the following search strategy to find the proof very quickly:
 <pre><code>{
-"max_answers":2,
-"print_json": 1,
-"strategy": ["negative_pref"]
-}
-</code></pre>
-
-<p>the previous example run</p>
-
-<pre><code>./gkc example3.txt multineg_json.txt
-</code></pre>
-
-<p>will output a json structure:</p>
-
-<pre><code>{"result": "proof found",
-
-{"answers": [
-[
-{"answer": "$ans(mark)."},
-{"proof":
-[
-[1, ["in", "axiom"], "-father(X,Y) | -father(Z,X) | grandfather(Z,Y)."],
-[2, ["in", "axiom"], "father(pete,mark)."],
-[3, ["mp", 1, 2, "fromaxiom"], "-father(X,pete) | grandfather(X,mark)."],
-[4, ["in", "axiom"], "father(john,pete)."],
-[5, ["mp", 3, 4, "fromaxiom"], "grandfather(john,mark)."],
-[6, ["in", "axiom"], "-grandfather(john,X) | $ans(X)."],
-[7, ["mp", 5, 6, "fromaxiom"], "$ans(mark)."]
-]}
+"print_level": 15,
+"runs":[
+{"max_seconds":1,"strategy":["hardness_pref"],"query_preference":1}
 ]
-]}
 }
 </code></pre>
 
-<h3>Examples with arithmetic</h3>
+</div>
+<pre>
+<code id="example_16_input_code">
+% File     : SWV237+1 : TPTP v7.3.0. Released v3.2.0.
+% Domain   : Software Verification (Security)
+% Problem  : Visa Security Module (VSM) attack
+% Version  : Especial.
+% English  : This models the API of the Visa Security Module (VSM). The
+%            conjecture allows the discovery of Bond's attack.
 
-<p>Gkc supports integer and floating point arithmetic, but only in
-a fairly limited and experimental way: do not be surprised if
-something does not work as expected.</p>
+% Refs     : [BA01]  Bond & Anderson (2001), API-Level Attacks on Embedded
+%          : [Ste06] Steel (2006), Email to G. Sutcliffe
 
-<p>Arithmetic expressions may contain +, -, *, / and should be given 
-in the infix form, like in</p>
+fof(enc_dec_cancel,axiom,(
+  ! [U,V] : enc(i(U),enc(U,V)) = V )).
 
-<pre><code>p(1+2)
-p((2*X)+1)
-</code></pre>
+fof(dec_enc_cancel,axiom,(
+    ! [U,V] : enc(U,enc(i(U),V)) = V )).
 
-<p>while the single arithmetic comparison operation <code>&lt;</code> except equality = 
-should be given in the prefix form like</p>
+fof(double_inverse_cancel,axiom,(
+    ! [U] : i(i(U)) = U )).
 
-<pre><code>&lt;(X,2).
-</code></pre>
+fof(keys_are_symmetric,axiom,(
+    ! [U] :
+      ( p(U)
+     => p(i(U)) ) )).
 
-<p>or negated like</p>
+fof(key_translate_from_ZCMK_to_TMK,axiom,(
+    ! [U,V,W] :
+      ( ( p(U)
+        & p(V)
+        & p(W) )
+     => p(enc(tmk,enc(i(enc(i(zcmk),V)),U))) ) )).
 
-<pre><code>-&lt;(X,2).
-</code></pre>
+fof(key_translate_from_TMK_to_ZCMK,axiom,(
+    ! [U,V,W] :
+      ( ( p(U)
+        & p(V)
+        & p(W) )
+     => p(enc(i(enc(i(zcmk),V)),enc(i(tmk),U))) ) )).
 
-<p>NB! In case a variable or a non-numeric constant is a first element of the 
-arithmetic expression, you have to surround the variable or constant with single quotes,
-like in</p>
+fof(receive_working_key_from_switch,axiom,(
+    ! [U,V,W] :
+      ( ( p(U)
+        & p(V)
+        & p(W) )
+     => p(enc(wk,enc(i(tmk),U))) ) )).
 
-<pre><code>p('X'*2)
-</code></pre>
+fof(encrypt_a_PIN_derivation_key_under_a_TMK,axiom,(
+    ! [U,V,W] :
+      ( ( p(U)
+        & p(V)
+        & p(W) )
+     => p(enc(enc(i(tmk),V),enc(i(tmk),U))) ) )).
+     fof(encrypt_a_stored_comms_key,axiom,(
+      ! [U,V,W] :
+        ( ( p(U)
+          & p(V)
+          & p(W) )
+       => p(enc(enc(i(tmk),V),enc(i(tc),U))) ) )).
+  
+%----This command now removed from normal VSM operation to fix attack
+fof(encrypt_clear_key_as_Tcomms_key,axiom,(
+  ! [U,V,W] :
+    ( ( p(U)
+      & p(V)
+      & p(W) )
+    => p(enc(tc,U)) ) )).
 
-<p>otherwise the whole expression will be parsed as a single variable X*2.</p>
+fof(data_encrypt,axiom,(
+  ! [U,V,W] :
+    ( ( p(U)
+      & p(V)
+      & p(W) )
+    => p(enc(enc(i(tc),U),V)) ) )).
 
-<p>First, a trivial example arithmetic0.txt:</p>
+fof(data_decrypt,axiom,(
+  ! [U,V,W] :
+    ( ( p(U)
+      & p(V)
+      & p(W) )
+    => p(enc(i(enc(i(tc),U)),V)) ) )).
 
-<pre><code>1=2.
-</code></pre>
+fof(data_translate_PIN_from_local_to_interchange_key,axiom,(
+  ! [U,V,W] :
+    ( ( p(U)
+      & p(V)
+      & p(W) )
+    => p(enc(enc(i(wk),W),enc(i(enc(i(tmk),V)),U))) ) )).
+    fof(data_translate_between_interchange_keys,axiom,(
+    ! [U,V,W] :
+      ( ( p(U)
+        & p(V)
+        & p(W) )
+      => p(enc(enc(i(wk),W),enc(i(enc(i(wk),V)),U))) ) )).
 
-<p>As expected, gkc produces output:</p>
+%----Bond unsure if this command actually implemented in VSM
+fof(data_translate_PIN_from_local_storage_to_interchange_key,axiom,(
+    ! [U,V,W] :
+      ( ( p(U)
+        & p(V)
+        & p(W) )
+      => p(enc(enc(i(wk),V),enc(i(lp),U))) ) )).
 
-<pre><code>result: proof found
-for arithmetic0.txt
-by run 1 fork 0 strategy {"max_seconds":1,"strategy":["unit"],"query_preference":1}
+fof(attacker_can_encrypt,axiom,(
+    ! [U,V,W] :
+      ( ( p(U)
+        & p(V)
+        & p(W) )
+      => p(enc(U,V)) ) )).
+%----Initial knowledge of intruder
+fof(intruder_knows_1,axiom,(
+    p(enc(tmk,pp)) )).
 
-proof:
-1: [in, axiom] =(1,2).
-2: [simp, 1, fromaxiom] false
-</code></pre>
+fof(intruder_knows_2,axiom,(
+    p(enc(wk,w)) )).
 
-<p>Observe that although it is obvious that 1!=2, ordinary non-numeric constants may
-be equal even if different: </p>
+fof(intruder_knows_3,axiom,(
+    p(enc(w,t1)) )).
 
-<pre><code>a=b.
-1=b.
-</code></pre>
+fof(intruder_knows_4,axiom,(
+    p(enc(lp,t2)) )).
 
-<p>does not lead to a contradiction!</p>
+fof(intruder_knows_5,axiom,(
+    p(enc(tc,k)) )).
 
-<p>Equality also works as expected when comparing floating point numbers:</p>
+fof(intruder_knows_6,axiom,(
+    p(kk) )).
 
-<pre><code>2.01!=2.01.
-</code></pre>
+fof(intruder_knows_7,axiom,(
+    p(i(kk)) )).
 
-<p>gives a contradiction, while a comparison of a floating point 2.0 and integer 2 does not:</p>
+fof(intruder_knows_8,axiom,(
+    p(a) )).
 
-<pre><code>2.0!=2.
-</code></pre>
+%----Goal for the attacker is to make a PIN (enc(pp,a))
+fof(co1,conjecture,(
+    p(enc(pp,a)) )).
+    
+</code>
+</pre>
+<div id="example_16_proof_notes"></div>
 
-<p>On the other hand, adding integer 1 to a floating point 1.0 gives a floating point 2.0
-and the following input gives a contradiction:</p>
+<div id="example_17_input_notes"><h3>Example 17 for arithmetic</h3>
 
-<pre><code>2.0!=1.0+1.
-</code></pre>
+<p>Gkc supports integers and floating point numbers along with
+basic arithmetic operators, but does not provide
+any axioms or built-in knowledge for the properties of arithmetic operators,
+except simple evaluation.
+</p>
 
-<p>Both of the following comparison operations also produce a contradiction:</p>
-
-<pre><code>&lt;(2,2.0).
-&lt;(2.0,2).
-</code></pre>
-
-<p>Next we will take up rules and calculations.</p>
-
-<p>Given an input file arithmetic1.txt:</p>
-
-<pre><code>p(1).
--p(X) | p(1+X).
--p(10).
-</code></pre>
-
-<p>gkc produces output:</p>
-
-<pre><code>result: proof found
-for arithmetic1.txt
-by run 1 strategy {"max_seconds":1,"strategy":["unit"],"query_preference":0}
-
-proof:
- 1: [in, axiom] p(+(1,X)) | -p(X).
- 2: [in, axiom] p(1).
- 3: [mp, 1.1, 2, fromaxiom] p(2).
- 4: [mp, 3, 1.1, fromaxiom] p(3).
- 5: [mp, 4, 1.1, fromaxiom] p(4).
- 6: [mp, 5, 1.1, fromaxiom] p(5).
- 7: [mp, 6, 1.1, fromaxiom] p(6).
- 8: [mp, 7, 1.1, fromaxiom] p(7).
- 9: [mp, 8, 1.1, fromaxiom] p(8).
- 10: [mp, 9, 1.1, fromaxiom] p(9).
- 11: [in, axiom] -p(10).
- 12: [mp, 10, 1.1, 11, fromaxiom] false
-</code></pre>
-
-<p>Observe that the proof is given in the prefix form, which is NOT 
-how gkc wants to see arithmetic input!</p>
-
-<p>Given input file arithmetic2.txt (observe quotes around X!):</p>
-
-<pre><code>p(1).
--p(X) | p(('X'+1)*2).
--p(X) | X!=10 | $ans(X).
-</code></pre>
-
-<p>gkc produces output:</p>
-
-<pre><code>result: proof found
-for arithmetic2.txt
-by run 1 strategy {"max_seconds":1,"strategy":["unit"],"query_preference":0}
-
-answer: $ans(10).
-proof:
- 1: [in, axiom] p(*(+(X,1),2)) | -p(X).
- 2: [in, axiom] p(1).
- 3: [mp, 1.1, 2, fromaxiom] p(4).
- 4: [mp, 3, 1.1, fromaxiom] p(10).
- 5: [in, axiom] -=(X,10) | -p(X) | $ans(X).
- 6: [mp, 4, 5.1, fromaxiom] $ans(10).
-</code></pre>
-
-<p>Given input file arithmetic3.txt:</p>
-
-<pre><code>p(2).
--p(X) | p(2*X).
--p(X) | &lt;(X,128).
-</code></pre>
-
-<p>gkc produces output:</p>
-
-<pre><code>result: proof found
-for arithmetic3.txt
-by run 1 strategy {"max_seconds":1,"strategy":["unit"],"query_preference":0}
-
-proof:
- 1: [in, axiom] p(*(2,X)) | -p(X).
- 2: [in, axiom] p(2).
- 3: [mp, 1.1, 2, fromaxiom] p(4).
- 4: [mp, 3, 1.1, fromaxiom] p(8).
- 5: [mp, 4, 1.1, fromaxiom] p(16).
- 6: [mp, 5, 1.1, fromaxiom] p(32).
- 7: [mp, 6, 1.1, fromaxiom] p(64).
- 8: [mp, 7, 1.1, fromaxiom] p(128).
- 9: [in, axiom] &lt;(X,128) | -p(X).
- 10: [mp, 8, 9.1, fromaxiom] false
-</code></pre>
-
-<p>Given input file arithmetic4.txt using a floating point number:</p>
-
-<pre><code>p(2.1).
--p(X) | p(2*X).
--p(X) | &lt;(X,128).
-</code></pre>
-
-<p>gkc produces output:  </p>
-
-<pre><code>result: proof found
-for arithmetic4.txt
-by run 1 strategy {"max_seconds":1,"strategy":["unit"],"query_preference":0}
-
-proof:
- 1: [in, axiom] p(*(2,X)) | -p(X).
- 2: [in, axiom] p(2.100000).
- 3: [mp, 1.1, 2, fromaxiom] p(4.200000).
- 4: [mp, 3, 1.1, fromaxiom] p(8.400000).
- 5: [mp, 4, 1.1, fromaxiom] p(16.800000).
- 6: [mp, 5, 1.1, fromaxiom] p(33.600000).
- 7: [mp, 6, 1.1, fromaxiom] p(67.200000).
- 8: [mp, 7, 1.1, fromaxiom] p(134.400000).
- 9: [in, axiom] &lt;(X,128) | -p(X).
- 10: [mp, 8, 9.1, fromaxiom] false
-</code></pre>
-
-<p>Due to the experimental nature, arithmetic is automatically
-switched off if the tptp proof format is selected, either by
-the <code>-tptp 1</code> parameter or the <code>"print_tptp": 1</code> given in the
-strategy file. </p>
-
-<p>The arithmetic syntax used by gkc does not currently conform
-to the TPTP format. </p>
-
-<p>While gkc and other provers can - in an ideal world without time and memory restrictions - 
-find a solution to any pure first order logic problem which has a solution, they
-cannot, in principle (for a number of reasons!) find solutions to all arithmetic 
-problems which have a solution.</p>
+Citing TPTP: the extent to which ATP systems are able to work with the arithmetic predicates and
+functions can vary, from a simple ability to evaluate ground terms, e.g., 
+<code>$sum(2,3)</code> can be evaluated to <code>5</code>, through an ability to instantiate variables 
+in equations involving such functions, e.g., <code>$product(2,$uminus(X)) = $uminus($sum(X,2))</code>
+can instantiate <code>X</code> to <code>2</code>, to extensive algebraic manipulation capability. 
 
 <p>As a trivial practical example gkc is unable to find that</p>
 
@@ -2518,6 +2019,84 @@ p(2+X).
 <p>is contradictory. This would require either solving the equation 5=2+X or
 generating an ever-growing set of numberic instances of clauses, none
 of which gkc currently attempts.</p>
+<p>However, for the last example one can construct a number-generating
+clause set - which essentially enforces the creation of numeric 
+instances - like this:</p>  
+<pre><code>-p(5).
+n(0).
+-n(X) | n(1+X).
+-n(X) | p(2+X).
+</code></pre>
+<p>leading to a proof.</p>
+
+The same general principle holds for lists and distinct symbols interpreted as strings.
+<p>
+This said, the numbers and arithmetic functions and predicates are defined following the 
+<a href="http://www.tptp.org/TPTP/TR/TPTPTR.shtml#Arithmetic">TPTP arithmetic system</a>
+plus a few convenience operators for writing infix terms:
+<ul>
+<li>Type detection predicates $is_int, $is_real.
+<li>Comparison predicates $less, $lesseq, $greater, $greatereq.
+<li>Type conversion functions $to_int, $to_real.
+<li>Arithmetic functions on integers and reals:
+$sum", "$difference", "$product", 
+"$quotient", "$quotient_e",
+"$remainder_e", "$remainder_t", "$remainder_f", 
+"$floor", "$ceiling",
+"$uminus", "$truncate", "$round.
+ <p>
+ Note: these comparison predicates and arithmetic functions take exactly two arguments.
+<p>
+ Example: <code>$less($sum(1,$to_int(2.1)),$product(3,3))</code>.
+
+<li>Additional convenience predicate is used: $is_number is true
+if and only if $is_int or $is_real is true.
+
+<li>Additional infix convenience functions +, -, *, / are
+used with the same meaning as $sum, $difference, $product and 
+$quotient, respectively.
+<p>
+Example: <code>$less(1+(1+2),(3*3))</code>
+<p>
+Note: these convenience functions take also exactly two arguments.
+</ul>
+<p><b>NB!</b> Do not use a variable or a non-numeric constant as a first element of the 
+infix arithmetic expression like <code>p(X*2)</code>, otherwise 
+the whole expression will be parsed as a single variable <i>X*2</i>. No such restrictions
+apply for the prefix form.
+</div>
+<pre><code id="example_17_input_code">p(2).
+-p(X) | p(2*X).
+-p(X) | $less(X,128).
+</code>
+</pre>
+<div id="example_17_proof_notes">
+</div>
+
+
+
+<div id="example_18_input_notes"><h3>Example 18 for lists for</h3>
+intro 18 
+</div>
+<pre>
+<code id="example_18_input_code">code 18
+</code>
+</pre>
+<div id="example_18_proof_notes">
+note 18
+</div>
+
+
+<div id="example_19_input_notes"><h3>Example 19 for distinct symbols</h3>
+  intro 19 
+  </div>
+  <pre>
+  <code id="example_19_input_code">code 19
+  </code>
+  </pre>
+  <div id="example_19_proof_notes">
+  note 19
+  </div>  
 
 <p>However, for the last example one can construct a number-generating
 clause set - which essentially forces the creation of numeric 

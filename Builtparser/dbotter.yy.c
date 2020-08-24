@@ -1148,7 +1148,7 @@ YY_RULE_SETUP
 { *s = 0; BEGIN 0; 
                   parseprintf("found '%s'\n", elmparsestrbuf); 
 		              *yylval=elmparsestrbuf;
-		              return STRING;
+		              return UNIQUEURI;
                 } 
 	YY_BREAK
 case 21:
@@ -1192,7 +1192,7 @@ YY_RULE_SETUP
 { *s = 0; BEGIN 0; 
                   parseprintf("found '%s'\n", elmparsestrbuf); 
 		              *yylval=elmparsestrbuf;
-		              return URI;
+		              return CONSTURI;
                 } 
 	YY_BREAK
 case 28:

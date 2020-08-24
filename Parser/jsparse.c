@@ -204,6 +204,8 @@ int wr_import_js_file(glb* g, char* filename, char* strasfile, cvec clvec, int i
   (g->print_initial_parser_result)=1;
   (g->print_generic_parser_result)=1;
 #endif        
+  (g->print_initial_parser_result)=1;
+  (g->print_generic_parser_result)=1;
   // set globals for parsing
   (g->filename)=filename;
   (g->parse_is_included_file)=isincluded;
@@ -924,7 +926,6 @@ void* wr_process_json_import_clause(glb* g, void* mpool, void* cl, cvec clvec) {
   printf("\n");
   printf("\nproblem filename is %s\n",g->filename);
 #endif
-
   if (!(g->filename) || strlen(g->filename)<1) {
     wr_show_jsparse_error(g,NULL,"no filename given in wr_process_tptp_import_clause\n");
     return NULL;
@@ -1043,7 +1044,6 @@ void* wr_process_json_formula(glb* g,parse_parm* pp, void* cl, int isincluded) {
   wg_mpool_print(db,cl);
   printf("\n"); 
 #endif
-
   if (pp->parse_top_level) {
     pp->formulaname=NULL;
     pp->formularole=NULL;
@@ -1064,7 +1064,7 @@ void* wr_process_json_formula(glb* g,parse_parm* pp, void* cl, int isincluded) {
     origcl=cl;
     if (wg_ispair(db,cl) && wg_first(db,cl)==(pp->jsonstruct)) {
       question=wg_get_keystrval(db, "@question", cl);
-      if (question) {
+      if (question && (pp->parse_top_level)) {
         // handle the question special tag
         content=wg_get_keystrval(db, "@logic", cl);
         role=wg_get_keystrval(db, "@role", cl);
@@ -1086,8 +1086,10 @@ void* wr_process_json_formula(glb* g,parse_parm* pp, void* cl, int isincluded) {
       // now process struct
       cl=wr_process_json_formula_struct(g,pp,cl,isincluded);
       if (!cl) return NULL;
-      name=wg_get_keystrval(db, "@name", origcl);
-      role=wg_get_keystrval(db, "@role", origcl);      
+      if (pp->parse_top_level) {
+        name=wg_get_keystrval(db, "@name", origcl);
+        role=wg_get_keystrval(db, "@role", origcl);      
+      }  
       content=wg_get_keystrval(db, "@logic", cl);      
       if((name && !wg_isatom(db,name)) || (role && !wg_isatom(db,role))) {
         // err case
@@ -1131,7 +1133,7 @@ void* wr_process_json_formula(glb* g,parse_parm* pp, void* cl, int isincluded) {
 #endif      
     // process logic
     if (!(g->parse_errflag)) {
-      preres=wr_process_json_formula_aux(g,pp,cl); 
+      preres=wr_process_json_formula_aux(g,pp,cl);      
       if (preres) {
         if ((pp->parse_top_level) && (pp->freevars)) {
           pp->freevars=wg_reverselist(db,mpool,pp->freevars);
@@ -1187,7 +1189,7 @@ void* wr_process_json_formula(glb* g,parse_parm* pp, void* cl, int isincluded) {
           if (pp->freevars) {
             preres=wg_mklist3(db,mpool,pp->logall,pp->freevars,preres);
           }  
-        } else if (pp->freevars) {
+        } else if ((pp->freevars) && (pp->parse_top_level)) {
           preres=wg_mklist3(db,mpool,pp->logall,pp->freevars,preres);
         }
       }      
@@ -1609,8 +1611,8 @@ void* wr_process_json_formula_struct(glb* g, parse_parm* pp,
 #endif       
       if (!id) {               
         id=wr_json_mkid(db,mpool,pp,origid,NULL);      
-      }  
-      extended=wr_add_struct_key_atoms(g,pp,id,keystr,keyval,extended);        
+      }        
+      extended=wr_add_struct_key_atoms(g,pp,id,keystr,keyval,extended);             
     } else if (!strcmp("@type",keystr)) {
       if (!id) {               
         id=wr_json_mkid(db,mpool,pp,origid,NULL);      
@@ -1631,11 +1633,11 @@ void* wr_process_json_formula_struct(glb* g, parse_parm* pp,
         //tmpval=(pp->parse_top_level);
         wr_json_push_context(g,pp,array);
         (pp->parse_top_level)=0;
-        (pp->jsonld_graphid)=id;
+        (pp->jsonld_graphid)=id;        
         resultclause=wr_process_json_formula(g,pp,graphel,1);   
         wr_json_pop_context(g,pp,array);
         //(pp->parse_top_level)=tmpval;
-        extended=wr_json_add_with_and(g,pp,resultclause,extended);       
+        extended=wr_json_add_with_and(g,pp,resultclause,extended);               
       }      
     }
     // continue to next key
@@ -1779,8 +1781,8 @@ void* wr_add_struct_key_atoms(glb* g, parse_parm* pp,
         id,wg_mkatom(db,mpool,WG_URITYPE,keystr,NULL),newid);
       res1=wr_json_add_with_and(g,pp,atom,extended); 
       wr_json_push_context(g,pp,array);
-      pp->parse_top_level=0;
-      resultclause=wr_process_json_formula(g,pp,values,0);    
+      pp->parse_top_level=0;      
+      resultclause=wr_process_json_formula(g,pp,values,0);  
       wr_json_pop_context(g,pp,array); 
       if (resultclause){        
         extended=wr_json_add_with_and(g,pp,resultclause,res1); 
@@ -2766,7 +2768,6 @@ void* wr_js_parse_clauselist(glb* g,void* mpool,cvec clvec,void* clauselist) {
   wg_mpool_print(db,clauselist); 
   DPRINTF("\n");
 #endif
-
   if (clvec!=NULL) CVEC_NEXT(clvec)=CVEC_START; 
   // create vardata block by malloc or inside mpool
 

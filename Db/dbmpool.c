@@ -629,34 +629,58 @@ void* wg_mkatom(void* db, void* mpool, int type, char* str1, char* str2) {
 void* wg_mkatom_len(void* db, void* mpool, int type, char* str1, char* str2, int len1, int len2) {
   char* ptr;
   char* curptr;
-  int i,size=2;
+  int i,zerofound,size=2;
 
-  //printf("\nstr1 %s %s len %d %d\n",str1,str2,len1,len2);
+  //printf("\nstr1 %s str2 %s len1 %d len2 %d\n",str1,str2,len1,len2);
   if (str1!=NULL) size=size+len1;
   size++;
   if (str2!=NULL) size=size+len2;
   size++;
+  //printf("\nsize %d\n",size);
   ptr=(char*)(wg_alloc_mpool(db,mpool,size));
   if (ptr==NULL) {
     show_mpool_error(db,"cannot create an atom in mpool");
     return NULL;
   }
   ptr++; // shift one pos right to set address last byte 1
+  //printf("\nptr %d\n",(int)ptr);
+  /* 
+  5     6  7 8
+  type  X  0 0
+
+  */
   curptr=ptr;
   *curptr=(char)type;
   curptr++;
+  zerofound=0;
   if (str1!=NULL) {
     for(i=0;i<len1;i++) {
-      if(!(*curptr++ = *str1++)) break;           
-    }    
+      if(!(*curptr++ = *str1++)) {
+        zerofound=1;
+        break;        
+      }     
+    }  
+    if (!zerofound) {  
+      *curptr=(char)0;
+      curptr++;
+    }
   } else {
     *curptr=(char)0;
     curptr++;
   }
+  //printf("\nstr2 %s curptr %d\n",str2,(int)curptr);
+  zerofound=0;
   if (str2!=NULL) {
     for(i=0;i<len2;i++) {
-      if(!(*curptr++ = *str2++)) break;    
-    }     
+      if(!(*curptr++ = *str2++)) {
+        zerofound=1;
+        break;
+      }       
+    }   
+    if (!zerofound) {  
+      *curptr=(char)0;
+      curptr++;
+    }            
   } else {
     *curptr=(char)0;
     curptr++;
@@ -1037,6 +1061,9 @@ static void wg_mpool_print_aux(void* db, void* ptr, int depth, int pflag) {
 int wg_mpool_bad_ptr(void* db, void* ptr) {
   gint tmp;
 
+#ifdef __EMSCRIPTEN__
+  return 0;
+#else  
   tmp=(gint)((ptrdiff_t)((char*)ptr-(char*)db));
   if (tmp<0) tmp=0-tmp;
   //printf("\ntmp %ld\n",tmp);
@@ -1044,6 +1071,7 @@ int wg_mpool_bad_ptr(void* db, void* ptr) {
     return 1;
   }
   return 0;
+#endif  
 }
 
 

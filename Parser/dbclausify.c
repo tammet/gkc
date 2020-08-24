@@ -103,13 +103,6 @@ void* wr_clausify_formula(glb* g, void* mpool, void* frm,
   wg_tptp_print(db,frm); 
   printf("\n");
 #endif  
-  /*
-  printf("wr_clausify_formula starting with frm\n");  
-  wg_mpool_print(db,frm); 
-  printf("\n");
-  wg_tptp_print(db,frm); 
-  printf("\n");
-  */
   if (g->parse_errflag) return NULL;
   if (wg_isatom(db,frm)) {
     // constant

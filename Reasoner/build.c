@@ -775,9 +775,10 @@ int wr_specialcomp_lit(glb* g, gint atom) {
     if (str[4]=='a' && str[5]=='t' 
         && str[6]=='o' && str[7]=='m' && str[8]=='\0' &&        
         wg_decode_uri_prefix(g->db,fun)==NULL) return 1;
-    // unique    
-    if (str[4]=='u' && str[5]=='n' 
-        && str[6]=='i' && str[7]=='q' && str[8]=='u' && str[9]=='e' && str[10]=='\0' &&        
+    // distinct
+    if (str[4]=='d' && str[5]=='i' 
+        && str[6]=='s' && str[7]=='t' && str[8]=='i' && str[9]=='n' && str[10]=='c' 
+        && str[11]=='t' && str[11]=='\0' &&        
         wg_decode_uri_prefix(g->db,fun)==NULL) return 1;    
     // list    
     if (str[4]=='l' && str[5]=='i' 
@@ -951,7 +952,7 @@ int wr_computable_termptr(glb* g, gptr tptr) {
           if (!strcmp(str,"$is_list"))  return COMP_FUN_IS_LIST;
           if (!strcmp(str,"$is_map"))  return COMP_FUN_IS_MAP;
           if (!strcmp(str,"$is_atom"))  return COMP_FUN_IS_ATOM;
-          if (!strcmp(str,"$is_unique"))  return COMP_FUN_IS_UNIQUE;
+          if (!strcmp(str,"$is_distinct"))  return COMP_FUN_IS_UNIQUE;
           if (!strcmp(str,"$is_substr"))  return COMP_FUN_IS_SUBSTR;
           return 0;
         }
