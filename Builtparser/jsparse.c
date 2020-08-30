@@ -741,7 +741,7 @@ getline replacement
 
 */
 
-int wg_getline(unsigned char **restrict line, size_t *restrict len, FILE *restrict fp) {
+int wg_getline(unsigned char **line, size_t *len, FILE *fp) {
   char chunk[128];
 
   // Check if either line, len or fp are NULL pointers
