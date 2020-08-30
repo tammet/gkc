@@ -1,0 +1,8 @@
+type(smith1,"person").
+type(smith1,baby).
+type(smith1,'John Smith').
+type(smith2,"dog").
+type(smith2,newborn).
+type(smith2,name,'John Smith').
+(type(X0,X2) & type(X1,X3) & X2!=X3) => X0!=X1.
+smith1=smith2.

@@ -1,0 +1,11 @@
+[
+["=",["father","john"],"pete"],
+["=",["father","mike"],"pete"],
+["=",["mother","john"],"eve"],
+["=",["mother","mike"],"eve"],
+["=",["father","pete"],"mark"],
+["=",["mother","eve"],"mary"],
+["grandfather",["father",["father","?:0"]],"?:0"],
+["grandfather",["father",["mother","?:0"]],"?:0"],
+[["grandfather","mark","?:0"],"=>",["$ans","?:0"]]
+]

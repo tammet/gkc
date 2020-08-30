@@ -1,6 +1,0 @@
-{
-  "print_level": 15,     
-  "max_seconds": 5,
-  "strategy":["query_focus"],
-  "query_preference": 2
-} 

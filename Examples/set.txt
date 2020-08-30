@@ -1,0 +1,162 @@
+% File     : SET010-1 : TPTP v7.3.0. Released v1.0.0.
+% Domain   : Set Theory
+% Problem  : X \ Y ^ Z = (X \ Y) U (X \ Z)
+% Version  : [LS74] axioms.
+% English  :
+
+% Refs     : [LS74]  Lawrence & Starkey (1974), Experimental Tests of Resol
+%          : [WM76]  Wilson & Minker (1976), Resolution, Refinements, and S
+% Source   : [SPRFN]
+% Names    : ls118 [LS74]
+%          : ls118 [WM76]
+
+%----Include the member and subset axioms
+%include('Axioms/SET001-0.ax').
+
+cnf(subsets_are_set_equal_sets,axiom,
+    ( ~ subset(Set1,Set2)
+    | ~ subset(Set2,Set1)
+    | equal_sets(Set2,Set1) )).
+
+cnf(set_equal_sets_are_subsets2,axiom,
+    ( subset(Subset,Superset)
+    | ~ equal_sets(Superset,Subset) )).
+
+cnf(membership_in_subsets,axiom,
+    ( ~ subset(Subset,Superset)
+    | member(Element,Superset)
+    | ~ member(Element,Subset) )).
+
+cnf(set_equal_sets_are_subsets1,axiom,
+    ( subset(Subset,Superset)
+    | ~ equal_sets(Subset,Superset) )).
+
+cnf(subsets_axiom2,axiom,
+    ( subset(Subset,Superset)
+    | ~ member(member_of_1_not_of_2(Subset,Superset),Superset) )).
+
+cnf(subsets_axiom1,axiom,
+    ( member(member_of_1_not_of_2(Subset,Superset),Subset)
+    | subset(Subset,Superset) )).
+    
+%----Include the member and union axioms
+%include('Axioms/SET001-1.ax').
+
+cnf(member_of_union_is_member_of_one_set,axiom,
+    ( ~ member(Element,Union)
+    | member(Element,Set2)
+    | member(Element,Set1)
+    | ~ union(Set1,Set2,Union) )).
+
+cnf(member_of_set1_is_member_of_union,axiom,
+    ( ~ union(Set1,Set2,Union)
+    | ~ member(Element,Set1)
+    | member(Element,Union) )).
+
+cnf(union_axiom2,axiom,
+    ( ~ member(g(Set1,Set2,Union),Union)
+    | union(Set1,Set2,Union)
+    | ~ member(g(Set1,Set2,Union),Set1) )).
+
+cnf(union_axiom3,axiom,
+    ( ~ member(g(Set1,Set2,Union),Set2)
+    | ~ member(g(Set1,Set2,Union),Union)
+    | union(Set1,Set2,Union) )).
+
+cnf(union_axiom1,axiom,
+    ( member(g(Set1,Set2,Union),Set1)
+    | member(g(Set1,Set2,Union),Set2)
+    | member(g(Set1,Set2,Union),Union)
+    | union(Set1,Set2,Union) )).
+
+cnf(member_of_set2_is_member_of_union,axiom,
+    ( ~ member(Element,Set2)
+    | member(Element,Union)
+    | ~ union(Set1,Set2,Union) )).
+    
+%----Include the member and intersection axioms
+%include('Axioms/SET001-2.ax').
+
+cnf(intersection_axiom1,axiom,
+    ( member(h(Set1,Set2,Intersection),Set1)
+    | intersection(Set1,Set2,Intersection)
+    | member(h(Set1,Set2,Intersection),Intersection) )).
+
+cnf(member_of_both_is_member_of_intersection,axiom,
+    ( ~ intersection(Set1,Set2,Intersection)
+    | ~ member(Element,Set2)
+    | ~ member(Element,Set1)
+    | member(Element,Intersection) )).
+
+cnf(member_of_intersection_is_member_of_set2,axiom,
+    ( ~ intersection(Set1,Set2,Intersection)
+    | member(Element,Set2)
+    | ~ member(Element,Intersection) )).
+
+cnf(member_of_intersection_is_member_of_set1,axiom,
+    ( ~ member(Element,Intersection)
+    | member(Element,Set1)
+    | ~ intersection(Set1,Set2,Intersection) )).
+
+cnf(intersection_axiom2,axiom,
+    ( member(h(Set1,Set2,Intersection),Set2)
+    | intersection(Set1,Set2,Intersection)
+    | member(h(Set1,Set2,Intersection),Intersection) )).
+
+cnf(intersection_axiom3,axiom,
+    ( intersection(Set1,Set2,Intersection)
+    | ~ member(h(Set1,Set2,Intersection),Set1)
+    | ~ member(h(Set1,Set2,Intersection),Set2)
+    | ~ member(h(Set1,Set2,Intersection),Intersection) )).
+
+%----Include the member and difference axioms
+% include('Axioms/SET001-3.ax').
+
+cnf(difference_axiom1,axiom,
+    ( difference(Set1,Set2,Difference)
+    | member(k(Set1,Set2,Difference),Difference)
+    | ~ member(k(Set1,Set2,Difference),Set2) )).
+
+cnf(member_of_difference,axiom,
+    ( ~ member(Element,Difference)
+    | member(Element,Set1)
+    | ~ difference(Set1,Set2,Difference) )).
+
+cnf(difference_axiom3,axiom,
+    ( difference(Set1,Set2,Difference)
+    | member(k(Set1,Set2,Difference),Set2)
+    | ~ member(k(Set1,Set2,Difference),Set1)
+    | ~ member(k(Set1,Set2,Difference),Difference) )).
+
+cnf(not_member_of_difference,axiom,
+    ( ~ member(Element,Set2)
+    | ~ difference(A_set,Set1,Set2)
+    | ~ member(Element,Set1) )).
+
+cnf(difference_axiom2,axiom,
+    ( member(k(Set1,Set2,Difference),Difference)
+    | member(k(Set1,Set2,Difference),Set1)
+    | difference(Set1,Set2,Difference) )).
+
+cnf(member_of_difference_or_set2,axiom,
+    ( ~ member(Element,Set1)
+    | member(Element,Set2)
+    | member(Element,Difference)
+    | ~ difference(Set1,Set2,Difference) )).
+
+%--------------------------------------------------------------------------
+cnf(a_intersection_b,hypothesis,
+    ( intersection(a,b,aIb) )).
+
+cnf(c_minus_a,hypothesis,
+    ( difference(c,a,cDa) )).
+
+cnf(c_minus_b,hypothesis,
+    ( difference(c,b,cDb) )).
+
+cnf(c_minus_aIb,hypothesis,
+    ( difference(c,aIb,cD_aIb) )).
+
+cnf(prove_cDa_union_cDb_is_cD_aIb,negated_conjecture,
+    ( ~ union(cDa,cDb,cD_aIb) )).
+    

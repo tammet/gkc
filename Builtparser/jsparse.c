@@ -268,8 +268,12 @@ int wr_import_js_file(glb* g, char* filename, char* strasfile, cvec clvec, int i
                     "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",NULL);  
   pp.jsonld_vocabkey=wg_mkatom(db,mpool,WG_URITYPE,"@vocab",NULL);                                        
   pp.jsonld_basekey=wg_mkatom(db,mpool,WG_URITYPE,"@base",NULL);  
-  pp.jsonld_blankseed=1;
-  pp.jsonld_blankcount=0;
+  /*
+  if (!isincluded) {
+    pp.jsonld_blankseed=1;
+    pp.jsonld_blankcount=0;
+  } 
+  */ 
   pp.jsonld_blankprefatom=wg_mkatom(db,mpool,WG_URITYPE,"upref",NULL); 
   pp.jsonld_blanks=wg_mkpair(db,mpool,pp.jsonstruct,NULL);
   pp.jsonld_ctxt=NULL;
@@ -852,11 +856,11 @@ void* wr_preprocess_json_clauselist
         // make a falsehood        
       }
     }   
-    if (wr_is_json_import_clause(db,cl)) {
+    if (wr_is_json_import_clause(db,pp,cl)) {
       // tptp import clause 
       if ((dbmemsegh(db)->convert) && (dbmemsegh(db)->tptp)) {
         // do not import when converting
-        printf("\ninclude('%s').\n",wg_atomstr1(db,wg_nth(db,cl,1)));        
+        printf("\ninclude('%s').\n",wg_atomstr1(db,wg_nth(db,cl,2)));        
       } else {
         wr_process_json_import_clause(g,mpool,cl,clvec);
       }  
@@ -890,15 +894,19 @@ void* wr_preprocess_json_clauselist
   return resultlist;
 }  
 
-// like: ((u:include u:Axioms/SWC001-0.ax))
+// like: {"@include": "Axioms/SWC001-0.ax"}
 
-int wr_is_json_import_clause(void* db, void* cl) {
+int wr_is_json_import_clause(void* db, parse_parm* pp, void* cl) {
   void* fun;
 
-  if (wg_isatom(db,cl)) return 0;
+  if (wg_isatom(db,cl)) return 0;  
+  if (!(wg_ispair(db,cl) && wg_first(db,cl)==(pp->jsonstruct))) return 0;
+  cl=wg_rest(db,cl);
+  if (!wg_ispair(db,cl)) return 0;  
   fun=wg_first(db,cl);
-  if (!wg_islog_uri(db,fun,"include")) return 0;
-  if (wg_list_len(db,cl)!=2) return 0;
+  if (!wg_islog_uri(db,fun,"@include")) return 0;
+  cl=wg_rest(db,cl);
+  if (!wg_ispair(db,cl)) return 0; 
   return 1;
 }
 
@@ -930,7 +938,7 @@ void* wr_process_json_import_clause(glb* g, void* mpool, void* cl, cvec clvec) {
     wr_show_jsparse_error(g,NULL,"no filename given in wr_process_tptp_import_clause\n");
     return NULL;
   }
-  pathatom=wg_nth(db,cl,1);
+  pathatom=wg_nth(db,cl,2);
   envfolder=getenv("TPTP");
 #ifdef IDEBUG
   //printf("\npathatom is\n");
@@ -1570,7 +1578,7 @@ void* wr_process_json_formula_struct(glb* g, parse_parm* pp,
   ctxt=wg_get_keystrval(db,"@context",cl); 
   tmpval=wr_json_extend_context(g,pp,ctxt);  
   if (tmpval<0) return NULL; // error in context
-  if (origid) id=wr_json_mkid(db,mpool,pp,origid,NULL);
+  if (origid) id=wr_json_mkid(g,mpool,pp,origid,NULL);
   foundkey=0;
   if (graph && !origid) {
     // detect if there are keys    
@@ -1610,12 +1618,12 @@ void* wr_process_json_formula_struct(glb* g, parse_parm* pp,
       } 
 #endif       
       if (!id) {               
-        id=wr_json_mkid(db,mpool,pp,origid,NULL);      
+        id=wr_json_mkid(g,mpool,pp,origid,NULL);      
       }        
       extended=wr_add_struct_key_atoms(g,pp,id,keystr,keyval,extended);             
     } else if (!strcmp("@type",keystr)) {
       if (!id) {               
-        id=wr_json_mkid(db,mpool,pp,origid,NULL);      
+        id=wr_json_mkid(g,mpool,pp,origid,NULL);      
       }       
 #ifdef EXPAND_JSONLD_KEYS       
       keyval=wr_json_expand_list_prefixes(g,mpool,pp,keyval,0);      
@@ -1625,7 +1633,7 @@ void* wr_process_json_formula_struct(glb* g, parse_parm* pp,
     } else if (!strcmp("@graph",keystr)) {
       if (origid || foundkey) {
         if (!id) {               
-          id=wr_json_mkid(db,mpool,pp,origid,NULL);      
+          id=wr_json_mkid(g,mpool,pp,origid,NULL);      
         }         
       }        
       for (part=keyval; part!=NULL; part=wg_rest(db,part)) {
@@ -1769,9 +1777,9 @@ void* wr_add_struct_key_atoms(glb* g, parse_parm* pp,
       // nested structure case
       neworigid=wg_get_keystrval(db,"@id",values); 
       if (neworigid) {
-        newid=wr_json_mkid(db,mpool,pp,neworigid,values); //neworigid;         
+        newid=wr_json_mkid(g,mpool,pp,neworigid,values); //neworigid;         
       } else {
-        newid=wr_json_mkid(db,mpool,pp,NULL,NULL);     
+        newid=wr_json_mkid(g,mpool,pp,NULL,NULL);     
         values=wr_add_keyval_jsstruct(g,pp, 
           wg_mkatom(db,mpool,WG_URITYPE,"@id",NULL),
           newid,
@@ -1948,11 +1956,11 @@ void* wr_json_mkid(glb* g, void* mpool, parse_parm* pp, void* givenid, void* map
       }  
     }
   } else {    
-    // NULL givenid, make a new one
+    // NULL givenid, make a new one   
     sprintf(buf,"_:crtd_%d",
       //wg_atomstr1(db,pp->jsonld_blankprefatom),
-      pp->jsonld_blankseed);
-    (pp->jsonld_blankseed)++;
+      (dbmemsegh(db)->parse_json_blankseed));
+    (dbmemsegh(db)->parse_json_blankseed)++;
     res=wg_mkatom(db,mpool,WG_ANONCONSTTYPE,buf,NULL);                 
   }  
   return res;

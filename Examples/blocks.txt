@@ -10,72 +10,75 @@
 %   a   b   d
 %  ------------------------------
 
-holds(on("a","table"),s0).
+holds(on(a,table),s0).
 
-holds(on("b","table"),s0).
+holds(on(b,table),s0).
 
-holds(on("c","d"),s0).
+holds(on(c,d),s0).
 
-holds(on("d","table"),s0).
+holds(on(d,table),s0).
 
-holds(clear("a"),s0).
+holds(clear(a),s0).
 
-holds(clear("b"),s0).
+holds(clear(b),s0).
 
-holds(clear("c"),s0).
+holds(clear(c),s0).
 
 holds(empty,s0).
 
-holds(clear("table"),State).
+holds(clear(table),State).
 
-% ------ difference axioms --------
 
-% special unique proof search speedup axiom 
+% ---- difference of objects -----
 
--$is_unique(X) | -$is_unique(Y) | X=Y | X!=Y.
+    
+differ(X,Y)
+    | -differ(Y,X).
 
-%
-% a full list of difference axioms:
-% commented out, since not needed for the queries below
-%
+differ(a,b).
 
-/*
-"a"!="b".
-"a"!="c".
-"a"!="d".
-"a"!="table".
-"b"!="c".
-"b"!="d".
-"b"!="table".
-"c"!="d".
-"c"!="table".
-"d"!="table".
-*/
+differ(a,c).
+
+differ(a,d).
+
+differ(a,table).
+
+differ(b,c).
+
+differ(b,d).
+
+differ(b,table).
+
+differ(c,d).
+
+differ(c,table).
+
+differ(d,table).
 
 % ----- pickup rules  ------
 
 holds(holding(X),do(pickup(X),State))
     | -holds(empty,State)
     | -holds(clear(X),State)
-    | =(X,"table").
+    | -differ(X,table).
 
 holds(clear(Y),do(pickup(X),State))
     | -holds(on(X,Y),State)
     | -holds(clear(X),State)
     | -holds(empty,State).
 
-% ---- frame axioms for pickup ---
+% --- frame axioms for pickup ----
 %
 % see https://en.wikipedia.org/wiki/Frame_problem
 % 
 
 holds(on(X,Y),do(pickup(Z),State))
     | -holds(on(X,Y),State)
-    | =(X,Z).
+    | -differ(X,Z).
 
 holds(clear(X),do(pickup(Z),State))
     | -holds(clear(X),State)
-    | =(X,Z).
+    | -differ(X,Z).
 
 % ---- putdown rules -----
 
@@ -101,9 +104,9 @@ holds(on(X,Y),do(putdown(Z,W),State))
 
 holds(clear(Z),do(putdown(X,Y),State))
     | -holds(clear(Z),State)
-    | =(Z,Y).
+    | -differ(Z,Y).
 
-% ----- query -----------------
+% ----- query 1 -----------------
 %
 % build a tower:
 %
@@ -114,15 +117,13 @@ holds(clear(Z),do(putdown(X,Y),State))
 % ------------------------------- 
 
 
-cnf(prove,negated_conjecture,
-    -holds(on("b","a"),State) | -holds(on("c","b"),State) | $ans(State)).
- 
+-holds(on(b,a),State) | -holds(on(c,b),State) | $ans(State).
+
 
 % ----- query 2 -----------------
 %
 % this is a harder problem: to try it out,
-% comment out query 1 and
-% uncomment the following
+% comment out query 1 and uncomment the following
 %
 % build a tower:
 %
@@ -133,9 +134,8 @@ cnf(prove,negated_conjecture,
 % -------------------------------
 
 
-
-%cnf(prove,negated_conjecture,
-%    -holds(on("a","d"),State) | -holds(on("b","a"),State) | -holds(on("c","b"),State) | $ans(State)).   
+% cnf(prove,negated_conjecture,
+%   -holds(on(a,d),State) | -holds(on(b,a),State) | -holds(on(c,b),State) | $ans(State)).   
  
  
 % ----- query 3 -----------------
@@ -155,4 +155,5 @@ cnf(prove,negated_conjecture,
 
 
 % cnf(prove,negated_conjecture,
-%   -holds(on("d","c"),State) | -holds(on("a","d"),State) | -holds(on("b","a"),State) | $ans(State)). 
+%   -holds(on(d,c),State) | -holds(on(a,d),State) | -holds(on(b,a),State) | $ans(State)). 
+  

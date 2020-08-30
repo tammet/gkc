@@ -29,10 +29,12 @@
 <!-- Bootstrap core CSS -->
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
 <!-- Custom styles for this template -->
-<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap" rel="stylesheet"> 
-<link href="https://fonts.googleapis.com/css2?family=Inconsolata&display=swap" rel="stylesheet"> 
-<link href="wdb.css" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Mono&family=Inconsolata&family=Roboto:wght@300&display=swap">
+<link rel="stylesheet" href="wdb.css">
 <style>
+html.wf-loading * {
+     opacity: 0;
+ }  
 .result {
   padding: 15px; 
   white-space: pre-wrap;
@@ -50,6 +52,14 @@
   background-color: #cccccc; color: #337ab7; margin-left: 15px;
 }         
 
+.btn-prove {
+  font-family: Arial, Helvetica, sans-serif;
+}
+/*
+.btn-convert {
+  background-color: #337ab7;
+}
+*/
 .btn-file {
   position: relative;
   overflow: hidden;
@@ -115,7 +125,7 @@ function useGkc(el) {
   if (seemsJson(input)) textflag="-jstext";
   else textflag="-text"   
   
-  sel=document.getElementById("conversion_select");
+  sel=document.getElementById("format_select");
   conversion=sel.options[sel.selectedIndex].value;
   if (conversion=="json" || conversion=="tptp") {
     arglist=[textflag,input,"-"+conversion];
@@ -180,11 +190,12 @@ function seemsJson(str) {
     else if (c=='.') periods++;
     else if (c=='%') perc++;
   }
+  console.log(lbrack,lcurl,rbrack,rcurl,quotes,periods);
   if (!lbrack && !lcurl) return 0;
   if (!rbrack && !rcurl) return 0;
   if (!quotes) return 0;
   if (!periods && quotes) return 1;
-  tptpsymbs=2*lcurl+2*rcurl+periods+perc;
+  tptpsymbs=2*lpar+2*rpar+periods+perc;
   jssymbs=lbrack+rbrack+2*lcurl+2*rcurl+2*quotes;
   console.log(jssymbs,tptpsymbs);
   if (jssymbs>tptpsymbs) return 1;
@@ -282,6 +293,7 @@ function selectExample(level) {
     if (html) {
       html=html.replace(new RegExp("&amp;","g"),"&");
       html=html.replace(new RegExp("&gt;","g"),">");
+      html=html.replace(new RegExp("&lt;","g"),"<");
       document.getElementById("gkc_1_input").value=html;
     }
   }
@@ -307,7 +319,7 @@ function selectExample(level) {
 
   html="<div class='click_prove'>Click the Prove button!</div>";
   html="<button onclick='useGkc(this); return false;' ";
-  html+="class='btn btn-small btn-primary'style='width: 70px;''>Prove</button>";
+  html+="class='btn btn-small btn-primary btn-prove'style='width: 70px;''>Prove</button>";
   document.getElementById("result").innerHTML=html;
 }
 
@@ -382,6 +394,7 @@ window.onerror=function(e){
       <ul class="nav navbar-nav">
         <li class="active"><a href="index.html">Solve predicate logic</a></li>        
         <li class="dummy"><a href="propositional.html">Solve propositional logic</a></li>
+        <li class="dummy"><a href="json.html">Json</a></li>
         <!-- <li class="dummy"><a href="predicate.html">Predicate logic</a></li> -->
         <li class="dummy"><a href="download.html">Download</a></li>        
         <li class="dummy"><a href="about.html">About</a></li> 
@@ -399,7 +412,7 @@ window.onerror=function(e){
     
     <!--------------------------- --->
 
-<h2>Solve a predicate logic reasoning task: 
+<h2 style="font-family: 'Roboto',Arial,Helvetica,sans-serif; font-weight: 300; line-height: 1.1;">Solve a predicate logic reasoning task: 
   <button type="button" class="btn btn-default" 
          onclick="gid('syntax').style.display='block'; document.location='#syntax'; "
          style="
@@ -423,8 +436,9 @@ father(pete,mark).
 grandfather(X,Y) => grandson(Y,X).
 
 grandson(X,john) => $ans(X).</textarea>
-        <button onclick="useGkc(this); return false;" class="btn btn-small btn-primary"
+        <button onclick="useGkc(this); return false;" class="btn btn-small btn-primary btn-prove"
         style="width: 70px;">Prove</button>
+        <div style="display: inline-block; width: 50px; text-align: center;">simple</div>
         <select class="form-control" style="width: 110px;" id="select_example"
           onchange="selectExample('simple')">
           <option value="examples">examples</option>
@@ -434,34 +448,40 @@ grandson(X,john) => $ans(X).</textarea>
           <option value="4">or-answers</option>
           <option value="5">more rules</option>
           <option value="6">functions</option>
-          <option value="7">reflexivity</option>
+          <option value="7">equality</option>
           <option value="8">multiple answers</option>
           <option value="9">algebra</option>
           <option value="10">unprovable</option>
           <option value="11">hard</option>
           <option value="12">blocks world</option>      
         </select>
-        &nbsp;or&nbsp;
+        <div style="display: inline-block; width: 62px; text-align: center;">complex</div>
+        <select class="form-control" style="width: 110px;" id="select_advanced_example"
+        onchange="selectExample('advanced')">
+          <option value="examples">examples</option>
+          <option value="13">characters</option>
+          <option value="14">TPTP FOF language</option>
+          <option value="15">simple FOF language</option>
+          <option value="16">strategy</option>
+          <option value="17">arithmetic</option>
+          <option value="18">lists</option>
+          <option value="19">distinct symbols</option>                                
+          <option value="20">natural language 1</option>
+          <option value="21">organization theory</option>
+          <option value="22">boolean algebra</option>
+          <option value="23">natural language 2</option>
+          <option value="24">Dreadbury Mansion</option>            
+          <option value="25">group theory</option>
+        </select>  
+        <div style="display: inline-block; width: 28px; text-align: center;">or</div>
         <span class="btn btn-default btn-file">
         Browse<input type="file" id="files" name="files"  
          value="">
-        </span>    
-        &nbsp;&nbsp;&nbsp;  
-        <button onclick="convert(this); return false;" class="btn btn-small btn-primary"
-        >Convert to</button>
-        <select class="form-control" style="width: 110px;" id="conversion_select">
-          <option value="simple">simple</option>
-          <option value="json">json</option>
-          <option value="tptp">tptp</option>
-          <option value="clauses">simple clauses</option>
-          <option value="clauses_json">json clauses</option>
-          <option value="clauses_tptp">tptp clauses</option>          
-        </select>
-        &nbsp;&nbsp;&nbsp;
+        </span>           
+        <div style="display: inline-block; width: 60px;  margin-left: 10px;"></div>
         <button onclick="clearOutput(this); switchAdvanced(); return false;" 
           class="btn btn-small btn-default"
-        >Advanced</button>           
-        &nbsp;&nbsp;&nbsp;            
+        >Advanced</button>                          
         <button onclick="clearOutput(this); return false;" class="btn btn-small btn-default"
         >Clear result</button>
         <button onclick="clearInput(this); return false;" class="btn btn-small btn-default"
@@ -471,25 +491,12 @@ grandson(X,john) => $ans(X).</textarea>
            width: 30px; height: 30px; text-align: center; padding: 6px 0;  font-size: 12px;
            line-height: 1.42; border-radius: 15px; 
            background-color: #cccccc; color: #337ab7; margin-left: 15px;">?</button>
-        </a> 
-        
-        <div id="advanced_buttons" style="padding-top: 15px; display: none;">
-          <div style="display: inline-block; width: 70px;">Advanced</div>
-          <select class="form-control" style="width: 110px;" id="select_advanced_example"
-            onchange="selectExample('advanced')">
-            <option value="examples">examples</option>
-            <option value="13">characters</option>
-            <option value="14">TPTP FOF language</option>
-            <option value="15">simple FOF language</option>
-            <option value="16">strategy</option>
-            <option value="17">arithmetic</option>
-            <option value="18">lists</option>
-            <option value="19">distinct symbols</option>                                
-          </select>  
-          <div style="display: inline-block; width: 70px;  margin-left: 15px;">Seconds</div>
-          <input type="text" id="seconds" value="5" style="width: 50px"></input>
-          <div style="display: inline-block; width: 70px;  margin-left: 15px;">Print level</div>
-          <select class="form-control" style="width: 135px;" id="print_level">
+        </a>         
+        <div id="advanced_buttons" style="padding-top: 15px; display: none;">                    
+          <div style="display: inline-block; width: 62px; text-align: center;">Seconds</div>
+          <input type="text" class="form-control" id="seconds" value="5" style="width: 50px"></input>
+          <div style="display: inline-block; width: 65px; text-align: center;">print level</div>
+          <select class="form-control" style="width: 125px;" id="print_level">
             <option value="10">minimal</option>
             <option value="11">+ strategy</option>
             <option value="12">+ runs</option>
@@ -497,18 +504,35 @@ grandson(X,john) => $ans(X).</textarea>
             <option value="20">+ given</option>
             <option value="40">+ derived</option>
             <option value="50">+ details</option>                       
-            <option value="60">+ data structures</option> 
+            <option value="60">+ datastructures</option> 
           </select>
-          <div style="display: inline-block; width: 100px;  margin-left: 15px;">Show&nbsp;derived</div>
-          <select class="form-control" style="width: 110px;" id="print_derived">
+          <div style="display: inline-block; width: 50px; text-align: center;">format</div>
+          <select class="form-control" style="width: 90px;" id="format_select">
+            <option value="simple">simple</option>
+            <option value="json">json</option>
+            <option value="tptp">tptp</option>                  
+          </select> 
+          <div style="display: inline-block; width: 85px; text-align: center;">show&nbsp;derived</div>
+          <select class="form-control" style="width: 65px;" id="print_derived">
             <option value="off">off</option>
             <option value="on">on</option>                                  
+          </select>
+          <div style="display: inline-block; width: 68px; text-align: center;"></div>  
+          <button onclick="convert(this); return false;" class="btn btn-small btn-default btn-convert"
+          >Convert to</button>
+          <select class="form-control" style="width: 103px;" id="conversion_select">
+            <option value="simple">json</option>
+            <option value="json">tptp</option>
+            <option value="tptp">simple</option>
+            <option value="clauses">clauses</option>
+            <option value="clauses_json">json clauses</option>
+            <option value="clauses_tptp">tptp clauses</option>          
           </select>
           <a href="#solveModal" data-toggle="modal" class="qlink">
             <button type="button" class="btn btn-default" style=" 
              width: 30px; height: 30px; text-align: center; padding: 6px 0;  font-size: 12px;
              line-height: 1.42; border-radius: 15px; 
-             background-color: #cccccc; color: #337ab7; margin-left: 15px;">?</button></a>
+             background-color: #cccccc; color: #337ab7; margin-left: 12px;">?</button></a>
           <p>              
           <textarea class="form-control" id="strategy" spellcheck="false"
            style="height: 100px; width:100%; margin-bottom: 20px; margin-top: 15px;"
@@ -989,7 +1013,7 @@ known and partially unknown.</p>
 </div>
 
 
-<div id="example_7_input_notes"><h3>Example 7 for reflexivity</h3>
+<div id="example_7_input_notes"><h3>Example 7 for equality</h3>
 Here we directly ask for a father of a father of John.
 </div>
 
@@ -1004,7 +1028,9 @@ grandfather(father(father(X)),X).
 father(father(john)) != X | $ans(X).</code></pre>
 
 <div id="example_7_proof_notes">
-<p>Here the proof uses the reflexivity rule <code>r=</code> which is basically the
+<p>The proof first rewrites the clause 1 with equality clauses 2 and 3 in
+the <code>[simp, 1, 2, 3]</code> step. Next it
+uses the reflexivity rule <code>r=</code> which is basically the
 standard property of equality: <code>X=X</code>.</p>
 </div>
 
@@ -1040,10 +1066,8 @@ father(john) = pete.
 father(mike) = pete.
 mother(john) = eve.
 mother(mike) = eve.
-
 father(pete) = mark.
 mother(eve) = mary.
-
 grandfather(father(father(X)),X).
 grandfather(father(mother(X)),X).
 
@@ -1169,10 +1193,19 @@ is a classic family of toy problems: there is a robot arm
 able to lift single blocks and to put them on top of other blocks.</p>
 
 <p>The goal is to find a sequence of robot arm movements to produce
-a required configuration of blocks: for example, a tower.</p>
+a required configuration of blocks: for example, a tower. The comments
+in the problem text explain the initial situation and the arm movement
+rules.
+</p>
 
 <p>Without a specialized search strategy these planning problems
 tend to be surprisingly hard for provers, including gkc.</p>
+<p>
+While the question posed is simple, there are two harder
+example questions at the end of the problem: comment the
+current one out and remove comments from one of the alternative
+questions. Increase the time limit in the <i>Advanced</i> section
+box of <i>Seconds</i>.
 </div>
 <pre><code id="example_12_input_code">% -----------------------------------
 %
@@ -1316,29 +1349,6 @@ holds(clear(Z),do(putdown(X,Y),State))
 %   -holds(on(d,c),State) | -holds(on(a,d),State) | -holds(on(b,a),State) | $ans(State)). 
 </code></pre>
 
-<!--
-<div id="example_14_input_notes"><h3>Example 14 for</h3>
-intro 14 
-</div>
-<pre>
-<code id="example_14_input_code">code 14
-</code>
-</pre>
-<div id="example_14_proof_notes">
-note 14
-</div>
-
-<div id="example_14_input_notes"><h3>Example 14 for</h3>
-intro 14 
-</div>
-<pre>
-<code id="example_14_input_code">code 14
-</code>
-</pre>
-<div id="example_14_proof_notes">
-note 14
-</div>
--->
 
 <div id="example_13_input_notes"><h3>Example 13 for various characters</h3>
 
@@ -1461,8 +1471,7 @@ algorithm for creating such clauses is nontrivial, sometimes involving mini-scop
 definitions (new predicates) to make the size and number of generated clauses smaller.</p>
 
 </div>
-<pre><code id="example_14_input_code">
-fof(pel47_1_1,axiom,
+<pre><code id="example_14_input_code">fof(pel47_1_1,axiom,
   ( ! [X] :
       ( wolf(X)
       => animal(X) ) )).
@@ -1657,29 +1666,17 @@ assumption likely to be used in the proof:</p>
 </code></pre>
 
 </div>
-<pre><code id="example_15_input_code">
-! [X] : ( wolf(X) => animal(X) ).
-
+<pre><code id="example_15_input_code">! [X] : ( wolf(X) => animal(X) ).
 ? [X1] : wolf(X1).
-
 ! [X] :  ( fox(X) => animal(X) ).
-
 ? [X1] : fox(X1).
-
 ! [X] :  ( bird(X) => animal(X) ).
-
 ? [X1] : bird(X1).
-
 ! [X] :  ( caterpillar(X) => animal(X) ).
-
 ? [X1] : caterpillar(X1).
-
 ! [X] : ( snail(X) => animal(X) ).
-
 ? [X1] : snail(X1).
-
 ? [X] : grain(X).
-
 ! [X1] : ( grain(X1) => plant(X1) ).
 
 ! [X] :
@@ -1855,14 +1852,12 @@ you can give it the following search strategy to find the proof very quickly:
 
 </div>
 <pre>
-<code id="example_16_input_code">
-% File     : SWV237+1 : TPTP v7.3.0. Released v3.2.0.
+<code id="example_16_input_code">% File     : SWV237+1 : TPTP v7.3.0. Released v3.2.0.
 % Domain   : Software Verification (Security)
 % Problem  : Visa Security Module (VSM) attack
 % Version  : Especial.
 % English  : This models the API of the Visa Security Module (VSM). The
 %            conjecture allows the discovery of Bond's attack.
-
 % Refs     : [BA01]  Bond & Anderson (2001), API-Level Attacks on Embedded
 %          : [Ste06] Steel (2006), Email to G. Sutcliffe
 
@@ -1990,8 +1985,7 @@ fof(intruder_knows_8,axiom,(
 
 %----Goal for the attacker is to make a PIN (enc(pp,a))
 fof(co1,conjecture,(
-    p(enc(pp,a)) )).
-    
+    p(enc(pp,a)) )).    
 </code>
 </pre>
 <div id="example_16_proof_notes"></div>
@@ -2075,75 +2069,1204 @@ apply for the prefix form.
 
 
 
-<div id="example_18_input_notes"><h3>Example 18 for lists for</h3>
-intro 18 
+<div id="example_18_input_notes"><h3>Example 18 for lists</h3>
+<p>
+Gkc has basic support for the <i>list datatype</i>. You can use the list
+syntax like <code>[]</code> for the empty list and <code>[a,b,c]</code>
+for a three-element list. The bracket notation is syntactic sugar for
+the constant <code>$nil</code> and functional list-constructing term 
+<code>$list(a,$list(b,$list(c,$nil)))</code>, respectively.
+<p>
+Observe that <code>$list(X0,X1)</code> in the example 
+constucts a list by prepending <code>X0</code> to the list <code>X1</code>,
+which is generally different from a two-element list <code>[X0,X1]</code>.
+<p>
+Terms constructed using <code>$list</code> or <code>$nil</code> are interpreted as having a 
+<i>list type</i>:
+<ul>
+<li>A <i>list type object</i> is inequal to any number or a distinct symbol.
+<li>Syntactically different <i>list type objects</i> A and B are unequal if at any position the corresponding
+elements of A and B are unequal typed values: numbers, lists or distinct symbols.  
+</ul>
+The following predicate and two functions are defined on lists:
+<ul>
+<li><code>$is_list(L)</code>  evaluates to <i>true</i> if A is a list and <i>false</i> is A 
+  is a number or a distinct symbol.
+<li><code>$first(L)</code>  returns the first element of the list.
+<li><code>$rest(L)</code>  returns the rest of the list, i.e. the result of removing the first element.
+</ul>
+These functions can be applied to non-list arguments, where they are left as is and not 
+evaluated.
+<p>
+Observe that since gkc does not contain a theory of arithmetic, lists or strings,
+an example formula <code>? X: $is_list(X)</code> is not provable
+unless you specifically axiomatize list generation.
+<p>
+The current example defines functions for counting the length of the list and summing
+the numeric elements. Then it uses these functions in a rule for deriving a <code>goodcompany</code> 
+type as an object with at least three customers and revenues over 100. Finally we ask to find an
+object with the <code>goodcompany</code> type.
+</p>
 </div>
 <pre>
-<code id="example_18_input_code">code 18
-</code>
+<code id="example_18_input_code">clients(company1,[a]).
+revenues(company1,[100,20,50,60]).
+clients(company2,[a,b,c]).
+revenues(company2,[10,20,50,60]).
+listcount([])=0.
+listcount($list(X0,X1))=listcount(X1)+1.
+listsum([])=0.
+listsum($list(X0,X1))=listsum(X1)+X0.
+(clients(X0,X1) & revenues(X0,X2) & $greater(listcount(X1),2) & $greater(listsum(X2),100)) => type(X0,goodcompany).
+type(X0,goodcompany) =>  $ans(X0).</code>
 </pre>
 <div id="example_18_proof_notes">
-note 18
 </div>
 
 
 <div id="example_19_input_notes"><h3>Example 19 for distinct symbols</h3>
-  intro 19 
-  </div>
-  <pre>
-  <code id="example_19_input_code">code 19
-  </code>
-  </pre>
-  <div id="example_19_proof_notes">
-  note 19
-  </div>  
-
-<p>However, for the last example one can construct a number-generating
-clause set - which essentially forces the creation of numeric 
-instances - like this:</p>
-
-<pre><code>-p(5).
-n(0).
--n(X) | n(1+X).
--n(X) | p(2+X).
-</code></pre>
-
-<p>leading to a proof</p>
-
-<pre><code>1: [in, axiom] n(+(1,X)) | -n(X).
-2: [in, axiom] n(0).
-3: [mp, 1.1, 2, fromaxiom] n(1).
-4: [mp, 3, 1.1, fromaxiom] n(2).
-5: [mp, 4, 1.1, fromaxiom] n(3).
-6: [in, axiom] p(+(2,X)) | -n(X).
-7: [in, axiom] -p(5).
-8: [mp, 5, 6.1, 7, fromaxiom] false
-</code></pre>
-
-<h3>Large theory batch files</h3>
-
-<p>Gkc is capable of time-efficiently handling a special format of 
-packaging a large number of proof tasks into a single batch run file.
-These pages contain a description of the format and specific requirements: </p>
-
-<ul>
-<li><a href="http://www.tptp.org/CASC/J10/Design.html#Problems">CASC J10 design: Problems</a></li>
-<li><a href="http://www.tptp.org/CASC/J10/Design.html#SystemProperties">CASC J10 design: System properties</a></li>
-</ul>
-
-<p>In order to try out a simple example, there is <a href="largebatch.txt">largebatch.txt</a> file:</p>
-
-<pre><code>mkdir out
-./gkc largebatch.txt out
-</code></pre>
-
-<p>Here gkc determines automatically that the largebatch.txt
-has a specific format and should be handled as a batch of
-problems, with output files put into the out folder.</p>
-
-<p>This capability is only available under UNIX.</p>
+<p>
+Gkc follows the TPTP syntax of using <i>double quotes</i> like in <code>"person"</code>
+for <i>distinct symbols</i>
+which can be viewed as a <i>string type</i>. A distinct symbol is not equal to any 
+other syntactically different symbol and not equal to any numbers or lists.
+</p>
+<p>
+Gkc defines a function and three predicates on distinct symbols:
+<ul>  
+<li><code>$strlen(S)</code> returns the integer length of a distinct symbol S as a string.
+<li><code>$substr(A,B)</code> evaluates to <i>true</i> if a distinct symbol A is a substring of a distinct symbol B, 
+     and <i>false</i> otherwise, provided that A and B are distinct symbols.  
+<li><code>$substrat(A,B,C)</code> evaluates to <i>true</i> if a distinct symbol A is a substring of a 
+     distinct symbol B exactly at the integer position C (starting from 0), and <i>false</i> otherwise,
+     provided that A and B are distinct symbols and C is an integer.  
+<li><code>$is_distinct(A)</code> evaluates to <i>true</i> if A is a distinct symbol and 
+  <i>false</i> if A is a number or a list.  
+</ul>  
+<p>
+In the current example of using distinct symbols we define a rule saying that whenever sets of type values
+of two objects contain different distinct elements, these objects must be different. Notice that ordinary
+symbols <code>smith1</code> and <code>smith2</code> could be equal or unequal: syntactic difference of ordinary symbols does not
+guarantee that they stand for different objects.
 
 </div>
+  <pre>
+  <code id="example_19_input_code">type(smith1,"person").
+type(smith1,baby).
+type(smith1,'John Smith').
+type(smith2,"dog").
+type(smith2,newborn).
+type(smith2,name,'John Smith').
+(type(X0,X2) & type(X1,X3) & X2!=X3) => X0!=X1.
+smith1=smith2.</code>
+  </pre>
+  <div id="example_19_proof_notes">
+Finding this last proof is, in a sense, nontrivial. Since gkc does not specify any axioms 
+for distinct symbols, by default there are also no inequality axioms between distinct symbols
+like <code>"person"!="dog"</code>. Finding a proof without these axioms requires that the
+search strategy happens to generate evaluable literals like <code>"person"="dog"</code> in 
+derived clauses. This may actually happen for some search strategies, but not for others.
+  </div>  
+
+
+<div id="example_20_input_notes"><h3>Example 20 from natural language</h3>
+  This is a nice relatively simple TPTP example from natural language 
+  processing area: eliminating inconsistent interpretations in the statement
+  "An old dirty white chevy barrels down a lonely street in
+  hollywood. Two young fellas are in the front seat."
+  <p>
+  </div>
+  <pre>
+  <code id="example_20_input_code">% File     : NLP147+1 : TPTP v7.4.0. Released v2.4.0.
+% Domain   : Natural Language Processing
+% Problem  : An old dirty white Chevy, problem 34
+% Version  : [Bos00b] axioms.
+% English  : Eliminating inconsistent interpretations in the statement
+%            "An old dirty white chevy barrels down a lonely street in
+%            hollywood. Two young fellas are in the front seat."
+% Refs     : [Bos00a] Bos (2000), DORIS: Discourse Oriented Representation a
+%            [Bos00b] Bos (2000), Applied Theorem Proving - Natural Language
+% Source   : [Bos00b]
+
+fof(ax1,axiom,
+    ( ! [U,V] :
+        ( furniture(U,V)
+        => instrumentality(U,V) ) )).
+
+fof(ax2,axiom,
+    ( ! [U,V] :
+        ( seat(U,V)
+        => furniture(U,V) ) )).
+
+fof(ax3,axiom,
+    ( ! [U,V] :
+        ( frontseat(U,V)
+        => seat(U,V) ) )).
+
+fof(ax4,axiom,
+    ( ! [U,V] :
+        ( location(U,V)
+        => object(U,V) ) )).
+
+fof(ax5,axiom,
+    ( ! [U,V] :
+        ( city(U,V)
+        => location(U,V) ) )).
+
+fof(ax6,axiom,
+    ( ! [U,V] :
+        ( hollywood_placename(U,V)
+        => placename(U,V) ) )).
+
+fof(ax7,axiom,
+    ( ! [U,V] :
+        ( abstraction(U,V)
+        => unisex(U,V) ) )).
+
+fof(ax8,axiom,
+    ( ! [U,V] :
+        ( abstraction(U,V)
+        => general(U,V) ) )).
+
+fof(ax9,axiom,
+    ( ! [U,V] :
+        ( abstraction(U,V)
+        => nonhuman(U,V) ) )).
+
+fof(ax10,axiom,
+    ( ! [U,V] :
+        ( abstraction(U,V)
+        => thing(U,V) ) )).
+
+fof(ax11,axiom,
+    ( ! [U,V] :
+        ( relation(U,V)
+        => abstraction(U,V) ) )).
+
+fof(ax12,axiom,
+    ( ! [U,V] :
+        ( relname(U,V)
+        => relation(U,V) ) )).
+
+fof(ax13,axiom,
+    ( ! [U,V] :
+        ( placename(U,V)
+        => relname(U,V) ) )).
+
+fof(ax14,axiom,
+    ( ! [U,V] :
+        ( way(U,V)
+        => artifact(U,V) ) )).
+
+fof(ax15,axiom,
+    ( ! [U,V] :
+        ( street(U,V)
+        => way(U,V) ) )).
+
+fof(ax16,axiom,
+    ( ! [U,V] :
+        ( object(U,V)
+        => unisex(U,V) ) )).
+
+fof(ax17,axiom,
+    ( ! [U,V] :
+        ( object(U,V)
+        => impartial(U,V) ) )).
+
+fof(ax18,axiom,
+    ( ! [U,V] :
+        ( object(U,V)
+        => nonliving(U,V) ) )).
+
+fof(ax19,axiom,
+    ( ! [U,V] :
+        ( object(U,V)
+        => entity(U,V) ) )).
+
+fof(ax20,axiom,
+    ( ! [U,V] :
+        ( artifact(U,V)
+        => object(U,V) ) )).
+
+fof(ax21,axiom,
+    ( ! [U,V] :
+        ( instrumentality(U,V)
+        => artifact(U,V) ) )).
+
+fof(ax22,axiom,
+    ( ! [U,V] :
+        ( transport(U,V)
+        => instrumentality(U,V) ) )).
+
+fof(ax23,axiom,
+    ( ! [U,V] :
+        ( vehicle(U,V)
+        => transport(U,V) ) )).
+
+fof(ax24,axiom,
+    ( ! [U,V] :
+        ( car(U,V)
+        => vehicle(U,V) ) )).
+
+fof(ax25,axiom,
+    ( ! [U,V] :
+        ( chevy(U,V)
+        => car(U,V) ) )).
+
+fof(ax26,axiom,
+    ( ! [U,V] :
+        ( barrel(U,V)
+        => event(U,V) ) )).
+
+fof(ax27,axiom,
+    ( ! [U,V] :
+        ( event(U,V)
+        => eventuality(U,V) ) )).
+
+fof(ax28,axiom,
+    ( ! [U,V] :
+        ( state(U,V)
+        => event(U,V) ) )).
+
+fof(ax29,axiom,
+    ( ! [U,V] :
+        ( eventuality(U,V)
+        => unisex(U,V) ) )).
+
+fof(ax30,axiom,
+    ( ! [U,V] :
+        ( eventuality(U,V)
+        => nonexistent(U,V) ) )).
+
+fof(ax31,axiom,
+    ( ! [U,V] :
+        ( eventuality(U,V)
+        => specific(U,V) ) )).
+
+fof(ax32,axiom,
+    ( ! [U,V] :
+        ( eventuality(U,V)
+        => thing(U,V) ) )).
+
+fof(ax33,axiom,
+    ( ! [U,V] :
+        ( state(U,V)
+        => eventuality(U,V) ) )).
+
+fof(ax34,axiom,
+    ( ! [U,V] :
+        ( two(U,V)
+        => group(U,V) ) )).
+
+fof(ax35,axiom,
+    ( ! [U,V] :
+        ( set(U,V)
+        => multiple(U,V) ) )).
+
+fof(ax36,axiom,
+    ( ! [U,V] :
+        ( group(U,V)
+        => set(U,V) ) )).
+
+fof(ax37,axiom,
+    ( ! [U,V] :
+        ( man(U,V)
+        => male(U,V) ) )).
+
+fof(ax38,axiom,
+    ( ! [U,V] :
+        ( human_person(U,V)
+        => animate(U,V) ) )).
+
+fof(ax39,axiom,
+    ( ! [U,V] :
+        ( human_person(U,V)
+        => human(U,V) ) )).
+
+fof(ax40,axiom,
+    ( ! [U,V] :
+        ( organism(U,V)
+        => living(U,V) ) )).
+
+fof(ax41,axiom,
+    ( ! [U,V] :
+        ( organism(U,V)
+        => impartial(U,V) ) )).
+
+fof(ax42,axiom,
+    ( ! [U,V] :
+        ( entity(U,V)
+        => existent(U,V) ) )).
+
+fof(ax43,axiom,
+    ( ! [U,V] :
+        ( entity(U,V)
+        => specific(U,V) ) )).
+
+fof(ax44,axiom,
+    ( ! [U,V] :
+        ( thing(U,V)
+        => singleton(U,V) ) )).
+
+fof(ax45,axiom,
+    ( ! [U,V] :
+        ( entity(U,V)
+        => thing(U,V) ) )).
+
+fof(ax46,axiom,
+    ( ! [U,V] :
+        ( organism(U,V)
+        => entity(U,V) ) )).
+
+fof(ax47,axiom,
+    ( ! [U,V] :
+        ( human_person(U,V)
+        => organism(U,V) ) )).
+
+fof(ax48,axiom,
+    ( ! [U,V] :
+        ( man(U,V)
+        => human_person(U,V) ) )).
+
+fof(ax49,axiom,
+    ( ! [U,V] :
+        ( fellow(U,V)
+        => man(U,V) ) )).
+
+fof(ax50,axiom,
+    ( ! [U,V] :
+        ( animate(U,V)
+        => ~ nonliving(U,V) ) )).
+
+fof(ax51,axiom,
+    ( ! [U,V] :
+        ( existent(U,V)
+        => ~ nonexistent(U,V) ) )).
+
+fof(ax52,axiom,
+    ( ! [U,V] :
+        ( nonhuman(U,V)
+        => ~ human(U,V) ) )).
+
+fof(ax53,axiom,
+    ( ! [U,V] :
+        ( nonliving(U,V)
+        => ~ living(U,V) ) )).
+
+fof(ax54,axiom,
+    ( ! [U,V] :
+        ( singleton(U,V)
+        => ~ multiple(U,V) ) )).
+
+fof(ax55,axiom,
+    ( ! [U,V] :
+        ( specific(U,V)
+        => ~ general(U,V) ) )).
+
+fof(ax56,axiom,
+    ( ! [U,V] :
+        ( unisex(U,V)
+        => ~ male(U,V) ) )).
+
+fof(ax57,axiom,
+    ( ! [U,V] :
+        ( young(U,V)
+        => ~ old(U,V) ) )).
+
+fof(ax58,axiom,
+    ( ! [U,V,W] :
+        ( ( entity(U,V)
+          & placename(U,W)
+          & of(U,W,V) )
+        => ~ ( ? [X] :
+                ( placename(U,X)
+                & X != W
+                & of(U,X,V) ) ) ) )).
+
+fof(ax59,axiom,
+    ( ! [U,V,W,X] :
+        ( be(U,V,W,X)
+        => W = X ) )).
+
+fof(ax60,axiom,
+    ( ! [U,V] :
+        ( two(U,V)
+      <=> ? [W] :
+            ( member(U,W,V)
+            & ? [X] :
+                ( member(U,X,V)
+                & X != W
+                & ! [Y] :
+                    ( member(U,Y,V)
+                    => ( Y = X
+                      | Y = W ) ) ) ) ) )).
+
+fof(ax61,axiom,
+    ( ! [U] : ~ ( ? [V] : member(U,V,V) ) )).
+
+fof(co1,conjecture,
+    ( ~ ( ? [U] :
+            ( actual_world(U)
+            & ? [V,W,X,Y,Z] :
+                ( street(U,V)
+                & lonely(U,V)
+                & of(U,W,X)
+                & city(U,X)
+                & hollywood_placename(U,W)
+                & placename(U,W)
+                & chevy(U,X)
+                & white(U,X)
+                & dirty(U,X)
+                & old(U,X)
+                & event(U,Y)
+                & agent(U,Y,X)
+                & present(U,Y)
+                & barrel(U,Y)
+                & down(U,Y,V)
+                & in(U,Y,X)
+                & ! [X1] :
+                    ( member(U,X1,Z)
+                    => ? [X2,X3] :
+                        ( frontseat(U,X3)
+                        & state(U,X2)
+                        & be(U,X2,X1,X3)
+                        & in(U,X3,X3) ) )
+                & two(U,Z)
+                & group(U,Z)
+                & ! [X4] :
+                    ( member(U,X4,Z)
+                    => ( fellow(U,X4)
+                      & young(U,X4) ) ) ) ) ) )).
+</code></pre>      
+<div id="example_20_proof_notes"></div>
+
+<div id="example_21_input_notes"><h3>Example 21 from organization theory</h3>
+A TPTP example from organization theory: the 
+long-run hazard of mortality for an endowed organization with
+either a fragile or a robust position in a drifting environment
+exceeds the hazard near founding.
+<p>
+</div>
+<pre>
+<code id="example_21_input_code">% File     : MGT065+1 : TPTP v7.3.0. Released v2.4.0.
+% Domain   : Management (Organisation Theory)
+% Problem  : Long-run hazard of mortality
+% Version  : [Han98] axioms.
+% English  : The long-run hazard of mortality for an endowed organization with
+%            either a fragile or a robust position in a drifting environment
+%            exceeds the hazard near founding.
+% Refs     : [Kam00] Kamps (2000), Email to G. Sutcliffe
+%            [CH00]  Carroll & Hannan (2000), The Demography of Corporation
+%            [Han98] Hannan (1998), Rethinking Age Dependence in Organizati
+
+% --- Axioms ---
+
+fof(meaning_postulate_greater_transitive,axiom,(
+    ! [X,Y,Z] :
+      ( greater(X,Z)
+      <= ( greater(Y,Z)
+        & greater(X,Y) ) ) )).
+
+fof(definition_smaller,axiom,(
+    ! [X,Y] :
+      ( greater(Y,X)
+    <=> smaller(X,Y) ) )).
+
+fof(meaning_postulate_greater_strict,axiom,(
+    ! [X,Y] :
+      ~ ( greater(X,Y)
+        & greater(Y,X) ) )).
+
+fof(definition_greater_or_equal,axiom,(
+    ! [X,Y] :
+      ( ( greater(X,Y)
+        | X = Y )
+    <=> greater_or_equal(X,Y) ) )).
+
+fof(definition_smaller_or_equal,axiom,(
+    ! [X,Y] :
+      ( smaller_or_equal(X,Y)
+    <=> ( Y = X
+        | smaller(X,Y) ) ) )).
+
+fof(meaning_postulate_greater_comparable,axiom,(
+    ! [X,Y] :
+      ( X = Y
+      | greater(X,Y)
+      | smaller(X,Y) ) )).
+
+% --- Problem ---
+
+%----Problem Axioms
+%----An endowment provides an immunity that lasts until an
+%----organization's age exceeds `eta'.
+fof(definition_1,axiom,
+    ( ! [X] :
+        ( has_endowment(X)
+      <=> ! [T] :
+            ( organization(X)
+            & ( smaller_or_equal(age(X,T),eta)
+              => has_immunity(X,T) )
+            & ( greater(age(X,T),eta)
+              => ~ has_immunity(X,T) ) ) ) )).
+
+%----Two states of the environment are dissimilar for an organization
+%----if and only if the organization cannot be aligned to both.
+%----
+%----Added quantification over X.
+fof(definition_2,axiom,
+    ( ! [X,T0,T] :
+        ( dissimilar(X,T0,T)
+      <=> ( organization(X)
+          & ~ ( is_aligned(X,T0)
+            <=> is_aligned(X,T) ) ) ) )).
+
+%----An organization is aligned with the state of the environment at
+%----its time of founding.
+fof(assumption_13,axiom,
+    ( ! [X,T] :
+        ( ( organization(X)
+          & age(X,T) = zero )
+        => is_aligned(X,T) ) )).
+
+%----Environmental drift: the environments at times separated by more
+%----than `sigma' are dissimilar.
+fof(assumption_15,axiom,
+    ( ! [X,T0,T] :
+        ( ( organization(X)
+          & age(X,T0) = zero )
+        => ( greater(age(X,T),sigma)
+        <=> dissimilar(X,T0,T) ) ) )).
+        
+%----An organization's immunity. alignment of capability with the
+%----current state of the environment and positional advantage jointly
+%----affect the hazard of mortality with the following ordinal scaling:
+fof(assumption_17,axiom,
+    ( ! [X,T] :
+        ( organization(X)
+        => ( ( has_immunity(X,T)
+            => hazard_of_mortality(X,T) = very_low )
+          & ( ~ has_immunity(X,T)
+            => ( ( ( is_aligned(X,T)
+                  & positional_advantage(X,T) )
+                => hazard_of_mortality(X,T) = low )
+              & ( ( ~ is_aligned(X,T)
+                  & positional_advantage(X,T) )
+                => hazard_of_mortality(X,T) = mod1 )
+              & ( ( is_aligned(X,T)
+                  & ~ positional_advantage(X,T) )
+                => hazard_of_mortality(X,T) = mod2 )
+              & ( ( ~ is_aligned(X,T)
+                  & ~ positional_advantage(X,T) )
+                => hazard_of_mortality(X,T) = high ) ) ) ) ) )).
+
+%----The levels of hazard of mortality are ordered:
+%----
+%----Split over 5 separate formulas because TPTP gives an error on top
+%----level occurrences of `&'.
+fof(assumption_18a,axiom,
+    ( greater(high,mod1) )).
+
+fof(assumption_18b,axiom,
+    ( greater(mod1,low) )).
+
+fof(assumption_18c,axiom,
+    ( greater(low,very_low) )).
+
+fof(assumption_18d,axiom,
+    ( greater(high,mod2) )).
+
+fof(assumption_18e,axiom,
+    ( greater(mod2,low) )).
+
+%----Problem theorems
+%----The long-run hazard of mortality for an endowed organization with
+%----either a fragile or a robust position in a drifting environment
+%----exceeds the hazard near founding.
+%----From D1, D2, A13, A15, A17, A18 (text says D1,2,4 and A1,2,13-15,17-19;
+%----also needs D<, D<=, MP>str, MP>com, MP>tra).
+%----
+%----Expanding (age(X,T1) <= min(eta,sigma,tau)) and
+%----expanding (age(X,T1) > max(eta,sigma,tau));
+%----Text says RB(x) & FG(x) which contradicts lemma 10; changed to |.
+%----added (hazard_of_mortality(X,T1) = hazard_of_mortality(X,T0)).
+
+fof(theorem_11,conjecture,
+    ( ! [X,T0,T1,T2] :
+        ( ( organization(X)
+          & ( robust_position(X)
+            | fragile_position(X) )
+          & has_endowment(X)
+          & age(X,T0) = zero
+          & greater(sigma,zero)
+          & greater(tau,zero)
+          & greater(eta,zero)
+          & smaller_or_equal(age(X,T1),sigma)
+          & smaller_or_equal(age(X,T1),tau)
+          & smaller_or_equal(age(X,T1),eta)
+          & greater(age(X,T2),sigma)
+          & greater(age(X,T2),tau)
+          & greater(age(X,T2),eta) )
+        => ( greater(hazard_of_mortality(X,T2),hazard_of_mortality(X,T1))
+          & hazard_of_mortality(X,T1) = hazard_of_mortality(X,T0) ) ) )).
+</code>
+</pre>
+<div id="example_21_proof_notes"></div>
+
+
+<div id="example_22_input_notes"><h3>Example 22 from boolean algebra</h3>
+  <p>
+  An pure equational example from the TPTP Boolean Algebra domain:
+  a part of a proof that there exists an independent self-dual
+  2-basis for Boolean Algebra.  
+  <p>
+  You may need to increase the time limit in the <i>Seconds</i> box
+  to find the proof.  
+  <p>
+  </div>
+  <pre>
+  <code id="example_22_input_code">% File     : BOO026-1 : TPTP v7.4.0. Released v2.2.0.
+% Domain   : Boolean Algebra
+% Problem  : Absorption from self-dual independent 2-basis
+% Version  : [MP96] (eqiality) axioms : Especial.
+% English  : This is part of a proof that there exists an independent self-dual
+%            2-basis for Boolean Algebra.  You may note that the basis
+%            below has more than 2 equations; but don't worry, it can be
+%            reduced to 2 (large) equations by Pixley reduction.
+% Refs     : [Wos98] Wos (1998), Automating the Search for Elegant Proofs
+%          : [McC98] McCune (1998), Email to G. Sutcliffe
+%          : [MP96]  McCune & Padmanabhan (1996), Automated Deduction in Eq
+% Source   : [McC98]
+% Names    : DUAL-BA-3 [MP96]
+%          : DUAL-BA-3 [Wos98]
+
+%----Two Boolean algebra properties and their duals:
+cnf(multiply_add_property,axiom,
+    ( multiply(X,add(Y,Z)) = add(multiply(Y,X),multiply(Z,X)) )).
+
+cnf(additive_inverse,axiom,
+    ( add(X,inverse(X)) = n1 )).
+
+cnf(add_multiply_property,axiom,
+    ( add(X,multiply(Y,Z)) = multiply(add(Y,X),add(Z,X)) )).
+
+cnf(multiplicative_inverse,axiom,
+    ( multiply(X,inverse(X)) = n0 )).
+
+%----Expanded Pixley properties and their duals:
+cnf(pixley1,axiom,
+    ( add(multiply(X,inverse(X)),add(multiply(X,Y),multiply(inverse(X),Y))) = Y )).
+
+cnf(pixley2,axiom,
+    ( add(multiply(X,inverse(Y)),add(multiply(X,Y),multiply(inverse(Y),Y))) = X )).
+
+cnf(pixley3,axiom,
+    ( add(multiply(X,inverse(Y)),add(multiply(X,X),multiply(inverse(Y),X))) = X )).
+
+cnf(pixley1_dual,axiom,
+    ( multiply(add(X,inverse(X)),multiply(add(X,Y),add(inverse(X),Y))) = Y )).
+
+cnf(pixley2_dual,axiom,
+    ( multiply(add(X,inverse(Y)),multiply(add(X,Y),add(inverse(Y),Y))) = X )).
+
+cnf(pixley3_dual,axiom,
+    ( multiply(add(X,inverse(Y)),multiply(add(X,X),add(inverse(Y),X))) = X )).
+
+%----Denial of the conclusion:
+cnf(prove_multiply_add,negated_conjecture,
+    (  multiply(add(a,b),b) != b )).
+</code></pre>      
+<div id="example_22_proof_notes"></div>
+
+
+
+
+<div id="example_23_input_notes"><h3>Example 23 from natural language</h3>
+An example from the TPTP natural language domain:
+eliminating inconsistent interpretations in the statement
+"An old dirty white chevy barrels down a lonely street in
+hollywood. Two young fellas are in the front seat."
+  <p>
+  </div>
+  <pre>
+  <code id="example_23_input_code">% File     : NLP147+1 : TPTP v7.4.0. Released v2.4.0.
+% Domain   : Natural Language Processing
+% Problem  : An old dirty white Chevy, problem 34
+% Version  : [Bos00b] axioms.
+% English  : Eliminating inconsistent interpretations in the statement
+%            "An old dirty white chevy barrels down a lonely street in
+%            hollywood. Two young fellas are in the front seat."
+% Refs     : [Bos00a] Bos (2000), DORIS: Discourse Oriented Representation a
+%            [Bos00b] Bos (2000), Applied Theorem Proving - Natural Language
+% Source   : [Bos00b]
+% Names    : doris124 [Bos00b]
+
+fof(ax1,axiom,
+    ( ! [U,V] :
+        ( furniture(U,V)
+        => instrumentality(U,V) ) )).
+
+fof(ax2,axiom,
+    ( ! [U,V] :
+        ( seat(U,V)
+        => furniture(U,V) ) )).
+
+fof(ax3,axiom,
+    ( ! [U,V] :
+        ( frontseat(U,V)
+        => seat(U,V) ) )).
+
+fof(ax4,axiom,
+    ( ! [U,V] :
+        ( location(U,V)
+        => object(U,V) ) )).
+
+fof(ax5,axiom,
+    ( ! [U,V] :
+        ( city(U,V)
+        => location(U,V) ) )).
+
+fof(ax6,axiom,
+    ( ! [U,V] :
+        ( hollywood_placename(U,V)
+        => placename(U,V) ) )).
+
+fof(ax7,axiom,
+    ( ! [U,V] :
+        ( abstraction(U,V)
+        => unisex(U,V) ) )).
+
+fof(ax8,axiom,
+    ( ! [U,V] :
+        ( abstraction(U,V)
+        => general(U,V) ) )).
+
+fof(ax9,axiom,
+    ( ! [U,V] :
+        ( abstraction(U,V)
+        => nonhuman(U,V) ) )).
+
+fof(ax10,axiom,
+    ( ! [U,V] :
+        ( abstraction(U,V)
+        => thing(U,V) ) )).
+
+fof(ax11,axiom,
+    ( ! [U,V] :
+        ( relation(U,V)
+        => abstraction(U,V) ) )).
+
+fof(ax12,axiom,
+    ( ! [U,V] :
+        ( relname(U,V)
+        => relation(U,V) ) )).
+
+fof(ax13,axiom,
+    ( ! [U,V] :
+        ( placename(U,V)
+        => relname(U,V) ) )).
+
+fof(ax14,axiom,
+    ( ! [U,V] :
+        ( way(U,V)
+        => artifact(U,V) ) )).
+
+fof(ax15,axiom,
+    ( ! [U,V] :
+        ( street(U,V)
+        => way(U,V) ) )).
+
+fof(ax16,axiom,
+    ( ! [U,V] :
+        ( object(U,V)
+        => unisex(U,V) ) )).
+
+fof(ax17,axiom,
+    ( ! [U,V] :
+        ( object(U,V)
+        => impartial(U,V) ) )).
+
+fof(ax18,axiom,
+    ( ! [U,V] :
+        ( object(U,V)
+        => nonliving(U,V) ) )).
+
+fof(ax19,axiom,
+    ( ! [U,V] :
+        ( object(U,V)
+        => entity(U,V) ) )).
+
+fof(ax20,axiom,
+    ( ! [U,V] :
+        ( artifact(U,V)
+        => object(U,V) ) )).
+
+fof(ax21,axiom,
+    ( ! [U,V] :
+        ( instrumentality(U,V)
+        => artifact(U,V) ) )).
+
+fof(ax22,axiom,
+    ( ! [U,V] :
+        ( transport(U,V)
+        => instrumentality(U,V) ) )).
+
+fof(ax23,axiom,
+    ( ! [U,V] :
+        ( vehicle(U,V)
+        => transport(U,V) ) )).
+
+fof(ax24,axiom,
+    ( ! [U,V] :
+        ( car(U,V)
+        => vehicle(U,V) ) )).
+
+fof(ax25,axiom,
+    ( ! [U,V] :
+        ( chevy(U,V)
+        => car(U,V) ) )).
+
+fof(ax26,axiom,
+    ( ! [U,V] :
+        ( barrel(U,V)
+        => event(U,V) ) )).
+
+fof(ax27,axiom,
+    ( ! [U,V] :
+        ( event(U,V)
+        => eventuality(U,V) ) )).
+
+fof(ax28,axiom,
+    ( ! [U,V] :
+        ( state(U,V)
+        => event(U,V) ) )).
+
+fof(ax29,axiom,
+    ( ! [U,V] :
+        ( eventuality(U,V)
+        => unisex(U,V) ) )).
+
+fof(ax30,axiom,
+    ( ! [U,V] :
+        ( eventuality(U,V)
+        => nonexistent(U,V) ) )).
+
+fof(ax31,axiom,
+    ( ! [U,V] :
+        ( eventuality(U,V)
+        => specific(U,V) ) )).
+
+fof(ax32,axiom,
+    ( ! [U,V] :
+        ( eventuality(U,V)
+        => thing(U,V) ) )).
+
+fof(ax33,axiom,
+    ( ! [U,V] :
+        ( state(U,V)
+        => eventuality(U,V) ) )).
+
+fof(ax34,axiom,
+    ( ! [U,V] :
+        ( two(U,V)
+        => group(U,V) ) )).
+
+fof(ax35,axiom,
+    ( ! [U,V] :
+        ( set(U,V)
+        => multiple(U,V) ) )).
+
+fof(ax36,axiom,
+    ( ! [U,V] :
+        ( group(U,V)
+        => set(U,V) ) )).
+
+fof(ax37,axiom,
+    ( ! [U,V] :
+        ( man(U,V)
+        => male(U,V) ) )).
+
+fof(ax38,axiom,
+    ( ! [U,V] :
+        ( human_person(U,V)
+        => animate(U,V) ) )).
+
+fof(ax39,axiom,
+    ( ! [U,V] :
+        ( human_person(U,V)
+        => human(U,V) ) )).
+
+fof(ax40,axiom,
+    ( ! [U,V] :
+        ( organism(U,V)
+        => living(U,V) ) )).
+
+fof(ax41,axiom,
+    ( ! [U,V] :
+        ( organism(U,V)
+        => impartial(U,V) ) )).
+
+fof(ax42,axiom,
+    ( ! [U,V] :
+        ( entity(U,V)
+        => existent(U,V) ) )).
+
+fof(ax43,axiom,
+    ( ! [U,V] :
+        ( entity(U,V)
+        => specific(U,V) ) )).
+
+fof(ax44,axiom,
+    ( ! [U,V] :
+        ( thing(U,V)
+        => singleton(U,V) ) )).
+
+fof(ax45,axiom,
+    ( ! [U,V] :
+        ( entity(U,V)
+        => thing(U,V) ) )).
+
+fof(ax46,axiom,
+    ( ! [U,V] :
+        ( organism(U,V)
+        => entity(U,V) ) )).
+
+fof(ax47,axiom,
+    ( ! [U,V] :
+        ( human_person(U,V)
+        => organism(U,V) ) )).
+
+fof(ax48,axiom,
+    ( ! [U,V] :
+        ( man(U,V)
+        => human_person(U,V) ) )).
+
+fof(ax49,axiom,
+    ( ! [U,V] :
+        ( fellow(U,V)
+        => man(U,V) ) )).
+
+fof(ax50,axiom,
+    ( ! [U,V] :
+        ( animate(U,V)
+        => ~ nonliving(U,V) ) )).
+
+fof(ax51,axiom,
+    ( ! [U,V] :
+        ( existent(U,V)
+        => ~ nonexistent(U,V) ) )).
+
+fof(ax52,axiom,
+    ( ! [U,V] :
+        ( nonhuman(U,V)
+        => ~ human(U,V) ) )).
+
+fof(ax53,axiom,
+    ( ! [U,V] :
+        ( nonliving(U,V)
+        => ~ living(U,V) ) )).
+
+fof(ax54,axiom,
+    ( ! [U,V] :
+        ( singleton(U,V)
+        => ~ multiple(U,V) ) )).
+
+fof(ax55,axiom,
+    ( ! [U,V] :
+        ( specific(U,V)
+        => ~ general(U,V) ) )).
+
+fof(ax56,axiom,
+    ( ! [U,V] :
+        ( unisex(U,V)
+        => ~ male(U,V) ) )).
+
+fof(ax57,axiom,
+    ( ! [U,V] :
+        ( young(U,V)
+        => ~ old(U,V) ) )).
+
+fof(ax58,axiom,
+    ( ! [U,V,W] :
+        ( ( entity(U,V)
+          & placename(U,W)
+          & of(U,W,V) )
+        => ~ ( ? [X] :
+                ( placename(U,X)
+                & X != W
+                & of(U,X,V) ) ) ) )).
+
+fof(ax59,axiom,
+    ( ! [U,V,W,X] :
+        ( be(U,V,W,X)
+        => W = X ) )).
+
+fof(ax60,axiom,
+    ( ! [U,V] :
+        ( two(U,V)
+      <=> ? [W] :
+            ( member(U,W,V)
+            & ? [X] :
+                ( member(U,X,V)
+                & X != W
+                & ! [Y] :
+                    ( member(U,Y,V)
+                    => ( Y = X
+                      | Y = W ) ) ) ) ) )).
+
+fof(ax61,axiom,
+    ( ! [U] : ~ ( ? [V] : member(U,V,V) ) )).
+
+fof(co1,conjecture,
+    ( ~ ( ? [U] :
+            ( actual_world(U)
+            & ? [V,W,X,Y,Z] :
+                ( street(U,V)
+                & lonely(U,V)
+                & of(U,W,X)
+                & city(U,X)
+                & hollywood_placename(U,W)
+                & placename(U,W)
+                & chevy(U,X)
+                & white(U,X)
+                & dirty(U,X)
+                & old(U,X)
+                & event(U,Y)
+                & agent(U,Y,X)
+                & present(U,Y)
+                & barrel(U,Y)
+                & down(U,Y,V)
+                & in(U,Y,X)
+                & ! [X1] :
+                    ( member(U,X1,Z)
+                    => ? [X2,X3] :
+                        ( frontseat(U,X3)
+                        & state(U,X2)
+                        & be(U,X2,X1,X3)
+                        & in(U,X3,X3) ) )
+                & two(U,Z)
+                & group(U,Z)
+                & ! [X4] :
+                    ( member(U,X4,Z)
+                    => ( fellow(U,X4)
+                      & young(U,X4) ) ) ) ) ) )).        
+</code></pre>      
+<div id="example_23_proof_notes"></div>
+
+
+<div id="example_24_input_notes"><h3>Example 24: Dreadbury Mansion</h3>
+An example from the TPTP puzzle domain:
+"Someone who lives in DreadburyMansion kills AuntAgatha. If 
+somebody X lives in DreadburyMansion then X is AuntAgatha or X
+is the Butler or X is Charles. Everyone hates everyone that he
+kills. Noone is richer than someone that he kills. Charles hates
+noone who is hated by AuntAgatha. AuntAgatha does not hate the
+Butler. Everyone that is not the Butler is hated by AuntAgatha.
+The Butler hates everyone who is not richer than AuntAgatha. The
+Butler hates everyone who is hated by AuntAgatha. Noone hates
+everyone. AuntAgatha is not the Butler. Therefore, AuntAgatha
+kills AuntAgatha"  
+</div>
+<pre>
+<code id="example_24_input_code">% File     : PUZ001+2 : TPTP v7.4.0. Released v4.0.0.
+% Domain   : Puzzles
+% Problem  : Dreadbury Mansion
+% Version  : Especial.
+%            Theorem formulation : Converted from ACE by the APE [FKK08].
+% English  : Someone who lives in DreadburyMansion kills AuntAgatha. If 
+%            somebody X lives in DreadburyMansion then X is AuntAgatha or X
+%            is the Butler or X is Charles. Everyone hates everyone that he
+%            kills. Noone is richer than someone that he kills. Charles hates
+%            noone who is hated by AuntAgatha. AuntAgatha does not hate the
+%            Butler. Everyone that is not the Butler is hated by AuntAgatha.
+%            The Butler hates everyone who is not richer than AuntAgatha. The
+%            Butler hates everyone who is hated by AuntAgatha. Noone hates
+%            everyone. AuntAgatha is not the Butler. Therefore, AuntAgatha
+%            kills AuntAgatha.
+% Refs     : [FKK08] Fuchs et al. (2008), Attempto Controlled English for K
+% Source   : [TPTP]
+
+fof(background,axiom,(
+    ? [A,B,C] :
+      ( $true
+      & predicate1(B,live,A)
+      & modifier_pp(B,in,'DreadburyMansion')
+      & predicate2(C,kill,A,'AuntAgatha')
+      & ! [D,E] :
+          ( ( $true
+            & predicate1(E,live,D)
+            & modifier_pp(E,in,'DreadburyMansion') )
+          => ( D = 'AuntAgatha'
+            | D = 'Butler'
+            | D = 'Charles' ) )
+      & ! [F] :
+          ( $true
+          => ! [G,H] :
+              ( ( $true
+                & predicate2(H,kill,F,G) )
+              => ? [I] : predicate2(I,hate,F,G) ) )
+      & ! [J] :
+          ( $true
+          => ~ ? [K,L,M] :
+                ( $true
+                & predicate2(L,kill,J,K)
+                & property2(M,rich,comp_than,K)
+                & J = M ) )
+      & ! [N,O] :
+          ( ( $true
+            & predicate2(O,hate,'AuntAgatha',N) )
+          => ~ ? [P] : predicate2(P,hate,'Charles',N) )
+      & ~ ? [Q] : predicate2(Q,hate,'AuntAgatha','Butler')
+      & ! [R] :
+          ( ( $true
+            & R != 'Butler' )
+          => ? [S] : predicate2(S,hate,'AuntAgatha',R) )
+      & ! [T] :
+          ( ( $true
+            & ~ ? [U] :
+                  ( property2(U,rich,comp_than,'AuntAgatha')
+                  & T = U ) )
+          => ? [V] : predicate2(V,hate,'Butler',T) )
+      & ! [W,X] :
+          ( ( $true
+            & predicate2(X,hate,'AuntAgatha',W) )
+          => ? [Y] : predicate2(Y,hate,'Butler',W) )
+      & ! [Z] :
+          ( $true
+          => ~ ! [A1] :
+                ( $true
+                => ? [B1] : predicate2(B1,hate,Z,A1) ) )
+      & 'AuntAgatha' != 'Butler' ) )).
+
+fof(prove,conjecture,(
+    ? [A] : predicate2(A,kill,'AuntAgatha','AuntAgatha') )).  
+</code></pre>      
+<div id="example_24_proof_notes"></div>
+
+
+<div id="example_25_input_notes"><h3>Example 25 from group theory</h3>
+<p>  
+A tiny, yet nontrivial pure equational example from the TPTP group theory domain:
+axiom for group theory, in product and inverse, part 1.
+<p>
+You may need to increase the time limit in the <i>Seconds</i> box to find
+a proof. 
+<p>
+The lines in the proof will be rather long.
+  <p>
+  </div>
+  <pre>
+  <code id="example_25_input_code">% File     : GRP436-1 : TPTP v7.4.0. Released v2.6.0.
+% Domain   : Group Theory
+% Problem  : Axiom for group theory, in product & inverse, part 1
+% Refs     : [McC93] McCune (1993), Single Axioms for Groups and Abelian Gr
+
+cnf(single_axiom,axiom,
+    ( multiply(A,inverse(multiply(B,multiply(C,multiply(multiply(inverse(C),inverse(multiply(D,B))),A))))) = D )).
+cnf(prove_these_axioms_1,negated_conjecture,
+    (  multiply(inverse(a1),a1) != multiply(inverse(b1),b1) )).</code></pre>      
+<div id="example_25_proof_notes"></div>
+
 
 <!-- at-end-scripts -->
 

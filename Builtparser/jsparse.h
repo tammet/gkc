@@ -74,7 +74,7 @@ void* wr_preprocess_json_clauselist
 
 int wr_is_json_cnf_clause(void* db, void* cl);
 int wr_is_json_fof_clause(void* db, void* cl);
-int wr_is_json_import_clause(void* db, void* cl);
+int wr_is_json_import_clause(void* db, parse_parm* pp, void* cl);
 void* wr_preprocess_json_cnf_clause(glb* g, void* mpool, void* cl);
 void* wr_preprocess_json_fof_clause(glb* g, void* mpool, void* cl);
 void* wr_process_json_import_clause(glb* g, void* mpool, void* cl, cvec clvec);

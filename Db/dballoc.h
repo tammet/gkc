@@ -502,6 +502,8 @@ typedef struct _db_memsegment_header {
   gint max_strat_timeloop_nr; /** initially 1000, set by by LTB batch only */
   int parse_skolem_nr;
   int parse_newpred_nr;
+  int parse_json_blankseed;
+  int parse_json_blankcount;
   int printlevel; /** initially 10, set by cmd line switches */
   int printderived; /** initially 0, set by cmd line switches */
   int max_seconds; /** initially 0, set by cmd line switches */

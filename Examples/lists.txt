@@ -1,0 +1,10 @@
+clients(company1,[a]).
+revenues(company1,[100,20,50,60]).
+clients(company2,[a,b,c]).
+revenues(company2,[10,20,50,60]).
+=(listcount([]),0).
+=(listcount($list(X0,X1)),listcount(X1)+1).
+=(listsum([]),0).
+=(listsum($list(X0,X1)),listsum(X1)+X0).
+(clients(X0,X1) & revenues(X0,X2) & $greater(listcount(X1),2) & $greater(listsum(X2),100)) => type(X0,goodcompany).
+type(X0,goodcompany) =>  $ans(X0).

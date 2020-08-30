@@ -1,4 +1,4 @@
 father(john,pete).
 father(pete,mark).
 
--father(Y,X) | $ans(Y,X).
+-father(john,X) | $ans(X).

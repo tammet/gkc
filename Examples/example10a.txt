@@ -1,0 +1,21 @@
+
+father($to_int(1.1)) = pete.
+father(mike) = pete.
+father(foo(mike)) = pete.
+mother(mike) = eve.
+mother($to_int(1.1)) = eve.
+mother(mike) = eve.
+mother(foo(mike)) = eve.
+mother(mike) = eve.
+
+father(pete) = mark.
+mother(eve) = mary.
+
+grandfather(father(father(X)),X).
+grandfather(father(mother(X)),X).
+
+bar(1)=2.
+foo(mike)=gg(smbdy).
+$greater(2,gg(smbdy)).
+
+-grandfather(mark,X) |  -$greater(bar(1),X) | $ans(X).

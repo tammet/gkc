@@ -1,0 +1,9 @@
+% File     : GRP436-1 : TPTP v7.4.0. Released v2.6.0.
+% Domain   : Group Theory
+% Problem  : Axiom for group theory, in product & inverse, part 1
+% Refs     : [McC93] McCune (1993), Single Axioms for Groups and Abelian Gr
+
+cnf(single_axiom,axiom,
+    ( multiply(A,inverse(multiply(B,multiply(C,multiply(multiply(inverse(C),inverse(multiply(D,B))),A))))) = D )).
+cnf(prove_these_axioms_1,negated_conjecture,
+    (  multiply(inverse(a1),a1) != multiply(inverse(b1),b1) )).

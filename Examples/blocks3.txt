@@ -1,3 +1,8 @@
+% -----------------------------------
+%
+% See https://en.wikipedia.org/wiki/Blocks_world
+% 
+% -----------------------------------
 
 % ----- initial situation s0 ------
 %
@@ -50,10 +55,6 @@ differ(c,table).
 
 differ(d,table).
 
-%holds(and(X,Y),State) 
-%    | -holds(X,State)
-%    | -holds(Y,State).
-
 % ----- pickup rules  ------
 
 holds(holding(X),do(pickup(X),State))
@@ -66,7 +67,10 @@ holds(clear(Y),do(pickup(X),State))
     | -holds(clear(X),State)
     | -holds(empty,State).
 
-% frame axioms for pickup
+% --- frame axioms for pickup ----
+%
+% see https://en.wikipedia.org/wiki/Frame_problem
+% 
 
 holds(on(X,Y),do(pickup(Z),State))
     | -holds(on(X,Y),State)
@@ -90,7 +94,10 @@ holds(clear(X),do(putdown(X,Y),State))
     | -holds(holding(X),State)
     | -holds(clear(Y),State).
 
-% ---- a few minimal frame axioms for putdown -----
+% ---- frame axioms for putdown -----
+%
+% see https://en.wikipedia.org/wiki/Frame_problem
+% 
 
 holds(on(X,Y),do(putdown(Z,W),State))
     | -holds(on(X,Y),State).    
@@ -99,42 +106,54 @@ holds(clear(Z),do(putdown(X,Y),State))
     | -holds(clear(Z),State)
     | -differ(Z,Y).
 
-% ----- queries -----------------
+% ----- query 1 -----------------
 %
-% first run the uncommented query and then:
+% build a tower:
 %
-% * try out the others: uncomment one and comment out others
-% * create your own goals: see what can be achieved in sensible time and what not.
+%   c
+%   b        
+%   a   
 %
 % ------------------------------- 
 
-% first goal:
-%
-%  b
-%  a
 
-% -holds(on(b,a),State).
-%
-% this version gives the required moves collected into State:
-%
-
-%-holds(on(b,a),State) | $ans(State).
+%-holds(on(b,a),State) | -holds(on(c,b),State) | $ans(State).
 
 
-% second goal:
+% ----- query 2 -----------------
 %
-%  c
-%  b     
-%  a 
+% this is a harder problem: to try it out,
+% comment out query 1 and uncomment the following
+%
+% build a tower:
+%
+%   c
+%   b        
+%   a   
+%   d
+% -------------------------------
 
- -holds(on(b,a),State) | -holds(on(c,b),State).
 
-%
-% this version gives the required moves collected into State (over a minute to find proof!)
-%
-% 
 % cnf(prove,negated_conjecture,
-%   -holds(on(b,a),State) | -holds(on(c,b),State) | $ans(State)).
+%   -holds(on(a,d),State) | -holds(on(b,a),State) | -holds(on(c,b),State) | $ans(State)).   
  
+ 
+% ----- query 3 -----------------
+%
+% this harder problem is a case of Sussman anomaly
+% https://en.wikipedia.org/wiki/Sussman_anomaly :
+% to try it out,
+% comment out queries 1 and 2 and uncomment the following
+%
+% build a tower:
+%
+%   b
+%   a        
+%   d   
+%   c
+% -------------------------------
 
+
+ cnf(prove,negated_conjecture,
+   -holds(on(d,c),State) | -holds(on(a,d),State) | -holds(on(b,a),State) | $ans(State)). 
   

@@ -134,6 +134,8 @@ gint wg_init_db_memsegment_with_kb(void* db, gint key, gint size, void* kb) {
   dbh->max_strat_timeloop_nr=1000;
   dbh->parse_skolem_nr=0;
   dbh->parse_newpred_nr=0;
+  dbh->parse_json_blankseed=0;
+  dbh->parse_json_blankcount=0;
   dbh->printlevel=10; 
   dbh->printderived=0; 
   dbh->max_seconds=0;
