@@ -125,7 +125,7 @@ Example:
     ./gkc Examples/steam.txt
     
 GKC will automatically pick and try out several search strategies 
-one after another, using four parallel process by default on UNIXes.
+one after another, using four parallel processes by default on UNIXes.
 
 Please see the [Examples/README.md](Examples/README.md) for a tutorial of using gkc.
 
@@ -216,7 +216,8 @@ The following is a list of available options as output by `./gkc -help`:
 The output level can be set by the `-print N` parameter with bigger N giving cumulatively
 more details. The default level is 10. Sensible levels are:
 
-* 10: minimal
+* 1: only show if proof has been found or not
+* 10: show the proof
 * 11: show strategy used in the successful run
 * 12: show all runs with their strategies
 * 15: show statistics and the set of all runs planned along with their strategies

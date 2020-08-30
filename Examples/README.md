@@ -38,21 +38,22 @@ You may want to send output to a file in a standard way like this:
 
 In case you have very little memory on your computer, gkc may
 complain about memory and terminate. In this case tell it to use
-less memory like this:
+less initally allocated memory like this:
 
     ./gkc example1.txt -mbsize 500
 
 which would make it use only half a gigabyte of memory. 
-The default for UNIX and Windows 64 is 5 gigabytes, i.e. -mbsize 5000
+The default for UNIX and Windows 64 is 5 gigabytes, i.e. -mbsize 5000.
+Larger amounts of initially allocated memory make startup slightly slower.
 
 You can give an arbitrary number of files as input, interpreted as if they were
 connected with *and*, like
 
-    ./gkc steamkb.txt steam_query.txt
+    ./gkc steam_kb.txt steam_query.txt
 
 and optionally give input directly from the command line using the `-text` key, like
 
-    ./gkc steamkb.txt -text '-wolf(X).'
+    ./gkc steam_kb.txt -text '-wolf(X).'
 
 Gkc understands three different syntaxes:
 * *simple* syntax described below
@@ -62,7 +63,7 @@ Gkc understands three different syntaxes:
 Json syntax input files must use the suffix starting with *.js* like `foo.js` or
 `bar.json`. Json direct input from command line must use the `-jstext` key like
 
-    ./gkc steamkb.txt -jstext '[["-wolf","?:X"]]'
+    ./gkc steam_kb.txt -jstext '[["-wolf","?:X"]]'
 
 By default gkc uses four parallel processes on UNIX and a single
 process on Windows. On UNIX you can tell it a number of parallel
@@ -186,7 +187,13 @@ The [simp, 1, 2,fromaxiom] means the same as the [mp,...] above, just a speciall
 The [Resolution (logic) wiki page](https://en.wikipedia.org/wiki/Resolution_(logic)) 
 is a good short intro to the general principles of the derivation rules with the 
 [course materials of Geoff Sutcliffe](http://lambda.ee/w/images/0/06/Geoffreasoningnotes.pdf) 
-being a suitable continuation towards deeper understanding. However, the following examples are understandable without in-depth theoretical background.
+being a suitable continuation towards deeper understanding. After this you may want to read
+an implementation 
+[tutorial] (https://resources.mpi-inf.mpg.de/departments/rg1/conferences/vtsa09/slides/schulz.pdf)
+by Stephan Schulz and a 
+[detailed theoretical coursebook] (http://resources.mpi-inf.mpg.de/departments/rg1/teaching/autrea-ss12/script/script.pdf) by Marek Kosta and Christoph Weidenbach.
+
+However, the following examples are understandable without in-depth theoretical background.
 
 Gkc runs a large number of search attempts with different search strategies both 
 sequentially and in parallel: you can see which concrete strategy found the proof
@@ -203,10 +210,11 @@ by increasing the print level like this:
     2: [in, axiom] father(john,pete).
     3: [simp, 1, 2, fromaxiom] false
 
-Here run <N> indicates the number of attempt and fork <M> (only for UNIXes) shows which 
+Here *run N* indicates the number of attempt and *fork M* (only for UNIXes) shows which 
 parallel process found the proof. The `"max_dseconds":1` says that gkc gave this strategy one 
 decisecond (0.1 seconds) time limit. The `axiom` and `fromaxiom` also appear at this
-print level, indicating the type of the input and derived clauses.
+print level, indicating the type of the input and the origin of derived clauses, stemming
+from the optional *role* argument used by the TPTP syntax.
 
 Try to modify the file example1.txt by removing the statement `-father(john,pete).` and
 run gkc again. After ca one second gkc will stop and output
@@ -235,7 +243,7 @@ processes on UNIXes by the `-parallel 0` argument like
 ###  Example 2 for answers
 
 Like example 1, but we want to find a concrete person as an answer: we use the special
-"$ans" predicate for this. Observe the "answer: $ans(pete). " line in the output
+"$ans" predicate for this. Observe the `answer: $ans(pete).` line in the output
 stemming from this answer predicate.
 
 We are using a variable here: any word starting with a capital letter is considered
@@ -243,7 +251,7 @@ to be a variable. `X` is a variable in our example. You could also use, say `Som
 as a variable: it also starts with a capital letter. All the words starting with
 a non-capital letter are constants, functions or predicates.
 
-Vertical bar | is logical or. 
+Vertical bar | is logical *or*. 
 
 Importantly, any rule like a & b => c should be represented
 as -a | -b | c where negated atoms are essentially on the left side of the implication
@@ -389,9 +397,9 @@ Output:
 
 Now we reformulate the whole thing with equalities and functions! 
 
-father(john)=pete means, as expected, that pete is the father
+`father(john)=pete` means, as expected, that pete is the father
 of john and there can be no other fathers. If you also gave
-father(john)=lucas this would make gkc to conclude that
+`father(john)=lucas` this would make gkc to conclude that
 pete and lucas are the same object, i.e. pete=lucas.
 
 Importantly, two different constants are not considered inequal
@@ -637,10 +645,6 @@ The [=, 1, 2.0.2] means that the clause at step 1 was used to replace a 2th subt
 
 Observe that the two answers have (obviously) different proofs.
 
-Importantly, gkc will not really attempt to find two different `$ans(...)` answers,
-but two different proofs, which could (or not, as in our case) actually lead to
-the same `$ans(...)` answers.
-
 Try to modify the multineg.txt file to ask for three answers: "max_answers":3,
 and then run gkc again. It will give the same output as before, but will add the 
 last line at the end:
@@ -679,7 +683,7 @@ The following proof uses given equalities to derive several new equalities.
 The `=` rule basically replaces parts of one premiss matching (unifying)
 one side of the second premiss equality with the other side of the equality.
 
-The `simp` rule also replaces a part of a premiss, but does so in a `permanent` manner,
+The `simp` rule also replaces a part of a premiss, but does so in a *permanent*s manner,
 meaning that the original unchanged premiss is not used in the search after
 the simplification replacement.
 
@@ -788,9 +792,9 @@ respectively.
 
 Running
 
-   ./gkc blocks3.txt -print 11
+    ./gkc blocks3.txt -print 11
 
-will probably take several seconds with a large number of search
+will probably take over ten seconds with a large number of search
 strategies tried out and the output of the successful search 
 starting (if -parallel 0 were added) as
 
@@ -803,10 +807,9 @@ starting (if -parallel 0 were added) as
     proof:
     ...
 
-In the [advanced examples chapter](#Advanced-examples)we will look at guiding gkc search by using
-a strategy selection file. A suitable simple strategy for the second and third examples 
-is given in the file `querystrat.txt`:
-
+In the following [advanced examples chapter](#Advanced-examples) we will look at
+guiding gkc search by using a strategy selection file. A suitable simple strategy
+for the second and third examples is given in the file `querystrat.txt`:
 
     {
     "max_seconds":0,
@@ -873,11 +876,11 @@ inside the quotes. Notice that internal quote symbols must be prefixed by backsl
    
 Any symbol containing a character except an ascii letter, digit, underscore _,
 or dollar $ will be printed out by surrounding it with single quotes.
-As an exception, equality = and aritmetic expressions +, *, -, /, < will 
+As an exception, equality = and aritmetic expressions +, *, -, / will 
 not be surrounded by quotes. 
 
 Double quotes like `"John Smith"` indicate that a symbol is *distinct* (essentially,
-a string), unequal to any other distinct symbol, number or a typed object. 
+a string), unequal to any other distinct symbol, number or a list. 
 Double quotes inside double quoted symbols must be prefixed by a backslash. 
 More about distinct symbols in the later examples.
 
@@ -1000,15 +1003,16 @@ while each statement in the TPTP CNF language has a form
 
     cnf(statement_name, statement_role, cnf_statement).    
   
-where the statement_name will be used in the proof, the statement_role indicates whether
+where the *statement_name* will be used in the proof, the *statement_role* indicates whether
 it is an axiom, an assumption or hypothesis, or a goal to be proved from these: the latter is either
 conjecture (which has to be negated) or negated_conjecture (negated already).
 
-The *fof_statement* may not contain free variables, while the *cnf_statement* is a *clause* 
+Gkc allows the *fof_statement* to contain free variables, differently from the TPTP FOF
+syntax which does not allow free variables. The *cnf_statement* is a *clause* 
 (disjunction of atoms or negated atoms) where all the variables are free variables.
 
 Indicating the role enables provers to find a more suitable strategy. It does not (except the
-conjecture case, which has to be negated) have a `logical` meaning.
+conjecture case, which has to be negated) have a *logical* meaning.
      
 The first example statement above is universally quantified (`!` symbol) and will be converted by gkc to a clause
 
@@ -1020,14 +1024,15 @@ The second statement is existentially quantified (`?` symbol) and will be conver
 
 where `$sk7` is a new constant invented by gkc which should not occur in any other formula in the problem:
 this procedure is called [Skolemization](https://en.wikipedia.org/wiki/Skolem_normal_form).
-Gkc always uses the `$s`k prefix for such constants and functions, using a new number N for each
+Gkc always uses the `$sk` prefix for such constants and functions, using a new number N for each
 new one. The original formula is assumed not to contain `$skN` form symbols.
 
 Importantly, gkc assumes the *free variables* in formulas or simple clauses 
 with the `conjecture` role are not implicitly bound by a universal quantifier (*for all*)
 in the formula: instead, they are implicitly bound by the existential quantifier (*exists*): 
 this corresponds better to the intuitive understanding of free variables in the conjecture.
-Thus  `cnf(question,conjecture,p(X))` is equivalent to `fof(question,conjecture,! [X]: -p(X))`
+Thus  `cnf(question,conjecture,p(X))` is equivalent to `fof(question,conjecture,? [X]: p(X))`
+which is equivalent to `fof(question,negated_conjecture,! [X]: -p(X))`.
 
 The third statement expresses the question to be proved: is 
 there an animal that likes to eat a grain eating animal?
@@ -1140,7 +1145,7 @@ correspondence: the order by which runs are given to forks is pre-determined.
 
 The proofs found by different strategies are likely also somewhat different.
 
-As said before, gkc implements parallel processes using forks and only for UNIX, i.e. Linux and OS X.
+As said before, gkc implements parallel processes using forks and only for UNIX, i.e. Linux and macOS.
 
 
 ###  Example for steam with a shared memory database
@@ -1243,15 +1248,7 @@ To use the TPTP suggested output format, say:
   
 which will use the TPTP format for proofs.
 
-We will not write the whole output here. The parts are:
-
-* Statistics about the clauses obtained by conversion.
-* Selected strategies to be run in json format.
-* Running overview of proof search, just to follow what is happening.
-* Proof in the TPTP format.
-* Statistics about the successful search.
-
-The proof itself has the following structure:
+We will not write the whole output here. The proof has the following structure:
 
     result: proof found
     for steam.txt 
@@ -1385,7 +1382,7 @@ assumption likely to be used in the proof:
     cnf(a1,assumption,
         person(john)).
 
-These `negated_conjecture` and 'assumption` roles were already
+These `negated_conjecture` and `assumption` roles were already
 mentioned previously when describing fof syntax: it is worth stressing
 that they are useful and can be also intermingled with the simple
 syntax.
@@ -1497,7 +1494,8 @@ For "max_seconds"<2 gkc will automatically use immediate check for contradiction
 The output level can be set by the `-print N` parameter with bigger N giving cumulatively
 more details. The default level is 10. Sensible levels are:
 
-* 10: minimal
+* 1: only show if proof has been found or not
+* 10: show the proof
 * 11: show strategy used in the successful run
 * 12: show all runs with their strategies
 * 15: show statistics and the set of all runs planned along with their strategies
@@ -1529,7 +1527,7 @@ while `./gkc example2.txt -convert -tptp` outputs
     cnf('frm_2',axiom,father(pete,mark)).
     cnf('frm_3',axiom,~father(john,X) | $ans(X)).
  
-The `-clausify` causes gkc to not prove the input, but clausify it, i.e. convert it to the 
+The `-clausify` key causes gkc to not prove the input, but clausify it, i.e. convert it to the 
 [conjunctive normal form](https://en.wikipedia.org/wiki/Conjunctive_normal_form)
 and finally format the result according to the `-tptp` or `-json` key, if present.
 In general, one formula in the input may create several clauses and the optimized
@@ -1551,22 +1549,22 @@ For example, `./gkc steam.txt -clausify` creates output starting with
 ### Arithmetic
 
 The numbers and arithmetic functions and predicates are defined following the 
-[TPTP arithmetic system)(http://www.tptp.org/TPTP/TR/TPTPTR.shtml#Arithmetic)
+[TPTP arithmetic system](http://www.tptp.org/TPTP/TR/TPTPTR.shtml#Arithmetic)
 plus a few convenience operators for writing infix terms:
 
 * Type detection predicates $is_int, $is_real.
 * Comparison predicates $less, $lesseq, $greater, $greatereq.
 * Type conversion functions $to_int, $to_real.
 * Arithmetic functions on integers and reals:
-** $sum, $difference, $product, 
-** $quotient, $quotient_e,
-** $remainder_e, $remainder_t, $remainder_f, 
-** $floor, $ceiling,
-** $uminus, $truncate, $round.
+  $sum, $difference, $product, 
+  $quotient, $quotient_e,
+  $remainder_e, $remainder_t, $remainder_f, 
+  $floor, $ceiling,
+  $uminus, $truncate, $round.
  
- Note: these comparison predicates and arithmetic functions take exactly two arguments.
+  Note: these comparison predicates and arithmetic functions take exactly two arguments.
 
- Example: `$less($sum(1,$to_int(2.1)),$product(3,3))`.
+  Example: `$less($sum(1,$to_int(2.1)),$product(3,3))`.
 
 * Additional convenience predicate is used: $is_number is true
   if and only if $is_int or $is_real is true.
@@ -1627,8 +1625,7 @@ for a three-element list. The bracket notation is syntactic sugar for
 the constant `$nil` and functional list-constructing term 
 `$list(a,$list(b,$list(c,$nil)))`, respectively.
 
-Observe that `$list(X0,X1)`  
-constructs a list by prepending `X0` to the list `X1`,
+Observe that `$list(X0,X1)` constructs a list by prepending `X0` to the list `X1`,
 which is generally different from a two-element list `[X0,X1]`.
 
 Terms constructed using `$list` or `$nil` are interpreted as having a 
@@ -1681,9 +1678,9 @@ The example `lists.txt` gives output
  
 
 Symbols in *double quotes* like in `"person"` stand for
-for *distinct symbols*
-which can be viewed as a *string type*. A distinct symbol is not equal to any 
-other syntactically different symbol and not equal to any numbers or lists.
+for *distinct symbols* which can be viewed as a *string type*. 
+A distinct symbol is not equal to any other syntactically different 
+distinct symbol and not equal to any numbers or lists.
 
 
 Gkc defines a function and three predicates on distinct symbols:
