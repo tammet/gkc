@@ -244,22 +244,6 @@ GKC reads files in one of three formats with equivalent expressive power:
 * *JSON* syntax described in the [JSON-LD-LOGIC proposal](https://github.com/tammet/json-ld-logic)
   and showcased in the [json playground](http://logictools.org/json).
 
-For the first two syntaxes the percentage % symbol is a line comment.
-
-The simple and fof/cnf format problems may contain include statements like
-
-    include('Axioms/GEO004+2.ax').
-
-in which case the included path is searched for from either directly
-under the folder of the input problem path, and if not found there,
-then under the folder indicated by the environment variable TPTP,
-and if not found there, then under the folder /opt/TPTP
-
-GKC may introduce new predicates, function and constant
-symbols while clausifying fof formulas: these will start
-with a $ character: skolem functions/constants start with $sk and 
-introduced definition predicates with $df.
-
 The *simple syntax* is an extension of the
 TPTP FOF and CNF syntaxes as described in the
 [TPTP technical manual](http://tptp.org/TPTP/TR/TPTPTR.shtml#ProblemPresentation)
@@ -356,6 +340,20 @@ are prefixed with a dollar `$`.
 `$ans` is used for finding the actual terms we look for as answers: see the
 examples and explanations in the tutorial [Examples/README.md](Examples/README.md).
 
+The simple and fof/cnf format problems may contain include statements like
+
+    include('Axioms/GEO004+2.ax').
+
+in which case the included path is searched for from either directly
+under the folder of the input problem path, and if not found there,
+then under the folder indicated by the environment variable TPTP,
+and if not found there, then under the folder /opt/TPTP
+
+GKC may introduce new predicates, function and constant
+symbols while clausifying fof formulas: these will start
+with a $ character: skolem functions/constants start with $sk and 
+introduced definition predicates with $df.
+
 
 ### Arithmetic
   
@@ -391,7 +389,7 @@ Note: these convenience functions take also exactly two arguments.
 
 NB! Do not use a variable or a non-numeric constant as a first element of the 
 infix arithmetic expression like `p(X*2)`, otherwise 
-the whole expression will be parsed as a single variable *X*2*. No such restrictions
+the whole expression will be parsed as a single variable `X*2`. No such restrictions
 apply for the prefix form.
 
  
@@ -403,8 +401,7 @@ for a three-element list. The bracket notation is syntactic sugar for
 the constant `$nil` and functional list-constructing term 
 `$list(a,$list(b,$list(c,$nil)))`, respectively.
 
-Observe that `$list(X0,X1)`  
-constructs a list by prepending `X0` to the list `X1`,
+Observe that `$list(X0,X1)` constructs a list by prepending `X0` to the list `X1`,
 which is generally different from a two-element list `[X0,X1]`.
 
 Terms constructed using `$list` or `$nil` are interpreted as having a 
@@ -431,8 +428,7 @@ evaluated.
 Symbols in *double quotes* like in `"person"` stand for
 for *distinct symbols*
 which can be viewed as a *string type*. A distinct symbol is not equal to any 
-other syntactically different symbol and not equal to any numbers or lists.
-</p>
+other syntactically different distinct symbol and not equal to any numbers or lists.
 
 Gkc defines a function and three predicates on distinct symbols:
   
