@@ -129,6 +129,11 @@ one after another, using four parallel processes by default on UNIXes.
 
 Please see the [Examples/README.md](Examples/README.md) for a tutorial of using gkc.
 
+In case gkc gives an immediate error about memory or a failing fork, decrease the amount of
+initially allocated memory, like
+
+    ./gkc Examples/steam.txt -mbsize 500
+
 In order to select options and strategies yourself, run gkc as 
 
     ./gkc problem_file_name -strategy strategy_file_name
@@ -232,6 +237,9 @@ parameter and preferably indicating a single run in the strategy file.
 The `-convert` and `-clausify` parameters make gkc to not prove the input, but convert it 
 to a format indicated by the `-tptp` or `-json` key, if present. The  `-clausify` parameter
 performs clausification, while `-convert` does not.
+
+The *N* in `-mbsize N` can be safely decreased for all but very large problems: `-mbsize 1000`
+is a safe bet.
 
 Input syntax
 ------------
