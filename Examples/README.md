@@ -963,7 +963,7 @@ printed as XXN for some number N.
 
 ###  Example for TPTP fof syntax with steam 
 
-The [steam.txt]steam.txt) file contains a classic "Schubert's Steamroller" puzzle taken from
+The [steam.txt](steam.txt) file contains a classic "Schubert's Steamroller" puzzle taken from
 TPTP and written in fof syntax with connectives like implication `=>`, quantifiers `forall ! [X] ...`,
 `exists ? [X] ...` etc. 
 
