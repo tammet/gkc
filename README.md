@@ -44,7 +44,7 @@ The GKC system consists of a single standalone executable
 with no dependencies, called  `gkc` for linux, 
 `gkc.exe` for 64-bit windows, `gkc32.exe` for 32-bit windows,
 `gkcosx` for OS X (macOS). The pre-compiled executables are 
-included in the [release](https://github.com/tammet/gkc/release).
+included in the latest [release](https://github.com/tammet/gkc/releases).
 
 GKC is written in C. There are three alternative ways
 to compile gkc, from simpler to more complicated:
