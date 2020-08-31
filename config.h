@@ -7,10 +7,8 @@
 /* Journal file directory */
 #define DBLOG_DIR "/tmp"
 
-#ifndef __EMSCRIPTEN__
 /* Encoded data is 64-bit */
 #define HAVE_64BIT_GINT 1
-#endif
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #define HAVE_DLFCN_H 1

@@ -6,14 +6,14 @@
 # ------- Initialisation -------
 
 m4_define([GKC_MAJOR], [0])
-m4_define([GKC_MINOR], [5])
-m4_define([GKC_REV], [2])
+m4_define([GKC_MINOR], [6])
+m4_define([GKC_REV], [0])
 
 # standard release
 #m4_define([GKC_VERSION],
 #  m4_defn([GKC_MAJOR]).m4_defn([GKC_MINOR]).m4_defn([GKC_REV]))
 # release candidate; fill in manually
-m4_define([GKC_VERSION], [0.5.2]))
+m4_define([GKC_VERSION], [0.6.0]))
 
 AC_CONFIG_MACRO_DIRS([m4])
 

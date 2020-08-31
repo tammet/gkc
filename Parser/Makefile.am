@@ -8,6 +8,7 @@ parsergenfiles = dbotter.tab.c dbotter.tab.h\
 parserfiles =  dbparse.c dbparse.h dbgenparse.h dbclausify.c dbclausify.h\
   dbotterparse.h\
   dbprologparse.h\
+  jsparse.c jsparse.h\
   $(parsergenfiles)
 
 # - - - -  reasoner sources for flex and bison and their compilation to c - - - -
