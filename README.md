@@ -231,12 +231,16 @@ more details. The default level is 10. Sensible levels are:
 * 50: show details or rule selection and application
 * 60: show contents of main internal datastructures
 
+Use the  `-parallel 0` parameter on UNIXes for the print level 20 and above: otherwise 
+the printouts from several parallel process will be mixed up.
+
 The parameter `-derived` shows all the derived clauses: use it along the `-parallel 0`
 parameter and preferably indicating a single run in the strategy file.
 
 The `-convert` and `-clausify` parameters make gkc to not prove the input, but convert it 
 to a format indicated by the `-tptp` or `-json` key, if present. The  `-clausify` parameter
 performs clausification, while `-convert` does not.
+
 
 The *N* in `-mbsize N` can be safely decreased for all but very large problems: `-mbsize 1000`
 is a safe bet.
