@@ -17,7 +17,8 @@ either v0.6.0 or newer:
 
 <https://github.com/tammet/gkc/releases/tag/v0.6.0>
 
-GKC is licenced under AGPL v3. The author of GKC is Tanel Tammet (tanel.tammet@gmail.com).
+GKC is licenced under [AGPL v3](https://www.gnu.org/licenses/agpl-3.0.en.html). 
+The author of GKC is Tanel Tammet (tanel.tammet@gmail.com).
 
 GKC is used as a building block for developing specialized methods 
 and strategies for commonsense reasoning, including nonmonotonic reasoning,
@@ -40,9 +41,10 @@ Compiling and installing
 ------------------------
 
 The GKC system consists of a single standalone executable
-with no dependencies, called  `gkc` for linux/mac, 
-`gkc.exe` for windows, `gkcosx` for OS X (macOS). 
-The pre-compiled executables are included in the release.
+with no dependencies, called  `gkc` for linux, 
+`gkc.exe` for 64-bit windows, `gkc32.exe` for 32-bit windows,
+`gkcosx` for OS X (macOS). The pre-compiled executables are 
+included in the [release](https://github.com/tammet/gkc/release).
 
 GKC is written in C. There are three alternative ways
 to compile gkc, from simpler to more complicated:
