@@ -963,7 +963,7 @@ printed as XXN for some number N.
 
 ###  Example for TPTP fof syntax with steam 
 
-The steam.txt file contains a classic "Schubert's Steamroller" puzzle taken from
+The [steam.txt](#steam.txt) file contains a classic "Schubert's Steamroller" puzzle taken from
 TPTP and written in fof syntax with connectives like implication `=>`, quantifiers `forall ! [X] ...`,
 `exists ? [X] ...` etc. 
 
@@ -1159,8 +1159,8 @@ the axiom set before the questions are asked, so that each individual question d
 have to go through that process.
 
 In order to try this, there are two files created from steam.txt:
-* steam_kb.txt contains all axioms in steam.txt, but not the conjecture,
-* steam_query.txt contains only the conjecture.
+* [steam_kb.txt](#steam_kb.txt) contains all axioms in steam.txt, but not the conjecture,
+* [steam_query.txt](#steam_query.txt) contains only the conjecture.
 
 Read in an axiom set into persistant shared memory like this:
 
@@ -1599,7 +1599,7 @@ For example, gkc cannot prove an example formula `["exists",["X"],["$is_number",
 unless neccessary additional axioms are given.
  
 Try the simple examples `arithmetic1.txt`, `arithmetic2.txt`, `arithmetic3.txt`, 
-`arithmetic4.txt`. The last of these produces output
+`arithmetic4.txt`. The [last of these](#arithmetic4.txt) produces output
 
     result: proof found
     for arithmetic4.txt 
@@ -1645,7 +1645,7 @@ The following predicate and two functions are defined on lists:
 These functions can be applied to non-list arguments, where they are left as is and not 
 evaluated. 
 
-The example `lists.txt` gives output
+The example [lists.txt](#lists.txt) gives output
 
     result: proof found
     for lists.txt 
@@ -1694,7 +1694,7 @@ Gkc defines a function and three predicates on distinct symbols:
 * `$is_distinct(A)` evaluates to *true* if A is a distinct symbol and 
   *false* if A is a number or a list.  
 
-The example `distinct.txt` gives output  
+The example [distinct.txt](#distinct.txt) gives output  
 
     result: proof found
     for distinct.txt 
@@ -1728,13 +1728,13 @@ inequality and is otherwise the same as `blocks.txt`
 The `Examples` folder contains a selection of small and relatively easy examples
 from the different domains of the TPTP collection:
 
-* nlp.txt
-* organization.txt
-* boolean.txt
-* medicine.txt
-* dreadbury.txt
-* group.txt
-* set.txt
+* [nlp.txt](#nlp.txt)
+* [organization.txt](#organization.txt)
+* [boolean.txt](#boolean.txt)
+* [medicine.txt](#medicine.txt)
+* [dreadbury.txt](#dreadbury.txt)
+* [group.txt](#group.txt)
+* [set.txt](#set.txt)
 
 These examples start with the explanatory comments from TPTP. 
 
