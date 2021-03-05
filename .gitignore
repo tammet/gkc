@@ -38,6 +38,7 @@ Main/wgdb
 
 gkc
 gkc.exe
+gkcosx
 gkc.lib
 gkc.pc
 
@@ -77,6 +78,10 @@ Binaries/
 hl/
 geoff/
 casc/
+2020/
+html/
+Jstest/
+
 
 
 
