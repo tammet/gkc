@@ -1,5 +1,5 @@
-gkc
-===
+gkc branch dev6
+===============
 
 GKC is a high-performance first order logic reasoning system optimized
 for large knowledge bases. It can prove formulas, answer questions and
