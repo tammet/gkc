@@ -1763,7 +1763,8 @@ int wg_current_localdate(void* db) {
   return res;
 }
 
-
+/* ftime is deprecated, comment all code out as not needed */
+/*
 int wg_current_utctime(void* db) {
   struct timeb tstruct;
   int esecs;
@@ -1794,7 +1795,7 @@ int wg_current_localtime(void* db) {
   secs=ctime.tm_hour*60*60+ctime.tm_min*60+ctime.tm_sec;
   return (secs*100)+(milli/10);
 }
-
+*/
 int wg_strf_iso_datetime(void* db, int date, int time, char* buf) {
   unsigned yr, mo, day, hr, min, sec, spart;
   int t=time;

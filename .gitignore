@@ -82,6 +82,24 @@ casc/
 html/
 Jstest/
 
+Db/Makefile.in
+Main/Makefile.in
+Makefile.in
+Parser/Makefile.in
+Printer/Makefile.in
+Reasoner/Makefile.in
+Reasoner/analyze_last.c
+Reasoner/analyze_last.h
+Reasoner/clstore_v40.c
+Reasoner/glb_40.c
+Reasoner/proplog.js
+Reasoner/psolve.c
+Reasoner/psolve.h
+config.h.in
+config.h.orig
+json/Makefile.in
+makefile.orig
+
 
 
 

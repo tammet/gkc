@@ -40,10 +40,11 @@
 /*
 ** 'pure_parser' tells bison to use no global variables and create a
 ** reentrant parser.
-*/
+** The newer version is
+** %define api.pure
+*/ 
 
-/*%pure_parser*/
-%pure-parser
+%define api.pure
 %parse-param {parse_parm *parm}
 %parse-param {void *scanner}
 %lex-param {yyscan_t *scanner}

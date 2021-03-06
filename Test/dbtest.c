@@ -733,8 +733,11 @@ static gint wg_check_datatype_writeread(void* db, int printlevel) {
     for(k=0;k<1000;k++) encbuf[k]=0;
     m=wg_current_utcdate(db);
     k=wg_current_localdate(db);
+    /*
+    // ftime is deprecated, comment these out
     r=wg_current_utctime(db);
     j=wg_current_localtime(db);
+    */
     if (p>1) {
       wg_strf_iso_datetime(db,m,r,encbuf);
       printf("checking wg_current_utcdate/utctime: %s\n",encbuf);
