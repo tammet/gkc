@@ -731,6 +731,30 @@ int wr_calc_atom_hardness(glb* g, int polarity, gint atom) {
   }  
 
   hardness=(hdata.size-hdata.newvars)*5;
+
+/*  
+defshardness1 and defshardness2: no new proofs found
+  // ---
+  gint x,start;
+  char* str; 
+  gptr xptr;
+  void* db=g->db;
+  gint oldhardness=hardness;
+  xptr=decode_record(db,atom);
+  start=wr_term_unify_startpos(g);
+  x=xptr[start];
+  if (islongstr(x)) {
+    str = wg_decode_uri(g->db,x);    
+    if (str[0]=='$' && str[1]=='d' && str[2]=='f') {
+      hardness=hardness*10;
+    } else {
+      //return 10;
+    }  
+  }
+  //printf("\nstr %s oldhardness %ld hardness %d\n",str,oldhardness,hardness);
+*/
+  // ----
+
   //printf("result hardness cp0 %d\n",hardness);
   if (polarity) {
     // positive
@@ -1154,6 +1178,15 @@ static int wr_order_eqterms_weight_vars(glb* g, gint x, gptr vars, gptr vb) {
   end=wr_term_unify_endpos(g,xptr);
   w=0;    
   for(i=start;i<end;i++) {
+    //----    
+    /*
+    // eqtermweightarity1 eqtermweightarity2    
+    if ((end-start)<6) {
+      w=w+((6-(end-start))*wr_order_eqterms_weight_vars(g,xptr[i],vars,vb));    
+    }  
+    //----
+    */
+    //normal:
     w=w+wr_order_eqterms_weight_vars(g,xptr[i],vars,vb);      
   }   
   return w;
@@ -1283,8 +1316,18 @@ static int wr_order_eqterms_lex_order(glb* g, gint x, gint y, gptr vb) {
   xlen=get_record_len(xptr);
   ylen=get_record_len(yptr);
   // let smaller-arity funs be lex-smaller 
-  // normal in May 2020
+  // normal in May 2020  
 #ifdef NORMAL_CONSTANT_ORDER  
+  /*
+  //lexarglenonepref
+  // wr_print_term(g,x);
+  // wr_printf("\n");
+  // wr_print_term(g,y);
+  // wr_printf("\n");
+  // printf("\nxlen %d ylen %d\n",xlen,ylen);
+  if (xlen==3 && ylen>3) return 2;
+  if (ylen==3 && xlen>3) return 1;
+  */
   if (xlen<ylen) return 1;
   else if (ylen<xlen) return 2;   
 #else  

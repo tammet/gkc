@@ -405,11 +405,18 @@ int wr_parse_guide_strategy_set(glb* g, char* stratname) {
     (g->posunitpara_strat)=1;     
   } else if (!strcmp(stratname,"max_ground_weight")) {
     (g->use_max_ground_weight)=1;  
+  } else if (!strcmp(stratname,"max_weight")) {
+    (g->use_max_weight)=1;   
   } else if (!strcmp(stratname,"pure_unit")) {
     (g->res_arglen_limit)=1;
     (g->res_strict_arglen_limit)=1;
-
-
+  } else if (!strcmp(stratname,"hornpref")) {
+    (g->use_hornpref)=1;    
+  } else if (!strcmp(stratname,"posweightdoublepref")) {
+    (g->use_posweightdoublepref)=1;    
+  } else if (!strcmp(stratname,"negweightdoublepref")) {
+    (g->use_negweightdoublepref)=1;   
+  
 
   } else {
     wr_warn2(g,"unknown strategy: ", stratname);

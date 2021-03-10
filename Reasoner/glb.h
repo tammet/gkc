@@ -304,8 +304,7 @@ typedef struct {
   int repeat_var_weight;
   int atom_poseq_penalty;
   int use_max_ground_weight;
-  int use_max_weight;
-
+  int use_max_weight;  
 
   int cl_maxkeep_weightlimit;
   int cl_maxkeep_sizelimit;
@@ -317,6 +316,10 @@ typedef struct {
                               // 1: exactly as marked, 
                               // 2: make non-included axioms assumptions and positive conjecture part assumptions
                               // 3: only fully negative clauses of goal made goal and no assumptions (ie made axioms)
+
+  int use_hornpref;
+  int use_posweightdoublepref;
+  int use_negweightdoublepref;
 
   /* dynamically changed limits */
 

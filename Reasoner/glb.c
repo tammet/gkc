@@ -173,9 +173,30 @@ int wr_glb_init_simple(glb* g) {
   (g->cl_length_penalty)=1; // normal 1
   (g->var_weight)=5; // NORMAL 5
   (g->repeat_var_weight)=7; // NORMAL 7
+  
+  /*
+  // heavyvars1 gives at least 5 more proofs
+  (g->var_weight)=70; // NORMAL 5
+  (g->repeat_var_weight)=70; // NORMAL 7
+  */
+  /*
+  // heavyvars2   
+  (g->var_weight)=5; // NORMAL 5
+  (g->repeat_var_weight)=70; // NORMAL 7
+  */
+  // lightvars1
+  /*
+  (g->var_weight)=1; // NORMAL 5
+  (g->repeat_var_weight)=2; // NORMAL 7
+  */
+
+
   (g->atom_poseq_penalty)=0; // normal 0
   (g->use_max_ground_weight)=0; // normal 0
   (g->use_max_weight)=0; // normal 1
+ 
+  // maxweight
+  (g->use_max_weight)=0;
 
   /* pre-given limits */
   (g->max_run_seconds)=0; // one run max seconds
@@ -184,11 +205,14 @@ int wr_glb_init_simple(glb* g) {
   (g->max_dseconds)=0;     // total max deciseconds
   (g->cl_maxkeep_weightlimit)=0;
   (g->cl_maxkeep_sizelimit)=0;
-  (g->cl_maxkeep_depthlimit)=0;
+  (g->cl_maxkeep_depthlimit)=0; // !! EXPERIMENT
   (g->cl_maxkeep_lengthlimit)=0;  
 
   (g->cl_pick_queue_strategy)=0; // default a single 2nd level queue for all
-  
+  (g->use_hornpref)=0; // prefer horn and closer to horn for clause selection
+  (g->use_posweightdoublepref)=0;
+  (g->use_negweightdoublepref)=0;
+
   (g->reverse_clauselist_strat)=0;
   (g->queryfocus_strat)=0;
   (g->queryfocusneg_strat)=0;  

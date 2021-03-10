@@ -50,7 +50,8 @@ extern "C" {
 
 #define STORE_TERMMETA
 
-#define PENALIZE_DEFS
+#define PENALIZE_DEFS  // comment out for no_penalize_defs
+//#define PREFER_DEFS // gives one more, also comment out PENALIZE_DEFS for this
 
 /* ====== Private headers ======== */
   
@@ -82,9 +83,9 @@ int  wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length
   void* db;
   int ruleflag;       
   gint xatomnr; 
-  gint xatom=0;  
+  gint xatom=0, xmeta;  
   int i;
-  int w,weight,is_rewrite;
+  int w,weight,is_rewrite,posatoms;
   int max_ground_weight=0, max_weight=0;
   int atomdepth;
   int vc_tmp;
@@ -109,11 +110,18 @@ int  wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length
   if (!ruleflag) {
     xatomnr=1;
     *length=1;
+    posatoms=1;
     xatom=encode_datarec_offset(pto(db,xptr));
     hasvars=0;
     if (wr_answer_lit(g,xatom)) w=1; // !! special answer-lit weight
     else w=wr_calc_term_weight(g,xatom,0,size,depth,0,&hasvars);    
     weight=w;   
+    
+    /*
+    // posweightdoublepref got 1 more
+    weight=w*2; 
+    */
+
     if (!hasvars) {
       if (weight>max_ground_weight) max_ground_weight=weight;
     }      
@@ -123,18 +131,30 @@ int  wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length
     xatomnr=wg_count_clause_atoms(db,xptr); 
     max_ground_weight=0;   
     max_weight=0;
+    posatoms=0;
     for(i=0;i<xatomnr;i++) {
-      //xmeta=wg_get_rule_clause_atom_meta(db,xptr,i);
+      xmeta=wg_get_rule_clause_atom_meta(db,xptr,i);
       xatom=wg_get_rule_clause_atom(db,xptr,i);
       if (wr_answer_lit(g,xatom)) w=w+1;
       else {
         atomdepth=0;
         hasvars=0;
         weight=wr_calc_term_weight(g,xatom,0,size,&atomdepth,0,&hasvars);
-        w=w+weight;
+        if (!wg_atom_meta_is_neg(db,xmeta)) posatoms++;
+
+        /*
+        // posweightdoublepref got 1 more
+        if (!wg_atom_meta_is_neg(db,xmeta)) weight=weight*2; 
+        */         
+        /*
+        // negweightdoublepref got 1 more
+        if (wg_atom_meta_is_neg(db,xmeta)) weight=weight*2;
+        */
+
+        w=w+weight;        
         if (g->atom_poseq_penalty) {
           if (wr_equality_atom(g,xatom) && 
-              !wg_atom_meta_is_neg(db,wg_get_rule_clause_atom_meta(db,xptr,i))) {
+              !wg_atom_meta_is_neg(db,xmeta)) {
             w=w+(g->atom_poseq_penalty);
           }
         }  
@@ -196,6 +216,27 @@ int  wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length
     if (is_rewrite) w=(int)((float)w/2.0); // NORMAL /2.0 TESTING *0.8   // june 2020
   }  
 
+  
+  // hornpref got 3 more
+  if (g->use_hornpref) {
+    if (posatoms>1) {
+      w=w*(posatoms-1);
+    }
+  }  
+  
+  /*
+  //neghornpref got 0 more
+  if ((*length-posatoms)>1) {
+    w=w*((*length-posatoms)-1);
+  }
+  */
+  /*
+  // antihornpref got 1 more
+  if (posatoms<2) {
+    w=w*2;
+  }
+  */
+ 
   //if (is_rewrite) w=(int)((float)w/3.0); // NORMAL /2.0 TESTING *0.8
 
 #ifdef DEBUG  
@@ -235,6 +276,19 @@ int wr_calc_term_weight(glb* g, gint x, int depth, int* size, int* maxdepth, int
       } else return 10;  
 #else
       //*hasvars=1;
+#ifdef PREFER_DEFS
+      char* str; 
+      //db=g->db;
+      //if (wg_get_encoded_type(db,x)==WG_URITYPE) {   
+      if (islongstr(x)) {
+        str = wg_decode_uri(g->db,x);    
+        if (str[0]=='$' && str[1]=='d' && str[2]=='f') {
+          return 2;
+        } else {
+          return 10;
+        }  
+      } else return 10;  
+#endif      
       return 10;
 #endif               
   }  
