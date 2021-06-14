@@ -708,11 +708,11 @@ gint wr_build_calc_term_replace(glb* g, gint x, int replpos, gint replterm, int*
 
 /* ----------------
 
- answer preds and specialcomp preds
+answer preds and specialcomp preds
 
   ------------------- */
 
-
+  
 int wr_answer_lit(glb* g, gint atom) {
   gptr tptr;
   gint fun;

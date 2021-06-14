@@ -48,6 +48,7 @@ sources = Main/gkc.c \
   Reasoner/resolve.c Reasoner/simp.c Reasoner/strat.c Reasoner/rewrite.c Reasoner/history.c Reasoner/prob.c Reasoner/hash.c \
   Reasoner/clmeta.c Reasoner/guide.c  Reasoner/propagate.c Reasoner/init.c\
   Reasoner/analyze.c Reasoner/chains.c Reasoner/prop.c\
+  Reasoner/makeguide.c\
   Printer/dbotterprint.c\
   Parser/jsparse.c
 # Test/dbtest.c
