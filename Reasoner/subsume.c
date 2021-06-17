@@ -543,8 +543,7 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
 
 #ifdef DEBUG
   wr_printf("\nwr_derived_cl_cut_and_subsume is called \n");
-#endif
-
+#endif  
   (g->stat_forwardsubs_attempted)++;
   (g->cut_clvec)[1]=(gint)NULL;
   clhash=0;  

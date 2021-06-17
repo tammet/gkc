@@ -40,6 +40,8 @@ extern "C" {
 #define HARD_DEPTH_LIMIT 10000
 #define HARD_SIZE_LIMIT 10000
 
+//#define GLOBALUNITS
+
 //#define DEBUG
 //#undef DEBUG
 //#define DEBUGHASH
@@ -313,6 +315,16 @@ void wr_process_resolve_result
     }
   } else {           
     // ordinary case (not partial hyperres): resulting clause is finished
+#ifdef GLOBALUNITS
+      int rflag=wg_rec_is_rule_clause(db,res);
+      int rlen;
+      if (rflag) rlen = wg_count_clause_atoms(db,res);
+      else rlen=1;
+      if (rlen==1) {
+        wr_printf("\n+ unit by mp: ");
+        wr_print_clause(g,res);
+      }
+#endif
     if (g->print_derived_cl) {
       wr_printf("\n+ derived by mp: ");
       wr_print_clause(g,res);    
@@ -754,6 +766,16 @@ void wr_process_factor_result
     }
   } else {
     // resulting clause is finished
+#ifdef GLOBALUNITS
+      int rflag=wg_rec_is_rule_clause(db,res);
+      int rlen;
+      if (rflag) rlen = wg_count_clause_atoms(db,res);
+      else rlen=1;
+      if (rlen==1) {
+        wr_printf("\n+ unit by factor: ");
+        wr_print_clause(g,res);
+      }
+#endif    
     if (g->print_derived_cl) {
       wr_printf("\n+ derived by merge: ");
       wr_print_clause(g,res);    
@@ -1079,6 +1101,16 @@ void wr_process_paramodulate_result
     }
   } else {
     //  resulting clause is finished
+#ifdef GLOBALUNITS
+      int rflag=wg_rec_is_rule_clause(db,res);
+      int rlen;
+      if (rflag) rlen = wg_count_clause_atoms(db,res);
+      else rlen=1;
+      if (rlen==1) {
+        wr_printf("\n+ unit by factor: ");
+        wr_print_clause(g,res);
+      }
+#endif    
     if (g->print_derived_cl) {
       wr_printf("\n+ derived by = ");
       if (fromflag) {

@@ -31,81 +31,85 @@ extern "C" {
 
 int make_guide(char* buf, int pos, int iteration, int dsecs, int probsize, int eq, int ueq, int queryok, int qp1ok, int qp2ok, int qp3ok, int sineok) {
 
+
 if (ueq) {
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"var_weight\": 1, \"weight_select_ratio\":100, \"repeat_var_weight\":1},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"weight_select_ratio\":20, \"depth_penalty\":100},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"var_weight\": 1, \"weight_select_ratio\":20, \"repeat_var_weight\":1, \"depth_penalty\":100},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"weight_select_ratio\":20},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"weight_select_ratio\":20},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"weight_select_ratio\":20,\"depth_penalty\":50},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"weight_select_ratio\":20, \"depth_penalty\":50},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"rewrite\":0},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"weight_select_ratio\":20, \"rewrite\":0},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"weight_select_ratio\":2},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"weight_select_ratio\":20,\"depth_penalty\":50, \"var_weight\":1, \"repeat_var_weight\":1},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"weight_select_ratio\":20, \"depth_penalty\":50, \"var_weight\":1, \"repeat_var_weight\":1},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 0},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"reverse_clauselist\": 1},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"max_depth\": 2},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"max_depth\": 4},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"max_depth\": 6},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"max_depth\": 8},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"max_depth\": 10},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"max_size\":20},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"max_size\":30},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"max_size\":40},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"var_weight\":1},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"var_weight\":1, \"repeat_var_weight\":1},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"max_size\":30,\"depth_penalty\":50},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\",\"prohibit_nested_para\"],\"query_preference\":1,\"reverse_clauselist\":1},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\",\"prohibit_nested_para\"],\"query_preference\":1,\"depth_penalty\":100},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"var_weight\":70,\"repeat_var_weight\":70,\"depth_penalty\":100,\"query_preference\":0},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"var_weight\":70,\"repeat_var_weight\":70,\"query_preference\":1},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"var_weight\":70,\"repeat_var_weight\":70,\"query_preference\":0,\"weight_select_ratio\":20},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\",\"prohibit_nested_para\"],\"var_weight\":70,\"repeat_var_weight\":70,\"depth_penalty\":100},\n",dsecs);
- pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"var_weight\":70,\"repeat_var_weight\":70,\"query_preference\":0,\"max_depth\": 4},\n",dsecs);
-if (probsize>9) { 
- pos+=sprintf(buf+pos, "  {\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"sine\":1},\n",dsecs);
- pos+=sprintf(buf+pos, "  {\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"sine\":1, \"rewrite\":0},\n",dsecs);
- pos+=sprintf(buf+pos, "  {\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"sine\":1, \"weight_select_ratio\":2},\n",dsecs);
- pos+=sprintf(buf+pos, "  {\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"sine\":2},\n",dsecs);
- pos+=sprintf(buf+pos, "  {\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"sine\":2},\n",dsecs);
- pos+=sprintf(buf+pos, "  {\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"sine\":1},\n",dsecs);
- pos+=sprintf(buf+pos, "  {\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"sine\":1, \"depth_penalty\":50},\n",dsecs);
- pos+=sprintf(buf+pos, "  {\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"sine\":1, \"var_weight\": 1, \"weight_select_ratio\":100, \"repeat_var_weight\":1},\n",dsecs);
- pos+=sprintf(buf+pos, "  {\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"var_weight\":70,\"repeat_var_weight\":70,\"query_preference\":1, \"sine\":1},\n",dsecs);
-}
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"var_weight\": 1, \"weight_select_ratio\":100, \"repeat_var_weight\":1},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"weight_select_ratio\":20, \"depth_penalty\":100},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"var_weight\": 1, \"weight_select_ratio\":20, \"repeat_var_weight\":1, \"depth_penalty\":100},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"weight_select_ratio\":20},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"weight_select_ratio\":20},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"weight_select_ratio\":20,\"depth_penalty\":50},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"weight_select_ratio\":20, \"depth_penalty\":50},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"rewrite\":0},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"weight_select_ratio\":20, \"rewrite\":0},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"weight_select_ratio\":2},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"weight_select_ratio\":20,\"depth_penalty\":50, \"var_weight\":1, \"repeat_var_weight\":1},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"weight_select_ratio\":20, \"depth_penalty\":50, \"var_weight\":1, \"repeat_var_weight\":1},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 0},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"reverse_clauselist\": 1},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"max_depth\": 2},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"max_depth\": 4},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"max_depth\": 6},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"max_depth\": 8},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"max_depth\": 10},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"max_size\":20},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"max_size\":30},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"max_size\":40},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"var_weight\":1},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"var_weight\":1, \"repeat_var_weight\":1},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"max_size\":30,\"depth_penalty\":50},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\",\"prohibit_nested_para\"],\"query_preference\":1,\"reverse_clauselist\":1},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\",\"prohibit_nested_para\"],\"query_preference\":1,\"depth_penalty\":100},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"var_weight\":70,\"repeat_var_weight\":70,\"depth_penalty\":100,\"query_preference\":0},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"var_weight\":70,\"repeat_var_weight\":70,\"query_preference\":1},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"var_weight\":70,\"repeat_var_weight\":70,\"query_preference\":0,\"weight_select_ratio\":20},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\",\"prohibit_nested_para\"],\"var_weight\":70,\"repeat_var_weight\":70,\"depth_penalty\":100},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"var_weight\":70,\"repeat_var_weight\":70,\"query_preference\":0,\"max_depth\": 4},\n",dsecs);
+  if (probsize>9) { 
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"sine\":1},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"sine\":1, \"rewrite\":0},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"sine\":1, \"weight_select_ratio\":2},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"sine\":2},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"sine\":2},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"sine\":1},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"sine\":1, \"depth_penalty\":50},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"sine\":1, \"var_weight\": 1, \"weight_select_ratio\":100, \"repeat_var_weight\":1},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"var_weight\":70,\"repeat_var_weight\":70,\"query_preference\":1, \"sine\":1},\n",dsecs);
+  }
 }
 else if (!eq) {
   // --------- no equality ---------    
 
   if (probsize<10) {
+    if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":0},\n",dsecs);
+    if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\"], \"query_preference\":0},\n",dsecs);
     if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":0, \"weight_select_ratio\":100, \"depth_penalty\":100, \"length_penalty\":100},\n",dsecs);
+    if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":0},\n",dsecs);
+    if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"weight_select_ratio\":20},\n",dsecs);
+    if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":0, \"var_weight\":70, \"repeat_var_weight\":70},\n",dsecs);
+    if (qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":1},\n",dsecs);
+    if (qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":1},\n",dsecs);
+    if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"positive_pref\"], \"query_preference\":0, \"reverse_clauselist\":1},\n",dsecs);
     if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\"], \"query_preference\":1},\n",dsecs);
     if (iteration<4 && queryok && qp2ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\"], \"query_preference\":2},\n",dsecs);
     if (iteration<4 && queryok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"unit\"], \"query_preference\":0},\n",dsecs);
-    if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":0},\n",dsecs);
-    if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\"], \"query_preference\":0},\n",dsecs);
     if (iteration<4 && queryok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"positive_pref\"], \"query_preference\":0},\n",dsecs);
-    if (iteration<4 && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":1},\n",dsecs);
     if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"unit\"], \"query_preference\":1},\n",dsecs);
     if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"max_ground_weight\"], \"query_preference\":1},\n",dsecs);
     if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\"], \"query_preference\":1, \"var_weight\":1, \"weight_select_ratio\":100, \"repeat_var_weight\":1},\n",dsecs);
     if (iteration<4 && queryok && qp2ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"unit\"], \"query_preference\":2},\n",dsecs);
     if (iteration<4 && queryok && qp1ok && sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"unit\"], \"query_preference\":1, \"sine\":1},\n",dsecs);
     if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"double\"], \"query_preference\":1},\n",dsecs);
-    if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":0},\n",dsecs);
     if (iteration<4 && sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":0, \"sine\":1},\n",dsecs);
-    if (iteration<4 && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":1},\n",dsecs);
     if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\"], \"query_preference\":0, \"weight_select_ratio\":20, \"depth_penalty\":50, \"length_penalty\":100},\n",dsecs);
     if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\", \"max_ground_weight\"], \"query_preference\":0},\n",dsecs);
     if (iteration<4) pos+=sprintf(buf+pos, "{\"length_penalty\":100, \"query_preference\":0, \"strategy\":[\"negative_pref\"], \"max_dseconds\":%d},\n",dsecs);
-    if (iteration<4) pos+=sprintf(buf+pos, "{\"max_seconds\":100, \"strategy\":[\"hardness_pref\", \"max_weight\"], \"length_penalty\":100, \"depth_penalty\":50, \"max_depth\":3, \"var_weight\":10, \"repeat_var_weight\":10, \"max_dseconds\":%d},\n",dsecs);
-    if (iteration<4 && qp2ok && sineok) pos+=sprintf(buf+pos, "{\"sine\":2, \"var_weight\":70, \"repeat_var_weight\":70, \"max_depth\":0, \"length_penalty\":100, \"query_preference\":2, \"strategy\":[\"unit\"], \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4) pos+=sprintf(buf+pos, "{\"strategy\":[\"hardness_pref\", \"max_weight\"], \"length_penalty\":100, \"depth_penalty\":50, \"max_depth\":3, \"var_weight\":10, \"repeat_var_weight\":10, \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4 && qp2ok && sineok) pos+=sprintf(buf+pos, "{\"sine\":2, \"var_weight\":70, \"repeat_var_weight\":70, \"length_penalty\":100, \"query_preference\":2, \"strategy\":[\"unit\"], \"max_dseconds\":%d},\n",dsecs);
     if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"positive_pref\"], \"query_preference\":0},\n",dsecs);
     if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\"], \"query_preference\":1, \"depth_penalty\":100},\n",dsecs);
     if (iteration<4 && qp1ok && sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":1, \"sine\":2},\n",dsecs);
@@ -113,15 +117,15 @@ else if (!eq) {
     if (iteration<4) pos+=sprintf(buf+pos, "{\"var_weight\":70, \"repeat_var_weight\":70, \"max_depth\":3, \"query_preference\":0, \"strategy\":[\"negative_pref\"], \"max_dseconds\":%d},\n",dsecs);
     if (iteration<4 && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":1, \"reverse_clauselist\":1},\n",dsecs);
     if (iteration<4 && sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":0, \"sine\":2},\n",dsecs);
-    if (iteration<4 && sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\", \"posunitpara\"], \"query_preference\":0, \"sine\":2},\n",dsecs);
     if (iteration<4 && queryok && qp3ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\"], \"query_preference\":3},\n",dsecs);
     if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\"], \"query_preference\":1, \"var_weight\":1, \"repeat_var_weight\":1},\n",dsecs);
     if (iteration<4 && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":1, \"var_weight\":1, \"repeat_var_weight\":1},\n",dsecs);
     if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":0, \"var_weight\":1, \"depth_penalty\":100, \"repeat_var_weight\":1},\n",dsecs);
-    if (iteration<4 && eq) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":0, \"rewrite\":0},\n",dsecs);
-    if (iteration<4 && eq && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"weight_select_ratio\":100, \"rewrite\":0, \"length_penalty\":100, \"query_preference\":1, \"strategy\":[\"query_focus\"], \"max_dseconds\":%d},\n",dsecs);
-  }
-  else if (probsize<100) {
+    if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"max_depth\":5, \"query_preference\":0},\n",dsecs);
+    if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"max_weight\":40, \"query_preference\":0},\n",dsecs);
+    if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"weight_select_ratio\":100, \"length_penalty\":100, \"query_preference\":1, \"strategy\":[\"query_focus\"], \"max_dseconds\":%d},\n",dsecs);
+
+  } else if (probsize<100) {
     if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":0},\n",dsecs);
     if (qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":1},\n",dsecs);
     if (queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\"], \"query_preference\":1},\n",dsecs);
@@ -131,18 +135,18 @@ else if (!eq) {
     if (qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":1},\n",dsecs);
     if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\"], \"query_preference\":0, \"weight_select_ratio\":20, \"depth_penalty\":50, \"length_penalty\":100},\n",dsecs);
     if (1) pos+=sprintf(buf+pos, "{\"length_penalty\":100, \"query_preference\":0, \"strategy\":[\"negative_pref\"], \"max_dseconds\":%d},\n",dsecs);
-    if (1) pos+=sprintf(buf+pos, "{\"max_seconds\":100, \"strategy\":[\"hardness_pref\", \"max_weight\"], \"length_penalty\":100, \"depth_penalty\":50, \"max_depth\":3, \"var_weight\":10, \"repeat_var_weight\":10, \"max_dseconds\":%d},\n",dsecs);
-    if (qp2ok && sineok) pos+=sprintf(buf+pos, "{\"sine\":2, \"var_weight\":70, \"repeat_var_weight\":70, \"max_depth\":0, \"length_penalty\":100, \"query_preference\":2, \"strategy\":[\"unit\"], \"max_dseconds\":%d},\n",dsecs);
+    if (1) pos+=sprintf(buf+pos, "{\"strategy\":[\"hardness_pref\", \"max_weight\"], \"length_penalty\":100, \"depth_penalty\":50, \"max_depth\":3, \"var_weight\":10, \"repeat_var_weight\":10, \"max_dseconds\":%d},\n",dsecs);
+    if (qp2ok && sineok) pos+=sprintf(buf+pos, "{\"sine\":2, \"var_weight\":70, \"repeat_var_weight\":70, \"length_penalty\":100, \"query_preference\":2, \"strategy\":[\"unit\"], \"max_dseconds\":%d},\n",dsecs);
     if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"positive_pref\"], \"query_preference\":0},\n",dsecs);
     if (1) pos+=sprintf(buf+pos, "{\"var_weight\":70, \"repeat_var_weight\":70, \"max_depth\":3, \"query_preference\":0, \"strategy\":[\"negative_pref\"], \"max_dseconds\":%d},\n",dsecs);
     if (queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\"], \"query_preference\":1, \"var_weight\":1, \"repeat_var_weight\":1},\n",dsecs);
     if (qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":1, \"var_weight\":1, \"repeat_var_weight\":1},\n",dsecs);
     if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":0, \"var_weight\":1, \"depth_penalty\":100, \"repeat_var_weight\":1},\n",dsecs);
-    if (eq) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":0, \"rewrite\":0},\n",dsecs);
-    if (eq && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"weight_select_ratio\":100, \"rewrite\":0, \"length_penalty\":100, \"query_preference\":1, \"strategy\":[\"query_focus\"], \"max_dseconds\":%d},\n",dsecs);
+    if (queryok && qp1ok) pos+=sprintf(buf+pos, "{\"weight_select_ratio\":100, \"length_penalty\":100, \"query_preference\":1, \"strategy\":[\"query_focus\"], \"max_dseconds\":%d},\n",dsecs);
+    if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"weight_select_ratio\":20},\n",dsecs);
+    if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\"], \"query_preference\":0},\n",dsecs);
     if (iteration<4 && queryok && qp2ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\"], \"query_preference\":2},\n",dsecs);
     if (iteration<4 && queryok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"unit\"], \"query_preference\":0},\n",dsecs);
-    if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\"], \"query_preference\":0},\n",dsecs);
     if (iteration<4 && queryok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"positive_pref\"], \"query_preference\":0},\n",dsecs);
     if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"unit\"], \"query_preference\":1},\n",dsecs);
     if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"max_ground_weight\"], \"query_preference\":1},\n",dsecs);
@@ -155,11 +159,12 @@ else if (!eq) {
     if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"positive_pref\"], \"query_preference\":1},\n",dsecs);
     if (iteration<4 && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":1, \"reverse_clauselist\":1},\n",dsecs);
     if (iteration<4 && sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":0, \"sine\":2},\n",dsecs);
-    if (iteration<4 && sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\", \"posunitpara\"], \"query_preference\":0, \"sine\":2},\n",dsecs);
     if (iteration<4 && queryok && qp3ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\"], \"query_preference\":3},\n",dsecs);
+    if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"max_depth\":5, \"query_preference\":0},\n",dsecs);
+    if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"max_weight\":40, \"query_preference\":0},\n",dsecs);
     if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":0, \"weight_select_ratio\":100, \"depth_penalty\":100, \"length_penalty\":100},\n",dsecs);
-  }
-  else if (probsize<1000) {
+
+  } else if (probsize<1000) {
     if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\"], \"query_preference\":0},\n",dsecs);
     if (queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\"], \"query_preference\":1},\n",dsecs);
     if (queryok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"positive_pref\"], \"query_preference\":0},\n",dsecs);
@@ -169,22 +174,29 @@ else if (!eq) {
     if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\", \"max_ground_weight\"], \"query_preference\":0},\n",dsecs);
     if (queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\"], \"query_preference\":1, \"depth_penalty\":100},\n",dsecs);
     if (qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":1, \"reverse_clauselist\":1},\n",dsecs);
-    if (iteration<4 && queryok && qp2ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\"], \"query_preference\":2},\n",dsecs);
-    if (iteration<4 && queryok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"unit\"], \"query_preference\":0},\n",dsecs);
+    if (queryok && qp2ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\"], \"query_preference\":2},\n",dsecs);
+    if (queryok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"unit\"], \"query_preference\":0},\n",dsecs);
+    if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":0},\n",dsecs);
+    if (qp2ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":2},\n",dsecs);
+    if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\"], \"var_weight\":70, \"repeat_var_weight\":70, \"query_preference\":0},\n",dsecs);
+    if (iteration<4 && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\"], \"query_preference\":1},\n",dsecs);
+    if (iteration<4 && qp1ok && sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":1, \"sine\":1},\n",dsecs);
+    if (iteration<4 && qp1ok && sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":1, \"sine\":2},\n",dsecs);
+    if (iteration<4 && qp2ok && sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":2, \"sine\":1},\n",dsecs);
+    if (iteration<4 && qp1ok && sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\"], \"sine\":1, \"query_preference\":1},\n",dsecs);
+    if (iteration<4 && qp1ok && sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\"], \"sine\":2, \"query_preference\":1},\n",dsecs);
     if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"unit\"], \"query_preference\":1},\n",dsecs);
     if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"max_ground_weight\"], \"query_preference\":1},\n",dsecs);
     if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\"], \"query_preference\":1, \"var_weight\":1, \"weight_select_ratio\":100, \"repeat_var_weight\":1},\n",dsecs);
     if (iteration<4 && queryok && qp2ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"unit\"], \"query_preference\":2},\n",dsecs);
     if (iteration<4 && queryok && qp1ok && sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"unit\"], \"query_preference\":1, \"sine\":1},\n",dsecs);
     if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"double\"], \"query_preference\":1},\n",dsecs);
-    if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":0},\n",dsecs);
     if (iteration<4 && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":1},\n",dsecs);
     if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\"], \"query_preference\":0, \"weight_select_ratio\":20, \"depth_penalty\":50, \"length_penalty\":100},\n",dsecs);
     if (iteration<4) pos+=sprintf(buf+pos, "{\"length_penalty\":100, \"query_preference\":0, \"strategy\":[\"negative_pref\"], \"max_dseconds\":%d},\n",dsecs);
-    if (iteration<4) pos+=sprintf(buf+pos, "{\"max_seconds\":100, \"strategy\":[\"hardness_pref\", \"max_weight\"], \"length_penalty\":100, \"depth_penalty\":50, \"max_depth\":3, \"var_weight\":10, \"repeat_var_weight\":10, \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4) pos+=sprintf(buf+pos, "{\"strategy\":[\"hardness_pref\", \"max_weight\"], \"length_penalty\":100, \"depth_penalty\":50, \"max_depth\":3, \"var_weight\":10, \"repeat_var_weight\":10, \"max_dseconds\":%d},\n",dsecs);
     if (iteration<4 && qp2ok && sineok) pos+=sprintf(buf+pos, "{\"sine\":2, \"var_weight\":70, \"repeat_var_weight\":70, \"max_depth\":0, \"length_penalty\":100, \"query_preference\":2, \"strategy\":[\"unit\"], \"max_dseconds\":%d},\n",dsecs);
     if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"positive_pref\"], \"query_preference\":0},\n",dsecs);
-    if (iteration<4 && qp1ok && sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":1, \"sine\":2},\n",dsecs);
     if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"positive_pref\"], \"query_preference\":1},\n",dsecs);
     if (iteration<4) pos+=sprintf(buf+pos, "{\"var_weight\":70, \"repeat_var_weight\":70, \"max_depth\":3, \"query_preference\":0, \"strategy\":[\"negative_pref\"], \"max_dseconds\":%d},\n",dsecs);
     if (iteration<4 && sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":0, \"sine\":2},\n",dsecs);
@@ -194,10 +206,9 @@ else if (!eq) {
     if (iteration<4 && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":1, \"var_weight\":1, \"repeat_var_weight\":1},\n",dsecs);
     if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":0, \"weight_select_ratio\":100, \"depth_penalty\":100, \"length_penalty\":100},\n",dsecs);
     if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":0, \"var_weight\":1, \"depth_penalty\":100, \"repeat_var_weight\":1},\n",dsecs);
-    if (iteration<4 && eq) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":0, \"rewrite\":0},\n",dsecs);
-    if (iteration<4 && eq && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"weight_select_ratio\":100, \"rewrite\":0, \"length_penalty\":100, \"query_preference\":1, \"strategy\":[\"query_focus\"], \"max_dseconds\":%d},\n",dsecs);
-  }
-  else if (probsize<10000) {
+    if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"weight_select_ratio\":100, \"length_penalty\":100, \"query_preference\":1, \"strategy\":[\"query_focus\"], \"max_dseconds\":%d},\n",dsecs);
+
+  } else if (probsize<10000) {
     if (queryok && qp2ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\"], \"query_preference\":2},\n",dsecs);
     if (queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\"], \"query_preference\":1},\n",dsecs);
     if (queryok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"unit\"], \"query_preference\":0},\n",dsecs);
@@ -206,19 +217,23 @@ else if (!eq) {
     if (queryok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"positive_pref\"], \"query_preference\":0},\n",dsecs);
     if (queryok && qp2ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"unit\"], \"query_preference\":2},\n",dsecs);
     if (queryok && qp3ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\"], \"query_preference\":3},\n",dsecs);
-    if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":0},\n",dsecs);
-    if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\"], \"query_preference\":0},\n",dsecs);
-    if (iteration<4 && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":1},\n",dsecs);
+    if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":0},\n",dsecs);
+    if (qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\"], \"query_preference\":1},\n",dsecs);
+    if (qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":1},\n",dsecs);
+    if (qp1ok && sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":1, \"sine\":1},\n",dsecs);
+    if (qp2ok && sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":2, \"sine\":2},\n",dsecs);
+    if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\"], \"query_preference\":0},\n",dsecs);
     if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\"], \"query_preference\":1, \"var_weight\":1, \"weight_select_ratio\":100, \"repeat_var_weight\":1},\n",dsecs);
     if (iteration<4 && queryok && qp1ok && sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"unit\"], \"query_preference\":1, \"sine\":1},\n",dsecs);
     if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"double\"], \"query_preference\":1},\n",dsecs);
     if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":0},\n",dsecs);
     if (iteration<4 && sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":0, \"sine\":1},\n",dsecs);
     if (iteration<4 && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":1},\n",dsecs);
+    if (iteration<4 && qp2ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\"], \"query_preference\":2},\n",dsecs);
     if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\"], \"query_preference\":0, \"weight_select_ratio\":20, \"depth_penalty\":50, \"length_penalty\":100},\n",dsecs);
     if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\", \"max_ground_weight\"], \"query_preference\":0},\n",dsecs);
     if (iteration<4) pos+=sprintf(buf+pos, "{\"length_penalty\":100, \"query_preference\":0, \"strategy\":[\"negative_pref\"], \"max_dseconds\":%d},\n",dsecs);
-    if (iteration<4) pos+=sprintf(buf+pos, "{\"max_seconds\":100, \"strategy\":[\"hardness_pref\", \"max_weight\"], \"length_penalty\":100, \"depth_penalty\":50, \"max_depth\":3, \"var_weight\":10, \"repeat_var_weight\":10, \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4) pos+=sprintf(buf+pos, "{\"strategy\":[\"hardness_pref\", \"max_weight\"], \"length_penalty\":100, \"depth_penalty\":50, \"max_depth\":3, \"var_weight\":10, \"repeat_var_weight\":10, \"max_dseconds\":%d},\n",dsecs);
     if (iteration<4 && qp2ok && sineok) pos+=sprintf(buf+pos, "{\"sine\":2, \"var_weight\":70, \"repeat_var_weight\":70, \"max_depth\":0, \"length_penalty\":100, \"query_preference\":2, \"strategy\":[\"unit\"], \"max_dseconds\":%d},\n",dsecs);
     if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"positive_pref\"], \"query_preference\":0},\n",dsecs);
     if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\"], \"query_preference\":1, \"depth_penalty\":100},\n",dsecs);
@@ -232,10 +247,9 @@ else if (!eq) {
     if (iteration<4 && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":1, \"var_weight\":1, \"repeat_var_weight\":1},\n",dsecs);
     if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":0, \"weight_select_ratio\":100, \"depth_penalty\":100, \"length_penalty\":100},\n",dsecs);
     if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":0, \"var_weight\":1, \"depth_penalty\":100, \"repeat_var_weight\":1},\n",dsecs);
-    if (iteration<4 && eq) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":0, \"rewrite\":0},\n",dsecs);
-    if (iteration<4 && eq && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"weight_select_ratio\":100, \"rewrite\":0, \"length_penalty\":100, \"query_preference\":1, \"strategy\":[\"query_focus\"], \"max_dseconds\":%d},\n",dsecs);
-  }
-  else if (probsize<100000000) {
+    if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"weight_select_ratio\":100, \"length_penalty\":100, \"query_preference\":1, \"strategy\":[\"query_focus\"], \"max_dseconds\":%d},\n",dsecs);
+
+  } else if (probsize<100000000) {
     if (queryok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"unit\"], \"query_preference\":0},\n",dsecs);
     if (queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"unit\"], \"query_preference\":1},\n",dsecs);
     if (queryok && qp1ok && sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"unit\"], \"query_preference\":1, \"sine\":1},\n",dsecs);
@@ -246,6 +260,7 @@ else if (!eq) {
     if (queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"positive_pref\"], \"query_preference\":1},\n",dsecs);
     if (sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":0, \"sine\":2},\n",dsecs);
     if (sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\", \"posunitpara\"], \"query_preference\":0, \"sine\":2},\n",dsecs);
+    if (qp2ok && sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":2, \"sine\":2},\n",dsecs);
     if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":0},\n",dsecs);
     if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\"], \"query_preference\":0},\n",dsecs);
     if (iteration<4 && queryok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"positive_pref\"], \"query_preference\":0},\n",dsecs);
@@ -259,7 +274,7 @@ else if (!eq) {
     if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\"], \"query_preference\":0, \"weight_select_ratio\":20, \"depth_penalty\":50, \"length_penalty\":100},\n",dsecs);
     if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\", \"max_ground_weight\"], \"query_preference\":0},\n",dsecs);
     if (iteration<4) pos+=sprintf(buf+pos, "{\"length_penalty\":100, \"query_preference\":0, \"strategy\":[\"negative_pref\"], \"max_dseconds\":%d},\n",dsecs);
-    if (iteration<4) pos+=sprintf(buf+pos, "{\"max_seconds\":100, \"strategy\":[\"hardness_pref\", \"max_weight\"], \"length_penalty\":100, \"depth_penalty\":50, \"max_depth\":3, \"var_weight\":10, \"repeat_var_weight\":10, \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4) pos+=sprintf(buf+pos, "{\"strategy\":[\"hardness_pref\", \"max_weight\"], \"length_penalty\":100, \"depth_penalty\":50, \"max_depth\":3, \"var_weight\":10, \"repeat_var_weight\":10, \"max_dseconds\":%d},\n",dsecs);
     if (iteration<4 && qp2ok && sineok) pos+=sprintf(buf+pos, "{\"sine\":2, \"var_weight\":70, \"repeat_var_weight\":70, \"max_depth\":0, \"length_penalty\":100, \"query_preference\":2, \"strategy\":[\"unit\"], \"max_dseconds\":%d},\n",dsecs);
     if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"positive_pref\"], \"query_preference\":0},\n",dsecs);
     if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\"], \"query_preference\":1, \"depth_penalty\":100},\n",dsecs);
@@ -270,8 +285,7 @@ else if (!eq) {
     if (iteration<4 && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":1, \"var_weight\":1, \"repeat_var_weight\":1},\n",dsecs);
     if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":0, \"weight_select_ratio\":100, \"depth_penalty\":100, \"length_penalty\":100},\n",dsecs);
     if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":0, \"var_weight\":1, \"depth_penalty\":100, \"repeat_var_weight\":1},\n",dsecs);
-    if (iteration<4 && eq) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":0, \"rewrite\":0},\n",dsecs);
-    if (iteration<4 && eq && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"weight_select_ratio\":100, \"rewrite\":0, \"length_penalty\":100, \"query_preference\":1, \"strategy\":[\"query_focus\"], \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"weight_select_ratio\":100, \"length_penalty\":100, \"query_preference\":1, \"strategy\":[\"query_focus\"], \"max_dseconds\":%d},\n",dsecs);
   }
 } else {
   // --------- equality ---------    
@@ -280,10 +294,12 @@ else if (!eq) {
     if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":0},\n",dsecs);
     if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":0, \"weight_select_ratio\":100, \"depth_penalty\":100, \"length_penalty\":100},\n",dsecs);
     if (qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\", \"prohibit_nested_para\"], \"query_preference\":1, \"reverse_clauselist\":1},\n",dsecs);
+    if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\"], \"query_preference\":0},\n",dsecs);
+    if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":0},\n",dsecs);
+    if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\", \"posunitpara\"], \"query_preference\":0},\n",dsecs);
+    if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"weight_select_ratio\":20},\n",dsecs);
     if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\"], \"query_preference\":1},\n",dsecs);
     if (iteration<4 && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":1},\n",dsecs);
-    if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\"], \"query_preference\":0},\n",dsecs);
-    if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":0},\n",dsecs);
     if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"unit\"], \"query_preference\":1},\n",dsecs);
     if (iteration<4 && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\", \"posunitpara\"], \"query_preference\":1},\n",dsecs);
     if (iteration<4 && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":1},\n",dsecs);
@@ -379,8 +395,8 @@ else if (!eq) {
     if (iteration<4 && sineok) pos+=sprintf(buf+pos, "{\"sine\":2, \"query_preference\":0, \"strategy\":[\"unit\"], \"max_dseconds\":%d},\n",dsecs);
     if (iteration<4 && eq) pos+=sprintf(buf+pos, "{\"weight_select_ratio\":100, \"rewrite\":0, \"depth_penalty\":100, \"query_preference\":0, \"strategy\":[\"unit\", \"posunitpara\"], \"max_dseconds\":%d},\n",dsecs);
     if (iteration<4 && qp2ok && sineok) pos+=sprintf(buf+pos, "{\"depth_penalty\":50, \"query_preference\":2, \"strategy\":[\"negative_pref\"], \"max_dseconds\":%d, \"sine\":2},\n",dsecs);
-  }
-  else if (probsize<100) {
+
+  } else if (probsize<100) {
     if (qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":1},\n",dsecs);
     if (queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\"], \"query_preference\":1},\n",dsecs);
     if (qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":1},\n",dsecs);
@@ -404,17 +420,17 @@ else if (!eq) {
     if (sineok) pos+=sprintf(buf+pos, "{\"sine\":1, \"var_weight\":70, \"repeat_var_weight\":70, \"query_preference\":0, \"strategy\":[\"negative_pref\", \"max_weight\"], \"max_dseconds\":%d},\n",dsecs);
     if (eq) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":0, \"rewrite\":0},\n",dsecs);
     if (sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":0, \"sine\":1},\n",dsecs);
-    if (queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\"], \"query_preference\":1, \"var_weight\":1, \"repeat_var_weight\":1},\n",dsecs);
-    if (eq && queryok) pos+=sprintf(buf+pos, "{\"weight_select_ratio\":100, \"var_weight\":70, \"repeat_var_weight\":70, \"rewrite\":0, \"query_preference\":0, \"strategy\":[\"query_focus\", \"posunitpara\"], \"max_dseconds\":%d},\n",dsecs);
-    if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":0, \"max_depth\":2},\n",dsecs);
-    if (queryok && qp1ok && sineok) pos+=sprintf(buf+pos, "{\"sine\":1, \"var_weight\":70, \"repeat_var_weight\":70, \"depth_penalty\":50, \"query_preference\":1, \"strategy\":[\"query_focus\", \"max_weight\"], \"max_dseconds\":%d},\n",dsecs);
-    if (eq && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"weight_select_ratio\":100, \"var_weight\":70, \"repeat_var_weight\":70, \"rewrite\":0, \"query_preference\":1, \"strategy\":[\"query_focus\", \"max_weight\"], \"max_dseconds\":%d},\n",dsecs);
-    if (1) pos+=sprintf(buf+pos, "{\"weight_select_ratio\":100, \"query_preference\":0, \"strategy\":[\"negative_pref\", \"max_weight\"], \"max_dseconds\":%d},\n",dsecs);
-    if (eq && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":1, \"equality\":0},\n",dsecs);
-    if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"positive_pref\"], \"query_preference\":0, \"reverse_clauselist\":1},\n",dsecs);
-    if (1) pos+=sprintf(buf+pos, "{\"var_weight\":70, \"repeat_var_weight\":70, \"query_preference\":0, \"strategy\":[\"positive_pref\"], \"max_dseconds\":%d},\n",dsecs);
-    if (queryok && qp1ok) pos+=sprintf(buf+pos, "{\"var_weight\":70, \"repeat_var_weight\":70, \"length_penalty\":100, \"depth_penalty\":100, \"query_preference\":1, \"strategy\":[\"query_focus\"], \"max_dseconds\":%d},\n",dsecs);
-    if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":0, \"max_depth\":4},\n",dsecs);
+    if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\"], \"query_preference\":1, \"var_weight\":1, \"repeat_var_weight\":1},\n",dsecs);
+    if (iteration<4 && eq && queryok) pos+=sprintf(buf+pos, "{\"weight_select_ratio\":100, \"var_weight\":70, \"repeat_var_weight\":70, \"rewrite\":0, \"query_preference\":0, \"strategy\":[\"query_focus\", \"posunitpara\"], \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":0, \"max_depth\":2},\n",dsecs);
+    if (iteration<4 && queryok && qp1ok && sineok) pos+=sprintf(buf+pos, "{\"sine\":1, \"var_weight\":70, \"repeat_var_weight\":70, \"depth_penalty\":50, \"query_preference\":1, \"strategy\":[\"query_focus\", \"max_weight\"], \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4 && eq && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"weight_select_ratio\":100, \"var_weight\":70, \"repeat_var_weight\":70, \"rewrite\":0, \"query_preference\":1, \"strategy\":[\"query_focus\", \"max_weight\"], \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4) pos+=sprintf(buf+pos, "{\"weight_select_ratio\":100, \"query_preference\":0, \"strategy\":[\"negative_pref\", \"max_weight\"], \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4 && eq && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":1, \"equality\":0},\n",dsecs);
+    if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"positive_pref\"], \"query_preference\":0, \"reverse_clauselist\":1},\n",dsecs);
+    if (iteration<4) pos+=sprintf(buf+pos, "{\"var_weight\":70, \"repeat_var_weight\":70, \"query_preference\":0, \"strategy\":[\"positive_pref\"], \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"var_weight\":70, \"repeat_var_weight\":70, \"length_penalty\":100, \"depth_penalty\":100, \"query_preference\":1, \"strategy\":[\"query_focus\"], \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":0, \"max_depth\":4},\n",dsecs);
     if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\"], \"query_preference\":0},\n",dsecs);
     if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"unit\"], \"query_preference\":1},\n",dsecs);
     if (iteration<4 && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\", \"posunitpara\"], \"query_preference\":1},\n",dsecs);
@@ -483,8 +499,8 @@ else if (!eq) {
     if (iteration<4 && sineok) pos+=sprintf(buf+pos, "{\"sine\":2, \"query_preference\":0, \"strategy\":[\"unit\"], \"max_dseconds\":%d},\n",dsecs);
     if (iteration<4 && eq) pos+=sprintf(buf+pos, "{\"weight_select_ratio\":100, \"rewrite\":0, \"depth_penalty\":100, \"query_preference\":0, \"strategy\":[\"unit\", \"posunitpara\"], \"max_dseconds\":%d},\n",dsecs);
     if (iteration<4 && qp2ok && sineok) pos+=sprintf(buf+pos, "{\"depth_penalty\":50, \"query_preference\":2, \"strategy\":[\"negative_pref\"], \"max_dseconds\":%d, \"sine\":2},\n",dsecs);
-  }
-  else if (probsize<1000) {
+
+  } else if (probsize<1000) {
     if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\"], \"query_preference\":0},\n",dsecs);
     if (qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":1, \"weight_select_ratio\":1, \"depth_penalty\":50, \"length_penalty\":100},\n",dsecs);
     if (qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":1},\n",dsecs);
@@ -510,27 +526,27 @@ else if (!eq) {
     if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":0, \"max_depth\":1},\n",dsecs);
     if (qp1ok && sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":1, \"sine\":2},\n",dsecs);
     if (qp2ok && sineok) pos+=sprintf(buf+pos, "{\"sine\":1, \"var_weight\":70, \"repeat_var_weight\":70, \"query_preference\":2, \"strategy\":[\"unit\"], \"max_dseconds\":%d},\n",dsecs);
-    if (qp2ok) pos+=sprintf(buf+pos, "{\"max_depth\":0, \"length_penalty\":100, \"query_preference\":2, \"strategy\":[\"hardness_pref\", \"posunitpara\"], \"max_dseconds\":%d},\n",dsecs);
-    if (qp1ok) pos+=sprintf(buf+pos, "{\"weight_select_ratio\":100, \"query_preference\":1, \"strategy\":[\"negative_pref\"], \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4 && qp2ok) pos+=sprintf(buf+pos, "{\"max_depth\":0, \"length_penalty\":100, \"query_preference\":2, \"strategy\":[\"hardness_pref\", \"posunitpara\"], \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4 && qp1ok) pos+=sprintf(buf+pos, "{\"weight_select_ratio\":100, \"query_preference\":1, \"strategy\":[\"negative_pref\"], \"max_dseconds\":%d},\n",dsecs);
     if (qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":1, \"max_depth\":2},\n",dsecs);
-    if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":0, \"max_depth\":6, \"var_weight\":1},\n",dsecs);
-    if (1) pos+=sprintf(buf+pos, "{\"var_weight\":70, \"repeat_var_weight\":70, \"depth_penalty\":50, \"query_preference\":0, \"strategy\":[\"hardness_pref\"], \"max_dseconds\":%d},\n",dsecs);
-    if (queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"positive_pref\"], \"query_preference\":1},\n",dsecs);
-    if (eq) pos+=sprintf(buf+pos, "{\"var_weight\":70, \"repeat_var_weight\":70, \"rewrite\":0, \"length_penalty\":100, \"depth_penalty\":100, \"query_preference\":0, \"strategy\":[\"hardness_pref\", \"max_weight\"], \"max_dseconds\":%d},\n",dsecs);
-    if (1) pos+=sprintf(buf+pos, "{\"max_depth\":0, \"depth_penalty\":100, \"query_preference\":0, \"strategy\":[\"unit\", \"posunitpara\"], \"max_dseconds\":%d},\n",dsecs);
-    if (1) pos+=sprintf(buf+pos, "{\"depth_penalty\":100, \"query_preference\":0, \"strategy\":[\"unit\", \"posunitpara\"], \"max_dseconds\":%d},\n",dsecs);
-    if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\", \"posunitpara\"], \"query_preference\":0, \"depth_penalty\":50, \"length_penalty\":100},\n",dsecs);
-    if (qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":1, \"max_depth\":2},\n",dsecs);
-    if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\", \"max_ground_weight\"], \"query_preference\":0},\n",dsecs);
-    if (1) pos+=sprintf(buf+pos, "{\"length_penalty\":100, \"depth_penalty\":100, \"query_preference\":0, \"strategy\":[\"negative_pref\", \"hornpref\", \"max_weight\"], \"max_dseconds\":%d},\n",dsecs);
-    if (qp1ok) pos+=sprintf(buf+pos, "{\"depth_penalty\":50, \"query_preference\":1, \"strategy\":[\"hardness_pref\", \"hornpref\", \"max_weight\"], \"max_dseconds\":%d},\n",dsecs);
-    if (eq && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"rewrite\":0, \"depth_penalty\":50, \"query_preference\":1, \"strategy\":[\"query_focus\", \"hornpref\"], \"max_dseconds\":%d},\n",dsecs);
-    if (eq && sineok) pos+=sprintf(buf+pos, "{\"sine\":1, \"var_weight\":70, \"repeat_var_weight\":70, \"rewrite\":0, \"depth_penalty\":50, \"query_preference\":0, \"strategy\":[\"hardness_pref\"], \"max_dseconds\":%d},\n",dsecs);
-    if (qp1ok && sineok) pos+=sprintf(buf+pos, "{\"sine\":1, \"var_weight\":70, \"repeat_var_weight\":70, \"depth_penalty\":50, \"query_preference\":1, \"strategy\":[\"unit\"], \"max_dseconds\":%d},\n",dsecs);
-    if (queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\"], \"query_preference\":1, \"weight_select_ratio\":30, \"depth_penalty\":100, \"length_penalty\":100},\n",dsecs);
-    if (qp1ok) pos+=sprintf(buf+pos, "{\"length_penalty\":100, \"query_preference\":1, \"strategy\":[\"positive_pref\", \"posunitpara\"], \"max_dseconds\":%d},\n",dsecs);
-    if (sineok) pos+=sprintf(buf+pos, "{\"sine\":2, \"query_preference\":0, \"strategy\":[\"unit\"], \"max_dseconds\":%d},\n",dsecs);
-    if (eq) pos+=sprintf(buf+pos, "{\"weight_select_ratio\":100, \"rewrite\":0, \"depth_penalty\":100, \"query_preference\":0, \"strategy\":[\"unit\", \"posunitpara\"], \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":0, \"max_depth\":6, \"var_weight\":1},\n",dsecs);
+    if (iteration<4) pos+=sprintf(buf+pos, "{\"var_weight\":70, \"repeat_var_weight\":70, \"depth_penalty\":50, \"query_preference\":0, \"strategy\":[\"hardness_pref\"], \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"positive_pref\"], \"query_preference\":1},\n",dsecs);
+    if (iteration<4 && eq) pos+=sprintf(buf+pos, "{\"var_weight\":70, \"repeat_var_weight\":70, \"rewrite\":0, \"length_penalty\":100, \"depth_penalty\":100, \"query_preference\":0, \"strategy\":[\"hardness_pref\", \"max_weight\"], \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4) pos+=sprintf(buf+pos, "{\"max_depth\":0, \"depth_penalty\":100, \"query_preference\":0, \"strategy\":[\"unit\", \"posunitpara\"], \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4) pos+=sprintf(buf+pos, "{\"depth_penalty\":100, \"query_preference\":0, \"strategy\":[\"unit\", \"posunitpara\"], \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\", \"posunitpara\"], \"query_preference\":0, \"depth_penalty\":50, \"length_penalty\":100},\n",dsecs);
+    if (iteration<4 && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":1, \"max_depth\":2},\n",dsecs);
+    if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\", \"max_ground_weight\"], \"query_preference\":0},\n",dsecs);
+    if (iteration<4) pos+=sprintf(buf+pos, "{\"length_penalty\":100, \"depth_penalty\":100, \"query_preference\":0, \"strategy\":[\"negative_pref\", \"hornpref\", \"max_weight\"], \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4 && qp1ok) pos+=sprintf(buf+pos, "{\"depth_penalty\":50, \"query_preference\":1, \"strategy\":[\"hardness_pref\", \"hornpref\", \"max_weight\"], \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4 && eq && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"rewrite\":0, \"depth_penalty\":50, \"query_preference\":1, \"strategy\":[\"query_focus\", \"hornpref\"], \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4 && eq && sineok) pos+=sprintf(buf+pos, "{\"sine\":1, \"var_weight\":70, \"repeat_var_weight\":70, \"rewrite\":0, \"depth_penalty\":50, \"query_preference\":0, \"strategy\":[\"hardness_pref\"], \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4 && qp1ok && sineok) pos+=sprintf(buf+pos, "{\"sine\":1, \"var_weight\":70, \"repeat_var_weight\":70, \"depth_penalty\":50, \"query_preference\":1, \"strategy\":[\"unit\"], \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\"], \"query_preference\":1, \"weight_select_ratio\":30, \"depth_penalty\":100, \"length_penalty\":100},\n",dsecs);
+    if (iteration<4 && qp1ok) pos+=sprintf(buf+pos, "{\"length_penalty\":100, \"query_preference\":1, \"strategy\":[\"positive_pref\", \"posunitpara\"], \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4 && sineok) pos+=sprintf(buf+pos, "{\"sine\":2, \"query_preference\":0, \"strategy\":[\"unit\"], \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4 && eq) pos+=sprintf(buf+pos, "{\"weight_select_ratio\":100, \"rewrite\":0, \"depth_penalty\":100, \"query_preference\":0, \"strategy\":[\"unit\", \"posunitpara\"], \"max_dseconds\":%d},\n",dsecs);
     if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"unit\"], \"query_preference\":1},\n",dsecs);
     if (iteration<4 && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\", \"posunitpara\"], \"query_preference\":1},\n",dsecs);
     if (iteration<4 && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":1},\n",dsecs);
@@ -587,8 +603,8 @@ else if (!eq) {
     if (iteration<4 && eq && qp2ok && sineok) pos+=sprintf(buf+pos, "{\"sine\":1, \"rewrite\":0, \"depth_penalty\":50, \"query_preference\":2, \"strategy\":[\"hardness_pref\", \"posunitpara\"], \"max_dseconds\":%d},\n",dsecs);
     if (iteration<4 && eq && queryok && qp1ok && sineok) pos+=sprintf(buf+pos, "{\"sine\":2, \"weight_select_ratio\":100, \"var_weight\":70, \"repeat_var_weight\":70, \"rewrite\":0, \"depth_penalty\":50, \"query_preference\":1, \"strategy\":[\"query_focus\"], \"max_dseconds\":%d},\n",dsecs);
     if (iteration<4 && qp2ok && sineok) pos+=sprintf(buf+pos, "{\"depth_penalty\":50, \"query_preference\":2, \"strategy\":[\"negative_pref\"], \"max_dseconds\":%d, \"sine\":2},\n",dsecs);
-  }
-  else if (probsize<10000) {
+
+  } else if (probsize<10000) {
     if (qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\", \"posunitpara\"], \"query_preference\":1},\n",dsecs);
     if (queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"unit\"], \"query_preference\":1},\n",dsecs);
     if (eq) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\", \"pure_unit\"], \"max_size\":30, \"max_depth\":10, \"max_weight\":300, \"weight_select_ratio\":1, \"rewrite\":0},\n",dsecs);
@@ -606,18 +622,18 @@ else if (!eq) {
     if (qp1ok && sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":1, \"sine\":2},\n",dsecs);
     if (queryok && qp2ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"unit\"], \"query_preference\":2},\n",dsecs);
     if (sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":0, \"depth_penalty\":100, \"sine\":1},\n",dsecs);
-    if (queryok && qp1ok && sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\"], \"query_preference\":1, \"sine\":1},\n",dsecs);
-    if (1) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\", \"pure_unit\"], \"weight_select_ratio\":1, \"query_preference\":0},\n",dsecs);
-    if (eq && queryok && qp1ok && sineok) pos+=sprintf(buf+pos, "{\"sine\":1, \"rewrite\":0, \"length_penalty\":100, \"query_preference\":1, \"strategy\":[\"query_focus\"], \"max_dseconds\":%d},\n",dsecs);
-    if (1) pos+=sprintf(buf+pos, "{\"weight_select_ratio\":100, \"var_weight\":70, \"repeat_var_weight\":70, \"query_preference\":0, \"strategy\":[\"hardness_pref\"], \"max_dseconds\":%d},\n",dsecs);
-    if (qp1ok) pos+=sprintf(buf+pos, "{\"max_ground_weight\":1, \"var_weight\":70, \"repeat_var_weight\":70, \"depth_penalty\":50, \"query_preference\":1, \"strategy\":[\"positive_pref\", \"unit\"], \"max_dseconds\":%d},\n",dsecs);
-    if (qp1ok) pos+=sprintf(buf+pos, "{\"var_weight\":70, \"repeat_var_weight\":70, \"length_penalty\":100, \"depth_penalty\":100, \"query_preference\":1, \"strategy\":[\"positive_pref\", \"unit\"], \"max_dseconds\":%d},\n",dsecs);
-    if (qp1ok && sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\", \"posunitpara\"], \"query_preference\":1, \"sine\":1},\n",dsecs);
-    if (qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":1, \"var_weight\":1, \"repeat_var_weight\":1},\n",dsecs);
-    if (queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"posunitpara\"], \"query_preference\":1, \"depth_penalty\":50, \"length_penalty\":100},\n",dsecs);
-    if (queryok && qp1ok) pos+=sprintf(buf+pos, "{\"weight_select_ratio\":100, \"var_weight\":70, \"repeat_var_weight\":70, \"length_penalty\":100, \"query_preference\":1, \"strategy\":[\"query_focus\", \"prohibit_nested_para\"], \"max_dseconds\":%d},\n",dsecs);
-    if (qp1ok) pos+=sprintf(buf+pos, "{\"query_preference\":1, \"strategy\":[\"unit\", \"max_weight\"], \"max_dseconds\":%d},\n",dsecs);
-    if (eq && queryok && qp1ok && sineok) pos+=sprintf(buf+pos, "{\"sine\":2, \"weight_select_ratio\":100, \"var_weight\":70, \"repeat_var_weight\":70, \"rewrite\":0, \"depth_penalty\":50, \"query_preference\":1, \"strategy\":[\"query_focus\"], \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4 && queryok && qp1ok && sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\"], \"query_preference\":1, \"sine\":1},\n",dsecs);
+    if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\", \"pure_unit\"], \"weight_select_ratio\":1, \"query_preference\":0},\n",dsecs);
+    if (iteration<4 && eq && queryok && qp1ok && sineok) pos+=sprintf(buf+pos, "{\"sine\":1, \"rewrite\":0, \"length_penalty\":100, \"query_preference\":1, \"strategy\":[\"query_focus\"], \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4) pos+=sprintf(buf+pos, "{\"weight_select_ratio\":100, \"var_weight\":70, \"repeat_var_weight\":70, \"query_preference\":0, \"strategy\":[\"hardness_pref\"], \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4 && qp1ok) pos+=sprintf(buf+pos, "{\"max_ground_weight\":1, \"var_weight\":70, \"repeat_var_weight\":70, \"depth_penalty\":50, \"query_preference\":1, \"strategy\":[\"positive_pref\", \"unit\"], \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4 && qp1ok) pos+=sprintf(buf+pos, "{\"var_weight\":70, \"repeat_var_weight\":70, \"length_penalty\":100, \"depth_penalty\":100, \"query_preference\":1, \"strategy\":[\"positive_pref\", \"unit\"], \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4 && qp1ok && sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\", \"posunitpara\"], \"query_preference\":1, \"sine\":1},\n",dsecs);
+    if (iteration<4 && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":1, \"var_weight\":1, \"repeat_var_weight\":1},\n",dsecs);
+    if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"posunitpara\"], \"query_preference\":1, \"depth_penalty\":50, \"length_penalty\":100},\n",dsecs);
+    if (iteration<4 && queryok && qp1ok) pos+=sprintf(buf+pos, "{\"weight_select_ratio\":100, \"var_weight\":70, \"repeat_var_weight\":70, \"length_penalty\":100, \"query_preference\":1, \"strategy\":[\"query_focus\", \"prohibit_nested_para\"], \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4 && qp1ok) pos+=sprintf(buf+pos, "{\"query_preference\":1, \"strategy\":[\"unit\", \"max_weight\"], \"max_dseconds\":%d},\n",dsecs);
+    if (iteration<4 && eq && queryok && qp1ok && sineok) pos+=sprintf(buf+pos, "{\"sine\":2, \"weight_select_ratio\":100, \"var_weight\":70, \"repeat_var_weight\":70, \"rewrite\":0, \"depth_penalty\":50, \"query_preference\":1, \"strategy\":[\"query_focus\"], \"max_dseconds\":%d},\n",dsecs);
     if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":0},\n",dsecs);
     if (iteration<4) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"hardness_pref\"], \"query_preference\":0},\n",dsecs);
     if (iteration<4 && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":1},\n",dsecs);
@@ -691,8 +707,8 @@ else if (!eq) {
     if (iteration<4 && sineok) pos+=sprintf(buf+pos, "{\"sine\":2, \"query_preference\":0, \"strategy\":[\"unit\"], \"max_dseconds\":%d},\n",dsecs);
     if (iteration<4 && eq) pos+=sprintf(buf+pos, "{\"weight_select_ratio\":100, \"rewrite\":0, \"depth_penalty\":100, \"query_preference\":0, \"strategy\":[\"unit\", \"posunitpara\"], \"max_dseconds\":%d},\n",dsecs);
     if (iteration<4 && qp2ok && sineok) pos+=sprintf(buf+pos, "{\"depth_penalty\":50, \"query_preference\":2, \"strategy\":[\"negative_pref\"], \"max_dseconds\":%d, \"sine\":2},\n",dsecs);
-  }
-  else if (probsize<100000000) {
+
+  } else if (probsize<100000000) {
     if (queryok && qp1ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"unit\"], \"query_preference\":1},\n",dsecs);
     if (queryok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"unit\"], \"query_preference\":0},\n",dsecs);
     if (queryok && qp2ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\"], \"query_preference\":2},\n",dsecs);
@@ -701,6 +717,7 @@ else if (!eq) {
     if (queryok && sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\", \"unit\"], \"query_preference\":0, \"sine\":2},\n",dsecs);
     if (qp2ok) pos+=sprintf(buf+pos, "{\"depth_penalty\":50, \"query_preference\":2, \"strategy\":[\"negative_pref\"], \"max_dseconds\":%d},\n",dsecs);
     if (queryok && qp3ok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\"], \"query_preference\":3},\n",dsecs);
+    if (queryok && qp3ok && sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"query_focus\"], \"query_preference\":3, \"sine\":2},\n",dsecs);
     if (eq) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\", \"pure_unit\"], \"max_size\":30, \"max_depth\":10, \"max_weight\":300, \"weight_select_ratio\":1, \"rewrite\":0},\n",dsecs);
     if (qp1ok && sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":1, \"sine\":2},\n",dsecs);
     if (sineok) pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":0, \"depth_penalty\":100, \"sine\":1},\n",dsecs);
@@ -795,10 +812,10 @@ else if (!eq) {
     if (iteration<4 && qp1ok) pos+=sprintf(buf+pos, "{\"length_penalty\":100, \"query_preference\":1, \"strategy\":[\"positive_pref\", \"posunitpara\"], \"max_dseconds\":%d},\n",dsecs);
     if (iteration<4 && sineok) pos+=sprintf(buf+pos, "{\"sine\":2, \"query_preference\":0, \"strategy\":[\"unit\"], \"max_dseconds\":%d},\n",dsecs);
     if (iteration<4 && eq) pos+=sprintf(buf+pos, "{\"weight_select_ratio\":100, \"rewrite\":0, \"depth_penalty\":100, \"query_preference\":0, \"strategy\":[\"unit\", \"posunitpara\"], \"max_dseconds\":%d},\n",dsecs);
-  }
+  }  
   }
   return pos;
-}
+}  
 
 #ifdef __cplusplus
 }
