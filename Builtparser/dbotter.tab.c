@@ -1,8 +1,9 @@
-/* A Bison parser, made by GNU Bison 3.0.4.  */
+/* A Bison parser, made by GNU Bison 3.5.1.  */
 
 /* Bison implementation for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2015 Free Software Foundation, Inc.
+   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2020 Free Software Foundation,
+   Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -40,11 +41,14 @@
    define necessary library symbols; they are noted "INFRINGES ON
    USER NAME SPACE" below.  */
 
+/* Undocumented macros, especially those whose name start with YY_,
+   are private implementation details.  Do not rely on them.  */
+
 /* Identify Bison output.  */
 #define YYBISON 1
 
 /* Bison version.  */
-#define YYBISON_VERSION "3.0.4"
+#define YYBISON_VERSION "3.5.1"
 
 /* Skeleton name.  */
 #define YYSKELETON_NAME "yacc.c"
@@ -66,9 +70,8 @@
 #define yydebug         wg_yyotterdebug
 #define yynerrs         wg_yyotternerrs
 
-
-/* Copy the first part of user declarations.  */
-#line 25 "Parser/dbotter.y" /* yacc.c:339  */
+/* First part of user prologue.  */
+#line 25 "Parser/dbotter.y"
 
 
 #include <stdio.h>
@@ -78,13 +81,26 @@
 #define PP (parm)
 
 
-#line 82 "Parser/dbotter.tab.c" /* yacc.c:339  */
+#line 85 "Parser/dbotter.tab.c"
 
-# ifndef YY_NULLPTR
-#  if defined __cplusplus && 201103L <= __cplusplus
-#   define YY_NULLPTR nullptr
+# ifndef YY_CAST
+#  ifdef __cplusplus
+#   define YY_CAST(Type, Val) static_cast<Type> (Val)
+#   define YY_REINTERPRET_CAST(Type, Val) reinterpret_cast<Type> (Val)
 #  else
-#   define YY_NULLPTR 0
+#   define YY_CAST(Type, Val) ((Type) (Val))
+#   define YY_REINTERPRET_CAST(Type, Val) ((Type) (Val))
+#  endif
+# endif
+# ifndef YY_NULLPTR
+#  if defined __cplusplus
+#   if 201103L <= __cplusplus
+#    define YY_NULLPTR nullptr
+#   else
+#    define YY_NULLPTR 0
+#   endif
+#  else
+#   define YY_NULLPTR ((void*)0)
 #  endif
 # endif
 
@@ -96,8 +112,8 @@
 # define YYERROR_VERBOSE 1
 #endif
 
-/* In a future release of Bison, this section will be replaced
-   by #include "dbotter.tab.h".  */
+/* Use api.header.include to #include this header
+   instead of duplicating it here.  */
 #ifndef YY_WG_YYOTTER_PARSER_DBOTTER_TAB_H_INCLUDED
 # define YY_WG_YYOTTER_PARSER_DBOTTER_TAB_H_INCLUDED
 /* Debug traces.  */
@@ -153,36 +169,81 @@ int wg_yyotterparse (parse_parm *parm, void *scanner);
 
 #endif /* !YY_WG_YYOTTER_PARSER_DBOTTER_TAB_H_INCLUDED  */
 
-/* Copy the second part of user declarations.  */
 
-#line 159 "Parser/dbotter.tab.c" /* yacc.c:358  */
 
 #ifdef short
 # undef short
 #endif
 
-#ifdef YYTYPE_UINT8
-typedef YYTYPE_UINT8 yytype_uint8;
-#else
-typedef unsigned char yytype_uint8;
+/* On compilers that do not define __PTRDIFF_MAX__ etc., make sure
+   <limits.h> and (if available) <stdint.h> are included
+   so that the code can choose integer types of a good width.  */
+
+#ifndef __PTRDIFF_MAX__
+# include <limits.h> /* INFRINGES ON USER NAME SPACE */
+# if defined __STDC_VERSION__ && 199901 <= __STDC_VERSION__
+#  include <stdint.h> /* INFRINGES ON USER NAME SPACE */
+#  define YY_STDINT_H
+# endif
 #endif
 
-#ifdef YYTYPE_INT8
-typedef YYTYPE_INT8 yytype_int8;
+/* Narrow types that promote to a signed type and that can represent a
+   signed or unsigned integer of at least N bits.  In tables they can
+   save space and decrease cache pressure.  Promoting to a signed type
+   helps avoid bugs in integer arithmetic.  */
+
+#ifdef __INT_LEAST8_MAX__
+typedef __INT_LEAST8_TYPE__ yytype_int8;
+#elif defined YY_STDINT_H
+typedef int_least8_t yytype_int8;
 #else
 typedef signed char yytype_int8;
 #endif
 
-#ifdef YYTYPE_UINT16
-typedef YYTYPE_UINT16 yytype_uint16;
+#ifdef __INT_LEAST16_MAX__
+typedef __INT_LEAST16_TYPE__ yytype_int16;
+#elif defined YY_STDINT_H
+typedef int_least16_t yytype_int16;
 #else
-typedef unsigned short int yytype_uint16;
+typedef short yytype_int16;
 #endif
 
-#ifdef YYTYPE_INT16
-typedef YYTYPE_INT16 yytype_int16;
+#if defined __UINT_LEAST8_MAX__ && __UINT_LEAST8_MAX__ <= __INT_MAX__
+typedef __UINT_LEAST8_TYPE__ yytype_uint8;
+#elif (!defined __UINT_LEAST8_MAX__ && defined YY_STDINT_H \
+       && UINT_LEAST8_MAX <= INT_MAX)
+typedef uint_least8_t yytype_uint8;
+#elif !defined __UINT_LEAST8_MAX__ && UCHAR_MAX <= INT_MAX
+typedef unsigned char yytype_uint8;
 #else
-typedef short int yytype_int16;
+typedef short yytype_uint8;
+#endif
+
+#if defined __UINT_LEAST16_MAX__ && __UINT_LEAST16_MAX__ <= __INT_MAX__
+typedef __UINT_LEAST16_TYPE__ yytype_uint16;
+#elif (!defined __UINT_LEAST16_MAX__ && defined YY_STDINT_H \
+       && UINT_LEAST16_MAX <= INT_MAX)
+typedef uint_least16_t yytype_uint16;
+#elif !defined __UINT_LEAST16_MAX__ && USHRT_MAX <= INT_MAX
+typedef unsigned short yytype_uint16;
+#else
+typedef int yytype_uint16;
+#endif
+
+#ifndef YYPTRDIFF_T
+# if defined __PTRDIFF_TYPE__ && defined __PTRDIFF_MAX__
+#  define YYPTRDIFF_T __PTRDIFF_TYPE__
+#  define YYPTRDIFF_MAXIMUM __PTRDIFF_MAX__
+# elif defined PTRDIFF_MAX
+#  ifndef ptrdiff_t
+#   include <stddef.h> /* INFRINGES ON USER NAME SPACE */
+#  endif
+#  define YYPTRDIFF_T ptrdiff_t
+#  define YYPTRDIFF_MAXIMUM PTRDIFF_MAX
+# else
+#  define YYPTRDIFF_T long
+#  define YYPTRDIFF_MAXIMUM LONG_MAX
+# endif
 #endif
 
 #ifndef YYSIZE_T
@@ -190,15 +251,27 @@ typedef short int yytype_int16;
 #  define YYSIZE_T __SIZE_TYPE__
 # elif defined size_t
 #  define YYSIZE_T size_t
-# elif ! defined YYSIZE_T
+# elif defined __STDC_VERSION__ && 199901 <= __STDC_VERSION__
 #  include <stddef.h> /* INFRINGES ON USER NAME SPACE */
 #  define YYSIZE_T size_t
 # else
-#  define YYSIZE_T unsigned int
+#  define YYSIZE_T unsigned
 # endif
 #endif
 
-#define YYSIZE_MAXIMUM ((YYSIZE_T) -1)
+#define YYSIZE_MAXIMUM                                  \
+  YY_CAST (YYPTRDIFF_T,                                 \
+           (YYPTRDIFF_MAXIMUM < YY_CAST (YYSIZE_T, -1)  \
+            ? YYPTRDIFF_MAXIMUM                         \
+            : YY_CAST (YYSIZE_T, -1)))
+
+#define YYSIZEOF(X) YY_CAST (YYPTRDIFF_T, sizeof (X))
+
+/* Stored state numbers (used for stacks). */
+typedef yytype_int8 yy_state_t;
+
+/* State numbers in computations.  */
+typedef int yy_state_fast_t;
 
 #ifndef YY_
 # if defined YYENABLE_NLS && YYENABLE_NLS
@@ -212,30 +285,19 @@ typedef short int yytype_int16;
 # endif
 #endif
 
-#ifndef YY_ATTRIBUTE
-# if (defined __GNUC__                                               \
-      && (2 < __GNUC__ || (__GNUC__ == 2 && 96 <= __GNUC_MINOR__)))  \
-     || defined __SUNPRO_C && 0x5110 <= __SUNPRO_C
-#  define YY_ATTRIBUTE(Spec) __attribute__(Spec)
+#ifndef YY_ATTRIBUTE_PURE
+# if defined __GNUC__ && 2 < __GNUC__ + (96 <= __GNUC_MINOR__)
+#  define YY_ATTRIBUTE_PURE __attribute__ ((__pure__))
 # else
-#  define YY_ATTRIBUTE(Spec) /* empty */
+#  define YY_ATTRIBUTE_PURE
 # endif
 #endif
 
-#ifndef YY_ATTRIBUTE_PURE
-# define YY_ATTRIBUTE_PURE   YY_ATTRIBUTE ((__pure__))
-#endif
-
 #ifndef YY_ATTRIBUTE_UNUSED
-# define YY_ATTRIBUTE_UNUSED YY_ATTRIBUTE ((__unused__))
-#endif
-
-#if !defined _Noreturn \
-     && (!defined __STDC_VERSION__ || __STDC_VERSION__ < 201112)
-# if defined _MSC_VER && 1200 <= _MSC_VER
-#  define _Noreturn __declspec (noreturn)
+# if defined __GNUC__ && 2 < __GNUC__ + (7 <= __GNUC_MINOR__)
+#  define YY_ATTRIBUTE_UNUSED __attribute__ ((__unused__))
 # else
-#  define _Noreturn YY_ATTRIBUTE ((__noreturn__))
+#  define YY_ATTRIBUTE_UNUSED
 # endif
 #endif
 
@@ -246,13 +308,13 @@ typedef short int yytype_int16;
 # define YYUSE(E) /* empty */
 #endif
 
-#if defined __GNUC__ && 407 <= __GNUC__ * 100 + __GNUC_MINOR__
+#if defined __GNUC__ && ! defined __ICC && 407 <= __GNUC__ * 100 + __GNUC_MINOR__
 /* Suppress an incorrect diagnostic about yylval being uninitialized.  */
-# define YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN \
-    _Pragma ("GCC diagnostic push") \
-    _Pragma ("GCC diagnostic ignored \"-Wuninitialized\"")\
+# define YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN                            \
+    _Pragma ("GCC diagnostic push")                                     \
+    _Pragma ("GCC diagnostic ignored \"-Wuninitialized\"")              \
     _Pragma ("GCC diagnostic ignored \"-Wmaybe-uninitialized\"")
-# define YY_IGNORE_MAYBE_UNINITIALIZED_END \
+# define YY_IGNORE_MAYBE_UNINITIALIZED_END      \
     _Pragma ("GCC diagnostic pop")
 #else
 # define YY_INITIAL_VALUE(Value) Value
@@ -265,6 +327,20 @@ typedef short int yytype_int16;
 # define YY_INITIAL_VALUE(Value) /* Nothing. */
 #endif
 
+#if defined __cplusplus && defined __GNUC__ && ! defined __ICC && 6 <= __GNUC__
+# define YY_IGNORE_USELESS_CAST_BEGIN                          \
+    _Pragma ("GCC diagnostic push")                            \
+    _Pragma ("GCC diagnostic ignored \"-Wuseless-cast\"")
+# define YY_IGNORE_USELESS_CAST_END            \
+    _Pragma ("GCC diagnostic pop")
+#endif
+#ifndef YY_IGNORE_USELESS_CAST_BEGIN
+# define YY_IGNORE_USELESS_CAST_BEGIN
+# define YY_IGNORE_USELESS_CAST_END
+#endif
+
+
+#define YY_ASSERT(E) ((void) (0 && (E)))
 
 #if ! defined yyoverflow || YYERROR_VERBOSE
 
@@ -341,17 +417,17 @@ void free (void *); /* INFRINGES ON USER NAME SPACE */
 /* A type that is properly aligned for any stack member.  */
 union yyalloc
 {
-  yytype_int16 yyss_alloc;
+  yy_state_t yyss_alloc;
   YYSTYPE yyvs_alloc;
 };
 
 /* The size of the maximum gap between one aligned stack and the next.  */
-# define YYSTACK_GAP_MAXIMUM (sizeof (union yyalloc) - 1)
+# define YYSTACK_GAP_MAXIMUM (YYSIZEOF (union yyalloc) - 1)
 
 /* The size of an array large to enough to hold all stacks, each with
    N elements.  */
 # define YYSTACK_BYTES(N) \
-     ((N) * (sizeof (yytype_int16) + sizeof (YYSTYPE)) \
+     ((N) * (YYSIZEOF (yy_state_t) + YYSIZEOF (YYSTYPE)) \
       + YYSTACK_GAP_MAXIMUM)
 
 # define YYCOPY_NEEDED 1
@@ -364,11 +440,11 @@ union yyalloc
 # define YYSTACK_RELOCATE(Stack_alloc, Stack)                           \
     do                                                                  \
       {                                                                 \
-        YYSIZE_T yynewbytes;                                            \
+        YYPTRDIFF_T yynewbytes;                                         \
         YYCOPY (&yyptr->Stack_alloc, Stack, yysize);                    \
         Stack = &yyptr->Stack_alloc;                                    \
-        yynewbytes = yystacksize * sizeof (*Stack) + YYSTACK_GAP_MAXIMUM; \
-        yyptr += yynewbytes / sizeof (*yyptr);                          \
+        yynewbytes = yystacksize * YYSIZEOF (*Stack) + YYSTACK_GAP_MAXIMUM; \
+        yyptr += yynewbytes / YYSIZEOF (*yyptr);                        \
       }                                                                 \
     while (0)
 
@@ -380,12 +456,12 @@ union yyalloc
 # ifndef YYCOPY
 #  if defined __GNUC__ && 1 < __GNUC__
 #   define YYCOPY(Dst, Src, Count) \
-      __builtin_memcpy (Dst, Src, (Count) * sizeof (*(Src)))
+      __builtin_memcpy (Dst, Src, YY_CAST (YYSIZE_T, (Count)) * sizeof (*(Src)))
 #  else
 #   define YYCOPY(Dst, Src, Count)              \
       do                                        \
         {                                       \
-          YYSIZE_T yyi;                         \
+          YYPTRDIFF_T yyi;                      \
           for (yyi = 0; yyi < (Count); yyi++)   \
             (Dst)[yyi] = (Src)[yyi];            \
         }                                       \
@@ -408,17 +484,18 @@ union yyalloc
 /* YYNSTATES -- Number of states.  */
 #define YYNSTATES  101
 
-/* YYTRANSLATE[YYX] -- Symbol number corresponding to YYX as returned
-   by yylex, with out-of-bounds checking.  */
 #define YYUNDEFTOK  2
 #define YYMAXUTOK   281
 
+
+/* YYTRANSLATE(TOKEN-NUM) -- Symbol number corresponding to TOKEN-NUM
+   as returned by yylex, with out-of-bounds checking.  */
 #define YYTRANSLATE(YYX)                                                \
-  ((unsigned int) (YYX) <= YYMAXUTOK ? yytranslate[YYX] : YYUNDEFTOK)
+  (0 <= (YYX) && (YYX) <= YYMAXUTOK ? yytranslate[YYX] : YYUNDEFTOK)
 
 /* YYTRANSLATE[TOKEN-NUM] -- Symbol number corresponding to TOKEN-NUM
-   as returned by yylex, without out-of-bounds checking.  */
-static const yytype_uint8 yytranslate[] =
+   as returned by yylex.  */
+static const yytype_int8 yytranslate[] =
 {
        0,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
@@ -453,14 +530,14 @@ static const yytype_uint8 yytranslate[] =
 
 #if YYDEBUG
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
-static const yytype_uint16 yyrline[] =
+static const yytype_int16 yyrline[] =
 {
-       0,    88,    88,    89,    94,    97,    98,   102,   106,   107,
-     112,   113,   114,   115,   116,   117,   124,   131,   132,   133,
-     134,   135,   136,   137,   138,   139,   140,   143,   144,   147,
-     152,   153,   164,   182,   194,   212,   223,   234,   245,   256,
-     274,   285,   295,   296,   302,   303,   308,   309,   310,   311,
-     312,   313,   314,   315,   316,   317,   318,   319
+       0,    90,    90,    91,    96,    99,   100,   104,   108,   109,
+     114,   115,   116,   117,   118,   119,   126,   133,   134,   135,
+     136,   137,   138,   139,   140,   141,   142,   145,   146,   149,
+     154,   155,   166,   184,   196,   214,   225,   236,   247,   258,
+     276,   287,   297,   298,   304,   305,   310,   311,   312,   313,
+     314,   315,   316,   317,   318,   319,   320,   321
 };
 #endif
 
@@ -482,7 +559,7 @@ static const char *const yytname[] =
 # ifdef YYPRINT
 /* YYTOKNUM[NUM] -- (External) token number corresponding to the
    (internal) symbol number NUM (which must be that of a token).  */
-static const yytype_uint16 yytoknum[] =
+static const yytype_int16 yytoknum[] =
 {
        0,   256,   257,   258,   259,   260,   261,   262,   263,   264,
      265,   266,   267,   268,   269,   270,   271,   272,   273,   274,
@@ -492,14 +569,14 @@ static const yytype_uint16 yytoknum[] =
 };
 # endif
 
-#define YYPACT_NINF -33
+#define YYPACT_NINF (-33)
 
-#define yypact_value_is_default(Yystate) \
-  (!!((Yystate) == (-33)))
+#define yypact_value_is_default(Yyn) \
+  ((Yyn) == YYPACT_NINF)
 
-#define YYTABLE_NINF -28
+#define YYTABLE_NINF (-28)
 
-#define yytable_value_is_error(Yytable_value) \
+#define yytable_value_is_error(Yyn) \
   0
 
   /* YYPACT[STATE-NUM] -- Index in YYTABLE of the portion describing
@@ -522,7 +599,7 @@ static const yytype_int16 yypact[] =
   /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
      Performed when YYTABLE does not specify something else to do.  Zero
      means the default is an error.  */
-static const yytype_uint8 yydefact[] =
+static const yytype_int8 yydefact[] =
 {
       30,    46,    47,    48,    49,    50,    55,    52,    53,    54,
       56,    51,     0,     0,    57,     0,     0,    30,    30,    30,
@@ -624,7 +701,7 @@ static const yytype_int8 yycheck[] =
 
   /* YYSTOS[STATE-NUM] -- The (internal number of the) accessing
      symbol of state STATE-NUM.  */
-static const yytype_uint8 yystos[] =
+static const yytype_int8 yystos[] =
 {
        0,     5,     6,     7,     8,     9,    10,    11,    12,    13,
       14,    15,    16,    17,    26,    29,    30,    31,    32,    34,
@@ -640,7 +717,7 @@ static const yytype_uint8 yystos[] =
 };
 
   /* YYR1[YYN] -- Symbol number of symbol that rule YYN derives.  */
-static const yytype_uint8 yyr1[] =
+static const yytype_int8 yyr1[] =
 {
        0,    42,    43,    43,    44,    45,    45,    46,    47,    47,
       48,    48,    48,    48,    48,    48,    48,    48,    48,    48,
@@ -651,7 +728,7 @@ static const yytype_uint8 yyr1[] =
 };
 
   /* YYR2[YYN] -- Number of symbols on the right hand side of rule YYN.  */
-static const yytype_uint8 yyr2[] =
+static const yytype_int8 yyr2[] =
 {
        0,     2,     0,     1,     1,     1,     2,     2,     1,     1,
        1,     3,     4,     3,     4,     4,     3,     3,     3,     3,
@@ -674,22 +751,22 @@ static const yytype_uint8 yyr2[] =
 
 #define YYRECOVERING()  (!!yyerrstatus)
 
-#define YYBACKUP(Token, Value)                                  \
-do                                                              \
-  if (yychar == YYEMPTY)                                        \
-    {                                                           \
-      yychar = (Token);                                         \
-      yylval = (Value);                                         \
-      YYPOPSTACK (yylen);                                       \
-      yystate = *yyssp;                                         \
-      goto yybackup;                                            \
-    }                                                           \
-  else                                                          \
-    {                                                           \
-      yyerror (parm, scanner, YY_("syntax error: cannot back up")); \
-      YYERROR;                                                  \
-    }                                                           \
-while (0)
+#define YYBACKUP(Token, Value)                                    \
+  do                                                              \
+    if (yychar == YYEMPTY)                                        \
+      {                                                           \
+        yychar = (Token);                                         \
+        yylval = (Value);                                         \
+        YYPOPSTACK (yylen);                                       \
+        yystate = *yyssp;                                         \
+        goto yybackup;                                            \
+      }                                                           \
+    else                                                          \
+      {                                                           \
+        yyerror (parm, scanner, YY_("syntax error: cannot back up")); \
+        YYERROR;                                                  \
+      }                                                           \
+  while (0)
 
 /* Error token number */
 #define YYTERROR        1
@@ -729,39 +806,41 @@ do {                                                                      \
 } while (0)
 
 
-/*----------------------------------------.
-| Print this symbol's value on YYOUTPUT.  |
-`----------------------------------------*/
+/*-----------------------------------.
+| Print this symbol's value on YYO.  |
+`-----------------------------------*/
 
 static void
-yy_symbol_value_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep, parse_parm *parm, void *scanner)
+yy_symbol_value_print (FILE *yyo, int yytype, YYSTYPE const * const yyvaluep, parse_parm *parm, void *scanner)
 {
-  FILE *yyo = yyoutput;
-  YYUSE (yyo);
+  FILE *yyoutput = yyo;
+  YYUSE (yyoutput);
   YYUSE (parm);
   YYUSE (scanner);
   if (!yyvaluep)
     return;
 # ifdef YYPRINT
   if (yytype < YYNTOKENS)
-    YYPRINT (yyoutput, yytoknum[yytype], *yyvaluep);
+    YYPRINT (yyo, yytoknum[yytype], *yyvaluep);
 # endif
+  YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
   YYUSE (yytype);
+  YY_IGNORE_MAYBE_UNINITIALIZED_END
 }
 
 
-/*--------------------------------.
-| Print this symbol on YYOUTPUT.  |
-`--------------------------------*/
+/*---------------------------.
+| Print this symbol on YYO.  |
+`---------------------------*/
 
 static void
-yy_symbol_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep, parse_parm *parm, void *scanner)
+yy_symbol_print (FILE *yyo, int yytype, YYSTYPE const * const yyvaluep, parse_parm *parm, void *scanner)
 {
-  YYFPRINTF (yyoutput, "%s %s (",
+  YYFPRINTF (yyo, "%s %s (",
              yytype < YYNTOKENS ? "token" : "nterm", yytname[yytype]);
 
-  yy_symbol_value_print (yyoutput, yytype, yyvaluep, parm, scanner);
-  YYFPRINTF (yyoutput, ")");
+  yy_symbol_value_print (yyo, yytype, yyvaluep, parm, scanner);
+  YYFPRINTF (yyo, ")");
 }
 
 /*------------------------------------------------------------------.
@@ -770,7 +849,7 @@ yy_symbol_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep, par
 `------------------------------------------------------------------*/
 
 static void
-yy_stack_print (yytype_int16 *yybottom, yytype_int16 *yytop)
+yy_stack_print (yy_state_t *yybottom, yy_state_t *yytop)
 {
   YYFPRINTF (stderr, "Stack now");
   for (; yybottom <= yytop; yybottom++)
@@ -793,20 +872,20 @@ do {                                                            \
 `------------------------------------------------*/
 
 static void
-yy_reduce_print (yytype_int16 *yyssp, YYSTYPE *yyvsp, int yyrule, parse_parm *parm, void *scanner)
+yy_reduce_print (yy_state_t *yyssp, YYSTYPE *yyvsp, int yyrule, parse_parm *parm, void *scanner)
 {
-  unsigned long int yylno = yyrline[yyrule];
+  int yylno = yyrline[yyrule];
   int yynrhs = yyr2[yyrule];
   int yyi;
-  YYFPRINTF (stderr, "Reducing stack by rule %d (line %lu):\n",
+  YYFPRINTF (stderr, "Reducing stack by rule %d (line %d):\n",
              yyrule - 1, yylno);
   /* The symbols being reduced.  */
   for (yyi = 0; yyi < yynrhs; yyi++)
     {
       YYFPRINTF (stderr, "   $%d = ", yyi + 1);
       yy_symbol_print (stderr,
-                       yystos[yyssp[yyi + 1 - yynrhs]],
-                       &(yyvsp[(yyi + 1) - (yynrhs)])
+                       yystos[+yyssp[yyi + 1 - yynrhs]],
+                       &yyvsp[(yyi + 1) - (yynrhs)]
                                               , parm, scanner);
       YYFPRINTF (stderr, "\n");
     }
@@ -850,13 +929,13 @@ int yydebug;
 
 # ifndef yystrlen
 #  if defined __GLIBC__ && defined _STRING_H
-#   define yystrlen strlen
+#   define yystrlen(S) (YY_CAST (YYPTRDIFF_T, strlen (S)))
 #  else
 /* Return the length of YYSTR.  */
-static YYSIZE_T
+static YYPTRDIFF_T
 yystrlen (const char *yystr)
 {
-  YYSIZE_T yylen;
+  YYPTRDIFF_T yylen;
   for (yylen = 0; yystr[yylen]; yylen++)
     continue;
   return yylen;
@@ -892,12 +971,12 @@ yystpcpy (char *yydest, const char *yysrc)
    backslash-backslash).  YYSTR is taken from yytname.  If YYRES is
    null, do not copy; instead, return the length of what the result
    would have been.  */
-static YYSIZE_T
+static YYPTRDIFF_T
 yytnamerr (char *yyres, const char *yystr)
 {
   if (*yystr == '"')
     {
-      YYSIZE_T yyn = 0;
+      YYPTRDIFF_T yyn = 0;
       char const *yyp = yystr;
 
       for (;;)
@@ -910,7 +989,10 @@ yytnamerr (char *yyres, const char *yystr)
           case '\\':
             if (*++yyp != '\\')
               goto do_not_strip_quotes;
-            /* Fall through.  */
+            else
+              goto append;
+
+          append:
           default:
             if (yyres)
               yyres[yyn] = *yyp;
@@ -925,10 +1007,10 @@ yytnamerr (char *yyres, const char *yystr)
     do_not_strip_quotes: ;
     }
 
-  if (! yyres)
+  if (yyres)
+    return yystpcpy (yyres, yystr) - yyres;
+  else
     return yystrlen (yystr);
-
-  return yystpcpy (yyres, yystr) - yyres;
 }
 # endif
 
@@ -941,19 +1023,19 @@ yytnamerr (char *yyres, const char *yystr)
    *YYMSG_ALLOC to the required number of bytes.  Return 2 if the
    required number of bytes is too large to store.  */
 static int
-yysyntax_error (YYSIZE_T *yymsg_alloc, char **yymsg,
-                yytype_int16 *yyssp, int yytoken)
+yysyntax_error (YYPTRDIFF_T *yymsg_alloc, char **yymsg,
+                yy_state_t *yyssp, int yytoken)
 {
-  YYSIZE_T yysize0 = yytnamerr (YY_NULLPTR, yytname[yytoken]);
-  YYSIZE_T yysize = yysize0;
   enum { YYERROR_VERBOSE_ARGS_MAXIMUM = 5 };
   /* Internationalized format string. */
   const char *yyformat = YY_NULLPTR;
-  /* Arguments of yyformat. */
+  /* Arguments of yyformat: reported tokens (one for the "unexpected",
+     one per "expected"). */
   char const *yyarg[YYERROR_VERBOSE_ARGS_MAXIMUM];
-  /* Number of reported tokens (one for the "unexpected", one per
-     "expected"). */
+  /* Actual size of YYARG. */
   int yycount = 0;
+  /* Cumulated lengths of YYARG.  */
+  YYPTRDIFF_T yysize = 0;
 
   /* There are many possibilities here to consider:
      - If this state is a consistent state with a default action, then
@@ -980,7 +1062,9 @@ yysyntax_error (YYSIZE_T *yymsg_alloc, char **yymsg,
   */
   if (yytoken != YYEMPTY)
     {
-      int yyn = yypact[*yyssp];
+      int yyn = yypact[+*yyssp];
+      YYPTRDIFF_T yysize0 = yytnamerr (YY_NULLPTR, yytname[yytoken]);
+      yysize = yysize0;
       yyarg[yycount++] = yytname[yytoken];
       if (!yypact_value_is_default (yyn))
         {
@@ -1005,11 +1089,12 @@ yysyntax_error (YYSIZE_T *yymsg_alloc, char **yymsg,
                   }
                 yyarg[yycount++] = yytname[yyx];
                 {
-                  YYSIZE_T yysize1 = yysize + yytnamerr (YY_NULLPTR, yytname[yyx]);
-                  if (! (yysize <= yysize1
-                         && yysize1 <= YYSTACK_ALLOC_MAXIMUM))
+                  YYPTRDIFF_T yysize1
+                    = yysize + yytnamerr (YY_NULLPTR, yytname[yyx]);
+                  if (yysize <= yysize1 && yysize1 <= YYSTACK_ALLOC_MAXIMUM)
+                    yysize = yysize1;
+                  else
                     return 2;
-                  yysize = yysize1;
                 }
               }
         }
@@ -1021,6 +1106,7 @@ yysyntax_error (YYSIZE_T *yymsg_alloc, char **yymsg,
       case N:                               \
         yyformat = S;                       \
       break
+    default: /* Avoid compiler warnings. */
       YYCASE_(0, YY_("syntax error"));
       YYCASE_(1, YY_("syntax error, unexpected %s"));
       YYCASE_(2, YY_("syntax error, unexpected %s, expecting %s"));
@@ -1031,10 +1117,13 @@ yysyntax_error (YYSIZE_T *yymsg_alloc, char **yymsg,
     }
 
   {
-    YYSIZE_T yysize1 = yysize + yystrlen (yyformat);
-    if (! (yysize <= yysize1 && yysize1 <= YYSTACK_ALLOC_MAXIMUM))
+    /* Don't count the "%s"s in the final size, but reserve room for
+       the terminator.  */
+    YYPTRDIFF_T yysize1 = yysize + (yystrlen (yyformat) - 2 * yycount) + 1;
+    if (yysize <= yysize1 && yysize1 <= YYSTACK_ALLOC_MAXIMUM)
+      yysize = yysize1;
+    else
       return 2;
-    yysize = yysize1;
   }
 
   if (*yymsg_alloc < yysize)
@@ -1060,8 +1149,8 @@ yysyntax_error (YYSIZE_T *yymsg_alloc, char **yymsg,
         }
       else
         {
-          yyp++;
-          yyformat++;
+          ++yyp;
+          ++yyformat;
         }
   }
   return 0;
@@ -1110,7 +1199,7 @@ YYSTYPE yylval YY_INITIAL_VALUE (= yyval_default);
     /* Number of syntax errors so far.  */
     int yynerrs;
 
-    int yystate;
+    yy_state_fast_t yystate;
     /* Number of tokens to shift before error messages enabled.  */
     int yyerrstatus;
 
@@ -1122,16 +1211,16 @@ YYSTYPE yylval YY_INITIAL_VALUE (= yyval_default);
        to reallocate them elsewhere.  */
 
     /* The state stack.  */
-    yytype_int16 yyssa[YYINITDEPTH];
-    yytype_int16 *yyss;
-    yytype_int16 *yyssp;
+    yy_state_t yyssa[YYINITDEPTH];
+    yy_state_t *yyss;
+    yy_state_t *yyssp;
 
     /* The semantic value stack.  */
     YYSTYPE yyvsa[YYINITDEPTH];
     YYSTYPE *yyvs;
     YYSTYPE *yyvsp;
 
-    YYSIZE_T yystacksize;
+    YYPTRDIFF_T yystacksize;
 
   int yyn;
   int yyresult;
@@ -1145,7 +1234,7 @@ YYSTYPE yylval YY_INITIAL_VALUE (= yyval_default);
   /* Buffer for error messages, and its allocated size.  */
   char yymsgbuf[128];
   char *yymsg = yymsgbuf;
-  YYSIZE_T yymsg_alloc = sizeof yymsgbuf;
+  YYPTRDIFF_T yymsg_alloc = sizeof yymsgbuf;
 #endif
 
 #define YYPOPSTACK(N)   (yyvsp -= (N), yyssp -= (N))
@@ -1166,46 +1255,54 @@ YYSTYPE yylval YY_INITIAL_VALUE (= yyval_default);
   yychar = YYEMPTY; /* Cause a token to be read.  */
   goto yysetstate;
 
+
 /*------------------------------------------------------------.
-| yynewstate -- Push a new state, which is found in yystate.  |
+| yynewstate -- push a new state, which is found in yystate.  |
 `------------------------------------------------------------*/
- yynewstate:
+yynewstate:
   /* In all cases, when you get here, the value and location stacks
      have just been pushed.  So pushing a state here evens the stacks.  */
   yyssp++;
 
- yysetstate:
-  *yyssp = yystate;
+
+/*--------------------------------------------------------------------.
+| yysetstate -- set current state (the top of the stack) to yystate.  |
+`--------------------------------------------------------------------*/
+yysetstate:
+  YYDPRINTF ((stderr, "Entering state %d\n", yystate));
+  YY_ASSERT (0 <= yystate && yystate < YYNSTATES);
+  YY_IGNORE_USELESS_CAST_BEGIN
+  *yyssp = YY_CAST (yy_state_t, yystate);
+  YY_IGNORE_USELESS_CAST_END
 
   if (yyss + yystacksize - 1 <= yyssp)
+#if !defined yyoverflow && !defined YYSTACK_RELOCATE
+    goto yyexhaustedlab;
+#else
     {
       /* Get the current used size of the three stacks, in elements.  */
-      YYSIZE_T yysize = yyssp - yyss + 1;
+      YYPTRDIFF_T yysize = yyssp - yyss + 1;
 
-#ifdef yyoverflow
+# if defined yyoverflow
       {
         /* Give user a chance to reallocate the stack.  Use copies of
            these so that the &'s don't force the real ones into
            memory.  */
+        yy_state_t *yyss1 = yyss;
         YYSTYPE *yyvs1 = yyvs;
-        yytype_int16 *yyss1 = yyss;
 
         /* Each stack pointer address is followed by the size of the
            data in use in that stack, in bytes.  This used to be a
            conditional around just the two extra args, but that might
            be undefined if yyoverflow is a macro.  */
         yyoverflow (YY_("memory exhausted"),
-                    &yyss1, yysize * sizeof (*yyssp),
-                    &yyvs1, yysize * sizeof (*yyvsp),
+                    &yyss1, yysize * YYSIZEOF (*yyssp),
+                    &yyvs1, yysize * YYSIZEOF (*yyvsp),
                     &yystacksize);
-
         yyss = yyss1;
         yyvs = yyvs1;
       }
-#else /* no yyoverflow */
-# ifndef YYSTACK_RELOCATE
-      goto yyexhaustedlab;
-# else
+# else /* defined YYSTACK_RELOCATE */
       /* Extend the stack our own way.  */
       if (YYMAXDEPTH <= yystacksize)
         goto yyexhaustedlab;
@@ -1214,42 +1311,43 @@ YYSTYPE yylval YY_INITIAL_VALUE (= yyval_default);
         yystacksize = YYMAXDEPTH;
 
       {
-        yytype_int16 *yyss1 = yyss;
+        yy_state_t *yyss1 = yyss;
         union yyalloc *yyptr =
-          (union yyalloc *) YYSTACK_ALLOC (YYSTACK_BYTES (yystacksize));
+          YY_CAST (union yyalloc *,
+                   YYSTACK_ALLOC (YY_CAST (YYSIZE_T, YYSTACK_BYTES (yystacksize))));
         if (! yyptr)
           goto yyexhaustedlab;
         YYSTACK_RELOCATE (yyss_alloc, yyss);
         YYSTACK_RELOCATE (yyvs_alloc, yyvs);
-#  undef YYSTACK_RELOCATE
+# undef YYSTACK_RELOCATE
         if (yyss1 != yyssa)
           YYSTACK_FREE (yyss1);
       }
 # endif
-#endif /* no yyoverflow */
 
       yyssp = yyss + yysize - 1;
       yyvsp = yyvs + yysize - 1;
 
-      YYDPRINTF ((stderr, "Stack size increased to %lu\n",
-                  (unsigned long int) yystacksize));
+      YY_IGNORE_USELESS_CAST_BEGIN
+      YYDPRINTF ((stderr, "Stack size increased to %ld\n",
+                  YY_CAST (long, yystacksize)));
+      YY_IGNORE_USELESS_CAST_END
 
       if (yyss + yystacksize - 1 <= yyssp)
         YYABORT;
     }
-
-  YYDPRINTF ((stderr, "Entering state %d\n", yystate));
+#endif /* !defined yyoverflow && !defined YYSTACK_RELOCATE */
 
   if (yystate == YYFINAL)
     YYACCEPT;
 
   goto yybackup;
 
+
 /*-----------.
 | yybackup.  |
 `-----------*/
 yybackup:
-
   /* Do appropriate processing given the current state.  Read a
      lookahead token if we need one and don't already have one.  */
 
@@ -1299,15 +1397,13 @@ yybackup:
 
   /* Shift the lookahead token.  */
   YY_SYMBOL_PRINT ("Shifting", yytoken, &yylval, &yylloc);
-
-  /* Discard the shifted token.  */
-  yychar = YYEMPTY;
-
   yystate = yyn;
   YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
   *++yyvsp = yylval;
   YY_IGNORE_MAYBE_UNINITIALIZED_END
 
+  /* Discard the shifted token.  */
+  yychar = YYEMPTY;
   goto yynewstate;
 
 
@@ -1322,7 +1418,7 @@ yydefault:
 
 
 /*-----------------------------.
-| yyreduce -- Do a reduction.  |
+| yyreduce -- do a reduction.  |
 `-----------------------------*/
 yyreduce:
   /* yyn is the number of a rule to reduce with.  */
@@ -1342,200 +1438,200 @@ yyreduce:
   YY_REDUCE_PRINT (yyn);
   switch (yyn)
     {
-        case 3:
-#line 89 "Parser/dbotter.y" /* yacc.c:1646  */
-    { 
-			       (parm->result)=(yyvsp[0]);             
+  case 3:
+#line 91 "Parser/dbotter.y"
+                               { 
+			       (parm->result)=yyvsp[0];             
 			     }
-#line 1351 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 1447 "Parser/dbotter.tab.c"
     break;
 
   case 4:
-#line 94 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = (yyvsp[0]); }
-#line 1357 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 96 "Parser/dbotter.y"
+                             { yyval = yyvsp[0]; }
+#line 1453 "Parser/dbotter.tab.c"
     break;
 
   case 5:
-#line 97 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(PP,(yyvsp[0]),MKWGNIL); }
-#line 1363 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 99 "Parser/dbotter.y"
+                                    { yyval = MKWGPAIR(PP,yyvsp[0],MKWGNIL); }
+#line 1459 "Parser/dbotter.tab.c"
     break;
 
   case 6:
-#line 98 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(PP,(yyvsp[0]),(yyvsp[-1])); }
-#line 1369 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 100 "Parser/dbotter.y"
+                                    { yyval = MKWGPAIR(PP,yyvsp[0],yyvsp[-1]); }
+#line 1465 "Parser/dbotter.tab.c"
     break;
 
   case 7:
-#line 102 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = (yyvsp[-1]); }
-#line 1375 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 104 "Parser/dbotter.y"
+                                 { yyval = yyvsp[-1]; }
+#line 1471 "Parser/dbotter.tab.c"
     break;
 
   case 8:
-#line 106 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = (yyvsp[0]); }
-#line 1381 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 108 "Parser/dbotter.y"
+                                  { yyval = yyvsp[0]; }
+#line 1477 "Parser/dbotter.tab.c"
     break;
 
   case 9:
-#line 107 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = (yyvsp[0]); }
-#line 1387 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 109 "Parser/dbotter.y"
+                                 { yyval = yyvsp[0]; }
+#line 1483 "Parser/dbotter.tab.c"
     break;
 
   case 10:
-#line 112 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = (yyvsp[0]); }
-#line 1393 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 114 "Parser/dbotter.y"
+                                  { yyval = yyvsp[0]; }
+#line 1489 "Parser/dbotter.tab.c"
     break;
 
   case 11:
-#line 113 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(PP,(yyvsp[-2]),MKWGNIL); }
-#line 1399 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 115 "Parser/dbotter.y"
+                                  { yyval = MKWGPAIR(PP,yyvsp[-2],MKWGNIL); }
+#line 1495 "Parser/dbotter.tab.c"
     break;
 
   case 12:
-#line 114 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(PP,(yyvsp[-3]),(yyvsp[-1])); }
-#line 1405 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 116 "Parser/dbotter.y"
+                                  { yyval = MKWGPAIR(PP,yyvsp[-3],yyvsp[-1]); }
+#line 1501 "Parser/dbotter.tab.c"
     break;
 
   case 13:
-#line 115 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = (yyvsp[-1]); }
-#line 1411 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 117 "Parser/dbotter.y"
+                                  { yyval = yyvsp[-1]; }
+#line 1507 "Parser/dbotter.tab.c"
     break;
 
   case 14:
-#line 116 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(PP,MKWGCONST(PP,"="),(yyvsp[-1])); }
-#line 1417 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 118 "Parser/dbotter.y"
+                                  { yyval = MKWGPAIR(PP,MKWGCONST(PP,"="),yyvsp[-1]); }
+#line 1513 "Parser/dbotter.tab.c"
     break;
 
   case 15:
-#line 117 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(
+#line 119 "Parser/dbotter.y"
+                                  { yyval = MKWGPAIR(
                                              PP,
                                              MKWGCONST(PP,"not"),
                                              MKWGPAIR(
                                                PP,
-                                               MKWGPAIR(PP,MKWGCONST(PP,"="),(yyvsp[-1])),
+                                               MKWGPAIR(PP,MKWGCONST(PP,"="),yyvsp[-1]),
                                                MKWGNIL)); }
-#line 1429 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 1525 "Parser/dbotter.tab.c"
     break;
 
   case 16:
-#line 124 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(
+#line 126 "Parser/dbotter.y"
+                                  { yyval = MKWGPAIR(
                                              PP,
                                              MKWGCONST(PP,"not"),
                                              MKWGPAIR(
                                                PP,
-                                               MKWGPAIR(PP,MKWGCONST(PP,"="),MKWGPAIR(PP,(yyvsp[-2]),MKWGPAIR(PP,(yyvsp[0]),MKWGNIL))),
+                                               MKWGPAIR(PP,MKWGCONST(PP,"="),MKWGPAIR(PP,yyvsp[-2],MKWGPAIR(PP,yyvsp[0],MKWGNIL))),
                                                MKWGNIL)); }
-#line 1441 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 1537 "Parser/dbotter.tab.c"
     break;
 
   case 17:
-#line 131 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(PP,MKWGCONST(PP,"="),MKWGPAIR(PP,(yyvsp[-2]),MKWGPAIR(PP,(yyvsp[0]),MKWGNIL))); }
-#line 1447 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 133 "Parser/dbotter.y"
+                                  { yyval = MKWGPAIR(PP,MKWGCONST(PP,"="),MKWGPAIR(PP,yyvsp[-2],MKWGPAIR(PP,yyvsp[0],MKWGNIL))); }
+#line 1543 "Parser/dbotter.tab.c"
     break;
 
   case 18:
-#line 132 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(PP,MKWGCONST(PP,"+"),MKWGPAIR(PP,(yyvsp[-2]),MKWGPAIR(PP,(yyvsp[0]),MKWGNIL))); }
-#line 1453 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 134 "Parser/dbotter.y"
+                                  { yyval = MKWGPAIR(PP,MKWGCONST(PP,"+"),MKWGPAIR(PP,yyvsp[-2],MKWGPAIR(PP,yyvsp[0],MKWGNIL))); }
+#line 1549 "Parser/dbotter.tab.c"
     break;
 
   case 19:
-#line 133 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(PP,MKWGCONST(PP,"-"),MKWGPAIR(PP,(yyvsp[-2]),MKWGPAIR(PP,(yyvsp[0]),MKWGNIL))); }
-#line 1459 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 135 "Parser/dbotter.y"
+                                  { yyval = MKWGPAIR(PP,MKWGCONST(PP,"-"),MKWGPAIR(PP,yyvsp[-2],MKWGPAIR(PP,yyvsp[0],MKWGNIL))); }
+#line 1555 "Parser/dbotter.tab.c"
     break;
 
   case 20:
-#line 134 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(PP,MKWGCONST(PP,"*"),MKWGPAIR(PP,(yyvsp[-2]),MKWGPAIR(PP,(yyvsp[0]),MKWGNIL))); }
-#line 1465 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 136 "Parser/dbotter.y"
+                                  { yyval = MKWGPAIR(PP,MKWGCONST(PP,"*"),MKWGPAIR(PP,yyvsp[-2],MKWGPAIR(PP,yyvsp[0],MKWGNIL))); }
+#line 1561 "Parser/dbotter.tab.c"
     break;
 
   case 21:
-#line 135 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(PP,MKWGCONST(PP,"not"),MKWGPAIR(PP,(yyvsp[0]),MKWGNIL)); }
-#line 1471 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 137 "Parser/dbotter.y"
+                                  { yyval = MKWGPAIR(PP,MKWGCONST(PP,"not"),MKWGPAIR(PP,yyvsp[0],MKWGNIL)); }
+#line 1567 "Parser/dbotter.tab.c"
     break;
 
   case 22:
-#line 136 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(PP,MKWGCONST(PP,"not"),MKWGPAIR(PP,(yyvsp[0]),MKWGNIL)); }
-#line 1477 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 138 "Parser/dbotter.y"
+                                  { yyval = MKWGPAIR(PP,MKWGCONST(PP,"not"),MKWGPAIR(PP,yyvsp[0],MKWGNIL)); }
+#line 1573 "Parser/dbotter.tab.c"
     break;
 
   case 23:
-#line 137 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = (yyvsp[-1]); }
-#line 1483 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 139 "Parser/dbotter.y"
+                                  { yyval = yyvsp[-1]; }
+#line 1579 "Parser/dbotter.tab.c"
     break;
 
   case 24:
-#line 138 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(PP,MKWGCONST(PP,"$$lst"),MKWGPAIR(PP,(yyvsp[-1]),MKWGNIL)); }
-#line 1489 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 140 "Parser/dbotter.y"
+                                  { yyval = MKWGPAIR(PP,MKWGCONST(PP,"$$lst"),MKWGPAIR(PP,yyvsp[-1],MKWGNIL)); }
+#line 1585 "Parser/dbotter.tab.c"
     break;
 
   case 25:
-#line 139 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(PP,MKWGCONST(PP,"$$lst"),MKWGNIL); }
-#line 1495 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 141 "Parser/dbotter.y"
+                                  { yyval = MKWGPAIR(PP,MKWGCONST(PP,"$$lst"),MKWGNIL); }
+#line 1591 "Parser/dbotter.tab.c"
     break;
 
   case 26:
-#line 140 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = (yyvsp[0]); }
-#line 1501 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 142 "Parser/dbotter.y"
+                                  { yyval = yyvsp[0]; }
+#line 1597 "Parser/dbotter.tab.c"
     break;
 
   case 27:
-#line 143 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(PP,(yyvsp[0]),MKWGNIL); }
-#line 1507 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 145 "Parser/dbotter.y"
+                                 { yyval = MKWGPAIR(PP,yyvsp[0],MKWGNIL); }
+#line 1603 "Parser/dbotter.tab.c"
     break;
 
   case 28:
-#line 144 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(PP,(yyvsp[-2]),(yyvsp[0])); }
-#line 1513 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 146 "Parser/dbotter.y"
+                              { yyval = MKWGPAIR(PP,yyvsp[-2],yyvsp[0]); }
+#line 1609 "Parser/dbotter.tab.c"
     break;
 
   case 29:
-#line 147 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = (yyvsp[0]); }
-#line 1519 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 149 "Parser/dbotter.y"
+                                  { yyval = yyvsp[0]; }
+#line 1615 "Parser/dbotter.tab.c"
     break;
 
   case 31:
-#line 153 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(
+#line 155 "Parser/dbotter.y"
+                                      { yyval = MKWGPAIR(
                                           PP,
                                           MKWGCONST(PP,"and"),
                                           MKWGPAIR(
                                             PP,
-                                            (yyvsp[-2]),                                                     
+                                            yyvsp[-2],                                                     
                                             MKWGPAIR(
                                               PP,
-                                              (yyvsp[0]),
+                                              yyvsp[0],
                                               MKWGNIL))); }
-#line 1534 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 1630 "Parser/dbotter.tab.c"
     break;
 
   case 32:
-#line 164 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = 
+#line 166 "Parser/dbotter.y"
+                                       { yyval = 
                                       MKWGPAIR(
                                         PP,
                                         MKWGCONST(PP,"not"),
@@ -1546,33 +1642,33 @@ yyreduce:
                                             MKWGCONST(PP,"and"),
                                             MKWGPAIR(
                                               PP,
-                                              (yyvsp[-2]),                                                     
+                                              yyvsp[-2],                                                     
                                               MKWGPAIR(
                                                 PP,
-                                                (yyvsp[0]),
+                                                yyvsp[0],
                                                 MKWGNIL))),
                                           MKWGNIL)); }
-#line 1556 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 1652 "Parser/dbotter.tab.c"
     break;
 
   case 33:
-#line 182 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(
+#line 184 "Parser/dbotter.y"
+                                      { yyval = MKWGPAIR(
                                           PP,
                                           MKWGCONST(PP,"or"),
                                           MKWGPAIR(
                                             PP,
-                                            (yyvsp[-2]),                                                     
+                                            yyvsp[-2],                                                     
                                             MKWGPAIR(
                                               PP,
-                                              (yyvsp[0]),
+                                              yyvsp[0],
                                               MKWGNIL))); }
-#line 1571 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 1667 "Parser/dbotter.tab.c"
     break;
 
   case 34:
-#line 194 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = 
+#line 196 "Parser/dbotter.y"
+                                      { yyval = 
                                       MKWGPAIR(
                                         PP,
                                         MKWGCONST(PP,"not"),
@@ -1583,78 +1679,78 @@ yyreduce:
                                             MKWGCONST(PP,"or"),
                                             MKWGPAIR(
                                               PP,
-                                              (yyvsp[-2]),                                                     
+                                              yyvsp[-2],                                                     
                                               MKWGPAIR(
                                                 PP,
-                                                (yyvsp[0]),
+                                                yyvsp[0],
                                                 MKWGNIL))),
                                           MKWGNIL)); }
-#line 1593 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 1689 "Parser/dbotter.tab.c"
     break;
 
   case 35:
-#line 212 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(
+#line 214 "Parser/dbotter.y"
+                                      { yyval = MKWGPAIR(
                                           PP,
                                           MKWGCONST(PP,"imp"),
                                           MKWGPAIR(
                                             PP,
-                                            (yyvsp[-2]),                                                     
+                                            yyvsp[-2],                                                     
                                             MKWGPAIR(
                                               PP,
-                                              (yyvsp[0]),
+                                              yyvsp[0],
                                               MKWGNIL))); }
-#line 1608 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 1704 "Parser/dbotter.tab.c"
     break;
 
   case 36:
-#line 223 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(
+#line 225 "Parser/dbotter.y"
+                                        { yyval = MKWGPAIR(
                                           PP,
                                           MKWGCONST(PP,"imp"),
                                           MKWGPAIR(
                                             PP,
-                                            (yyvsp[0]),                                                     
+                                            yyvsp[0],                                                     
                                             MKWGPAIR(
                                               PP,
-                                              (yyvsp[-2]),
+                                              yyvsp[-2],
                                               MKWGNIL))); }
-#line 1623 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 1719 "Parser/dbotter.tab.c"
     break;
 
   case 37:
-#line 234 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(
+#line 236 "Parser/dbotter.y"
+                                    { yyval = MKWGPAIR(
                                           PP,
                                           MKWGCONST(PP,"@"),
                                           MKWGPAIR(
                                             PP,
-                                            (yyvsp[0]),                                                     
+                                            yyvsp[0],                                                     
                                             MKWGPAIR(
                                               PP,
-                                              (yyvsp[-2]),
+                                              yyvsp[-2],
                                               MKWGNIL))); }
-#line 1638 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 1734 "Parser/dbotter.tab.c"
     break;
 
   case 38:
-#line 245 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(
+#line 247 "Parser/dbotter.y"
+                                       { yyval = MKWGPAIR(
                                           PP,
                                           MKWGCONST(PP,"eqv"),
                                           MKWGPAIR(
                                             PP,
-                                            (yyvsp[-2]),                                                     
+                                            yyvsp[-2],                                                     
                                             MKWGPAIR(
                                               PP,
-                                              (yyvsp[0]),
+                                              yyvsp[0],
                                               MKWGNIL))); }
-#line 1653 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 1749 "Parser/dbotter.tab.c"
     break;
 
   case 39:
-#line 256 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) =
+#line 258 "Parser/dbotter.y"
+                                        { yyval =
                                       MKWGPAIR(
                                         PP,
                                         MKWGCONST(PP,"not"),
@@ -1665,143 +1761,144 @@ yyreduce:
                                             MKWGCONST(PP,"eqv"),
                                             MKWGPAIR(
                                               PP,
-                                              (yyvsp[-2]),                                                     
+                                              yyvsp[-2],                                                     
                                               MKWGPAIR(
                                                 PP,
-                                                (yyvsp[0]),
+                                                yyvsp[0],
                                                 MKWGNIL))),
                                           MKWGNIL) ); }
-#line 1675 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 1771 "Parser/dbotter.tab.c"
     break;
 
   case 40:
-#line 274 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(
+#line 276 "Parser/dbotter.y"
+                                                    { yyval = MKWGPAIR(
                                                    PP,
                                                    MKWGCONST(PP,"exists"),
                                                    MKWGPAIR(
                                                      PP,
-                                                     (yyvsp[-3]),                                                     
+                                                     yyvsp[-3],                                                     
                                                      MKWGPAIR(
                                                        PP,
-                                                       (yyvsp[0]),
+                                                       yyvsp[0],
                                                        MKWGNIL))); }
-#line 1690 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 1786 "Parser/dbotter.tab.c"
     break;
 
   case 41:
-#line 285 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(
+#line 287 "Parser/dbotter.y"
+                                                   { yyval = MKWGPAIR(
                                                    PP,
                                                    MKWGCONST(PP,"all"),
                                                    MKWGPAIR(
                                                      PP,
-                                                     (yyvsp[-3]),                                                     
+                                                     yyvsp[-3],                                                     
                                                      MKWGPAIR(
                                                        PP,
-                                                       (yyvsp[0]),
+                                                       yyvsp[0],
                                                        MKWGNIL))); }
-#line 1705 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 1801 "Parser/dbotter.tab.c"
     break;
 
   case 42:
-#line 295 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(PP,MKWGCONST(PP,"not"),MKWGPAIR(PP,(yyvsp[0]),MKWGNIL)); }
-#line 1711 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 297 "Parser/dbotter.y"
+                                          { yyval = MKWGPAIR(PP,MKWGCONST(PP,"not"),MKWGPAIR(PP,yyvsp[0],MKWGNIL)); }
+#line 1807 "Parser/dbotter.tab.c"
     break;
 
   case 43:
-#line 296 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(PP,MKWGCONST(PP,"not"),MKWGPAIR(PP,(yyvsp[0]),MKWGNIL)); }
-#line 1717 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 298 "Parser/dbotter.y"
+                                          { yyval = MKWGPAIR(PP,MKWGCONST(PP,"not"),MKWGPAIR(PP,yyvsp[0],MKWGNIL)); }
+#line 1813 "Parser/dbotter.tab.c"
     break;
 
   case 44:
-#line 302 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(PP,(yyvsp[0]),MKWGNIL); }
-#line 1723 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 304 "Parser/dbotter.y"
+                                 { yyval = MKWGPAIR(PP,yyvsp[0],MKWGNIL); }
+#line 1819 "Parser/dbotter.tab.c"
     break;
 
   case 45:
-#line 303 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGPAIR(PP,(yyvsp[-2]),(yyvsp[0])); }
-#line 1729 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 305 "Parser/dbotter.y"
+                                 { yyval = MKWGPAIR(PP,yyvsp[-2],yyvsp[0]); }
+#line 1825 "Parser/dbotter.tab.c"
     break;
 
   case 46:
-#line 308 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGINT(PP,(yyvsp[0])); }
-#line 1735 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 310 "Parser/dbotter.y"
+                           { yyval = MKWGINT(PP,yyvsp[0]); }
+#line 1831 "Parser/dbotter.tab.c"
     break;
 
   case 47:
-#line 309 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGFLOAT(PP,(yyvsp[0])); }
-#line 1741 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 311 "Parser/dbotter.y"
+                           { yyval = MKWGFLOAT(PP,yyvsp[0]); }
+#line 1837 "Parser/dbotter.tab.c"
     break;
 
   case 48:
-#line 310 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGDATE(PP,(yyvsp[0])); }
-#line 1747 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 312 "Parser/dbotter.y"
+                           { yyval = MKWGDATE(PP,yyvsp[0]); }
+#line 1843 "Parser/dbotter.tab.c"
     break;
 
   case 49:
-#line 311 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGTIME(PP,(yyvsp[0])); }
-#line 1753 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 313 "Parser/dbotter.y"
+                                { yyval = MKWGTIME(PP,yyvsp[0]); }
+#line 1849 "Parser/dbotter.tab.c"
     break;
 
   case 50:
-#line 312 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGSTRING(PP,(yyvsp[0])); }
-#line 1759 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 314 "Parser/dbotter.y"
+                          { yyval = MKWGSTRING(PP,yyvsp[0]); }
+#line 1855 "Parser/dbotter.tab.c"
     break;
 
   case 51:
-#line 313 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGVAR(PP,(yyvsp[0])); }
-#line 1765 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 315 "Parser/dbotter.y"
+                                { yyval = MKWGVAR(PP,yyvsp[0]); }
+#line 1861 "Parser/dbotter.tab.c"
     break;
 
   case 52:
-#line 314 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGURI(PP,(yyvsp[0])); }
-#line 1771 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 316 "Parser/dbotter.y"
+                            { yyval = MKWGURI(PP,yyvsp[0]); }
+#line 1867 "Parser/dbotter.tab.c"
     break;
 
   case 53:
-#line 315 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGCONSTURI(PP,(yyvsp[0])); }
-#line 1777 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 317 "Parser/dbotter.y"
+                              { yyval = MKWGCONSTURI(PP,yyvsp[0]); }
+#line 1873 "Parser/dbotter.tab.c"
     break;
 
   case 54:
-#line 316 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGUNIQUEURI(PP,(yyvsp[0])); }
-#line 1783 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 318 "Parser/dbotter.y"
+                              { yyval = MKWGUNIQUEURI(PP,yyvsp[0]); }
+#line 1879 "Parser/dbotter.tab.c"
     break;
 
   case 55:
-#line 317 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGCONST(PP,(yyvsp[0])); }
-#line 1789 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 319 "Parser/dbotter.y"
+                            { yyval = MKWGCONST(PP,yyvsp[0]); }
+#line 1885 "Parser/dbotter.tab.c"
     break;
 
   case 56:
-#line 318 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGCONST(PP,(yyvsp[0])); }
-#line 1795 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 320 "Parser/dbotter.y"
+                                   { yyval = MKWGCONST(PP,yyvsp[0]); }
+#line 1891 "Parser/dbotter.tab.c"
     break;
 
   case 57:
-#line 319 "Parser/dbotter.y" /* yacc.c:1646  */
-    { (yyval) = MKWGCONST(PP,(yyvsp[0])); }
-#line 1801 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 321 "Parser/dbotter.y"
+                               { yyval = MKWGCONST(PP,yyvsp[0]); }
+#line 1897 "Parser/dbotter.tab.c"
     break;
 
 
-#line 1805 "Parser/dbotter.tab.c" /* yacc.c:1646  */
+#line 1901 "Parser/dbotter.tab.c"
+
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -1826,14 +1923,13 @@ yyreduce:
   /* Now 'shift' the result of the reduction.  Determine what state
      that goes to, based on the state we popped back to and the rule
      number reduced by.  */
-
-  yyn = yyr1[yyn];
-
-  yystate = yypgoto[yyn - YYNTOKENS] + *yyssp;
-  if (0 <= yystate && yystate <= YYLAST && yycheck[yystate] == *yyssp)
-    yystate = yytable[yystate];
-  else
-    yystate = yydefgoto[yyn - YYNTOKENS];
+  {
+    const int yylhs = yyr1[yyn] - YYNTOKENS;
+    const int yyi = yypgoto[yylhs] + *yyssp;
+    yystate = (0 <= yyi && yyi <= YYLAST && yycheck[yyi] == *yyssp
+               ? yytable[yyi]
+               : yydefgoto[yylhs]);
+  }
 
   goto yynewstate;
 
@@ -1865,7 +1961,7 @@ yyerrlab:
           {
             if (yymsg != yymsgbuf)
               YYSTACK_FREE (yymsg);
-            yymsg = (char *) YYSTACK_ALLOC (yymsg_alloc);
+            yymsg = YY_CAST (char *, YYSTACK_ALLOC (YY_CAST (YYSIZE_T, yymsg_alloc)));
             if (!yymsg)
               {
                 yymsg = yymsgbuf;
@@ -1916,12 +2012,10 @@ yyerrlab:
 | yyerrorlab -- error raised explicitly by YYERROR.  |
 `---------------------------------------------------*/
 yyerrorlab:
-
-  /* Pacify compilers like GCC when the user code never invokes
-     YYERROR and the label yyerrorlab therefore never appears in user
-     code.  */
-  if (/*CONSTCOND*/ 0)
-     goto yyerrorlab;
+  /* Pacify compilers when the user code never invokes YYERROR and the
+     label yyerrorlab therefore never appears in user code.  */
+  if (0)
+    YYERROR;
 
   /* Do not reclaim the symbols of the rule whose action triggered
      this YYERROR.  */
@@ -1983,12 +2077,14 @@ yyacceptlab:
   yyresult = 0;
   goto yyreturn;
 
+
 /*-----------------------------------.
 | yyabortlab -- YYABORT comes here.  |
 `-----------------------------------*/
 yyabortlab:
   yyresult = 1;
   goto yyreturn;
+
 
 #if !defined yyoverflow || YYERROR_VERBOSE
 /*-------------------------------------------------.
@@ -2000,6 +2096,10 @@ yyexhaustedlab:
   /* Fall through.  */
 #endif
 
+
+/*-----------------------------------------------------.
+| yyreturn -- parsing is finished, return the result.  |
+`-----------------------------------------------------*/
 yyreturn:
   if (yychar != YYEMPTY)
     {
@@ -2016,7 +2116,7 @@ yyreturn:
   while (yyssp != yyss)
     {
       yydestruct ("Cleanup: popping",
-                  yystos[*yyssp], yyvsp, parm, scanner);
+                  yystos[+*yyssp], yyvsp, parm, scanner);
       YYPOPSTACK (1);
     }
 #ifndef yyoverflow
@@ -2029,6 +2129,6 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 324 "Parser/dbotter.y" /* yacc.c:1906  */
+#line 326 "Parser/dbotter.y"
 
 

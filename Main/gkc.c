@@ -92,8 +92,8 @@ extern "C" {
 #define FLAGS_FORCE 0x1
 #define FLAGS_LOGGING 0x2
 
-#define DEFAULT_PARALLEL 8 // set to 1 for no parallel
-#define DEFAULT_TPTP 1 // set to 1 for default tptp output
+#define DEFAULT_PARALLEL 6 // set to 1 for no parallel
+#define DEFAULT_TPTP 0 // set to 1 for default tptp output
 #define TPTP
 
 #define LTB_STRLEN 1000

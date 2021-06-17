@@ -30,6 +30,7 @@ libReasoner_la_SOURCES = types.h rincludes.h \
   analyze.c analyze.h\
   chains.c chains.h\
   prop.c prop.h\
+  makeguide.c makeguide.h\
   ../Main/gkc.c\
   ../cjson/cjson.c ../cjson/cjson.h
 #  ../Test/dbtest.c ../Test/dbtest.h
