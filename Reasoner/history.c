@@ -1252,9 +1252,9 @@ int wr_show_result(glb* g, gint history) {
     }  
     if ((g->print_tptp)) {
       if (g->in_has_fof) {        
-        bpos+=snprintf(buf+bpos,blen-bpos,"%% SZS status Theorem for %s.",g->filename);            
+        bpos+=snprintf(buf+bpos,blen-bpos,"%% SZS status Theorem for %s",g->filename);            
       } else { 
-        bpos+=snprintf(buf+bpos,blen-bpos,"%% SZS status Unsatisfiable for %s.",g->filename);          
+        bpos+=snprintf(buf+bpos,blen-bpos,"%% SZS status Unsatisfiable for %s",g->filename);          
       } 
     }   
 #else

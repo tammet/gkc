@@ -33,7 +33,7 @@ ${CC} -O3 -Wall -Wmissing-field-initializers -static -o gkc \
   Reasoner/resolve.c Reasoner/simp.c Reasoner/strat.c Reasoner/rewrite.c Reasoner/history.c \
   Reasoner/prob.c Reasoner/hash.c \
   Reasoner/clmeta.c Reasoner/guide.c  Reasoner/propagate.c Reasoner/init.c \
-  Reasoner/analyze.c Reasoner/chains.c Reasoner/prop.c\
+  Reasoner/analyze.c Reasoner/chains.c Reasoner/prop.c Reasoner/makeguide.c\
   Printer/dbotterprint.c \
   Builtparser/dbotter.tab.c  Builtparser/dbotter.yy.c  Builtparser/dbparse.c  Builtparser/dbprolog.tab.c \
   Builtparser/dbprolog.yy.c Builtparser/dbclausify.c Builtparser/jsparse.c \

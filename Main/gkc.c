@@ -92,9 +92,12 @@ extern "C" {
 #define FLAGS_FORCE 0x1
 #define FLAGS_LOGGING 0x2
 
-#define DEFAULT_PARALLEL 4 // set to 1 for no parallel
-#define DEFAULT_TPTP 0 // set to 1 for default tptp output
+#define DEFAULT_PARALLEL 8 // set to 1 for no parallel
+#define DEFAULT_TPTP 1 // set to 1 for default tptp output
 #define TPTP
+
+#define LTB_STRLEN 1000
+#define LTB_LONGSTRLEN 5000
 
 //#define SHOWTIME
 
@@ -239,7 +242,7 @@ int gkc_main(int argc, char **argv) {
   int clausify=0;
   int seconds=0; // 0 if no time limit, other value for time limit in seconds
   //int islocaldb=0; // lreasoner sets to 1 to avoid detaching db at the end
-  int printlevel=10;
+  int printlevel=15; // normal default is 10, set to 15 for casc
   int printderived=0;
   int askinfo=0;
   int askpolarity=1;
@@ -416,9 +419,15 @@ int gkc_main(int argc, char **argv) {
       if (err) {
         if (printlevel>11) printf("\n\n");
         if (json) printf("\n{\"result\": \"proof not found\"}\n");
+        else if (tptp)  {          
+          printf("%% SZS status Timeout for %s\n",inputname);
+        } 
         else  {          
           printf("result: proof not found.\n");
         }  
+        if (strattext && !strncmp(strattext,"LTBSPECIAL",10)) {
+          return err;
+        }
       }  
     }         
 #ifdef __EMSCRIPTEN__
@@ -931,7 +940,7 @@ void sig_handler(int signum){
     wg_delete_local_database(global_shmptr); 
   }    
 #endif  
-  exit(0);
+  exit(1);
 }
 
 
@@ -1541,45 +1550,27 @@ int wg_import_data_string(void *db, char* instr, int iskb, int* informat, int as
 #ifndef _WIN32 
 #ifdef TPTP
 
-int gkc_ltb_main(int argc, char **argv) {
-
-  //char *shmname = NULL;
-  //char shmnamebuf[16];
-  void *shmptr = NULL;
-  void *shmptrlocal = NULL;
-  int i,j,len,seppos; //, scan_to;
-  gint shmsize=0;
-  //wg_int rlock = 0;
-  //wg_int wlock = 0;
-  //int mbnr=0, mbsize=0; // parsed from cmd line
-  //char* cmdstr=NULL; // parsed from cmd line
-  //char** cmdfiles; // parsed from cmd line
-  //int cmdfileslen; // computed below
+int gkc_ltb_main(int argc, char **argv) {  
+  int i,j,len,seppos,si; //, scan_to;
   int tmp;
-  //int retcode=0;
-  int informat=0; // 0 if not set, 1 if tptp fof
-  //int islocaldb=0; // lreasoner sets to 1 to avoid detaching db at the end
+  //int informat=0; // 0 if not set, 1 if tptp fof
   char* batchfilename;
   char* outfoldername;
   FILE *batchfile;
   char batchfilerow[1000];
-  int row, tmp1, tmp2, found, rowcount;
+  int row, tmp1, tmp2, found, rowcount, tmp3;
   char* rowptr;
   char* rowstr;
   char** rows; //[100000];  
-  char probname[1000];
-  char outname[1000];
-  char probfullname[1000];
-  char probfullname_copy[1000];
-  char outfullname[1000];
-  //char* sep;
-  char* cmdfiles[2];
   int err,isproblemrow;
-  int myerr;  
-  int askinfo=0;
-  int askpolarity=1;
-  char* inputname="LTB";
-
+  char probname[LTB_STRLEN];
+  char outname[LTB_STRLEN];
+  char probfullname[LTB_STRLEN];
+  char probfullname_copy[LTB_STRLEN];
+  char outfullname[LTB_STRLEN];
+  char progpath[LTB_STRLEN];
+  char callstr[LTB_LONGSTRLEN];
+ 
   if (argc<3) {
     return(0);
   }
@@ -1624,6 +1615,16 @@ int gkc_ltb_main(int argc, char **argv) {
   }  
   fclose(batchfile);
   fflush(stdout);  
+  // find gkc path
+  
+  for(i=0;i<LTB_STRLEN;i++) progpath[i]=0;
+  tmp3=readlink("/proc/self/exe",progpath,LTB_STRLEN);
+  if (tmp3<0) {
+    printf("\ngkc path not found by readlink, terminating\n");
+    exit(1);
+  }
+  printf("\ngkc path found: %s\n",progpath);
+
   // next run over all the problems
 
   isproblemrow=0;
@@ -1631,7 +1632,7 @@ int gkc_ltb_main(int argc, char **argv) {
   for(bigloopi=0;bigloopi<4;bigloopi++) {
     if (biglooptime==0) biglooptime=1; 
     else biglooptime=biglooptime*5;
-    printf("\n** big loop %d starts with time %d \n",bigloopi,biglooptime);   
+    //printf("\n!!** big loop %d starts with time %d \n",bigloopi,biglooptime);   
     isproblemrow=0;
     for(i=0;i<rowcount;i++) {
       rowstr=rows[i];
@@ -1645,7 +1646,7 @@ int gkc_ltb_main(int argc, char **argv) {
       }
       if (!isproblemrow || strlen(rowstr)<2) continue;      
 
-      //printf("\nproblem %d %s\n",i,rowstr);
+      //printf("\n!!!problem %d %s\n",i,rowstr);
 
       len=strlen(rowstr);
       if (len>900) continue;
@@ -1675,109 +1676,72 @@ int gkc_ltb_main(int argc, char **argv) {
       strcat(outfullname,outfoldername); 
       strcat(outfullname,"/");
       strcat(outfullname,outnameptr); 
-
-      
       
       int version, globber_found=0;
-      for(version=4;version<6;version++) { // <6
+      for(version=1;version<2;version++) { // <6
         probfullname[200]=0;       
 
         int co;
         for(co=0;co<900;co++) probfullname[co]=0;  
         wr_make_batch_prob_fullname(probname,probfullname,batchfilename);
 
-        // replace * with +4 or +5
+        //printf("\n!!!version %d probfullname %s batchfilename %s\n",version,probfullname,batchfilename);
+
+        // replace * with +1
         int ci;
         for(co=0;co<900;co++) probfullname_copy[co]=0;
           for(ci=0,co=0;ci<strlen(probfullname);ci++,co++) {
           if (probfullname[ci]=='*') {
             globber_found=1;
             probfullname_copy[co]='+';
-            if (version==4) probfullname_copy[co+1]='4';
-            else probfullname_copy[co+1]='5';
+            probfullname_copy[co+1]='1';           
             co++;
           } else {
             probfullname_copy[co]=probfullname[ci];
           }
         }          
-        cmdfiles[1]=probfullname_copy;
+        //cmdfiles[1]=probfullname_copy;
 
         printf("%% SZS status Started for %s\n",probfullname_copy); 
         fflush(stdout); 
+        
+        // new version without fork: before it was parent
 
-        int pid,stat;    
-        pid=fork();            
-        if (pid<0) {
-          // fork fails
-          printf("\nerror: fork fails\n");         
-          fflush(stdout);
-          wr_output_batch_prob_failure(probfullname,outfullname,"Error");
-          continue;
-        } else if (pid==0) {
-          // child
-
-          shmptr=wg_attach_local_database(shmsize);
-          if(!shmptr) {
-            err_printf(0,"failed to attach local database");
-            exit(1);
-          }
-          (dbmemsegh(shmptr)->min_strat_timeloop_nr)=bigloopi; 
-          (dbmemsegh(shmptr)->max_strat_timeloop_nr)=bigloopi; 
-          //printf("\nto call wg_import_otter_file\n");
-          //err = wg_import_otter_file(shmptr,cmdfiles[1],0,&informat); 
-          err = wg_import_data_file(shmptr,cmdfiles[1],0,&informat,askpolarity,&askinfo);
-          //printf("\nreturned from wg_import_otter_file\n");  
-          if(!err) {
-          } else if(err<-1) {
-            wr_output_batch_prob_failure(cmdfiles[1],outfullname,"could not parse problem file"); 
-            exit(1);
-          } 
-          (dbmemsegh(shmptr)->max_forks)=8;   
-          //printf("\nchild to call wg_run_reasoner\n");      
-          myerr = wg_run_reasoner(shmptr,inputname,NULL,informat,outfullname,"LTBSPECIAL");                             
-          //printf("\nchild myerr %d \n",myerr);
-          fflush(stdout);
-          if(!myerr) {            
-            exit(0);
-          } else {                       
-            wg_delete_local_database(shmptrlocal);
-          }  
-          fflush(stdout);                     
-          exit(1);              
-        } else {
-          // parent
-          err=0;
-          //printf("\nwaiting for pid %d\n",pid);
-          //pid_t cpid = waitpid(pid, &stat, 0); 
-          waitpid(-1, &stat, 0);
-          //printf("\nreceived for pid %d stat %d \n",pid,stat);
-          if (WIFEXITED(stat)) {
-            err = WEXITSTATUS(stat);
-            //printf("Child %d terminated with status: %d\n", pid,err); 
-            if (!err) {
-              printf("%% SZS status Theorem for %s\n",probfullname_copy); 
-              printf("%% SZS status Ended for %s\n",probfullname_copy);       
-              fflush(stdout);              
-            } else {
-              wr_output_batch_prob_failure(probfullname_copy,outfullname,"Timeout");
-              //printf("%% SZS status Timeout for %s\n",probfullname_copy); 
-              //printf("%% SZS status Ended for %s version %d\n",probfullname_copy,version);       
-              fflush(stdout);
-            }
-          }  else {
-            wr_output_batch_prob_failure(probfullname_copy,outfullname,"Error"); 
-          }       
-          //wait();
-          if (!err) {
-            rows[i]=NULL;
-            break;
-            //printf("\nproof found for row i %d!\n",i);
-          } else if (err==1) {
-            //wr_output_batch_prob_failure(probfullname_copy,outfullname,"Error");
-          }
-          //fflush(stdout);
-          if (!globber_found) break;   
+        for (si=0;si<LTB_LONGSTRLEN;si++) {
+          callstr[si]=0;
         }
+        
+        sprintf(callstr,"timeout %d %s -seconds %d -parallel 8 -print 11 -tptp -strategytext LTBSPECIAL %s > %s 2> %s",
+           biglooptime+10,
+           progpath,
+           biglooptime,
+           probfullname_copy, //"/opt/gkc/Rtest/ltb/Problems/steam.p",
+           outfullname, //"/opt/gkc/Rtest/ltb/outfile",
+           "gkcerrfile");
+        printf("%s\n",callstr);
+        err=system(callstr);
+        
+        //printf("!!call terminated with err: %d\n",err); 
+        if (!err) {
+          printf("%% SZS status Theorem for %s\n",probfullname_copy); 
+          printf("%% SZS status Ended for %s\n",probfullname_copy);       
+          fflush(stdout);    
+          rows[i]=NULL;
+          break;  
+        } else if (err==256){
+          wr_output_batch_prob_failure(probfullname_copy,outfullname,"Error");               
+          fflush(stdout);          
+        } else if (err==32512){
+          printf("\ngkc shell command above failed to execute\n"); 
+          wr_output_batch_prob_failure(probfullname_copy,outfullname,"Error");               
+          fflush(stdout);                     
+        } else {
+          wr_output_batch_prob_failure(probfullname_copy,outfullname,"Timeout");
+          //printf("%% SZS status Timeout for %s\n",probfullname_copy); 
+          //printf("%% SZS status Ended for %s version %d\n",probfullname_copy,version);       
+          fflush(stdout);
+        }        
+        if (!globber_found) break;                 
       }  
     }  
   }        
@@ -1863,6 +1827,7 @@ void wr_output_batch_prob_failure(char* probname, char* outfullname, char* failu
     }  
   }  
 }  
+
 
 #ifdef __cplusplus
 }

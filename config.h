@@ -74,7 +74,7 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "0.6.0"
+#define PACKAGE_VERSION "0.7.0"
 
 /* Define to necessary symbol if this constant uses a non-standard name on
    your system. */
@@ -111,13 +111,13 @@
 #define USE_REASONER 1
 
 /* Version number of package */
-#define VERSION "0.6.0"
+#define VERSION "0.7.0"
 
 /* Package major version */
 #define VERSION_MAJOR 0
 
 /* Package minor version */
-#define VERSION_MINOR 6
+#define VERSION_MINOR 7
 
 /* Package revision number */
 #define VERSION_REV 0

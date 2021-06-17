@@ -1131,6 +1131,8 @@ query preference handling:
 
 */
 
+// passed guideparam is 1 iff LTBSPECIAL
+
 char* make_auto_guide(glb* g, glb* kb_g, int guideparam) { 
   void* db=g->db;
   char *buf=NULL,*pref; 
@@ -1177,17 +1179,15 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
     qp2ok=0;
   }
 
+  //(dbmemsegh(db)->printlevel)=12;
+
   buf=(char*)wr_malloc(g,50000);
   gint min_strat_timeloop_nr=0, max_strat_timeloop_nr=1000;
   // normal "\"print_level\": 15,\n"
-  if (guideparam==1) {
+  if (guideparam==1) {    
     pref="{\n"
-        "\"print\":0,\n"
-        "\"print_level\": 0,\n"
-        "\"max_size\": 0,\n"
-        "\"max_depth\": 0,\n"
-        "\"max_length\": 0,\n"
-        "\"max_dseconds\": 0,\n"; 
+        "\"print\":1,\n"
+        "\"print_level\": 10,\n";            
     min_strat_timeloop_nr=(dbmemsegh(db)->min_strat_timeloop_nr);
     max_strat_timeloop_nr=(dbmemsegh(db)->max_strat_timeloop_nr); 
     //printf("\nminloopi %ld  maxloopi %ld\n",min_strat_timeloop_nr,max_strat_timeloop_nr);   
@@ -1220,7 +1220,7 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
   qp2ok=1; 
   qp3ok=1;
   eq=1;
-  */
+  */  
 
   if ((g->sin_clause_count)>500000) {
     // very large
@@ -1250,7 +1250,12 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
     // start of a block
     //printf("\nstrat timeloop %d starts\n",i);
     iteration=i+1;  
+
     pos=make_guide(buf,pos,iteration,dsecs,probsize,eq,ueq,queryok,qp1ok,qp2ok,qp3ok,sineok);      
+
+    //pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"negative_pref\"], \"query_preference\":0},\n",1);
+    //pos+=sprintf(buf+pos, "{\"max_dseconds\":%d, \"strategy\":[\"unit\"], \"query_preference\":0},\n",1);
+    //i=iterations;
 
 BLOCKEND:
 
@@ -1558,7 +1563,7 @@ void make_ltb_guide(glb* g, char** strats, int stratscount) {
       "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1}\n",dsecs);    
     pos+=sprintf(buf+pos,"]}\n");    
     if (stratn<stratscount) strats[stratn++]=buf;
-
+    
     // second batch, 5 sec total, ends at 8 sec
     dsecs=1;
     buf=(char*)wr_malloc(g,10000);  

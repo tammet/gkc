@@ -152,7 +152,7 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
   int forkpids[64];
 
   //printf("\n guidestr %s\n",guidestr);
-  if (!stratfile && !guidestr) {
+  if (!stratfile && (!guidestr || !strncmp(guidestr,"LTBSPECIAL",10))) {
     //guide=wr_parse_guide_file(argc,argv,&guidebuf);  
     givenguide=0;  
   } else if (stratfile) {
@@ -310,7 +310,7 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
 #if !defined(_WIN32) && !defined(__EMSCRIPTEN__)  
   if (pid && forkscreated) {
     // only parent performs this loop
-    while(forkslive) {
+    while(forkslive) {      
       if (!givenguide && guidestr && !strncmp(guidestr,"LTBSPECIAL",10)) {
         //printf("\n(dbmemsegh(db)->min_strat_timeloop_nr) %ld\n",(dbmemsegh(db)->min_strat_timeloop_nr));
         //fflush(stdout);        
@@ -319,8 +319,7 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
         } else {  
           alarm(200);
         }          
-      }  
-
+      }       
       cpid=waitpid(-1,&stat, 0);
 
       //printf("\nwaitpid ended for cpid %d\n",cpid);

@@ -211,7 +211,7 @@ int wr_init_db_clause_indexes(glb* g, void* db) {
     rec=offsettoptr(db,cellptr->car);
     if (g->alloc_err) {
       wr_errprint("\nbuffer overflow while processing parsed clauses, terminating\n");            
-      exit(0);
+      exit(1);
     }  
 #ifdef DEBUG
     wr_printf("\nrule with len %ld x\n",wg_get_record_len(db,rec));
