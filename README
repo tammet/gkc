@@ -47,7 +47,7 @@ with no dependencies, called  `gkc` for linux,
 `gkc.exe` for 64-bit windows, `gkc32.exe` for 32-bit windows,
 `gkcosx` for macOS. The pre-compiled executables are 
 included in the [release 0.6.0](https://github.com/tammet/gkc/releases/tag/v0.6.0).
-The release [release 0.7.0](https://github.com/tammet/gkc/releases/tag/v0.6.0) is intended
+The [release 0.7.0](https://github.com/tammet/gkc/releases/tag/v0.7.0) is intended
 for the [CASC 28 competition](http://www.tptp.org/CASC/28/).
 
 GKC is written in C. There are three alternative ways
