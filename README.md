@@ -17,7 +17,6 @@ For casc 2021 please use the compiled Linux binary and sources for version 0.7:
 
 For non-casc purposes it is recommended to use the version 0.6 with compiled binaries 
 for Linux, Windows and macOS:
-
 <https://github.com/tammet/gkc/releases/tag/v0.6.0>
 
 GKC is licenced under [AGPL v3](https://www.gnu.org/licenses/agpl-3.0.en.html). 
@@ -27,8 +26,8 @@ GKC is used as a building block for developing specialized methods
 and strategies for commonsense reasoning, including nonmonotonic reasoning,
 probabilistic reasoning and machine learning methods. We consider natural language
 question answering systems as the main potential application these specialized methods.
-See the [preprint](https://arxiv.org/abs/2003.13159) proposing several mechanisms
-in this direction. GKC itself does not contain these mechanisms.
+See the paper "Confidences for Commonsense Reasoning" in the CADE 28 (2021) proceedings. 
+GKC itself does not contain these mechanisms.
 
 Contents:
 
