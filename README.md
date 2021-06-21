@@ -16,7 +16,7 @@ For casc 2021 please use the compiled Linux binary and sources for version 0.7:
 <https://github.com/tammet/gkc/releases/tag/v0.7.0>
 
 For non-casc purposes it is recommended to use the version 0.6 with compiled binaries 
-for Linux, Windows and OS X (maxOS):
+for Linux, Windows and macOS:
 
 <https://github.com/tammet/gkc/releases/tag/v0.6.0>
 
@@ -46,8 +46,10 @@ Compiling and installing
 The GKC system consists of a single standalone executable
 with no dependencies, called  `gkc` for linux, 
 `gkc.exe` for 64-bit windows, `gkc32.exe` for 32-bit windows,
-`gkcosx` for OS X (macOS). The pre-compiled executables are 
-included in the latest [release](https://github.com/tammet/gkc/releases).
+`gkcosx` for macOS. The pre-compiled executables are 
+included in the [release 0.6.0](https://github.com/tammet/gkc/releases/tag/v0.6.0).
+The release [release 0.7.0](https://github.com/tammet/gkc/releases/tag/v0.6.0) is intended
+for the [CASC 28 competition](http://www.tptp.org/CASC/28/).
 
 GKC is written in C. There are three alternative ways
 to compile gkc, from simpler to more complicated:
@@ -61,7 +63,7 @@ in the top folder. This script calls gcc once,
 the result is the binary `gkc` in the top folder.
 
 We have tested compilation with gcc 5.4, 7.5 and 9.3, 
-clang 3.8 and 6.0 under Ubuntu 16 and 18. 
+clang 3.8 and 6.0 under Ubuntu 16, 18 and 20. 
 
 To compile the Windows binary yourself, use the
 
