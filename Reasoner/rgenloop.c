@@ -177,9 +177,10 @@ int wr_genloop(glb* g) {
       (g->print_level_flag)=50;
     }
     */
+    float endgcoeff=1.0;
     if ((g->instgen_strat) &&  (int)((g->queue_termbuf)[0])<(int)((g->queue_termbuf)[1]+1000000)) {
        return 1;
-    } else if (((g->passed_ratio)>0.9) && !(g->endgame_mode)) {
+    } else if (((g->passed_ratio)>(0.9*endgcoeff)) && !(g->endgame_mode)) {
                //&& (g->max_run_seconds)>3) {
       if (g->print_given_interval_trace) {
         wr_printf("\nfork %d: passed time ratio %.2f",g->current_fork_nr,g->passed_ratio);
@@ -188,18 +189,18 @@ int wr_genloop(glb* g) {
       (g->endgame_mode)=1;
       (g->stat_given_candidates_at_endgame)=(g->stat_given_candidates);
       (g->stat_given_used_at_endgame)=(g->stat_given_used);
-    } else if (((g->passed_ratio)>0.85) &&  (g->res_shortarglen_limit)!=1) {
+    } else if (((g->passed_ratio)>(0.85*endgcoeff)) &&  (g->res_shortarglen_limit)!=1) {
       if (g->print_given_interval_trace) {
         wr_printf("\nfork %d: passed time ratio %.2f",g->current_fork_nr,g->passed_ratio);
       }
       (g->res_shortarglen_limit)=1;
-    } else if (((g->passed_ratio)>0.7) && 
+    } else if (((g->passed_ratio)>(0.7*endgcoeff)) && 
                (!(g->res_shortarglen_limit) || (g->res_shortarglen_limit)>2) ) {
       if (g->print_given_interval_trace) {
         wr_printf("\nfork %d: passed time ratio %.2f",g->current_fork_nr,g->passed_ratio);      
       }
       (g->res_shortarglen_limit)=2;
-    } else if (((g->passed_ratio)>0.5) &&  (g->pick_given_queue_ratio)!=100) {
+    } else if (((g->passed_ratio)>(0.5*endgcoeff)) &&  (g->pick_given_queue_ratio)!=100) {
       if (g->print_given_interval_trace) {
         wr_printf("\nfork %d: passed time ratio %.2f",g->current_fork_nr,g->passed_ratio);      
       }

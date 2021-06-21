@@ -85,6 +85,10 @@ static void wr_set_medium_printout(glb* g);
 
 void show_cur_time(void);
 
+int store_units_globally(glb* g);
+void wr_store_offset_termhash(glb* g, gint* hasharr, int pos);
+//#define GLOBAL_UNITS
+
 #define SHOW_SUBSUME_STATS
 #define SHOW_MEM_STATS
 #define SHOW_HASH_CUT_STATS
@@ -180,6 +184,7 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
 #ifdef DEBUG
     wr_printf("\nseparate child_db and kb_db\n");
 #endif      
+
     local_db=db;    
     //have_shared_kb=1;
     child_db=db;
@@ -461,8 +466,8 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
     if (dbmemsegh(local_db)->max_seconds) (g->max_seconds)=(dbmemsegh(local_db)->max_seconds);
     if (dbmemsegh(local_db)->max_dseconds) (g->max_dseconds)=(dbmemsegh(local_db)->max_dseconds);
     */
-
-    if (kb_g!=NULL) {
+    
+    if (kb_g!=NULL) {      
       (g->kb_g)=kb_g; // points to the copy of globals of the external kb
     }  
     if (g==NULL) {
@@ -764,7 +769,10 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
             wr_printf("\n\nsearch finished without proof.\n");
           } 
           */ 
-        }  
+        }
+#ifdef GLOBAL_UNITS
+        store_units_globally(g);
+#endif          
       }  
     } else if (res==2 && (g->print_runs)) {
       if (maxforks) {
@@ -1744,7 +1752,7 @@ static void wr_set_low_printout(glb* g) {
   (g->print_initial_active_list)=0;
   (g->print_initial_passive_list)=0;
   
-  (g->print_given_interval_trace)=1;
+  (g->print_given_interval_trace)=0;
   (g->print_initial_given_cl)=0;
   (g->print_final_given_cl)=0;
   (g->print_active_cl)=0;
@@ -2132,6 +2140,120 @@ void wg_show_db_error(void* db) {
   printf("\n{\"error\": \"uncaught db library error: %s\"}\n",msg);
 }
 */
+
+#ifdef GLOBAL_UNITS
+
+int store_units_globally(glb* g) {
+  printf("\nstore_units_globally called\n");
+
+  gptr actptr, hasharrpos, hasharrneg; //, hashvec;
+  int dbused;
+  gint iactive, iactivelimit;
+
+  wr_printf("\n===== active clauses as used for subsumption =====  \n");
+  for(dbused=0; dbused<2; dbused++) {
+    if (dbused==0) {
+      actptr=rotp(g,g->clactivesubsume); 
+      hasharrpos=rotp(g,g->hash_pos_active_groundunits);
+      hasharrneg=rotp(g,g->hash_neg_active_groundunits);  
+      wr_printf("\n-- in local db: -- \n");         
+    } else {       
+      CP0
+      if (r_kb_g(g)) {        
+        actptr=rotp(g,(r_kb_g(g))->clactivesubsume); 
+        hasharrpos=rotp(g,(r_kb_g(g))->hash_pos_active_groundunits);
+        hasharrneg=rotp(g,(r_kb_g(g))->hash_neg_active_groundunits);
+        wr_printf("\n -- in shared db: -- \n");         
+      }  
+      else break;      
+    }
+    printf("\n---storing----\n");
+    // ground units:
+    if (!dbused && r_kb_g(g)) {
+      wr_printf("\npos ground units\n"); 
+      wr_store_offset_termhash(g,hasharrpos,1); //rotp(g,(r_kb_g(g))->hash_pos_active_groundunits));
+    }
+    if (!dbused && r_kb_g(g)) {
+      wr_printf("\nneg ground units\n"); 
+      wr_store_offset_termhash(g,hasharrneg,0);//rotp(g,(r_kb_g(g))->hash_neg_active_groundunits));
+    }
+    printf("\n---printing----\n");
+    // ground units:
+    if (1) {
+      wr_printf("\npos ground units\n"); 
+      wr_print_offset_termhash(g,hasharrpos);
+    }
+    if (1) {
+      wr_printf("\nneg ground units\n"); 
+      wr_print_offset_termhash(g,hasharrneg);
+    }
+    // non-ground-units:
+    wr_printf("\nnot ground-units:\n\n");  
+    iactivelimit=CVEC_NEXT(actptr);
+    for(iactive=CVEC_START; iactive<iactivelimit; iactive+=CLMETABLOCK_ELS) {
+      wr_print_clause(g,rotp(g,(actptr[iactive+CLMETABLOCK_CL_POS])));
+      wr_printf("\n");
+    }  
+  }
+  wr_printf("\n\n===== end of active clauses as used for subsumption  =====  \n\n");
+
+
+  return 0;
+}
+
+
+void wr_store_offset_termhash(glb* g, gint* hasharr, int pos) {
+  int i,j;
+  gint* tohasharr;
+  cvec bucket;
+  gint resmeta;
+  gint hash;
+  gptr cl;
+  gint cl_metablock[CLMETABLOCK_ELS];
+
+  printf("\nwr_store_offset_termhash called");
+  if (pos) {
+    tohasharr=rotp(g,(r_kb_g(g))->hash_pos_active_groundunits);
+  } else {
+    tohasharr=rotp(g,(r_kb_g(g))->hash_neg_active_groundunits);
+  }
+
+  //printf("\nhashvec len %ld ptr %lx and els:\n",hasharr[0],(unsigned long int)hasharr);  
+  wr_printf("\nhashvec len %ld els:\n",hasharr[0]);  
+  for(i=1;i<hasharr[0];i++) {    
+    if (hasharr[i]) {
+      bucket=rotp(g,(hasharr[i]));
+      //printf("\nhashslot i %d node %ld size %ld next free %ld\n",
+      //        i,hasharr[i],bucket[0],bucket[1]);
+      wr_printf("\nhashslot i %d size %ld next free %ld\n",i,bucket[0],bucket[1]);        
+      if (1) {
+        for(j=2;j<bucket[0] && j<bucket[1]; j=j+2) {
+          wr_printf("term ");
+          wr_print_term(g,bucket[j]);
+          //printf(" path %d in cl ",0);
+          //CP1
+          //printf("\nj %d bucket[j+1] %ld \n",j,bucket[j+1]);
+          //CP2          
+          wr_printf(" in clause ");
+          wr_print_clause(g,rotp(g,bucket[j+1]));          
+          wr_printf(" as rec ");
+          wg_print_record(g->db,rotp(g,bucket[j+1]));
+          wr_printf("\n");
+
+          // -- now storing to global ---
+          printf("\nabout to store\n");
+          
+          cl=rotp(g,bucket[j+1]);
+          resmeta=wr_calc_clause_meta(r_kb_g(g),cl,cl_metablock);
+          hash=wr_add_cl_to_unithash(r_kb_g(g),cl,resmeta); 
+
+        }
+      }  
+    }
+  }
+}
+
+#endif
 
 #ifdef __cplusplus
 }

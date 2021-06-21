@@ -1182,6 +1182,8 @@ char* make_auto_guide(glb* g, glb* kb_g, int guideparam) {
   //(dbmemsegh(db)->printlevel)=12;
 
   buf=(char*)wr_malloc(g,50000);
+  //buf=(char*)wr_malloc(g,5000000);
+
   gint min_strat_timeloop_nr=0, max_strat_timeloop_nr=1000;
   // normal "\"print_level\": 15,\n"
   if (guideparam==1) {    

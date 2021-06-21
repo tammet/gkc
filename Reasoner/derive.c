@@ -40,6 +40,8 @@ extern "C" {
 #define HARD_DEPTH_LIMIT 10000
 #define HARD_SIZE_LIMIT 10000
 
+//#define NONLENGTHENING_ONLY
+
 //#define GLOBALUNITS
 
 //#define DEBUG
@@ -1735,8 +1737,40 @@ int wr_derived_weight_check(glb* g, double avg, int weight,  int size, int depth
   // similarly, do not store if little time left
   
   //printf(" pratio %f ",g->passed_ratio);
+
+#ifdef NONLENGTHENING_ONLY
+// EXPERIMENTAL TEMPORARY!!!
+    if ((g->passed_ratio)>0) {
+      if (xatomnr && yatomnr) {        
+        if ((g->passed_ratio)>0.5) { 
+          //wr_printf(" over 0.5 ");          
+          if (length>xatomnr || length>yatomnr) {
+            (g->stat_weight_discarded_cl)++;
+            if (g->print_derived_cl) wr_printf("\n -lengthlimit for over 0.5 %d by parents %d %d ",length,xatomnr,yatomnr);       
+            return 0;
+          }
+        } else if ((g->passed_ratio)>0.1) { 
+          //wr_printf(" over 0.1 "); 
+          if (length>xatomnr && length>yatomnr) {
+            (g->stat_weight_discarded_cl)++;
+            if (g->print_derived_cl) wr_printf("\n -lengthlimit for over 0.1  %d by parents %d %d ",length,xatomnr,yatomnr);       
+            return 0;
+          }
+        }      
+      }    
+    }
+    /*
+    if (length>xatomnr && length>yatomnr & xatomnr & yatomnr) {
+      (g->stat_weight_discarded_cl)++;
+      if (g->print_derived_cl) wr_printf("\n -lengthlimit %d by parents %d %d ",length,xatomnr,yatomnr);       
+      return;
+    } 
+    */ 
+#endif
+  float endgcoeff=1.0;
+
   if ((g->passed_ratio)>0) {
-    if ((g->passed_ratio)<0.5) { 
+    if ((g->passed_ratio)<(0.5*endgcoeff)) { 
       //wr_printf(" less than 0.5 "); 
       return 1; 
     }
@@ -1747,15 +1781,15 @@ int wr_derived_weight_check(glb* g, double avg, int weight,  int size, int depth
       return;
     }  
     */
-    if ((g->passed_ratio)>0.90) { 
+    if ((g->passed_ratio)>(0.90*endgcoeff)) { 
       //wr_printf(" over 90 %f ",(g->passed_ratio)); 
       return 0; 
     }
-    if ((g->passed_ratio)>0.7 && (weight*2>=avg)) { 
+    if ((g->passed_ratio)>(0.7*endgcoeff) && (weight*2>=avg)) { 
       //wr_printf(" over 0.7 %f ",(g->passed_ratio)); 
       return 0;
     }
-    if ((g->passed_ratio)>0.5 && (weight>=avg)) { 
+    if ((g->passed_ratio)>(0.5*endgcoeff) && (weight>=avg)) { 
       //wr_printf(" over 0.5 %f ",(g->passed_ratio)); 
       return 0; 
     }
