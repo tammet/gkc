@@ -7,7 +7,7 @@ convert between different logical syntaxes. See the
 [paper](https://link.springer.com/chapter/10.1007%2F978-3-030-29436-6_32)
 for an overview of gkc.
 
-This README servers as a compact manual: a longer tutorial with examples is
+This README serves as a compact manual: a longer tutorial with examples is
 available at [Examples/README.md](Examples/README.md). A Wasm version running 
 in the browser with multiple commented examples is available as
 [logictools.org](http://logictools.org).
