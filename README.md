@@ -1,5 +1,5 @@
-gkc branch dev6
-===============
+gkc 
+===
 
 GKC is a high-performance first order logic reasoning system optimized
 for large knowledge bases. It can prove formulas, answer questions and
@@ -12,8 +12,11 @@ available at [Examples/README.md](Examples/README.md). A Wasm version running
 in the browser with multiple commented examples is available as
 [logictools.org](http://logictools.org).
 
-Compiled binaries for Linux, Windows and OS X (maxOS) are available in the latest release,
-either v0.6.0 or newer:
+For casc 2021 please use the compiled Linux binary and sources for version 0.7: 
+<https://github.com/tammet/gkc/releases/tag/v0.7.0>
+
+For non-casc purposes it is recommended to use the version 0.6 with compiled binaries 
+for Linux, Windows and OS X (maxOS):
 
 <https://github.com/tammet/gkc/releases/tag/v0.6.0>
 
