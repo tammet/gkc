@@ -53,6 +53,7 @@ extern "C" {
 
 //#define SIMPLE_ACTIVE_SEARCH_HASH
 
+
 /* ====== Private headers ======== */
   
 
@@ -573,7 +574,7 @@ int wr_cl_store_para_terms(glb* g, gptr cl, cvec resolvability) {
       // 1: a bigger than b (prohibits b)
       // 2: b bigger than a (prohibits a)
       // 3: none bigger, both ok for para
-
+      if ((g->prohibit_unordered_para) && (!eqtermorder || eqtermorder==3)) continue;
       //printf("\n in wr_cl_store_para_terms eqtermorder:%d ",eqtermorder);
       if (!(g->posunitpara_strat) || len==1) { 
         if ((eqtermorder==1 || eqtermorder==3) && atype!=WG_VARTYPE) {
@@ -739,6 +740,12 @@ int wr_cl_store_para_subterms(glb* g, gptr cl, gint term, int depth, int litnr, 
       if (!(i==istart && !isdatarec(yi))) {
         (*termpath)++;
         wr_cl_store_para_subterms(g,cl,yi,depth+1,litnr,termpath);
+        /*
+        if (!(g->prohibit_deep_para) ||
+             ((g->prohibit_deep_para) && depth<1)) {
+          wr_cl_store_para_subterms(g,cl,yi,depth+1,litnr,termpath);
+        } 
+        */ 
       }
 #endif
       
@@ -749,6 +756,8 @@ int wr_cl_store_para_subterms(glb* g, gptr cl, gint term, int depth, int litnr, 
   // do not put into hash on the atom level  
   if (depth<1) return 1;  
 #endif  
+
+  if ((g->prohibit_deep_para) && (depth>2)) return 1;
 
   // put term into the hash table
   hash=wr_term_basehash(g,fun);

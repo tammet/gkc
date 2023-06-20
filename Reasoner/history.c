@@ -107,6 +107,13 @@ gint wr_build_input_history(glb* g, gptr cl1, char* name, gint priority) {
     wr_set_history_record_field(g,rec,HISTORY_PRIORITY_POS,encpriority);
     wr_set_history_record_field(g,rec,HISTORY_NAME_POS,encname);       
     wr_set_history_record_derived_order(g,rec);
+    
+    /*
+    printf("\nbuilt raw rec %ld and g %ld and g->db %ld\n",(gint)rec,(gint)g,(gint)(g->db));
+    printf("\nresulting wg_encode_record(db,rec) gives %ld\n",(gint)wg_encode_record(db,rec));
+    printf("\nwg_decode_record(db,wg_encode_record(db,rec)) gives %ld\n",(gint)wg_decode_record(db,wg_encode_record(db,rec)));
+    printf("\ndifference between rec and enc(dec(rec)) is %ld\n",(gint)rec-(gint)wg_decode_record(db,wg_encode_record(db,rec)));
+    */
     return wg_encode_record(db,rec); 
   } else {
     return wg_encode_int(g->db,1);
@@ -1165,7 +1172,12 @@ int wr_show_result(glb* g, gint history) {
   FILE* outfile; 
   int sleepi;
   gint sleept, coeff, limit_low, limit_high, usecs;
-  
+  /*
+  printf("\n%d\n",(dbmemsegh(db)->tptp));
+  printf("\n%d\n",(g->print_tptp));
+  printf("\n%d\n",(g->print_clauses_tptp));
+  printf("\n%d\n",(g->print_proof_tptp));
+  */
  #ifndef _WIN32 
   struct timeval now;
   // selecting a timeslot for proof output  

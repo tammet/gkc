@@ -139,7 +139,7 @@ int init_shared_database(void* db, char* guidefilename) {
       return -1;
     }
     guidetext=NULL;
-    guideres=wr_parse_guide_section(g,guide,0,&guidetext);
+    guideres=wr_parse_guide_section(g,guide,0,&guidetext,-1);
     if (guideres<0) {
       // error in guide requiring stop      
       if (guidebuf!=NULL) free(guidebuf);

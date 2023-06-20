@@ -1192,13 +1192,22 @@ int wr_prop_solve_current(glb* g) {
   strncpy(infname,(g->prop_file_name),190);
   strncpy(outfname,(g->prop_solver_outfile_name),190);  
   
-  //mktemp(infname);
-  //mktemp(outfname);
+  /*
+  mktemp(infname);
+  mktemp(outfname);
+  */
+  /*
+  infname="/tmp/inprop.txt";
+  outfname="/tmp/outprop.txt";
+  */
+
+  //printf("\n %s %s \n",infname,outfname);
+  //exit(0);
 
   if (!infname[0] || !outfname[0]) return -1;
   tmp=wr_make_prop_file(g,infname);
   if (tmp<1) return -1;
-  bytes=snprintf(buf,900,"%s --verbose=-1 -T 60 %s > %s",
+  bytes=snprintf(buf,900,"%s %s --relaxed --no-binary --unsat --time=1 -n > %s",
     solvername,infname,outfname);     
   if (bytes<0) return -1;  
 
@@ -1223,10 +1232,7 @@ int wr_prop_solve_current(glb* g) {
       break;
     }
   }
-  fclose(outfptr);
-
-  remove(infname);
-  remove(outfname);
+  fclose(outfptr);  
 
   if (provedflag) {
     g->proof_found=1;
@@ -1234,6 +1240,8 @@ int wr_prop_solve_current(glb* g) {
     wr_register_answer(g,NULL,g->proof_history);
     return 2;
   } else {
+    remove(infname);
+    remove(outfname);
     return 0;
   }
 }

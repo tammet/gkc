@@ -93,6 +93,7 @@ gint* wr_push_termhash(glb* g, gint* hasharr, int hash, gptr term, gptr cl);
 gint* wr_push_offset_termhash(glb* g, gint* hasharr, int hash, gptr term, gptr cl);
 gint* wr_find_termhash(glb* g, gint* hasharr, gptr term, int hash);
 gint* wr_find_offset_termhash(glb* g, gint* hasharr, gptr term, int hash);
+gint wr_find_offset_termbucket(glb* g, gint* hasharr, gptr term, int hash);
 
 void wr_free_termhash(glb* g, gint* hasharr);
 void wr_free_offset_termhash(glb* g, gint* hasharr);

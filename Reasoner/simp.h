@@ -33,6 +33,6 @@
 #include "glb.h"
 
 gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock);
-
+gptr wr_simplify_doublecut_cl(glb* g, gptr cl, gptr cl_metablock);
 
 #endif

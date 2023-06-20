@@ -287,6 +287,26 @@ void wr_process_resolve_result
     g->proof_history=history;    
     return;
   }
+  gptr simp2=NULL;
+  gint cl_metablock2[CLMETABLOCK_ELS];
+  simp2=wr_simplify_doublecut_cl(g,res,cl_metablock2);
+  if (!simp2) {
+    //printf("\ndoublecut found answer\n");
+    return;
+  }  
+  if (simp2!=res) {
+    //printf("+");
+    /*
+    printf("\ndoublecut made a simplification\n");
+    printf("\norig ");
+    wr_print_clause(g,res);
+    printf("\nsimp ");
+    wr_print_clause(g,simp2);
+    printf("\n");
+    */
+    res=simp2;
+  }
+
 
   // start storing to queues and hashes
 
@@ -347,6 +367,7 @@ void wr_process_resolve_result
     (g->avg_kept_weight)=avg;
     resmeta=wr_calc_clause_meta(g,res,cl_metablock);
     hash=wr_add_cl_to_unithash(g,res,resmeta); 
+    wr_add_cl_to_doublehash(g,res);
     if (g->propagate) {
       if (hash>=0)  {
         // unit, propagate
@@ -797,6 +818,7 @@ void wr_process_factor_result
     (g->avg_kept_weight)=avg;
     resmeta=wr_calc_clause_meta(g,res,cl_metablock);
     wr_add_cl_to_unithash(g,res,resmeta);
+    wr_add_cl_to_doublehash(g,res);
     if (g->use_strong_unit_cutoff) wr_cl_store_res_units(g,res);
     wr_push_cl_clpick_queues(g,(g->clpick_queues),res,weight);   
     tmp=wr_cl_create_propinst(g,res);    
@@ -1138,6 +1160,7 @@ void wr_process_paramodulate_result
     (g->avg_kept_weight)=avg;
     resmeta=wr_calc_clause_meta(g,res,cl_metablock);
     wr_add_cl_to_unithash(g,res,resmeta);
+    wr_add_cl_to_doublehash(g,res);
     if (g->use_strong_unit_cutoff) wr_cl_store_res_units(g,res);
     wr_push_cl_clpick_queues(g,(g->clpick_queues),res,weight); 
     tmp=wr_cl_create_propinst(g,res);    
@@ -1263,6 +1286,48 @@ int wr_process_resolve_result_aux
 
   return 1; // 1 means clause is still ok. 0 return means: drop clause 
 }  
+
+int wr_tautology_cl(glb* g, gptr cl){
+  void *db=g->db;
+  int i,j,len,xisneg; 
+  gint xmeta,xatom,ymeta,yatom;
+  
+  UNUSED(db); 
+  //return 0;
+#ifdef DEBUG
+  wr_printf("\nwr_tautology_cl called on clause:\n");
+  wr_print_clause(g,cl);
+  wr_printf("\n"); 
+#endif        
+  if (cl==NULL) return 0;
+  if (!wg_rec_is_rule_clause(db,cl)) return 0;
+  len=wg_count_clause_atoms(db,cl);  
+  for(i=0;i<len-1;i++) {   
+    xmeta=wg_get_rule_clause_atom_meta(db,cl,i);
+    xatom=wg_get_rule_clause_atom(db,cl,i);
+    xisneg=wg_atom_meta_is_neg(g->db,xmeta);
+    //printf("\nxmeta %ld\n",xmeta);
+    //printf("\nxmeta masked %ld\n",xmeta&(ATOM_META_CANSUBS_MASK<<SMALLINTSHFT));
+    for(j=i+1;j<len;j++) {     
+      ymeta=wg_get_rule_clause_atom_meta(db,cl,j);
+      //printf("\nymeta %ld\n",ymeta); 
+      //printf("\nymeta masked %ld\n",ymeta&(ATOM_META_CANSUBS_MASK<<SMALLINTSHFT));  
+      if ((xmeta&(ATOM_META_CANSUBS_MASK<<SMALLINTSHFT))!=(ymeta&(ATOM_META_CANSUBS_MASK<<SMALLINTSHFT))) {
+        continue;
+      } 
+      if ((xisneg && wg_atom_meta_is_neg(g->db,ymeta)) ||
+          (!xisneg && !wg_atom_meta_is_neg(g->db,ymeta)))
+        continue;
+      yatom=wg_get_rule_clause_atom(db,cl,j);  
+      if (wr_equal_term(g,xatom,yatom,1)) {
+        //printf("\ntautology!!\n");
+        return 1; 
+      }   
+    }
+  }  
+  return 0; // 0 means clause is ok, 1: tautology
+} 
+
 
 // check if xatom can subsume another atom without instantiating repeating vars
 // if yes, drop the atom
@@ -1825,10 +1890,38 @@ gint wr_add_cl_to_unithash(glb* g, gptr cl, gint clmeta) {
     if (wg_atom_meta_is_neg(db,clmeta)) {
       //printf("\nneg\n");
       wr_push_termhash(g,rotp(g,g->hash_neg_groundunits),hash,xatom,cl);
+#ifdef SHARED_DERIVED      
+      printf("\nstarting to copy,cl is:\n");
+      wr_print_clause(g,cl);
+      wg_print_record(db,cl);
+      gptr newcl,newxatom,tmp_buffer;
+      tmp_buffer=g->build_buffer;
+      g->build_buffer=NULL;
+      newcl=rotp(g,wr_copy_record(g,rpto(g,cl))); 
+      printf("\ncopied, result is:\n");
+      wr_print_clause(g,newcl);
+      printf("\n");
+      wg_print_record(db,newcl);
+      printf("\n");
+      g->build_buffer=tmp_buffer;
+      if (wg_rec_is_rule_clause(db,newcl)) {
+        newxatom=rotp(g,wg_get_rule_clause_atom(db,newcl,0));        
+      } else {
+        newxatom=newcl;
+      } 
+      printf("\nstarting to push to termhash\n"); 
+      wr_push_termhash(g,rotp(g,g->shared_hash_neg_groundunits),hash,newxatom,newcl);
+      printf("\npushed to termhash\n"); 
+      wr_print_termhash(g,rotp(g,g->shared_hash_neg_groundunits));
+      printf("\nsharing finished ok\n");
+#endif      
       //wr_print_termhash(g,rotp(g,g->hash_neg_groundunits));
     } else {
       //printf("\npos\n");
       wr_push_termhash(g,rotp(g,g->hash_pos_groundunits),hash,xatom,cl); 
+#ifdef SHARED_DERIVED      
+      //wr_push_termhash(g,rotp(g,g->shared_hash_pos_groundunits),hash,xatom,cl);
+#endif      
       //wr_print_termhash(g,rotp(g,g->hash_pos_groundunits));      
     }      
 #ifdef DEBUGHASH    
@@ -1838,6 +1931,14 @@ gint wr_add_cl_to_unithash(glb* g, gptr cl, gint clmeta) {
     wr_printf("\ng->hash_pos_groundunits after adding:");   
     wr_print_termhash(g,rotp(g,g->hash_pos_groundunits));   
     //wr_clterm_hashlist_print(g,rotp(g,g->hash_pos_groundunits));
+#ifdef SHARED_DERIVED    
+    wr_printf("\ng->shared_hash_neg_groundunits after adding:");      
+    wr_print_termhash(g,rotp(g,g->shared_hash_neg_groundunits));
+    //wr_clterm_hashlist_print(g,rotp(g,g->hash_neg_groundunits));
+    wr_printf("\ng->shared_hash_pos_groundunits after adding:");   
+    wr_print_termhash(g,rotp(g,g->shared_hash_pos_groundunits));   
+    //wr_clterm_hashlist_print(g,rotp(g,g->hash_pos_groundunits));
+#endif    
 #endif
     // for pushed units return hash of the unit
     return hash;
@@ -1847,6 +1948,64 @@ gint wr_add_cl_to_unithash(glb* g, gptr cl, gint clmeta) {
 }
 
 
+
+gint wr_add_cl_to_doublehash(glb* g, gptr cl) {
+  int len,pos;
+  gptr xatom;
+  gint hash;
+  gint litmeta;
+  void* db;
+
+  db=g->db;   
+  UNUSED(db);
+  if (wg_rec_is_fact_clause(db,cl)) return -1;
+  else len=wg_count_clause_atoms(db,cl);
+  
+  //printf("\nwr_add_cl_to_doublehash:\n");
+  //wr_print_clause(g,cl);
+  //printf("\nlen %d wg_rec_is_rule_clause %d\n",len,wg_rec_is_rule_clause(db,cl));
+
+  if (len==2) { //} && wg_atom_meta_is_ground(db,clmeta)) { //} && wg_rec_is_rule_clause(db,cl)) {
+    for(pos=0; pos<2; pos++) {     
+      xatom=rotp(g,wg_get_rule_clause_atom(db,cl,pos));
+      litmeta=wg_get_rule_clause_atom_meta(db,cl,pos);
+      hash=wr_lit_hash(g,rpto(g,xatom));
+      //printf("\nhash for storing is %d\n",(int)hash);
+      if (wg_atom_meta_is_neg(db,litmeta)) {
+        //printf("\nneg\n");
+        wr_push_termhash(g,rotp(g,g->hash_neg_grounddoubles),hash,xatom,cl); 
+        //wr_print_termhash(g,rotp(g,g->hash_neg_groundunits));
+      } else {
+        //printf("\npos\n");
+        wr_push_termhash(g,rotp(g,g->hash_pos_grounddoubles),hash,xatom,cl); 
+  #ifdef SHARED_DERIVED      
+        //wr_push_termhash(g,rotp(g,g->shared_hash_pos_groundunits),hash,xatom,cl);
+  #endif      
+        //wr_print_termhash(g,rotp(g,g->hash_pos_groundunits));      
+      }     
+    }   
+#ifdef DEBUGHASH    
+    wr_printf("\ng->hash_neg_grounddoubles after adding:");      
+    wr_print_termhash(g,rotp(g,g->hash_neg_grounddoubles));
+    //wr_clterm_hashlist_print(g,rotp(g,g->hash_neg_grounddoubles));
+    wr_printf("\ng->hash_pos_grounddoubles after adding:");   
+    wr_print_termhash(g,rotp(g,g->hash_pos_grounddoubles));   
+    //wr_clterm_hashlist_print(g,rotp(g,g->hash_pos_grounddoubles));
+#ifdef SHARED_DERIVED    
+    wr_printf("\ng->shared_hash_neg_grounddoubles after adding:");      
+    wr_print_termhash(g,rotp(g,g->shared_hash_neg_grounddoubles));
+    //wr_clterm_hashlist_print(g,rotp(g,g->hash_neg_grounddoubles));
+    wr_printf("\ng->shared_hash_pos_grounddoubles after adding:");   
+    wr_print_termhash(g,rotp(g,g->shared_hash_pos_grounddoubles));   
+    //wr_clterm_hashlist_print(g,rotp(g,g->hash_pos_grounddoubles));
+#endif    
+#endif
+    // for pushed units return hash of the unit
+    return hash;
+  }
+  // if not pushed, i.e. not unit, return -1 to mark this
+  return -1;
+}
 
 int wr_process_resolve_result_isrulecl(glb* g, gptr rptr, int rpos) {
   void* db;

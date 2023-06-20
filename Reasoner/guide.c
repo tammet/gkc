@@ -150,19 +150,37 @@ cJSON* wr_parse_guide_str(char* buf) {
   return guide;
 }
 
-int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr) {  
+int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr, int seqnr) {  
   cJSON *elem=NULL, *run=NULL;
   char *key, *errstr; //, *valuestr;
   int i,tmp; // valueint
   int runcount=0, runfound=0;
   char* out;
 
-  if (!json_isobject(guide)) {    
+  if (json_isarray(guide)) {
+    out=cJSON_PrintUnformatted(guide);
+    *outstr=out;
+    //exit(0);
+    return 10;
+    errstr=cJSON_Print(guide);
+    wr_warn2(g,"seq section in the strategy:\n ", errstr);
+    exit(0);
+    if (errstr) wr_free(g,errstr);
+    elem=guide->child;
+    while(elem) {
+      errstr=cJSON_Print(elem);
+      wr_warn2(g,"seq elem:\n ", errstr);
+      if (errstr) wr_free(g,errstr);
+      elem=elem->next;
+    }  
+    return -1;
+  } else if (!json_isobject(guide)) {    
     errstr=cJSON_Print(guide);
     wr_warn2(g,"misunderstood section in the strategy:\n ", errstr);
     if (errstr) wr_free(g,errstr);
     return -1;
   }
+  //(g->cl_maxkeep_depthlimit)=2;
   elem=guide->child;
   while(elem) {
     key=json_key(elem);        
@@ -225,8 +243,9 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr) {
     } 
     
     else if (!strcmp(key,"max_dseconds")) {
-      //printf("\nmax_run_seconds %d\n", json_valueint(elem));
+      //printf("\nmax_run_dseconds %d\n", json_valueint(elem));
       (g->max_run_dseconds)=json_valueint(elem);
+      //(g->max_run_dseconds)=150;
 
       // TESTING: commented out. NORMALLY: active
       if ((g->max_run_dseconds) && (g->max_run_dseconds)<20) {
@@ -253,7 +272,7 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr) {
       (g->pick_given_queue_ratio)=json_valueint(elem);
     } else if (!strcmp(key,"sine")) {
       //printf("\nsine_strat %d\n", json_valueint(elem));
-      (g->sine_strat)=json_valueint(elem);
+      (g->sine_strat)=json_valueint(elem);   
     }
 
 
@@ -312,6 +331,7 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr) {
     } 
 
     else if (!strcmp(key,"runs")) {
+      //CP1
       //printf("\nmax_seconds %d\n", json_valueint(elem));
       if (runnr<0) {
         wr_warn(g,"do not use nested runs sections in strategy");
@@ -327,18 +347,39 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr) {
         // loop over runs, find and use the runnr section
         run=elem->child;        
         for(i=0; run; i++, run=run->next) {
+          //CP2
           if (i==runnr) {
             runfound=1;
-            tmp=wr_parse_guide_section(g,run,-1,outstr);
-            //printf("\n wr_parse_guide_section: \n");
-            //out=cJSON_Print(run);            
-            out=cJSON_PrintUnformatted(run);
-            *outstr=out;
-            if (tmp<0) return -1;            
+            if (seqnr>=0) {
+              cJSON *seqrun=(run->child);
+              int curseqnr=0;
+              while(seqrun!=NULL) {
+                CP3
+                if (seqnr==curseqnr) {
+                  //out=cJSON_Print(seqrun);
+                  //printf("curseqnr %d %s \n",curseqnr,out);
+                  CP4
+                  tmp=wr_parse_guide_section(g,seqrun,-1,outstr,seqnr);
+                  if (tmp<0) return -1; 
+                  return 0;
+                }   
+                curseqnr++;
+                seqrun=seqrun->next;
+              }
+              return -1;              
+            } else {
+              tmp=wr_parse_guide_section(g,run,-1,outstr,seqnr);
+              //printf("\n wr_parse_guide_section: \n");
+              //out=cJSON_Print(run);                                    
+              out=cJSON_PrintUnformatted(run);
+              *outstr=out;
+              if (tmp==10) return 10;  
+              if (tmp<0) return -1;   
+            }         
           } 
         }
         runcount=i;          
-      }  
+      }    
     } else {
       wr_warn2(g,"unknown setting in the strategy: ", key);
     }    
@@ -401,6 +442,10 @@ int wr_parse_guide_strategy_set(glb* g, char* stratname) {
     (g->knuthbendixpref_strat)=1;     
   } else if (!strcmp(stratname,"prohibit_nested_para")) {
     (g->prohibit_nested_para)=1;    
+  } else if (!strcmp(stratname,"prohibit_unordered_para")) {
+    (g->prohibit_unordered_para)=1;
+  } else if (!strcmp(stratname,"prohibit_deep_para")) {
+    (g->prohibit_deep_para)=1;  
   } else if (!strcmp(stratname,"posunitpara")) {
     (g->posunitpara_strat)=1;     
   } else if (!strcmp(stratname,"max_ground_weight")) {

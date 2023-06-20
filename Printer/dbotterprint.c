@@ -78,6 +78,7 @@ void wr_print_clause(glb* g, gptr rec) {
   gint history;
 
   if (rec==NULL) return;    
+  //wg_print_record(g->db,rec) ;
   if (g->print_clause_history && g->print_flag) {
     history=wr_get_history(g,rec);
     wr_print_clause_name_history(g,history);
@@ -151,7 +152,7 @@ void wr_print_db_otter(glb* g,int printlevel) {
 
 void wr_print_clause_otter(glb* g, gint* rec, int printlevel) {
   //printf("wg_print_clause_otter called with rec ");
-  //wg_print_record(db,rec);
+  //wg_print_record(g->db,rec);
   if (rec==NULL) { printf("false"); return; }
   if (wg_rec_is_rule_clause(db,rec)) {
       //printf("ruleclause\n");

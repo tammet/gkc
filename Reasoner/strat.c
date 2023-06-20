@@ -57,6 +57,8 @@ extern "C" {
 //#define KB_WEIGHTS_ORDER // if defined, kb weights are based on occurrences
 //#define KB_WEIGHTS_ORDER_REVERSE
 
+//#define EQ_PREFER // experimental testing
+
 /* ======= Private protos ================ */
 
 
@@ -348,6 +350,18 @@ int wr_calc_clause_resolvability(glb* g, gptr cl, int allowall, int hyperpartial
     return 1;
   }
 
+#ifdef EQ_PREFER
+  int hasposeq=0;
+  for(i=0; i<atomnr; i++) {
+    meta=wg_get_rule_clause_atom_meta(db,cl,i);
+    atom=wg_get_rule_clause_atom(db,cl,i);
+    if (wr_equality_atom(g,atom) && !wg_atom_meta_is_neg(db,meta)) {
+      hasposeq=1;
+      break;
+    }    
+  }  
+#endif
+
   if (!allowall && (g->hyperres_strat)) {
     // initially set all literals as allowed
     for(i=0; i<atomnr; i++) {
@@ -480,6 +494,12 @@ int wr_calc_clause_resolvability(glb* g, gptr cl, int allowall, int hyperpartial
       (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,1);
       continue;
     } 
+#ifdef EQ_PREFER
+    if (hasposeq && (!wr_equality_atom(g,atom) || (wr_equality_atom(g,atom) && wg_atom_meta_is_neg(db,meta)))) {
+      (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,0);
+      continue;
+    }     
+#endif
     if (allowall) {
       (g->tmp_resolvability_vec)=wr_vec_store(g,g->tmp_resolvability_vec,i+1,1);
       continue;

@@ -123,7 +123,7 @@
 // s UNSATISFIABLE
 // s SATISFIABLE
 
-#define DEFAULT_PROP_SOLVER_NAME "/opt/lingeling/lingeling"
+#define DEFAULT_PROP_SOLVER_NAME "/opt/gkc/Prop/kissat-rel-3.0.0/build/kissat"
 #define DEFAULT_PROP_FILE_NAME "/tmp/gkc_prop_inXXXXXX"
 #define DEFAULT_PROP_SOLVER_OUTFILE_NAME "/tmp/gkc_prop_outXXXXXX"
 
@@ -132,6 +132,8 @@
 #define MAX_GUIDETEXT_LEN 500
 
 #define SINE_K_VALUES_SIZE 10000000 // bytestring 10 mbyte
+
+// #define SHARED_DERIVED  // if set, keep some clauses over different passes
 
 /* ======== Structures ========== */
 
@@ -171,8 +173,17 @@ typedef struct {
   gint clpick_queues;   /**< vec of several queue structures */
   gint clpick_given;    /**< index of next queue to be taken from vec of queues */
 
+#ifdef SHARED_DERIVED    
+  cveco shared_clbuilt;   /**< vector containing shared built clauses, newest last. 0: vec len, 1: index of next unused vec elem */
+  gint shared_hash_neg_groundunits; /**< shared hash structure for cutting off with negative ground unit clauses */
+  gint shared_hash_pos_groundunits; /**< shared hash structure for cutting off with positive ground unit clauses */
+#endif
+
   gint hash_neg_groundunits; /**< hash structure for cutting off with negative ground unit clauses */
   gint hash_pos_groundunits; /**< hash structure for cutting off with positive ground unit clauses */
+
+  gint hash_neg_grounddoubles; /**< hash structure for cutting off with negative ground double clauses */
+  gint hash_pos_grounddoubles; /**< hash structure for cutting off with positive ground double clauses */
 
   gint hash_neg_active_groundunits; /**< hash structure for subsuming with negative ground unit clauses in active */
   gint hash_pos_active_groundunits; /**< hash structure for subsuming with positive ground unit clauses in active */
@@ -352,6 +363,7 @@ typedef struct {
   int instgen_strat;
   int propgen_strat;
   int back_subsume;
+  int forward_subsume_derived;
   int propagate;
   int use_equality_strat; // general strategy
   int use_equality; // current principle
@@ -363,6 +375,9 @@ typedef struct {
   int use_strong_unit_cutoff; 
   int use_strong_duplicates; // iff 1, then unique var based duplicate removal
   int prohibit_nested_para;  
+  int prohibit_unordered_para;
+  int prohibit_deep_para;
+
 
   int max_proofs;
   int store_history;
@@ -617,11 +632,13 @@ int wr_glb_init_simple(glb* g);
 
 int wr_glb_init_shared_simple(glb* g);
 int wr_glb_init_shared_complex(glb* g);
+int wr_glb_init_seq_shared_complex(glb* g);
 int wr_glb_free_shared_simple(glb* g);
 int wr_glb_free_shared_complex(glb* g);
 
 int wr_glb_init_local_simple(glb* g);
 int wr_glb_init_local_complex(glb* g);
+int wr_glb_init_seq_local_complex(glb* g);
 int wr_glb_free_local_simple(glb* g);
 int wr_glb_free_local_complex(glb* g);
 

@@ -307,6 +307,52 @@ int wr_ground_term(glb* g, gint x) {
   return 1;
 }
 
+/* ***** shared clauses *********** */
+
+gint wr_copy_record(glb* g, gint x) {
+  void* db;
+  gptr xptr,yptr;
+  gint xlen,uselen;
+  gint tmp; 
+  int i;
+  gint res;
+
+#ifdef DEBUG
+  wr_printf("\nwr_copy_term called, g->build_buffer ptr is %lx \n", (unsigned long int)g->build_buffer); 
+  wr_print_term(g,x);
+  wr_printf("\n");
+#endif   
+  //wr_printf("\nwr_copy_term called, g->build_buffer ptr is %lx \n", (unsigned long int)g->build_buffer); 
+  //wr_print_term(g,x);
+  //wr_printf("\n");
+  if (!x || !isdatarec(x)) {
+    return x;
+  }    
+  // now we have a datarec  
+  db=g->db;
+  xptr=decode_record(db,x); 
+  xlen=get_record_len(xptr);
+  //printf("\nxlen %ld\n",xlen);
+  // allocate space 
+  if ((g->build_buffer)!=NULL) {
+    yptr=wr_alloc_from_cvec(g,g->build_buffer,(RECORD_HEADER_GINTS+xlen));     
+  } else {
+    yptr=wg_create_raw_record(g->local_db,xlen);     
+  }    
+  if (yptr==NULL) {
+    return WG_ILLEGAL;
+  }  
+  uselen=xlen+RECORD_HEADER_GINTS;
+  for(i=0;i<RECORD_HEADER_GINTS;i++) {    
+    yptr[i]=xptr[i];
+  } 
+  for(i=RECORD_HEADER_GINTS;i<uselen;i++) {   
+    tmp=wr_copy_record(g,xptr[i]);    
+    yptr[i]=tmp;
+  }
+  res=encode_record(db,yptr);  
+  return res;     
+}  
 
 #ifdef __cplusplus
 }

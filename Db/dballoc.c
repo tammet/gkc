@@ -127,7 +127,7 @@ gint wg_init_db_memsegment_with_kb(void* db, gint key, gint size, void* kb) {
   dbh->infrmlist=0;
   dbh->infrm_mpool=NULL;
   dbh->max_forks=1;
-  dbh->tptp=0;
+  dbh->tptp=1;
   dbh->json=0;
   dbh->convert=0;
   dbh->min_strat_timeloop_nr=0;

@@ -76,6 +76,8 @@ static struct tm * localtime_r (const time_t *timer, struct tm *result);
 //#define CHECK 1
 #define WG_NO_ERRPRINT
 
+#define QUICK_REASONER
+
 /* ======= Private protos ================ */
 
 void tmp_wg_show_strhash(void* db);
@@ -153,10 +155,12 @@ void* wg_rawalloc(void* db, gint wantedbytes) {
 void* wg_create_record(void* db, wg_int length) {
   void *rec = wg_create_raw_record(db, length);
   /* Index all the created NULL fields to ensure index consistency */
+#ifndef QUICK_REASONER
   if(rec) {
     if(wg_index_add_rec(db, rec) < -1)
       return NULL; /* index error */
   }
+#endif  
   return rec;
 }
 
@@ -671,6 +675,9 @@ wg_int wg_set_field(void* db, void* record, wg_int fieldnr, wg_int data) {
   fieldadr=((gint*)record)+RECORD_HEADER_GINTS+fieldnr;
   fielddata=*fieldadr;
 
+#ifdef QUICK_REASONER
+  return 0;
+#endif
   /* Skip changes if the value does not change */
   if(fielddata == data) {
     return 0;
@@ -894,7 +901,9 @@ wg_int wg_set_new_field(void* db, void* record, wg_int fieldnr, wg_int data) {
   }
 #endif
   (*fieldadr)=data;
-
+#ifdef QUICK_REASONER  
+  return 0;
+#endif
 #ifdef USE_CHILD_DB
   if (islongstr(data) && offset_owner == dbmemseg(db)) {
 #else

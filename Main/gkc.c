@@ -617,7 +617,61 @@ int gkc_main(int argc, char **argv) {
         err = wg_import_data_string(shmptrlocal,ljstrings[jstrnr],0,&informat,askpolarity,&askinfo,1);
       }  
     }
-          
+//---          
+  /*
+   void* clauselist;
+   void* rec;
+   gint cell,history;
+   int n=0;
+   //gptr historyptr;
+   gcell* cellptr;
+   if (shmptr) {
+      clauselist=(void*)(dbmemsegh(shmptr)->clauselist);
+      for(cell=(gint)clauselist; cell; cell=cellptr->cdr, n++) {   
+        cellptr=(gcell *) offsettoptr(shmptr, cell);   
+        if (!(cellptr->car)) continue;           
+        rec=offsettoptr(shmptr,cellptr->car);
+        
+        printf("\nclause in first clauselist: \n");
+        wg_print_record(shmptr,rec);     
+        printf("\n");         
+        
+        history=wr_get_history(NULL,rec); 
+        printf("\nCP1\n"); 
+        historyptr=otp(shmptr,history);
+
+        printf("\n");
+      }  
+    }
+
+     if (shmptrlocal) {
+      clauselist=(void*)(dbmemsegh(shmptrlocal)->clauselist);
+      printf("\nCPa1\n");
+      for(cell=(gint)clauselist; cell; cell=cellptr->cdr, n++) {   
+        printf("\nCPa2\n");
+        cellptr=(gcell *) offsettoptr(shmptrlocal, cell);   
+        printf("\nCPa3\n");
+        if (!(cellptr->car)) continue;           
+        printf("\nCPa4\n");
+        rec=offsettoptr(shmptrlocal,cellptr->car);
+        printf("\nCPa5\n");
+        
+        printf("\nclause in second clauselist: \n");
+        wg_print_record(shmptrlocal,rec);     
+        printf("\n");         
+        
+        history=wr_get_history(NULL,rec); 
+        printf("\nCP1\n"); 
+        historyptr=otp(shmptrlocal,history);
+
+        printf("\n");
+      }  
+    }
+   */ 
+//---
+   
+
+
     //printf("\nreturned from wg_import_otter_file\n");  
     if(!err) {
       //printf("Data read from %s.\n",cmdfiles[1]);

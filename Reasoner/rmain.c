@@ -178,13 +178,14 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
 #endif
   // kb_db is set to parent db
   kb_db=db_get_kb_db(db);
+  //printf("\nwg_run_reasoner starts now db is %lx and db->kb_db is %lx \n",(unsigned long int)db,(unsigned long int)(dbmemsegh(db)->kb_db));
   if (kb_db) {
     // separate child_db and kb_db
     // from now one var db will point to the parent, i.e. kb_db
 #ifdef DEBUG
     wr_printf("\nseparate child_db and kb_db\n");
 #endif      
-
+    //printf("\ng_run_reasoner found separate child_db and kb_db\n");
     local_db=db;    
     //have_shared_kb=1;
     child_db=db;
@@ -197,6 +198,7 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
     // now kb_g should contain the same things as rglb
     // set the db ptr of kb_g to the shared db
     (kb_g->db)=kb_db; 
+    //printf("\nwg_run_reasoner CP1 now db is %lx and kb_db is %lx \n",(unsigned long int)db,(unsigned long int)kb_db);
 #ifdef DEBUG       
     wr_printf("\n** input stats for kb_g ****** \n");
     show_cur_time();
@@ -495,8 +497,8 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
 
     if (iter==0) (g->allruns_start_clock)=clock();    
     guidetext=NULL;
-    guideres=wr_parse_guide_section(g,guide,iter,&guidetext); 
-
+    guideres=wr_parse_guide_section(g,guide,iter,&guidetext,-1); 
+    //printf("\nguideres %d\n",guideres);
     if (dbmemsegh(local_db)->printlevel) (g->print_level_flag)=(dbmemsegh(local_db)->printlevel);
     if (dbmemsegh(local_db)->printderived) (g->print_derived)=(dbmemsegh(local_db)->printderived);
 
@@ -639,6 +641,7 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
 #ifdef DEBUG 
         wr_printf("\n**** starting to read from the external shared mem kb\n");
 #endif                     
+        //printf("\n**** no queryfocus, starting to read from the external shared mem kb\n");
         clause_count+=wr_init_active_passive_lists_from_one(g,db,db);       
         (g->kb_g)=NULL;        
       } else {
@@ -665,6 +668,7 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
 #ifdef DEBUG 
       wr_printf("\n**** starting to read from the local db kb\n");
 #endif      
+      //printf("\n**** queryfocus, starting to read from the local db kb\n");
       clause_count+=wr_init_active_passive_lists_from_one(g,db,child_db);      
     } else {
       // one single db    
@@ -698,7 +702,8 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
 #ifdef DEBUG       
       wr_printf("\n**** starting to read from the single local db\n");      
 #endif    
-      //printf("\nto call wr_init_active_passive_lists_from_one\n"); 
+      //printf("\nto call wr_init_active_passive_lists_from_one\n");
+      //printf("\n**** starting to read from the single local db\n");      
       clause_count=wr_init_active_passive_lists_from_one(g,db,db);  
       //printf("\nreturned from wr_init_active_passive_lists_from_one with clause_count %d\n",clause_count);    
     } 
@@ -725,9 +730,74 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
     //wr_show_in_stats(g);
     //wr_print_clpick_queues(g,(g->clpick_queues));    
     //if ((g->print_flag) && (g->print_runs)) wr_print_strat_flags(g);
-    if (!(g->proof_found) || !(wr_enough_answers(g))) {      
-      res=wr_genloop(g);
-      //printf("\ngenloop ended\n");
+
+
+
+   
+
+    if (!(g->proof_found) || !(wr_enough_answers(g))) {   
+      if (guideres==10 && (g->guidetext)) {
+        printf("\nseqstrat\n");
+        int seqnr=0, seqguideres;
+        //char *out;
+        char* guidetext1;
+        guidetext1=malloc(10000);
+        while (!(g->proof_found) || !(wr_enough_answers(g))) {
+          //out=cJSON_PrintUnformatted(guide);         
+
+          seqguideres=wr_parse_guide_section(g,guide,iter,&guidetext1,seqnr); 
+          if (seqguideres<0) break;
+          //seqguideres=0;
+          printf("seqnr %d seqguideres %d strat %s\n",seqnr,seqguideres,guidetext1);
+          if (seqnr>0) (g->forward_subsume_derived)=0;
+          res=wr_genloop(g);          
+          printf("\ngenloop ended with res %d\n",res);
+          //print_datastructs(g);
+          if (res>0 && !(res==1 && wr_have_answers(g))) {
+            tmp=wr_glb_init_seq_shared_complex(g); // creates and fills in shared tables, substructures, etc: 0.03 secs
+            //CP0
+            if (tmp) {
+              wr_errprint("cannot init shared complex datastructures");
+              if (guidebuf!=NULL) free(guidebuf);
+              if (guide!=NULL) cJSON_Delete(guide); 
+              wr_glb_free_shared_complex(g);
+              sys_free(g);
+              return -1; 
+            }  
+            //CP1
+            tmp=wr_glb_init_seq_local_complex(g); // creates and fills in local tables, substructures, etc: fast
+            if (tmp) {
+              wr_errprint("cannot init local complex datastructures");
+              if (guidebuf!=NULL) free(guidebuf);
+              if (guide!=NULL) cJSON_Delete(guide); 
+              wr_glb_free_shared_complex(g);
+              wr_glb_free_local_complex(g);
+              sys_free(g);
+              if (analyze_g) analyze_g=wr_free_analyze_g(analyze_g);
+              return -1; 
+            }   
+            //CP2          
+            if (res==1) {
+              clause_count=wr_init_active_passive_lists_from_one(g,db,db);  
+              //CP3
+              //print_datastructs(g);
+              //CP4           
+            }
+            if (seqnr>0) {
+              wr_activate_from_termhash(g,rotp(g,g->hash_neg_groundunits));
+              wr_activate_from_termhash(g,rotp(g,g->hash_pos_groundunits));
+            }  
+            seqnr++;     
+          } else {
+            break;
+          }       
+        }
+        //exit(0);
+      } else {  
+      //printf("\nwg_run_reasoner about to call wr_genloop now db is %lx and db->kb_db is %lx and g->db is %lx\n",
+      //  (unsigned long int)db,(unsigned long int)(dbmemsegh(db)->kb_db),(unsigned long int)(g->db));   
+        res=wr_genloop(g);
+      }       
       //printf("\n prop_hash_clauses:\n");  
       //wr_print_prop_clausehash(g,rotp(g,g->prop_hash_clauses));  
       if (res>0 && !(res==1 && wr_have_answers(g)) &&
@@ -1100,6 +1170,7 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
   int vecflag=0; // set to 1 if clauses sorted into vector
 
   //printf("\n ** wr_init_active_passive_lists_from_one called ** \n");
+  //printf("\n ** wr_init_active_passive_lists_from_one called ** with db %lx child_db %lx \n",(unsigned long int)db,(unsigned long int)child_db);
   (g->proof_found)=0;
   wr_clear_all_varbanks(g); 
   wr_process_given_cl_setupsubst(g,g->given_termbuf,1,1); 
@@ -1288,9 +1359,13 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
 #endif
      
     if (wg_rec_is_rule_clause(db,rec)) {
-      rules_found++;
+      rules_found++;      
       clmeta=wr_calc_clause_meta(g,rec,given_cl_metablock);
+      if (wr_tautology_cl(g,rec)) {
+          goto LOOPEND;
+      }
       wr_add_cl_to_unithash(g,rec,clmeta);
+      wr_add_cl_to_doublehash(g,rec);
 
 #ifdef DEBUG      
       wr_printf("\n+++++++ nrec is a rule  "); 
@@ -1321,7 +1396,7 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
       }
 
       if (g->queryfocus_strat && wr_initial_select_active_cl(g,(gptr)rec)) {   
-        // calculate resolvability: (g->tmp_resolvability_vec)
+        // calculate resolvability: (g->tmp_resolvability_vec)       
         wr_calc_clause_resolvability(g,rec,1,0);      
         given_cl=wr_process_given_cl(g,(gptr)rec, g->given_termbuf);
         if ( ((gint)given_cl==ACONST_FALSE) || ((gint)given_cl==ACONST_TRUE) ||
@@ -1458,6 +1533,75 @@ LOOPEND:
 #endif   
   return rules_found+facts_found;
 }
+
+
+void wr_activate_from_termhash(glb* g, gint* hasharr) {
+  int i,j;
+  cvec bucket;
+  int weight;
+  int size,depth,length;
+  //gint resmeta;
+  gptr clause;
+  double avg;
+  //gint cl_metablock[CLMETABLOCK_ELS];
+ 
+  //printf("\nhashvec len %ld ptr %lx and els:\n",hasharr[0],(unsigned long int)hasharr);  
+  //printf("\nhashvec len %ld els:\n",hasharr[0]);  
+  for(i=1;i<hasharr[0];i++) {    
+    if (hasharr[i]) {
+      bucket=rotp(g,(hasharr[i]));
+      //printf("\nhashslot i %d node %ld size %ld next free %ld\n",
+      //        i,hasharr[i],bucket[0],bucket[1]);
+      //printf("\nhashslot i %d size %ld next free %ld\n",i,bucket[0],bucket[1]);        
+      if (1) {
+        for(j=2;j<bucket[0] && j<bucket[1]; j=j+2) {
+          /*
+          wr_printf("term ");
+          wr_print_term(g,bucket[j]);
+          //printf(" path %d in cl ",0);
+          //CP1
+          //printf("\nj %d bucket[j+1] %ld \n",j,bucket[j+1]);
+          //CP2          
+          wr_printf(" in clause ");
+          wr_print_clause(g,rotp(g,bucket[j+1]));          
+          wr_printf(" as rec ");
+          wg_print_record(g->db,rotp(g,bucket[j+1]));
+          wr_printf("\n");
+          */
+          clause=rotp(g,bucket[j+1]);
+          weight=wr_calc_clause_weight(g,clause,&size,&depth,&length);
+          ++(g->stat_kept_cl);
+          avg=(g->avg_kept_weight); 
+          avg+=(weight-avg)/((g->stat_kept_cl)+1);
+          //resmeta=wr_calc_clause_meta(g,clause,cl_metablock);
+          //wr_add_cl_to_unithash(g,clause,resmeta);
+          if (g->use_strong_unit_cutoff) wr_cl_store_res_units(g,clause);
+          wr_push_cl_clpick_queues(g,(g->clpick_queues),clause,weight); 
+        }
+      }  
+    }
+  }
+}
+
+/*
+ weight=wr_calc_clause_weight(g,res,&size,&depth,&length);
+    avg=(g->avg_kept_weight);  
+    if (!wr_derived_weight_check(g,avg,weight,size,depth,length,0,0)) {
+      (g->stat_weight_discarded_cl)++;
+      CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
+      if (g->print_derived_cl) wr_printf("\nw discarded overweight");
+      return;
+    }
+    ++(g->stat_kept_cl);
+    avg+=(weight-avg)/((g->stat_kept_cl)+1);
+    (g->avg_kept_weight)=avg;
+    resmeta=wr_calc_clause_meta(g,res,cl_metablock);
+    wr_add_cl_to_unithash(g,res,resmeta);
+    if (g->use_strong_unit_cutoff) wr_cl_store_res_units(g,res);
+    wr_push_cl_clpick_queues(g,(g->clpick_queues),res,weight);   
+    tmp=wr_cl_create_propinst(g,res);    
+    if (tmp==2) {  return;  }
+*/
 
 int wr_print_all_clauses(glb* g, void* child_db) {
   void* db=child_db;
@@ -2109,6 +2253,13 @@ void wr_print_active_clauses(glb* g)  {
     //wr_clterm_hashdata_print(g,hasharrpos);
     wr_printf("\n\nneg usable literals :\n"); 
     wr_clterm_hashlist_print(g,hasharrneg); 
+    //wr_clterm_hashdata_print(g,hasharrneg);
+
+    wr_printf("\n\npos doubles :\n"); 
+    wr_print_offset_termhash(g,rotp(g,g->hash_pos_grounddoubles)); 
+    //wr_clterm_hashdata_print(g,hasharrpos);
+    wr_printf("\n\nneg doubles :\n"); 
+    wr_print_offset_termhash(g,rotp(g,g->hash_neg_grounddoubles)); 
     //wr_clterm_hashdata_print(g,hasharrneg);
     
   }

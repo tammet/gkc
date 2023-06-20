@@ -564,8 +564,11 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
     if (wg_atom_meta_is_neg(db,xatommeta)) {
 #ifdef DEBUG      
       wr_printf("\nneg\n");
-#endif      
-      bucket=wr_find_termhash(g,rotp(g,g->hash_neg_groundunits),xatomptr,hash);      
+#endif 
+      if (g->forward_subsume_derived)      
+        bucket=wr_find_termhash(g,rotp(g,g->hash_neg_groundunits),xatomptr,hash);      
+      else
+        bucket=NULL;       
       //printf("\ncpneg\n");
       if (bucket!=NULL) {
 #ifdef DEBUG        
@@ -581,8 +584,11 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
       if (r_kb_g(g)) {
 #ifdef DEBUG
         wr_printf("\nexternal kb r_kb_g(g) present");
-#endif        
-        bucket=wr_find_termhash(g,rotp(g,(r_kb_g(g))->hash_neg_groundunits),xatomptr,hash);     
+#endif  
+        if (g->forward_subsume_derived)      
+          bucket=wr_find_termhash(g,rotp(g,(r_kb_g(g))->hash_neg_groundunits),xatomptr,hash);     
+        else
+          bucket=NULL;  
         if (bucket!=NULL) {
   #ifdef DEBUG        
           wr_printf("\nsubsumed by kb ground hash as neg!\n"); 
@@ -640,7 +646,10 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
 #ifdef DEBUG      
       wr_printf("\npos\n");
 #endif
-      bucket=wr_find_termhash(g,rotp(g,g->hash_pos_groundunits),xatomptr,hash);
+      if (g->forward_subsume_derived)   
+        bucket=wr_find_termhash(g,rotp(g,g->hash_pos_groundunits),xatomptr,hash);
+      else
+        bucket=NULL;  
       //printf("\ncppos\n");
       if (bucket!=NULL) {
 #ifdef DEBUG        
@@ -657,7 +666,10 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
 #ifdef DEBUG
         wr_printf("\nexternal kb r_kb_g(g) present");
 #endif          
-        bucket=wr_find_termhash(g,rotp(g,(r_kb_g(g))->hash_pos_groundunits),xatomptr,hash);      
+        if (g->forward_subsume_derived)   
+          bucket=wr_find_termhash(g,rotp(g,(r_kb_g(g))->hash_pos_groundunits),xatomptr,hash);      
+        else
+          bucket=NULL;  
         if (bucket!=NULL) {
   #ifdef DEBUG        
           wr_printf("\nsubsumed by kb ground hash as pos!\n"); 
@@ -735,6 +747,19 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
 #endif  
   return cuts;  
 }
+
+/*
+
+
+  if (tmp==0 && !doublecut_found && len>1) {
+    // attempt double cut
+    tmp3=wr_atom_doublecut(g,yatom,xmeta,xcl,i,&foundbucket2); 
+  } else {
+    tmp3=2;
+  }
+
+
+*/
 
 
 /*
@@ -871,7 +896,202 @@ int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucke
 }
 
 
+/*
 
+  return -1 if subsumed
+  return 0 if no subsumption, no cuts
+  return 1 if any cuts
+
+  //skipcl is a clause which should be always skipped when comparing (set to NULL if not used)
+  if subsflag==0 then no subsumption done
+
+*/
+
+int wr_atom_doublecut(glb* g, gint xatom, gint xatommeta, gptr xcl, int pos, cvec* foundbucket) {
+  gptr xatomptr;
+  //cvec bucket;
+  gint bucket;
+  gint hash;
+  gptr bucket_asp;
+  int j;
+
+  /*
+  wr_printf("\n!!!!! wr_atom_doublecut is called \n");    
+  wr_printf("\n xatom %d xatommeta %d atom:\n",xatom,xatommeta);
+  wr_print_term(g,xatom);  
+  printf("\nclause\n");
+  wr_print_clause(g,xcl);  
+  printf("\n");
+  */
+
+#ifdef DEBUG
+  wr_printf("\nwr_atom_doublecut is called \n");    
+  wr_printf("\n xatom %d xatommeta %d atom:\n",xatom,xatommeta);
+  wr_print_term(g,xatom);  
+#endif     
+  
+  xatomptr=rotp(g,xatom);
+  hash=wr_lit_hash(g,xatom); 
+  if (wg_atom_meta_is_neg(db,xatommeta)) {
+    //printf("\nneg atom\n");   
+    //bucket=wr_find_termhash(g,rotp(g,g->hash_pos_grounddoubles),xatomptr,hash);  
+    
+    //--- new part starts
+    bucket=wr_find_offset_termbucket(g,rotp(g,g->hash_pos_grounddoubles),xatomptr,hash);
+    if (bucket) {
+      // printf("\nbucket found\n");
+      //printf("bucket for hash %d size %d next free %d\n",hash,bucket[0],bucket[1]);
+      bucket_asp=rotp(g,bucket);
+      for(j=2;j<bucket_asp[0] && j<bucket_asp[1]; j=j+2) {
+        /*
+        printf("j %d meaning %d term ",j,(j-2)/2);
+        //wr_print_term(g,rpto(g,bucket_asp[j]));
+        wr_print_term(g,bucket_asp[j]);
+        printf(" in cl \n");
+        wr_print_clause(g,rotp(g,bucket_asp[j+1]));
+        printf("\n");
+        */
+
+        if (wr_atom_doublecut_aux(g,xatom,xatommeta,xcl,pos,rotp(g,bucket_asp[j+1]))) {
+          //CP10
+          /*
+          printf("\nmatch found for\n");
+          wr_print_clause(g,xcl);
+          printf("\nwith double\n");
+          wr_print_clause(g,rotp(g,bucket_asp[j+1]));
+          printf("\n");
+          */
+          *foundbucket=rotp(g,bucket_asp[j+1]);      
+          return 1;
+        }         
+      }
+    }
+  } else {
+    //printf("\npos atom\n");    
+    //bucket=wr_find_termhash(g,rotp(g,g->hash_pos_grounddoubles),xatomptr,hash);  
+    
+    //--- new part starts
+    bucket=wr_find_offset_termbucket(g,rotp(g,g->hash_neg_grounddoubles),xatomptr,hash);
+    if (bucket) {
+      //printf("\nbucket found\n");
+      //printf("bucket for hash %d size %d next free %d\n",hash,bucket[0],bucket[1]);
+      bucket_asp=rotp(g,bucket);
+      for(j=2;j<bucket_asp[0] && j<bucket_asp[1]; j=j+2) {
+        
+        /*
+        printf("j %d meaning %d term ",j,(j-2)/2);
+        //wr_print_term(g,rpto(g,bucket_asp[j]));
+        wr_print_term(g,bucket_asp[j]);
+        printf(" in cl \n");
+        wr_print_clause(g,rotp(g,bucket_asp[j+1]));
+        printf("\n");
+        */
+        if (wr_atom_doublecut_aux(g,xatom,xatommeta,xcl,pos,rotp(g,bucket_asp[j+1]))) {
+          //CP10
+          /*
+          printf("\nmatch found for\n");
+          wr_print_clause(g,xcl);
+          printf("\nwith double\n");
+          wr_print_clause(g,rotp(g,bucket_asp[j+1]));
+          printf("\n");
+          */
+          *foundbucket=rotp(g,bucket_asp[j+1]);      
+          return 1;
+        }         
+      }
+    }
+  }   
+#ifdef DEBUG
+  wr_printf("\n!!!!! wr_atom_cut_and_subsume found no subs or cuts \n");
+#endif     
+  return 0;  
+}
+
+int wr_atom_doublecut_aux(glb* g, gint xatom, gint xatommeta, gptr xcl, int pos, cvec bucket) {
+  int i, j, xcllen, posmatch, negmatch;
+  gptr ycl;
+  gint yclatom, xclatom, xclmeta,yclmeta;
+  int iused,jused;
+
+  /*
+  printf("\nwr_atom_doublecut_aux called, pos %d\n",pos);
+  printf("\nxatom ");
+  wr_print_term(g,xatom);
+  printf("\nxcl ");
+  wr_print_clause(g,xcl); 
+  printf("\nbucket ");
+  wr_print_clause(g,bucket); 
+  */
+
+  posmatch=0;
+  negmatch=0;
+  iused=-1;
+  jused=-1;
+  ycl=bucket; 
+  xcllen=wg_count_clause_atoms(db,xcl);
+  for(i=0;i<2;i++) {
+    yclmeta=wg_get_rule_clause_atom_meta(db,ycl,i);
+    yclatom=wg_get_rule_clause_atom(db,ycl,i); 
+    //printf("\ni %d ",i); 
+    //wr_print_term(g,yclatom);
+    //printf("\n");   
+    for(j=0;j<xcllen;j++) {
+      //if (i==iused || j==jused) continue;
+      //printf("\nj %d ",j);   
+      //if (j==posused || j==negused) continue;
+      xclmeta=wg_get_rule_clause_atom_meta(db,xcl,j);      
+      xclatom=wg_get_rule_clause_atom(db,xcl,j); 
+      //wr_print_term(g,xclatom);
+      //printf("\n"); 
+      if (xatom!=xclatom && 
+          ( (wg_atom_meta_is_neg(db,yclmeta) && wg_atom_meta_is_neg(db,xclmeta)) ||
+            (!wg_atom_meta_is_neg(db,yclmeta) && !wg_atom_meta_is_neg(db,xclmeta)) )) {
+        // same polarities and atom is not the same as cutoff atom
+        if (jused!=j && iused!=i &&
+            ((yclmeta&(ATOM_META_CANSUBS_MASK<<SMALLINTSHFT))==(xclmeta&(ATOM_META_CANSUBS_MASK<<SMALLINTSHFT))) &&
+            wr_equal_term(g,yclatom,xclatom,1)) {
+          //printf("\nposmatch found\n");    
+          //wr_print_term(g,yclatom);
+          //wr_print_term(g,xclatom);
+          posmatch=1;
+          //posused=yclatom;
+          //xclatomused=xclatom;
+          //yclatomused=yclatom;
+          iused=i;
+          jused=j;
+          if (negmatch) {
+            //printf("\n!!! same found\n"); 
+            return 1;
+          }
+        }
+      } else {
+        // different polarities and atom is the same as cutoff atom
+        if (xatom==xclatom && xatommeta==xclmeta &&
+            jused!=j && iused!=i &&
+            ( (wg_atom_meta_is_neg(db,yclmeta) && !wg_atom_meta_is_neg(db,xclmeta)) ||
+              (!wg_atom_meta_is_neg(db,yclmeta) && wg_atom_meta_is_neg(db,xclmeta))) && 
+            ((yclmeta&(ATOM_META_CANSUBS_MASK<<SMALLINTSHFT))==(xclmeta&(ATOM_META_CANSUBS_MASK<<SMALLINTSHFT))) && 
+            wr_equal_term(g,yclatom,xclatom,1)) {
+          //printf("\nnegmatch found\n");     
+          //wr_print_term(g,yclatom);
+          //wr_print_term(g,xclatom);
+          negmatch=1;
+          //negused=yclatom;
+          //xclatomused=xclatom;
+          iused=i;
+          jused=j;
+          if (posmatch) {
+            //printf("\n!!! diff found\n");
+            //CP12; 
+            return 1;
+          }
+        }
+      }
+    }    
+  }
+
+  return 0;
+}
 
 /*
 

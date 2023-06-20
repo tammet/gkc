@@ -973,6 +973,31 @@ gint* wr_find_offset_termhash(glb* g, gint* hasharr, gptr term, int hash) {
 }
 
 
+gint wr_find_offset_termbucket(glb* g, gint* hasharr, gptr term, int hash) {
+  gint bucket;
+
+  /*
+  wr_printf("\nwr_find_offset_termbucket: find from termhash with length %d and hash %d the term: \n",hasharr[0],hash);
+  wr_print_clause(g,term);
+  wr_printf("\n");
+  */
+ 
+  // negative hashes not ok: make positive
+  if (hash<0) hash=0-hash;
+  // too big hashes are recalculated
+  if (hash+1 >= hasharr[0]) {
+    hash=hash % (hasharr[0]-1);
+  }
+  bucket=hasharr[hash+1];  
+  if (!bucket) {
+    //printf("\n no bucket found for hash\n");
+    (g->stat_lit_hash_match_miss)++;
+    return 0;
+  }  
+  return bucket;
+}
+
+
 /*
 
 free a termhash

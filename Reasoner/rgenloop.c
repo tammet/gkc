@@ -95,7 +95,7 @@ int wr_genloop(glb* g) {
   gint given_cl_metablock[CLMETABLOCK_ELS];
   clock_t curclock;
   float run_seconds,run_dseconds,total_seconds,fullness; // passed_ratio
-  int given_from_hyperqueue_flag,tmp;
+  int given_from_hyperqueue_flag,tmp,origlen,simplen;
 
 #ifndef USE_RES_TERMS  
   gint ipassive;
@@ -108,6 +108,7 @@ int wr_genloop(glb* g) {
 #endif  
   UNUSED(db);
 
+  //wr_print_active_clauses(g);
   //printf("\n** clactivesubsume data from external:\n"); 
   //wr_show_clactivesubsume(r_kb_g(g));
 
@@ -252,7 +253,7 @@ int wr_genloop(glb* g) {
       wr_printf("\n**** given candidate %d: ",(g->stat_given_candidates));
       if (g->print_flag) {
         //wr_print_clause_name_history(g,wr_get_history(g,picked_given_cl_cand));
-        wr_print_clause(g,picked_given_cl_cand);          
+        wr_print_clause(g,picked_given_cl_cand);               
       }  
     }       
     //if ((g->print_level_flag)==50) CP2;
@@ -269,6 +270,9 @@ int wr_genloop(glb* g) {
     }
     //if ((g->print_level_flag)==50) CP3;
     (g->stat_given_candidates)++; //stats 
+    if (wr_tautology_cl(g,picked_given_cl_cand)) {
+      continue;
+    }
     /*
     handling picked given_cl_cand:
       maybe should not happen: check if True or False: either drop or proof found
@@ -285,6 +289,7 @@ int wr_genloop(glb* g) {
       //printf("\n given is blocked\n");
       continue;      
     }
+    origlen=wg_count_clause_atoms(db,picked_given_cl_cand);
     //if ((g->print_level_flag)==50) CP4;
     wr_process_given_cl_setupsubst(g,g->given_termbuf,1,1); // !!!!! new try      
     /*
@@ -293,22 +298,21 @@ int wr_genloop(glb* g) {
     printf("\nhardn ");
     wr_print_clause_hardnesses(g,picked_given_cl_cand);
     */
-
     wr_sort_cl(g, picked_given_cl_cand);
     /*
     printf("\nafter ");
     wr_print_clause(g,picked_given_cl_cand);
     printf("\n");
     */
-
     //if ((g->print_level_flag)==50) CP5;
     given_cl_cand=wr_simplify_cl(g, picked_given_cl_cand, given_cl_metablock);
     //if ((g->print_level_flag)==50) CP6;
     //wr_print_cl_literals_meta(g, picked_given_cl_cand);
-    wr_process_given_cl_cleanupsubst(g);
+    //wg_print_record(db,picked_given_cl_cand);
+    wr_process_given_cl_cleanupsubst(g);   
     //if ((g->print_level_flag)==50) CP7;
     if (given_cl_cand==NULL) {
-      //printf("\nwr_activate_passive_cl returned null\n");
+      //printf("\nwr_simplify_cl returned null for given_cl_cand\n");
       if (g->alloc_err) return -1;
       else if (g->proof_found) {
 #ifdef DEBUG
@@ -320,6 +324,10 @@ int wr_genloop(glb* g) {
       // otherwise the candidate was subsumed or otherwise useless
       continue; 
     }   
+    if (wr_tautology_cl(g,given_cl_cand)) {
+      continue;
+    }
+    simplen=wg_count_clause_atoms(db,given_cl_cand);
     wr_calc_clause_meta(g,given_cl_cand,given_cl_metablock);
     // -- check part 1 starts ---
     if ((gint)given_cl_cand==ACONST_FALSE) {
@@ -342,7 +350,7 @@ int wr_genloop(glb* g) {
     }     
     // -- check part 1 ends ---
 
-    if (!(g->endgame_mode) && wr_given_cl_subsumed(g,given_cl_cand,given_cl_metablock)) {
+    if (!(g->endgame_mode) && wr_given_cl_subsumed(g,given_cl_cand,given_cl_metablock)) {      
 #ifdef DEBUG
       wr_printf("\ngiven cl is subsumed\n");
 #endif    
@@ -368,7 +376,6 @@ int wr_genloop(glb* g) {
     wr_set_history_record_given_order(g,
       rotp(g,wr_get_history(g,given_cl)));  
 #endif   
-
     //if ((g->stat_given_used)>119) exit(0);
     if (g->print_final_given_cl) {
       wr_printf("\n*** given %d: ",(g->stat_given_used));
@@ -404,6 +411,7 @@ int wr_genloop(glb* g) {
     if (g->print_initial_given_cl) {
       wr_print_clause_resolvability(g,given_cl);
     }  
+
     /*
     printf("\nresolvability ");
     wr_print_clause_resolvability(g,given_cl);
@@ -432,6 +440,10 @@ int wr_genloop(glb* g) {
       if (g->alloc_err) return -1;
       continue; 
     }    
+    if (simplen!=origlen && simplen==2) {
+      wr_add_cl_to_doublehash(g,given_cl);
+    }  
+     
     // do factorizations with the given clause
     if (!(g->hyperres_strat) || (g->relaxed_hyperres_strat) || wr_hyperres_satellite_cl(g,given_cl)) { //(!(g->instgen_strat))  {
       wr_factor(g,given_cl,given_cl_as_active);
@@ -490,7 +502,8 @@ int wr_genloop(glb* g) {
   // loop ended: either nothing to do or timeout
   if (wr_have_answers(g)) {
     return 0;
-  } else {    
+  } else { 
+    //printf("\nnot found\n");   
     return 1;      
   }
 }  

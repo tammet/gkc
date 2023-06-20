@@ -42,6 +42,8 @@ int wr_get_cl_backsubsumed(glb* g,gptr cl);
 int wr_clmetablock_can_subsume(glb* g, gptr genblock, gptr specblock);
 int wr_active_subsumed_lit(glb* g, gint atom, int negflag);
 int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucket, int subsflag);
+int wr_atom_doublecut(glb* g, gint xatom, gint xatommeta, gptr xcl, int pos, cvec* foundbucket);
+int wr_atom_doublecut_aux(glb* g, gint xatom, gint xatommeta, gptr xcl, int pos, cvec bucket);
 int wr_derived_cl_strong_cut(glb* g, gptr rptr, int rpos, int prevcuts); 
 gptr strongly_cut_atom(glb* g, gint xatom, vec hashvec, int usematch);
 int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos,  gptr clhashptr);

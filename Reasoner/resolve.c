@@ -64,6 +64,7 @@ extern "C" {
 
 //#define USE_RES_TERMS // loop over active clauses in wr_resolve_binary_all_active
 
+//#define EQ_PREFERENCE  // testing, experimental
 
 //#define SIMPLE_ACTIVE_SEARCH_HASH
 
@@ -179,6 +180,8 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active, cvec resol
 #endif
           if (r_kb_g(g)) {
             //printf("\nr_kb_g(g) used\n");
+            printf("\ng is %lx db is %lx, r_kb_g(g) used: %lx with r_kb_g(g)->db %lx\n",
+              (unsigned long int)g,(unsigned long int)db,(unsigned long int)r_kb_g(g),(unsigned long int)(r_kb_g(g)->db));
             if (negflag) hashvec=rotp(g,r_kb_g(g)->hash_pos_atoms);
             else hashvec=rotp(g,r_kb_g(g)->hash_neg_atoms); 
 #ifdef DEBUG            
@@ -507,6 +510,21 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active, cvec re
   ruleflag=wg_rec_is_rule_clause(db,cl);
   if (ruleflag) len = wg_count_clause_atoms(db, cl);
   else len=1;  
+
+#ifdef EQ_PREFERENCE
+  if (len>1 && ruleflag) {
+    for(i=0; i<len; i++) {
+      xatom=wg_get_rule_clause_atom(db,cl,i);
+      if (wg_get_encoded_type(db,xatom)!=WG_RECORDTYPE ||
+          !wr_equality_atom(g,xatom)) {                  
+        return;  // do not paramodulate from clauses containing some non-equality literals
+      }  
+      meta=wg_get_rule_clause_atom_meta(db,cl,i);
+      if (wg_atom_meta_is_neg(db,meta)) return;     
+    }  
+  }
+#endif 
+
   nonanslen=wr_count_cl_nonans_atoms(g,cl);
   // check if strategy allows to para from this clause
   if ((g->posunitpara_strat) && len!=1) return;
@@ -588,6 +606,7 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active, cvec re
         if (eqtermorder==0) break; // cannot para at all
         else if (eqtermorder==1 && termpos!=0) break; // only the first ok
         else if (eqtermorder==2 && termpos!=1) continue; // only second ok
+        if ((g->prohibit_unordered_para) && (eqtermorder==3)) break;  
         // else both ok              
         if (termpos) {        
           // swap a and b for the second arg
@@ -779,8 +798,10 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active, cvec re
               // 2: b bigger than a (prohibits a)
               // 3: none bigger, both ok for para
               
-              //if (ures && ((eqtermorder!=3) || (eqtermorder_after==3) || eqtermorder_after==1)) {
-              if (ures && ((eqtermorder_after==3) || eqtermorder_after==1)) {  
+              //if (ures && ((eqtermorder!=3) || (eqtermorder_after==3) || eqtermorder_after==1)) {     
+              if (ures &&
+                   (((g->prohibit_unordered_para) && eqtermorder_after==1) ||
+                    (!(g->prohibit_unordered_para) && ((eqtermorder_after==3) || eqtermorder_after==1)) )) {
                 // build and process the new clause
       #ifdef DEBUG         
                 wr_printf("\nin wr_paramodulate_from_all_active to call wr_process_paramodulate_result\n");
@@ -991,6 +1012,12 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
           wr_print_term(g,term);
         }    
         wr_paramodulate_into_subterms_all_active(g,cl,cl_as_active,atom,yi,depth+1,litnr,termpath,nonanslen);
+        /*
+        if ( !(g->prohibit_deep_para) || 
+             ((g->prohibit_deep_para) && (depth<1))) {
+          wr_paramodulate_into_subterms_all_active(g,cl,cl_as_active,atom,yi,depth+1,litnr,termpath,nonanslen);
+        } 
+        */ 
         if (g->proof_found || g->alloc_err) break;
       }
 #endif
@@ -1007,6 +1034,7 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
   // do not put into hash on the atom level  
   if (depth<1) return 1;  
 #endif  
+  if ((g->prohibit_deep_para) && (depth>2)) return 1;
 
   // find matching terms from the hash table
   hash=wr_term_basehash(g,fun);
@@ -1104,6 +1132,23 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
           continue;
         }  
       }
+#ifdef EQ_PREFERENCE
+      if (wr_count_cl_nonans_atoms(g,ycl)>1 && wg_rec_is_rule_clause(db,ycl)) {
+        int itmp;
+        gint metatmp;
+        int tmplen = wg_count_clause_atoms(db, ycl);
+        for(itmp=0; itmp<tmplen; itmp++) {
+          yatom=wg_get_rule_clause_atom(db,ycl,itmp);
+          if (wg_get_encoded_type(db,yatom)!=WG_RECORDTYPE ||
+              !wr_equality_atom(g,yatom)) {                  
+            continue;  // do not paramodulate from clauses containing some non-equality literals
+          }  
+          metatmp=wg_get_rule_clause_atom_meta(db,ycl,itmp);
+          if (wg_atom_meta_is_neg(db,metatmp)) continue;     
+        }  
+      }
+#endif 
+
       if (g->print_litterm_selection) {                
           wr_printf("\nactive para-into eq term:");
           wr_print_term(g,yterm); 
@@ -1156,11 +1201,20 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
         }  
         //a=xterm; // eq first arg (unified upon) ????
         //b=yterm; // eq second arg, for which term is replaced 
-        
+
+        //--- new part starts ----
+        /*
+        int eqtermorder_after;
+        eqtermorder_after=wr_order_eqterms(g,yterm,b,(g->varbanks));
+        if (eqtermorder_after==3 || eqtermorder_after==1) {
+           wr_process_paramodulate_result(g,yatom,ycl,xatom,xcl,cl_as_active,yterm,b,replpath,eqleftflag,0);
+        }   
+        */
+        // --- new part ends ---        
         
         //wr_process_paramodulate_result(g,yatom,ycl,xatom,xcl,cl_as_active,yterm,b,eqpath,eqleftflag); 
     
-        wr_process_paramodulate_result(g,yatom,ycl,xatom,xcl,cl_as_active,yterm,b,replpath,eqleftflag,0);
+        wr_process_paramodulate_result(g,yatom,ycl,xatom,xcl,cl_as_active,yterm,b,replpath,eqleftflag,0); // new part: commented out
 
         /*
         wr_process_paramodulate_result(g,xatom,xcl,0,ycl,cl_as_active,a,b,path,leftflag); 

@@ -82,7 +82,7 @@
 #define USE_REASONER 1
 
 /* Version number of package */
-#define VERSION "0.7.0"
+#define VERSION "0.8.0"
 
 /* Package major version */
 #define VERSION_MAJOR 0

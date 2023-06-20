@@ -63,8 +63,9 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
   gint initial_queue_termbuf_next;
   int i;
   int len, rlen;
-  int tmp, cuts, calccuts, rewritten_atoms=0;
+  int tmp, tmp2, cuts, calccuts, doublecut_found=0, rewritten_atoms=0;
   cvec foundbucket;
+  cvec foundbucket2;
   gptr rptr;
   int rpos;
   int ruleflag;
@@ -72,7 +73,7 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
   gint xatom,yatom;
   gint xmeta;  
   gint prev_rewrites=0;
-  
+   
 #ifdef DEBUG
   wr_printf("\nwr_simplify_cl called with ");
   wr_print_clause(g,cl); 
@@ -172,7 +173,8 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
   
   // loop over literals, storing the results of cuts as we go
   xcl=cl;  
-  for(i=0; i<len; i++) {    
+  for(i=0; i<len; i++) { 
+    //printf("\ni %d",i);   
     xmeta=wg_get_rule_clause_atom_meta(db,xcl,i);
     xatom=wg_get_rule_clause_atom(db,xcl,i);        
     foundbucket=NULL;
@@ -237,6 +239,13 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
     wr_print_term(g,yatom);
     wr_printf("\ntmp returned by wr_atom_cut_and_subsume: %d\n",tmp); 
 #endif
+    //printf("\ntmp %d len %d\n",tmp,len);
+    if (tmp==0 && !doublecut_found && len>1) {
+      // attempt double cut
+      tmp2=wr_atom_doublecut(g,yatom,xmeta,xcl,i,&foundbucket2); 
+    } else {
+      tmp2=2;
+    }
 
     if (tmp<0) {
       // subsumed
@@ -245,15 +254,39 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
     } else if (tmp==1) {
       // cut
       //printf("\n cut found (g->cut_clvec)[0] is %d, cuts is %d \n",(g->cut_clvec)[0],cuts);
+      /*
+      printf("\nscut found with\n");
+      wr_print_clause(g,foundbucket); 
+      printf("\ncuts %d\n",cuts);
+      */
       cuts++;
       if ((int)((g->cut_clvec)[0])>cuts+2) {
         (g->cut_clvec)[cuts]=(gint)foundbucket;
         (g->cut_clvec)[cuts+1]=(gint)NULL;
       }  
       (g->stat_lit_hash_cut_ok)++;
+    } else if (tmp2==1) {
+      // double cut
+      //printf("*");
+      /*
+      printf("\ndcut simplified from\n");
+      wr_print_clause(g,cl); 
+      printf("\nusing double\n");
+      wr_print_clause(g,foundbucket2); 
+      printf("\ncuts %d\n",cuts);
+      */
+      //printf("\n double cut found (g->cut_clvec)[0] is %d, cuts is %d \n",(g->cut_clvec)[0],cuts);
+      doublecut_found=1;
+      cuts++;
+      if ((int)((g->cut_clvec)[0])>cuts+2) {
+        (g->cut_clvec)[cuts]=(gint)foundbucket2;
+        (g->cut_clvec)[cuts+1]=(gint)NULL;
+      }  
+      (g->stat_lit_hash_cut_ok)++;  
     } else if (prev_rewrites!=(g->tmp_rewrites)) {
       // rewrites done
       //printf("\n rewrites done (g->cut_clvec)[0] is %d, cuts is %d \n",(g->cut_clvec)[0],cuts);
+      //printf("\nrewrites done\n");      
       rewritten_atoms++;
       rptr[(rpos*LIT_WIDTH)+LIT_META_POS]=xmeta;
       rptr[(rpos*LIT_WIDTH)+LIT_ATOM_POS]=yatom;      
@@ -262,6 +295,11 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
       ++rpos;         
     } else {
       // atom preserved intact store lit
+      /*
+      printf("\atom stored at rpos %d",rpos);
+      wr_print_term(g,yatom);
+      printf("\n");
+      */
       rptr[(rpos*LIT_WIDTH)+LIT_META_POS]=xmeta;
       rptr[(rpos*LIT_WIDTH)+LIT_ATOM_POS]=yatom;
       /*
@@ -308,7 +346,15 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
   history=wr_build_simplify_history(g,cl,g->cut_clvec,g->rewrite_clvec);
   // set up building params
   initial_queue_termbuf_next=CVEC_NEXT(g->build_buffer); // to be restored if not actually used
+
+  //printf("\nrpos %d",rpos);
+
   res=wr_derived_build_cl_from_initial_cl(g,rptr,rpos,ruleflag,history);
+  /*
+  printf("\nres\n");
+  wr_print_clause(g,res); 
+  printf("\n");
+  */
   if (!history || !res) {
     // allocation failed
     ++(g->stat_internlimit_discarded_cl);
@@ -332,6 +378,167 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
   //wr_add_cl_to_unithash(g,res,resmeta);
   return res;
 } 
+
+
+gptr wr_simplify_doublecut_cl(glb* g, gptr cl, gptr cl_metablock) {
+  
+  //void* db=g->db;
+  gptr res;
+  gint history; //resmeta,
+  gint initial_queue_termbuf_next;
+  int i;
+  int len, rlen;
+  int tmp, tmp2, cuts, doublecut_found=0;
+  cvec foundbucket2;
+  gptr rptr;
+  int rpos;
+  int ruleflag;
+  gptr xcl;
+  gint xatom,yatom;
+  gint xmeta;  
+   
+ 
+#ifdef DEBUG
+  wr_printf("\nwr_simplify_doublecut_cl called with ");
+  wr_print_clause(g,cl); 
+  wr_printf("\n"); 
+#endif
+  
+  //return cl;
+  if (! wg_rec_is_rule_clause(db,cl)) return cl;
+  len=wg_count_clause_atoms(db,cl);
+  if (len<2) return cl;
+
+  // reserve sufficient space in termbuf for simple sequential store of atoms:
+  // no top-level meta kept
+  rlen=len*LIT_WIDTH;  
+  (g->derived_termbuf)[1]=2; // init termbuf
+  // rptr will hold the new, simplified (shorter) clause
+  rptr=wr_alloc_from_cvec(g,g->derived_termbuf,rlen); 
+  if (rptr==NULL) {
+    ++(g->stat_internlimit_discarded_cl);
+    wr_alloc_err(g,"could not alloc first buffer in wr_simplify_cl ");
+    return NULL; // could not alloc memory, could not store clause
+  }  
+  rpos=0;
+  // init vector for storing cutters and rewriters
+  (g->cut_clvec)[1]=(gint)NULL;  
+  (g->rewrite_clvec)[1]=2; // first free elem
+  cuts=0; // by double cuts
+  // set up subs parameters
+  wr_process_resolve_result_setupquecopy(g);
+  initial_queue_termbuf_next=CVEC_NEXT(g->build_buffer); // to be restored if not actually used
+ 
+  // loop over literals, storing the results of cuts as we go
+  xcl=cl;  
+  for(i=0; i<len; i++) {    
+    xmeta=wg_get_rule_clause_atom_meta(db,xcl,i);
+    xatom=wg_get_rule_clause_atom(db,xcl,i);            
+    yatom=xatom;
+    if (!doublecut_found) {
+      // attempt double cut
+      tmp2=wr_atom_doublecut(g,yatom,xmeta,xcl,i,&foundbucket2); 
+    } else {
+      tmp2=2;
+    }
+
+    if (tmp2==1) {
+      // double cut
+      //printf("+");
+      //printf("\n double cut found (g->cut_clvec)[0] is %d, cuts is %d \n",(g->cut_clvec)[0],cuts);
+      /*
+      printf("\ndouble cut found with \n");
+      wr_print_clause(g,foundbucket2);
+      printf("\n");
+      */
+      doublecut_found=1;
+      cuts++;
+      if ((int)((g->cut_clvec)[0])>cuts+2) {
+        (g->cut_clvec)[cuts]=(gint)foundbucket2;
+        (g->cut_clvec)[cuts+1]=(gint)NULL;
+      }  
+      (g->stat_lit_hash_cut_ok)++;       
+    } else {
+      // atom preserved intact store lit
+      rptr[(rpos*LIT_WIDTH)+LIT_META_POS]=xmeta;
+      rptr[(rpos*LIT_WIDTH)+LIT_ATOM_POS]=yatom;
+      /*
+      wr_printf("\nxatom:\n");
+      wr_print_term(g,xatom);
+      wr_print_term(g,rptr[(rpos*LIT_WIDTH)+LIT_ATOM_POS]);
+      */
+      ++rpos;   
+    }
+  } 
+  
+  //printf("\n(g->tmp_rewrites) %d\n",(g->tmp_rewrites));  
+  //if (!rewritten_atoms) {
+  //    CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
+  //}   
+
+  // if no cuts and rewrites, return the unchanged original clause
+  if (!cuts) {   
+    CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
+    return cl;
+  }
+
+  // from now on we found some cuts or rewrites and will build and store a new clause
+
+  (g->stat_simplified)++;
+  if (cuts) (g->stat_derived_cut)++;  
+  (g->build_buffer)=g->queue_termbuf;
+  if (rpos==0) {
+    //printf("\n proof founx \n");
+    g->proof_found=1;    
+    history=wr_build_simplify_history(g,cl,g->cut_clvec,g->rewrite_clvec);
+    g->proof_history=history; 
+    wr_register_answer(g,NULL,g->proof_history);
+    return NULL;
+  }
+  // check whether should be stored as a ruleclause or not
+  ruleflag=wr_process_resolve_result_isrulecl(g,rptr,rpos);
+  // set up var rename params ?????
+  //wr_process_resolve_result_setupsubst(g)
+  wr_process_simp_setupquecopy(g);  
+  // build history and a new clause
+  history=wr_build_simplify_history(g,cl,g->cut_clvec,g->rewrite_clvec);
+  // set up building params
+  initial_queue_termbuf_next=CVEC_NEXT(g->build_buffer); // to be restored if not actually used
+  res=wr_derived_build_cl_from_initial_cl(g,rptr,rpos,ruleflag,history);
+
+  /*
+  wr_printf("\nwr_simplify_doublecut_cl called with ");
+  wr_print_clause(g,cl); 
+  wr_printf("\n");  
+  printf("\ndouble cut made res \n");
+  wr_print_clause(g,res);
+  printf("\n");
+  */
+
+  if (!history || !res) {
+    // allocation failed
+    ++(g->stat_internlimit_discarded_cl);
+    wr_alloc_err(g,"could not alloc while building a double simplified clause");
+    return NULL;
+  }  
+  tmp=wr_cl_derived_is_answer(g,res);
+  if (tmp>0) {
+    wr_register_answer(g,res,history);
+    //wr_printf("\n\nfound pure answer: ");
+    //wr_print_clause(g,res);
+    g->proof_found=1;   
+    g->proof_history=history;    
+    return NULL;
+  }  
+  if (g->print_litterm_selection) {                
+    wr_printf("\ndouble simplified to: ");
+    wr_print_clause(g,res);       
+  }  
+  //resmeta=wr_calc_clause_meta(g,res,cl_metablock);
+  //wr_add_cl_to_unithash(g,res,resmeta);
+  return res;
+} 
+
 
 
 #ifdef __cplusplus

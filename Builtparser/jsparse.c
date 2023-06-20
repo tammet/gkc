@@ -3093,6 +3093,12 @@ void* wr_js_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
     //show_parse_warning(db,"failed to make history"); 
     //return NULL;          
   } 
+
+  //printf("\nCP **** wr_build_input_history returned\n");
+  //wg_print_record(db,history);
+  //wr_print_clause(g,history);
+  //printf("\n");
+
   //wr_set_input_history_ctxt(g,record,history,context); 
   wr_set_history(g,record,history); 
 #ifdef DEBUG

@@ -44,7 +44,6 @@ extern "C" {
 /* ====== Private headers and defs ======== */
 
 
-
 /* ======= Private protos ================ */
 
 
@@ -230,6 +229,7 @@ int wr_glb_init_simple(glb* g) {
   (g->res_arglen_limit)=0; // if non-zero, do not resolve upon longer clauses and never para
   (g->res_strict_arglen_limit)=0; // if non-zero,  do para on units if res_arglen_limit<2
   (g->back_subsume)=0; // 1 uses back subsumption, 0 does not
+  (g->forward_subsume_derived)=1; // subsume freshly derived clauses using ground unit subsumption
   (g->propagate)=0;    // 1 does not work any more 
   (g->use_equality_strat)=1; // general strategy
   (g->use_equality)=1; // current principle
@@ -245,6 +245,8 @@ int wr_glb_init_simple(glb* g) {
   (g->use_strong_unit_cutoff)=0; // if 1, then cut off also with unification, not just with hash equality
   (g->use_strong_duplicates)=0; // iff 1, then additional unique var based duplicate removal used
   (g->prohibit_nested_para)=0; // iff 1, paramodulation derivations cannot be directly nested
+  (g->prohibit_unordered_para)=0; // iff 1, paramodulate only from ordered equalities
+  (g->prohibit_deep_para)=0; // iff 1, prohibig paramodulation deep into terms
  
   (g->max_proofs)=1;
   (g->store_history)=1;
@@ -266,10 +268,20 @@ int wr_glb_init_simple(glb* g) {
   
   (g->print_flag)=1; // if 0: no printout except result: rmain sets other flags accordingly
   (g->print_json)=0; // if 1: non-log output is json
+//#ifdef DEFAULT_TPTP  
   (g->print_tptp)=1; // if 1: non-log output is tptp/casc format
   (g->print_clauses_json)=0; // if 1: clauses are printed as json lists
   (g->print_clauses_tptp)=1; // if 1: clauses are printed in tptp format
   (g->print_proof_tptp)=1; // if 1: tptp style proof printing
+//#else
+/*
+  (g->print_tptp)=0; // if 1: non-log output is tptp/casc format
+  (g->print_clauses_json)=0; // if 1: clauses are printed as json lists
+  (g->print_clauses_tptp)=0; // if 1: clauses are printed in tptp format
+  (g->print_proof_tptp)=0; // if 1: tptp style proof printing
+*/  
+//#endif
+
   (g->print_level_flag)=10; // rmain uses this to set other flags accordingly. Normal: 10
                            // -1: use default, 0: none, 10: normal, 20: medium, 30: detailed
   (g->print_derived)=0;                            
@@ -545,6 +557,15 @@ int wr_glb_init_shared_complex(glb* g) {
   (g->clpick_queues)=wr_create_clpick_queues(g, 4);  
   (g->clpick_given)=1; // first queue block in the queues vector 
 
+#ifdef SHARED_DERIVED 
+  // shared clauses and hashvectors
+  (g->shared_clbuilt)=rpto(g,wr_cvec_new(g,NROF_DYNALLOCINITIAL_ELS)); 
+  (g->shared_hash_neg_groundunits)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS));
+  //wr_vec_zero(rotp(g,g->hash_neg_groundunits)); 
+  (g->shared_hash_pos_groundunits)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS));
+  //wr_vec_zero(rotp(g,g->hash_pos_groundunits)); 
+#endif
+
   // hash vectors  must be zeroed
 
   (g->hash_neg_groundunits)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS));
@@ -552,6 +573,11 @@ int wr_glb_init_shared_complex(glb* g) {
   (g->hash_pos_groundunits)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS));
   //wr_vec_zero(rotp(g,g->hash_pos_groundunits)); 
 
+  (g->hash_neg_grounddoubles)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS));
+  //wr_vec_zero(rotp(g,g->hash_neg_grounddoubles)); 
+  (g->hash_pos_grounddoubles)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS));
+  //wr_vec_zero(rotp(g,g->hash_pos_grounddoubles)); 
+  
   (g->hash_neg_active_groundunits)=rpto(g,wr_vec_new_zero(g,NROF_ACTIVE_UNIT_HASHVEC_ELS));
   //wr_vec_zero(rotp(g,g->hash_neg_active_groundunits)); 
   (g->hash_pos_active_groundunits)=rpto(g,wr_vec_new(g,NROF_ACTIVE_UNIT_HASHVEC_ELS));
@@ -606,6 +632,133 @@ int wr_glb_init_shared_complex(glb* g) {
   return 0; 
 }  
 
+
+// wr_glb_init_seq_shared_complex is a partial initialization for sequential runs keeping the old clauses
+
+int wr_glb_init_seq_shared_complex(glb* g) {     
+ 
+  // first NULL all vars
+  
+  (g->initial_cl_list)=0;
+
+  (g->clbuilt)=(gint)NULL;
+  (g->clqueue)=(gint)NULL;
+  (g->clqueue_given)=(gint)NULL; 
+  (g->clpickstack)=(gint)NULL;  
+  (g->clactive)=(gint)NULL;
+  (g->clactivesubsume)=(gint)NULL;
+  (g->clpickpriorqueue)=(gint)NULL;
+  (g->clpick_queues)=(gint)NULL;
+
+
+  //(g->clweightqueue)=(gint)NULL;  
+ 
+  (g->hash_neg_atoms)=(gint)NULL; 
+  (g->hash_pos_atoms)=(gint)NULL; 
+  /*
+  (g->hash_neg_units)=(gint)NULL; 
+  (g->hash_pos_units)=(gint)NULL; 
+  //(g->hash_units)=(gint)NULL; 
+  (g->hash_para_terms)=(gint)NULL; 
+  (g->hash_eq_terms)=(gint)NULL; 
+  (g->hash_rewrite_terms)=(gint)NULL;
+  */
+#ifndef MALLOC_HASHNODES  
+  (g->hash_nodes)=(gint)NULL;
+#endif
+
+  // prop
+  /*
+  (g->prop_hash_atoms)=(gint)NULL; 
+  (g->prop_hash_clauses)=(gint)NULL;
+  (g->prop_varvals)=(gint)NULL;
+  (g->prop_clauses)=(gint)NULL;
+  (g->prop_varval_clauses)=(gint)NULL;
+  */
+  // then create space 
+  
+  (g->clbuilt)=rpto(g,wr_cvec_new(g,NROF_DYNALLOCINITIAL_ELS));  
+  (g->clactive)=rpto(g,wr_cvec_new(g,NROF_DYNALLOCINITIAL_ELS));
+  (g->clactivesubsume)=rpto(g,wr_cvec_new(g,NROF_DYNALLOCINITIAL_ELS));
+  (g->clpickstack)=rpto(g,wr_cvec_new(g,NROF_DYNALLOCINITIAL_ELS));  
+  (g->clqueue)=rpto(g,wr_cvec_new(g,NROF_DYNALLOCINITIAL_ELS));
+  (g->clqueue_given)=1;  
+  //(g->clweightqueue)=rpto(g,wr_vec_new(g,NROF_WEIGHTQUEUE_ELS));
+  (g->clpickpriorqueue)=rpto(g,wr_make_priorqueue(g,MAX_CLPRIOR));   
+
+  (g->clpick_queues)=wr_create_clpick_queues(g, 4);  
+  (g->clpick_given)=1; // first queue block in the queues vector 
+
+#ifdef SHARED_DERIVED 
+  // shared clauses and hashvectors
+  (g->shared_clbuilt)=rpto(g,wr_cvec_new(g,NROF_DYNALLOCINITIAL_ELS)); 
+  (g->shared_hash_neg_groundunits)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS));
+  //wr_vec_zero(rotp(g,g->hash_neg_groundunits)); 
+  (g->shared_hash_pos_groundunits)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS));
+  //wr_vec_zero(rotp(g,g->hash_pos_groundunits)); 
+#endif
+
+  // hash vectors  must be zeroed
+  /*
+  (g->hash_neg_groundunits)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS));
+  //wr_vec_zero(rotp(g,g->hash_neg_groundunits)); 
+  (g->hash_pos_groundunits)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS));
+  //wr_vec_zero(rotp(g,g->hash_pos_groundunits)); 
+  
+  (g->hash_neg_active_groundunits)=rpto(g,wr_vec_new_zero(g,NROF_ACTIVE_UNIT_HASHVEC_ELS));
+  //wr_vec_zero(rotp(g,g->hash_neg_active_groundunits)); 
+  (g->hash_pos_active_groundunits)=rpto(g,wr_vec_new(g,NROF_ACTIVE_UNIT_HASHVEC_ELS));
+  //wr_vec_zero(rotp(g,g->hash_pos_active_groundunits)); 
+
+  (g->hash_atom_occurrences)=rpto(g,wr_vec_new_zero(g,NROF_ATOM_OCCURRENCES_HASHVEC_ELS));
+  //wr_vec_zero(rotp(g,g->hash_atom_occurrences));
+  */
+  (g->hash_neg_atoms)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS));
+  //wr_vec_zero(rotp(g,g->hash_neg_atoms));  
+  (g->hash_pos_atoms)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS)); 
+  //wr_vec_zero(rotp(g,g->hash_pos_atoms)); 
+  /*
+  if (g->use_strong_unit_cutoff) {
+    (g->hash_neg_units)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS));
+    //wr_vec_zero(rotp(g,g->hash_neg_atoms));  
+    (g->hash_pos_units)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS)); 
+    //wr_vec_zero(rotp(g,g->hash_pos_atoms)); 
+  }
+ 
+  //(g->hash_units)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS)); 
+  //wr_vec_zero(rotp(g,g->hash_units)); 
+ 
+  (g->hash_para_terms)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS)); 
+  //wr_vec_zero(rotp(g,g->hash_para_terms)); 
+  (g->hash_eq_terms)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS)); 
+  //wr_vec_zero(rotp(g,g->hash_eq_terms)); 
+  (g->hash_rewrite_terms)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS)); 
+  //wr_vec_zero(rotp(g,hash_rewrite_terms)); 
+
+  //(g->hash_nodes)=rpto(g,wr_vec_new(g,NROF_CLTERM_HASHNODESVEC_ELS));
+  
+  // prop
+
+  if ((g->instgen_strat) || (g->propgen_strat)) {
+    (g->prop_hash_atoms)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS)); 
+    (g->prop_hash_clauses)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS));
+    (g->prop_varvals)=rpto(g,wr_cvec_new_zero(g,NROF_PROP_VARVALS_ELS));
+    (g->prop_groundings)=rpto(g,wr_cvec_new_zero(g,2*NROF_PROP_VARVALS_ELS));
+    (g->prop_clauses)=rpto(g,wr_cvec_new(g,NROF_PROP_CLAUSES_ELS));
+    (g->prop_varval_clauses)=rpto(g,wr_cvec_new_zero(g,NROF_PROP_VARVALS_ELS));
+  }
+  */
+
+  // sine
+  //(g->tmp_uriinfo)=rpto(g,wr_cvec_new(g,INITIAL_URITMPVEC_LEN));
+  //(g->tmp_uriinfo)=NULL;
+
+  if (g->alloc_err) {
+    return 1;
+  }  
+      
+  return 0; 
+}  
 
 
 /** Fills in local complex slots of glb structure.
@@ -750,6 +903,148 @@ int wr_glb_init_local_complex(glb* g) {
   return 0; 
 }  
 
+// wr_glb_init_seq_local_complex is a partial initialization for sequential runs keeping the old clauses
+
+int wr_glb_init_seq_local_complex(glb* g) {     
+  // first NULL all vars
+  
+  /*
+  (g->filename)=NULL;
+  (g->outfilename)=NULL;  
+  (g->varbanks)=NULL;
+  (g->varstack)=NULL;         
+  (g->given_termbuf)=NULL;
+  (g->simplified_termbuf)=NULL;
+  (g->derived_termbuf)=NULL;
+  (g->queue_termbuf)=NULL;
+  (g->hyper_termbuf)=NULL;
+  (g->active_termbuf)=NULL;
+  (g->cut_clvec)=NULL;
+  (g->rewrite_clvec)=NULL;
+  (g->hyper_queue)=NULL;
+  (g->answers)=NULL;
+  (g->tmp_litinf_vec)=NULL; 
+  (g->tmp_hardnessinf_vec)=NULL;
+  (g->tmp_resolvability_vec)=NULL;
+  (g->tmp_sort_vec)=NULL;
+  (g->prop_file_name)=NULL;  
+  (g->prop_solver_name)=NULL;
+  (g->prop_solver_outfile_name)=NULL;
+  
+
+  // then create space
+  
+ 
+  (g->filename)=wr_str_new(g,MAX_FILENAME_LEN);
+  //(g->outfilename)=wr_str_new(g,MAX_FILENAME_LEN);
+
+  (g->varbanks)=wr_vec_new(g,NROF_VARBANKS*NROF_VARSINBANK);
+  //(g->varbankrepl)=wr_vec_new(g,3*NROF_VARSINBANK);
+  (g->varstack)=wr_cvec_new(g,NROF_VARBANKS*NROF_VARSINBANK); 
+  (g->varstack)[1]=2; // first free elem
+
+  (g->xcountedvarlist)=wr_cvec_new(g,4+(NROF_VARSINBANK*2)); 
+  (g->xcountedvarlist)[1]=2; // first free elem
+ 
+  (g->ycountedvarlist)=wr_cvec_new(g,4+(NROF_VARSINBANK*2)); 
+  (g->ycountedvarlist)[1]=2; // first free elem
+
+  //(g->tmp1_cl_vec)=wr_vec_new(g,100);    
+  //(g->tmp2_cl_vec)=wr_vec_new(g,100); 
+
+  //(g->tmp_litinf_vec)=wr_vec_new(g,100); 
+        
+  (g->given_termbuf)=wr_cvec_new(g,NROF_GIVEN_TERMBUF_ELS);
+  (g->given_termbuf)[1]=2;
+  //(g->given_termbuf_freeindex)=2;
+
+  (g->simplified_termbuf)=wr_cvec_new(g,NROF_SIMPLIFIED_TERMBUF_ELS);
+  (g->simplified_termbuf)[1]=2;
+  
+  (g->derived_termbuf)=wr_cvec_new(g,NROF_DERIVED_TERMBUF_ELS);
+  (g->derived_termbuf)[1]=2;
+ 
+  (g->queue_termbuf)=wr_cvec_new(g,NROF_QUEUE_TERMBUF_ELS);
+  (g->queue_termbuf)[1]=2;
+
+  (g->hyper_termbuf)=wr_cvec_new(g,NROF_HYPER_TERMBUF_ELS);
+  (g->hyper_termbuf)[1]=2; 
+  
+  (g->active_termbuf)=wr_cvec_new(g,NROF_ACTIVE_TERMBUF_ELS);
+  (g->active_termbuf)[1]=2;
+
+#ifndef MALLOC_HASHNODES
+  (g->hash_nodes)=wr_cvec_new(g,NROF_CLTERM_HASHNODESVEC_ELS);
+  (g->hash_nodes)[1]=2;
+#endif
+
+  (g->cut_clvec)=wr_vec_new(g,NROF_CUT_CLVEC_ELS);
+  (g->rewrite_clvec)=wr_cvec_new(g,NROF_REWRITE_CLVEC_ELS);
+  (g->rewrite_clvec)[1]=2; // first free elem
+
+  (g->hyper_queue)=wr_cvec_new(g,NROF_HYPER_QUEUE_ELS);
+  (g->hyper_queue)[1]=3; // next free pos in the queue (initially for empty queue 3)
+  (g->hyper_queue)[2]=3; // next pos to pick for given (initially for empty queue 3)
+
+  (g->answers)=wr_cvec_new(g,INITIAL_ANSWERS_LEN);
+  (g->answers)[1]=2; // next free pos in the queue (initially for empty queue 2)
+
+  (g->sine_k_values)=sys_malloc(SINE_K_VALUES_SIZE); // bytestring allocated by malloc
+  if (!(g->sine_k_values)) {
+    wr_printf("\nerror: cannot init sine_k_values\n");   
+    (g->sine_k_bytes)=0;
+  } else {
+    (g->sine_k_bytes)=SINE_K_VALUES_SIZE;
+  }    
+  (g->backsubsume_values)=sys_malloc(SINE_K_VALUES_SIZE); // bytestring allocated by malloc
+  if (!(g->backsubsume_values)) {
+    wr_printf("\nerror: cannot init backsubsume_values\n");   
+    (g->backsubsume_bytes)=0;
+  } else {
+    (g->backsubsume_bytes)=SINE_K_VALUES_SIZE;
+  }  
+
+
+  (g->sine_uri_k_values)=sys_malloc(SINE_K_VALUES_SIZE); // bytestring allocated by malloc
+  if (!(g->sine_uri_k_values)) {
+    wr_printf("\nerror: cannot init sine_uri_k_values\n");   
+    (g->sine_uri_k_bytes)=0;
+  } else {
+    (g->sine_uri_k_bytes)=SINE_K_VALUES_SIZE;
+  }
+    
+  (g->tmp_litinf_vec)=wr_vec_new(g,MAX_CLAUSE_LEN); // used by subsumption
+  (g->tmp_hardnessinf_vec)=wr_vec_new(g,MAX_CLAUSE_LEN); // used for resolvability
+  
+  (g->tmp_resolvability_vec)=wr_vec_new(g,MAX_CLAUSE_LEN); // used for resolvability
+  (g->tmp_sort_vec)=wr_vec_new(g,INITIAL_SORTVEC_LEN); // used for sorting the initial clause list
+
+  (g->tmp_clinfo)=wr_cvec_new(g,INITIAL_CLTMPVEC_LEN);
+  (g->tmp_varinfo)=wr_cvec_new(g,INITIAL_VARTMPVEC_LEN);  
+
+  //(g->derived_termbuf_freeindex)=2;
+  
+  //(g->use_termbuf)=0;
+  
+  //(g->pick_given_queue_ratio)=4;
+  //(g->pick_given_queue_ratio_counter)=0;
+  
+  (g->prop_file_name)=wr_str_new(g,100);
+  if (g->prop_file_name) strncpy((g->prop_file_name),DEFAULT_PROP_FILE_NAME,99);
+ 
+  (g->prop_solver_name)=wr_str_new(g,100);
+  if (g->prop_solver_name) strncpy((g->prop_solver_name),DEFAULT_PROP_SOLVER_NAME,99);
+
+  (g->prop_solver_outfile_name)=wr_str_new(g,100);
+  if (g->prop_solver_outfile_name) strncpy((g->prop_solver_outfile_name),DEFAULT_PROP_SOLVER_OUTFILE_NAME,99);
+  */
+
+  if ((g->alloc_err)==1) {
+    return 1;
+  }   
+  return 0; 
+}  
+
 /** Frees the glb structure and subitems in glb.
 *
 */  
@@ -805,6 +1100,8 @@ int wr_glb_free_shared_complex(glb* g) {
   wr_free_clpick_queues(g,rotp(g,g->clpick_queues));
   wr_free_termhash(g,rotp(g,g->hash_pos_groundunits));
   wr_free_termhash(g,rotp(g,g->hash_neg_groundunits));
+  wr_free_termhash(g,rotp(g,g->hash_pos_grounddoubles));
+  wr_free_termhash(g,rotp(g,g->hash_neg_grounddoubles));
 
   wr_free_termhash(g,rotp(g,g->hash_pos_active_groundunits));
   wr_free_termhash(g,rotp(g,g->hash_neg_active_groundunits));

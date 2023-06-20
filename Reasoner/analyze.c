@@ -503,13 +503,16 @@ int wr_analyze_sine(glb* g, void* db, void* child_db) {
   int weak_sine;
 
 
-  if ((g->sine_strat)==2) weak_sine=0;
-  else weak_sine=1;
+  //if ((g->sine_strat)==2) weak_sine=0;
+  //else weak_sine=1;
+
+  if ((g->sine_strat)==1) weak_sine=1;
+  else weak_sine=0;
 
   //if (db!=child_db) haveextdb=1;
   //else haveextdb=0;
   
-  //printf("\nwr_analyze_sine starts (g->sine_k_bytes) %ld \n",(g->sine_k_bytes));
+  //printf("\nwr_analyze_sine starts  (g->sine_strat) %d (g->sine_k_bytes) %ld \n",(g->sine_strat),(g->sine_k_bytes));
   if (!(g->sine_k_values) || !(g->sine_k_bytes)) {
     return 0;
   }  
@@ -712,7 +715,33 @@ int wr_analyze_sine(glb* g, void* db, void* child_db) {
     sine_g=1;
   }
   //if (n>100000) sine_tolerance=1.5; // large csrs with sine_g=1;
- 
+
+
+  if ((g->sine_strat)==3) {
+     // experiment 12
+    sine_maxtriggers=(int)(n/10.0);
+    if (sine_maxtriggers>10000) sine_maxtriggers=10000;
+    else if (sine_maxtriggers<10) sine_maxtriggers=10;
+    sine_tolerance=4; // bigger number means more triggering
+    sine_g=2;
+  } else if ((g->sine_strat)==4) { 
+  // experiment 13
+    sine_maxtriggers=(int)(n/15.0);
+    if (sine_maxtriggers>10000) sine_maxtriggers=10000;
+    else if (sine_maxtriggers<10) sine_maxtriggers=10;
+    sine_tolerance=2; // bigger number means more triggering
+    sine_g=1;
+  } else if ((g->sine_strat)==5) { 
+    // experiment 14
+    sine_maxtriggers=(int)(n/20.0);
+    if (sine_maxtriggers>10000) sine_maxtriggers=1000;
+    else if (sine_maxtriggers<10) sine_maxtriggers=10;
+    sine_tolerance=1; // bigger number means more triggering
+    sine_g=1;
+  }
+
+  // experiment ends
+
   //sine5:
   
   /*
@@ -1288,9 +1317,9 @@ BLOCKEND:
       break;
     }
   }
-  pos+=sprintf(buf+pos,"\n]}\n");
-  
+  pos+=sprintf(buf+pos,"\n]}\n");  
   //printf("\nbuf: \n%s\n",buf);
+  //exit(0);
   
   if (!(g->outfilename) && guideparam!=1 && ((dbmemsegh(db)->printlevel)>12)) {
     wr_printf("\nauto guide:\n-----------\n%s\n",buf);
