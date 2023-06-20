@@ -12,8 +12,8 @@ available at [Examples/README.md](Examples/README.md). A Wasm version running
 in the browser with multiple commented examples is available as
 [logictools.org](http://logictools.org).
 
-For casc 2021 please use the compiled Linux binary and sources for version 0.7: 
-<https://github.com/tammet/gkc/releases/tag/v0.7.0>
+For casc 2023 please use the compiled Linux binary and sources for version 0.8: 
+<https://github.com/tammet/gkc/releases/tag/v0.8.0>
 
 For non-casc purposes it is recommended to use the version 0.6 with compiled binaries 
 for Linux, Windows and macOS:
@@ -26,8 +26,10 @@ GKC is used as a building block for developing specialized methods
 and strategies for commonsense reasoning, including nonmonotonic reasoning,
 probabilistic reasoning and machine learning methods. We consider natural language
 question answering systems as the main potential application these specialized methods.
-See the paper "Confidences for Commonsense Reasoning" in the CADE 28 (2021) proceedings. 
-GKC itself does not contain these mechanisms.
+See the papers "Confidences for Commonsense Reasoning" in the CADE 28 (2021) proceedings,
+"Gk: Implementing full first order default logic for commonsense reasoning (system description)"
+in the IJCAR 2022 proceedings and "An Experimental Pipeline for Automated Reasoning in Natural Language"
+in the CADE 29 (2023) proceedings. GKC itself does not contain these mechanisms.
 
 Contents:
 
@@ -47,8 +49,8 @@ with no dependencies, called  `gkc` for linux,
 `gkc.exe` for 64-bit windows, `gkc32.exe` for 32-bit windows,
 `gkcosx` for macOS. The pre-compiled executables are 
 included in the [release 0.6.0](https://github.com/tammet/gkc/releases/tag/v0.6.0).
-The [release 0.7.0](https://github.com/tammet/gkc/releases/tag/v0.7.0) is intended
-for the [CASC 28 competition](http://www.tptp.org/CASC/28/).
+The [release 0.8.0](https://github.com/tammet/gkc/releases/tag/v0.8.0) is intended
+for the [CASC 29 competition](http://www.tptp.org/CASC/29/).
 
 GKC is written in C. There are three alternative ways
 to compile gkc, from simpler to more complicated:
@@ -603,15 +605,3 @@ feature vectors and fingerprints, while no tree indexes are used.
 
 
   
-
-
-
-
-
-
-
-
-
-
-
-
