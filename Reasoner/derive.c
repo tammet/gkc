@@ -1875,10 +1875,70 @@ gint wr_add_cl_to_unithash(glb* g, gptr cl, gint clmeta) {
   if (wg_rec_is_fact_clause(db,cl)) len=1;
   else len=wg_count_clause_atoms(db,cl);
   
-  //printf("\nwr_add_cl_to_unithash:\n");
-  //wr_print_clause(g,cl);
-  //printf("\nlen %d wg_rec_is_rule_clause %d\n",len,wg_rec_is_rule_clause(db,cl));
+  /*
+  printf("\nwr_add_cl_to_unithash:\n");
+  wr_print_clause(g,cl);
+  printf("\nlen %d wg_rec_is_rule_clause %d\n",len,wg_rec_is_rule_clause(db,cl));
+  printf("\ng %d g->db %d g->kb_db %ld\n",(gint)g,(gint)(g->db),(gint)(g->kb_db));
+  */
 
+  if (len==1) { //} && wg_atom_meta_is_ground(db,clmeta)) { //} && wg_rec_is_rule_clause(db,cl)) {
+    if (wg_rec_is_rule_clause(db,cl)) {
+      xatom=rotp(g,wg_get_rule_clause_atom(db,cl,0));        
+    } else {
+      xatom=cl;
+    }     
+    hash=wr_lit_hash(g,rpto(g,xatom));
+    //printf("\nhash for storing is %d\n",(int)hash);
+    if (wg_atom_meta_is_neg(db,clmeta)) {
+      //printf("\nneg\n");
+      wr_push_termhash(g,rotp(g,g->hash_neg_groundunits),hash,xatom,cl);
+      //wr_print_termhash(g,rotp(g,g->hash_neg_groundunits));
+    } else {
+      //printf("\npos\n");
+      wr_push_termhash(g,rotp(g,g->hash_pos_groundunits),hash,xatom,cl);     
+      //wr_print_termhash(g,rotp(g,g->hash_pos_groundunits));      
+    }      
+#ifdef DEBUGHASH    
+    wr_printf("\ng->hash_neg_groundunits after adding:");      
+    wr_print_termhash(g,rotp(g,g->hash_neg_groundunits));
+    //wr_clterm_hashlist_print(g,rotp(g,g->hash_neg_groundunits));
+    wr_printf("\ng->hash_pos_groundunits after adding:");   
+    wr_print_termhash(g,rotp(g,g->hash_pos_groundunits));   
+    //wr_clterm_hashlist_print(g,rotp(g,g->hash_pos_groundunits));   
+#endif
+    //wr_print_termhash(g,rotp(g,g->hash_pos_groundunits));  
+    // for pushed units return hash of the unit
+    return hash;
+  }
+  // if not pushed, i.e. not unit, return -1 to mark this
+  return -1;
+}
+
+
+gint wr_add_cl_to_shared_unithash(glb* g, glb* shared_g, gptr cl, gint clmeta) {
+  int len;
+  gptr xatom;
+  gint hash;
+  void* db;
+  void* shared_db;
+  gptr newcl,newxatom,tmp_buffer,oldptr;
+
+  db=g->db;   
+  shared_db=shared_g->db;
+  UNUSED(db);
+  UNUSED(shared_db);
+  if (wg_rec_is_fact_clause(db,cl)) len=1;
+  else len=wg_count_clause_atoms(db,cl);
+  
+  /*
+  printf("\nwr_add_cl_to_shared_unithash:\n");
+  printf("\ng %ld shared_g %ld shared_db %ld shared_g->db %ld\n",(gint)g,(gint)shared_g,(gint)shared_db,(gint)(shared_g->db));
+  wr_print_clause(g,cl);
+  printf("\nlen %d wg_rec_is_rule_clause %d\n",len,wg_rec_is_rule_clause(db,cl));
+  wr_print_termhash(g,rotp(g,g->hash_neg_groundunits)); 
+  */
+  
   if (len==1) { //} && wg_atom_meta_is_ground(db,clmeta)) { //} && wg_rec_is_rule_clause(db,cl)) {
     if (wg_rec_is_rule_clause(db,cl)) {
       xatom=rotp(g,wg_get_rule_clause_atom(db,cl,0));        
@@ -1886,43 +1946,47 @@ gint wr_add_cl_to_unithash(glb* g, gptr cl, gint clmeta) {
       xatom=cl;
     }  
     hash=wr_lit_hash(g,rpto(g,xatom));
-    //printf("\nhash for storing is %d\n",(int)hash);
     if (wg_atom_meta_is_neg(db,clmeta)) {
-      //printf("\nneg\n");
-      wr_push_termhash(g,rotp(g,g->hash_neg_groundunits),hash,xatom,cl);
-#ifdef SHARED_DERIVED      
-      printf("\nstarting to copy,cl is:\n");
-      wr_print_clause(g,cl);
-      wg_print_record(db,cl);
-      gptr newcl,newxatom,tmp_buffer;
-      tmp_buffer=g->build_buffer;
-      g->build_buffer=NULL;
-      newcl=rotp(g,wr_copy_record(g,rpto(g,cl))); 
-      printf("\ncopied, result is:\n");
-      wr_print_clause(g,newcl);
-      printf("\n");
-      wg_print_record(db,newcl);
-      printf("\n");
-      g->build_buffer=tmp_buffer;
-      if (wg_rec_is_rule_clause(db,newcl)) {
-        newxatom=rotp(g,wg_get_rule_clause_atom(db,newcl,0));        
-      } else {
-        newxatom=newcl;
-      } 
-      printf("\nstarting to push to termhash\n"); 
-      wr_push_termhash(g,rotp(g,g->shared_hash_neg_groundunits),hash,newxatom,newcl);
-      printf("\npushed to termhash\n"); 
-      wr_print_termhash(g,rotp(g,g->shared_hash_neg_groundunits));
-      printf("\nsharing finished ok\n");
-#endif      
-      //wr_print_termhash(g,rotp(g,g->hash_neg_groundunits));
-    } else {
-      //printf("\npos\n");
-      wr_push_termhash(g,rotp(g,g->hash_pos_groundunits),hash,xatom,cl); 
-#ifdef SHARED_DERIVED      
-      //wr_push_termhash(g,rotp(g,g->shared_hash_pos_groundunits),hash,xatom,cl);
-#endif      
-      //wr_print_termhash(g,rotp(g,g->hash_pos_groundunits));      
+      oldptr=wr_find_termhash(shared_g, rotp(shared_g,shared_g->shared_hash_neg_groundunits), xatom, hash);
+      //printf("\n oldptr: %ld oldptr==NULL: %d\n",(gint)oldptr,oldptr==NULL);
+      if (oldptr==NULL) {
+        tmp_buffer=shared_g->build_buffer;
+        shared_g->build_buffer=NULL;     
+        newcl=rotp(shared_g,wr_copy_clause(g,shared_g,rpto(g,cl))); 
+        //exit(0);
+        shared_g->build_buffer=tmp_buffer;
+        if (wg_rec_is_rule_clause(shared_db,newcl)) {
+          newxatom=rotp(shared_g,wg_get_rule_clause_atom(shared_db,newcl,0));        
+        } else {
+          newxatom=newcl;
+        } 
+        wr_push_termhash(shared_g,rotp(shared_g,shared_g->shared_hash_neg_groundunits),hash,newxatom,newcl);
+        //printf("\npushed to neg termhash\n");
+        //printf("\npushed to termhash shared_db %ld, shared_g %ld, shared_g->shared_hash_neg_groundunits %ld \n",
+        //  (gint)shared_db,(gint)shared_g,(gint)(shared_g->shared_hash_neg_groundunits)); 
+        //wr_print_termhash(shared_g,rotp(shared_g,shared_g->shared_hash_neg_groundunits));
+        //printf("\nsharing finished ok\n");    
+      }  
+    } else {     
+      oldptr=wr_find_termhash(shared_g, rotp(shared_g,shared_g->shared_hash_pos_groundunits), xatom, hash);
+      //printf("\n oldptr: %ld oldptr==NULL: %d\n",(gint)oldptr,oldptr==NULL);
+      if (oldptr==NULL) {           
+        tmp_buffer=shared_g->build_buffer;
+        shared_g->build_buffer=NULL;
+        newcl=rotp(shared_g,wr_copy_clause(g,shared_g,rpto(g,cl)));       
+        //exit(0);
+        //wg_print_record(shared_db,newcl);
+        shared_g->build_buffer=tmp_buffer;
+        if (wg_rec_is_rule_clause(shared_db,newcl)) {
+          newxatom=rotp(shared_g,wg_get_rule_clause_atom(shared_db,newcl,0));        
+        } else {
+          newxatom=newcl;
+        } 
+        wr_push_termhash(shared_g,rotp(shared_g,shared_g->shared_hash_pos_groundunits),hash,newxatom,newcl);        
+        //printf("\npushed to pos termhash\n"); 
+        //wr_print_termhash(shared_g,rotp(shared_g,shared_g->shared_hash_pos_groundunits));
+        //printf("\nsharing finished ok\n");            
+      }  
     }      
 #ifdef DEBUGHASH    
     wr_printf("\ng->hash_neg_groundunits after adding:");      
@@ -1940,14 +2004,17 @@ gint wr_add_cl_to_unithash(glb* g, gptr cl, gint clmeta) {
     //wr_clterm_hashlist_print(g,rotp(g,g->hash_pos_groundunits));
 #endif    
 #endif
+    /*
+    printf("\nto wr_print_termhash for shared_g\n");
+    wr_print_termhash(shared_g,rotp(shared_g,shared_g->hash_pos_groundunits));  
+    printf("\nended wr_print_termhash for shared_g\n");
+    */
     // for pushed units return hash of the unit
     return hash;
   }
   // if not pushed, i.e. not unit, return -1 to mark this
   return -1;
 }
-
-
 
 gint wr_add_cl_to_doublehash(glb* g, gptr cl) {
   int len,pos;

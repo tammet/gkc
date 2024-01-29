@@ -228,6 +228,7 @@ void wr_clear_clause_blocked(glb* g, gptr clause);
 
 int wr_ground_term(glb* g, gint x);
 
-gint wr_copy_record(glb* g, gint x);
+gint wr_copy_record(glb* g, glb* shared_g, gint x);
+gint wr_copy_clause(glb* g, glb* shared_g, gint x);
 
 #endif

@@ -144,8 +144,8 @@ void wg_print_record(void *db, wg_int* rec) {
 #ifdef USE_CHILD_DB
   parent = wg_get_rec_owner(db, rec);
 #endif
-  printf("\ndb %lx db->kb_db %lx",(unsigned long int)db, (unsigned long int)( (dbmemsegh(db)->kb_db)? dbmemsegh(db)->kb_db : 0));
-  printf("\n<rec %lx>\n", (unsigned long int) rec);
+  //printf("\ndb %lx db->kb_db %lx",(unsigned long int)db, (unsigned long int)( (dbmemsegh(db)->kb_db)? dbmemsegh(db)->kb_db : 0));
+  printf("\n<rec %lx>", (unsigned long int) rec);
   if (dbmemsegh(db)->kb_db) db=dbmemsegh(db)->kb_db;
   len = wg_get_record_len(db, rec);
   printf("[");
@@ -158,6 +158,7 @@ void wg_print_record(void *db, wg_int* rec) {
 #endif
     wg_snprint_value(db, enc, strbuf, 255);
     printf("%s", strbuf);
+    //printf("%ld#%s", (gint)enc,strbuf);
   }
   printf("]");
 }

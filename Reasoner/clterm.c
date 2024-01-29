@@ -309,7 +309,30 @@ int wr_ground_term(glb* g, gint x) {
 
 /* ***** shared clauses *********** */
 
-gint wr_copy_record(glb* g, gint x) {
+
+
+gint wr_copy_clause(glb* g, glb* shared_g, gint x) {
+  gint res;
+
+  wr_printf("\nwr_copy_clause called for term "); 
+  wr_print_term(g,x);
+  wr_printf("\n");
+  wg_print_record(g->db,rotp(g,x));
+  wr_printf("\n");
+
+  res=wr_copy_record(g,shared_g,x);
+
+  wr_printf("\nwr_copy_clause returns "); 
+  wr_print_term(g,res);
+  wr_printf("\n");
+  wg_print_record(g->db,rotp(g,res));
+  wr_printf("\n");
+
+  return res;
+
+}  
+
+gint wr_copy_record(glb* g, glb* shared_g, gint x) {
   void* db;
   gptr xptr,yptr;
   gint xlen,uselen;
@@ -317,27 +340,39 @@ gint wr_copy_record(glb* g, gint x) {
   int i;
   gint res;
 
+  int type;
+  char* str1;
+  //char* str2;
+  //int intdata;
+  
+  /*
+  wr_printf("\nwr_copy_record called, g->build_buffer ptr is %lx \n", (unsigned long int)g->build_buffer); 
+  wr_print_term(g,x);
+  wr_printf("\n");
+  wg_print_record(g->db,rotp(g,x));
+  wr_printf("\n");
+  */
+  
 #ifdef DEBUG
   wr_printf("\nwr_copy_term called, g->build_buffer ptr is %lx \n", (unsigned long int)g->build_buffer); 
   wr_print_term(g,x);
   wr_printf("\n");
-#endif   
-  //wr_printf("\nwr_copy_term called, g->build_buffer ptr is %lx \n", (unsigned long int)g->build_buffer); 
-  //wr_print_term(g,x);
-  //wr_printf("\n");
+#endif    
   if (!x || !isdatarec(x)) {
     return x;
   }    
   // now we have a datarec  
   db=g->db;
+
   xptr=decode_record(db,x); 
   xlen=get_record_len(xptr);
   //printf("\nxlen %ld\n",xlen);
   // allocate space 
-  if ((g->build_buffer)!=NULL) {
-    yptr=wr_alloc_from_cvec(g,g->build_buffer,(RECORD_HEADER_GINTS+xlen));     
-  } else {
-    yptr=wg_create_raw_record(g->local_db,xlen);     
+  if ((shared_g->build_buffer)!=NULL) {    
+    yptr=wr_alloc_from_cvec(shared_g,shared_g->build_buffer,(RECORD_HEADER_GINTS+xlen));         
+  } else {    
+    //printf("\nshared_g %ld shared_g->db %ld xlen %ld\n",(gint)shared_g,(gint)(shared_g->db),xlen);   
+    yptr=wg_create_raw_record(shared_g->db,xlen); 
   }    
   if (yptr==NULL) {
     return WG_ILLEGAL;
@@ -345,12 +380,47 @@ gint wr_copy_record(glb* g, gint x) {
   uselen=xlen+RECORD_HEADER_GINTS;
   for(i=0;i<RECORD_HEADER_GINTS;i++) {    
     yptr[i]=xptr[i];
-  } 
+  }   
   for(i=RECORD_HEADER_GINTS;i<uselen;i++) {   
-    tmp=wr_copy_record(g,xptr[i]);    
+    //printf("\ni %ld",i);
+    //printf("\nxptr[i] %ld",xptr[i]);
+
+    // new part
+    if (xptr[i]==(gint)NULL) {
+      tmp=xptr[i];
+    } else {
+      //printf(" val %ld ",(gint)(xptr[i]));
+      type=wg_get_encoded_type(db, xptr[i]);
+      //str1=wg_atomstr1(db,(void*)(xptr[i]));
+      //str2=wg_atomstr2(db,atomptr);
+      //str2=NULL;
+      //printf("\ntype %d\n",type);
+      if (type==WG_URITYPE) {
+        str1=wg_decode_uri(db,xptr[i]);
+        //printf("\nstr1 %s ptr %ld\n",str1,(gint)str1);
+        tmp=wg_encode_uri(shared_g->db,str1,NULL);
+        //printf("\nstr2 %s ptr %ld\n",str2,(gint)str2);
+        //printf("\ntmp %ld\n",tmp);      
+      } else if (!isdatarec(xptr[i])) {      
+        tmp=xptr[i];      
+      } else {      
+        tmp=wr_copy_record(g,shared_g,xptr[i]);          
+      }  
+    }
+
+    // old part
+    /*
+    if (xptr[i]==(gint)NULL) {
+      tmp=xptr[i];
+    } else if (!isdatarec(xptr[i])) {      
+      tmp=xptr[i];      
+    } else {      
+      tmp=wr_copy_record(g,shared_g,xptr[i]);          
+    } 
+    */ 
     yptr[i]=tmp;
-  }
-  res=encode_record(db,yptr);  
+  }   
+  res=encode_record(shared_g->db,yptr); 
   return res;     
 }  
 

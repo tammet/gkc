@@ -223,6 +223,11 @@ int wr_init_db_clause_indexes(glb* g, void* db) {
     wg_print_record(db,rec);
 #endif
     wr_add_cl_to_unithash(g,rec,clmeta);     
+    /*
+    printf("\nafter wr_add_cl_to_unithash\n");
+    wg_print_record(db,rec);     
+    printf("\npreparing to do wr_process_given_cl\n");
+    */
 #ifdef DEBUG
     wr_printf("\nafter wr_add_cl_to_unithash\n");
     wg_print_record(db,rec);     
@@ -300,7 +305,7 @@ void wr_show_database_details(glb* passedg,void* db, char* desc) {
   gint cell;
   gcell *cellptr;
 
-  db_printf("\n*** wr_show_database_details for desc %s\n",desc);
+  db_printf("\n== *** wr_show_database_details for desc %s ==\n",desc);
   
   if (passedg==NULL) {
     printf("\ndirect g block passedg is NULL, hence using g inside db \n");
@@ -398,6 +403,13 @@ void wr_show_database_details(glb* passedg,void* db, char* desc) {
   wr_print_termhash(g,rotp(g,g->hash_neg_active_groundunits));
   printf("\n** hash_pos_active_groundunits:\n"); 
   wr_print_termhash(g,rotp(g,g->hash_pos_active_groundunits));
+
+  
+  printf("\n** shared_hash_neg_groundunits:\n"); 
+  wr_print_termhash(g,rotp(g,g->shared_hash_neg_groundunits));
+  printf("\n** shared_hash_pos_groundunits:\n"); 
+  wr_print_termhash(g,rotp(g,g->shared_hash_pos_groundunits));
+  
   
   wr_printf("\n** clactivesubsume:\n"); 
   wr_show_clactivesubsume(g);
@@ -407,6 +419,8 @@ void wr_show_database_details(glb* passedg,void* db, char* desc) {
   
   wr_printf("\n** hash_eq_terms:");      
   wr_clterm_hashlist_print_para(g,rotp(g,g->hash_eq_terms));  
+
+  db_printf("\n== *** wr_show_database_details end for desc %s ==\n",desc);
   
 }
 
@@ -426,6 +440,150 @@ void wr_show_database_headers(void* db) {
 
   wg_show_database(db);
 }
+
+
+void wr_show_database_details_shared (glb* passedg,void* db, char* desc) {
+  glb* rglb;
+  glb* g;
+  db_memsegment_header* dbh;
+  void *rec;
+  gint rlen;
+  void *gdbptr;
+  gint cell;
+  gcell *cellptr;
+
+  UNUSED(cellptr);
+  UNUSED(cell);
+  UNUSED(rlen);
+  UNUSED(rec);
+
+  db_printf("\n== *** wr_show_database_details_shared for desc %s ==\n",desc);
+  
+  if (passedg==NULL) {
+    printf("\ndirect g block passedg is NULL, hence using g inside db \n");
+ 
+    printf("\ndbcheck(db) gives %d \n", dbcheck(db));
+    dbh=dbmemsegh(db);
+    printf("\ndbcheckh(dbh) gives %d \n", dbcheck(dbh));
+    printf("\ndb as ptr is %lx \n", (unsigned long int)db);
+
+    rglb=db_rglb(db); // this is the internal g of db
+    g=sys_malloc(sizeof(glb)); // this is a new malloced g
+    // copy rglb stuff to g
+    memcpy(g,rglb,sizeof(glb));
+    // now g should contain the same things as rglb
+
+    printf("internal rglb ptr is %lx and int is %ld\n", (unsigned long int)rglb,(gint)rglb);
+    printf("malloced    g ptr is %lx and int is %ld\n", (unsigned long int)g,(gint)g);
+
+    // show rglb contents
+
+    printf("(rglb->db_offset) is %ld\n",(rglb->db_offset));
+    printf("(rglb->db) is ptr %lx and int %ld\n",(unsigned long int)(rglb->db),(gint)(rglb->db));
+    printf("(rglb->kb_db) is ptr %lx and int %ld\n",(unsigned long int)(rglb->kb_db),(gint)(rglb->kb_db));
+    printf("(rglb->child_db) is ptr %lx and int %ld\n",(unsigned long int)(rglb->child_db),(gint)(rglb->child_db));
+    printf("(rglb->inkb) is %ld\n",(rglb->inkb));
+
+    // compute, check and store correct db ptrs to g
+    // offset was created as (g->db_offset)=(gint)(((char*)g)-((char*)db))
+    gdbptr = (void *)(((char*)rglb)-(rglb->db_offset));
+    printf("calculated db ptr from internal rglb as %lx and int %ld\n",(unsigned long int)gdbptr, (gint)gdbptr);
+    printf("\ndbcheck(gdbptr) gives %d \n", dbcheck(gdbptr));
+    (g->db) = gdbptr;
+    (g->kb_db) = gdbptr;
+
+  } else {
+    // printf("\ndirect g block passedg is present, hence using passedg and not db or g inside db \n");
+    g=passedg;
+    db=g->db;
+  }
+
+  // show modified g contents
+
+  /*
+  printf("(g->db_offset) is %ld\n",(g->db_offset));
+  printf("(g->db) is ptr %lx and int %ld\n",(unsigned long int)(g->db),(gint)(g->db));
+  printf("(g->kb_db) is ptr %lx and int %ld\n",(unsigned long int)(g->kb_db),(gint)(g->kb_db));
+  printf("(g->child_db) is ptr %lx and int %ld\n",(unsigned long int)(g->child_db),(gint)(g->child_db));
+  printf("(g->inkb) is %ld\n",(g->inkb));
+  */
+
+  // show g stats
+
+  //wr_show_stats(g,0); 
+
+  // show g strings
+
+  //wg_show_strhash(db);
+ 
+  // show records in db   
+  
+  /*
+  printf("\n\n** clauses\n");
+
+  cell=(dbmemsegh(db)->clauselist);
+  while(cell) {         
+    cellptr=(gcell *) offsettoptr(db, cell);
+    rec=offsettoptr(db,cellptr->car);
+    rlen=wg_get_record_len(db,rec);   
+
+    if ((wg_rec_is_rule_clause(db,rec) || wg_rec_is_fact_clause(db,rec)) ) {
+      printf("\nrec with rlen %ld rec as ptr %lx as int %ld \n",rlen,(unsigned long int)rec,(gint)rec);     
+      wg_print_record(db,rec);
+      printf("\n as clause \n");
+      wr_print_clause(g,rec);
+    }    
+    cell=cellptr->cdr;
+  }
+  */
+
+  // show groundunits hash
+
+  /*
+  printf("\n\n** hash_neg_groundunits\n");
+  wr_print_termhash(g,rotp(g,g->hash_neg_groundunits));
+  printf("\n** hash_pos_groundunits\n");
+  wr_print_termhash(g,rotp(g,g->hash_pos_groundunits));  
+  printf("\n");
+   
+  // show neg and pos atoms
+
+  printf("\n** hash_neg_atoms:\n");      
+  wr_clterm_hashlist_print(g, rotp(g,g->hash_neg_atoms));
+  printf("\n** hash_pos_atoms:\n");      
+  wr_clterm_hashlist_print(g, rotp(g,g->hash_pos_atoms));
+  printf("\n");
+  */
+
+  // show groundunits hash for given clause subsumption
+  
+  printf("\n** hash_neg_active_groundunits:\n"); 
+  wr_print_termhash(g,rotp(g,g->hash_neg_active_groundunits));
+  printf("\n** hash_pos_active_groundunits:\n"); 
+  wr_print_termhash(g,rotp(g,g->hash_pos_active_groundunits));
+
+  
+  printf("\n** shared_hash_neg_groundunits:\n"); 
+  wr_print_termhash(g,rotp(g,g->shared_hash_neg_groundunits));
+  printf("\n** shared_hash_pos_groundunits:\n"); 
+  wr_print_termhash(g,rotp(g,g->shared_hash_pos_groundunits));
+  
+  /*
+  
+  wr_printf("\n** clactivesubsume:\n"); 
+  wr_show_clactivesubsume(g);
+
+  wr_printf("\n** hash_para_terms:\n");      
+  wr_clterm_hashlist_print_para(g,rotp(g,g->hash_para_terms)); 
+  
+  wr_printf("\n** hash_eq_terms:");      
+  wr_clterm_hashlist_print_para(g,rotp(g,g->hash_eq_terms));  
+  */
+
+  db_printf("\n== *** wr_show_database_details_shared end for desc %s ==\n",desc);
+  
+}
+
 
 #ifdef __cplusplus
 }

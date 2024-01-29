@@ -180,8 +180,8 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active, cvec resol
 #endif
           if (r_kb_g(g)) {
             //printf("\nr_kb_g(g) used\n");
-            printf("\ng is %lx db is %lx, r_kb_g(g) used: %lx with r_kb_g(g)->db %lx\n",
-              (unsigned long int)g,(unsigned long int)db,(unsigned long int)r_kb_g(g),(unsigned long int)(r_kb_g(g)->db));
+            //printf("\ng is %lx db is %lx, r_kb_g(g) used: %lx with r_kb_g(g)->db %lx\n",
+            //  (unsigned long int)g,(unsigned long int)db,(unsigned long int)r_kb_g(g),(unsigned long int)(r_kb_g(g)->db));
             if (negflag) hashvec=rotp(g,r_kb_g(g)->hash_pos_atoms);
             else hashvec=rotp(g,r_kb_g(g)->hash_neg_atoms); 
 #ifdef DEBUG            

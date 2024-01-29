@@ -133,7 +133,7 @@
 
 #define SINE_K_VALUES_SIZE 10000000 // bytestring 10 mbyte
 
-// #define SHARED_DERIVED  // if set, keep some clauses over different passes
+#define SHARED_DERIVED  // if set, keep some clauses over different passes
 
 /* ======== Structures ========== */
 

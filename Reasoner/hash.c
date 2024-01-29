@@ -936,7 +936,6 @@ gint* wr_find_offset_termhash(glb* g, gint* hasharr, gptr term, int hash) {
   wr_print_clause(g,term);
   wr_printf("\n");
   */
- 
   // negative hashes not ok: make positive
   if (hash<0) hash=0-hash;
   // too big hashes are recalculated
@@ -1324,13 +1323,13 @@ void wr_print_atomhash(glb* g, gint* hasharr) {
 void wr_print_atomhash_clvec(glb* g, cvec clvec) {
   int i;
 
-  //printf("\nwr_print_atomhash_clvec called, clvec[0] %d clvec[1] %d\n",clvec[0],clvec[1]); 
+  printf("\nwr_print_atomhash_clvec called, clvec %ld clvec[0] %ld clvec[1] %ld clvec[2] %ld\\n",(gint)clvec,clvec[0],clvec[1],clvec[2]); 
   for(i=2;i<clvec[0]+2 && i<clvec[1];i++) {
-    wr_printf("    i %d ",i);
+    printf("    i %d ",i);
     wr_print_clause(g,(gptr)(clvec[i]));
-    wr_printf("\n");
+    printf("\n");
   }
-  //printf("\nwr_print_atomhash_clvec ended\n"); 
+  printf("\nwr_print_atomhash_clvec ended\n"); 
 }  
 
 

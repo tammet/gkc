@@ -689,6 +689,7 @@ int wr_glb_init_seq_shared_complex(glb* g) {
   (g->clpick_queues)=wr_create_clpick_queues(g, 4);  
   (g->clpick_given)=1; // first queue block in the queues vector 
 
+/*
 #ifdef SHARED_DERIVED 
   // shared clauses and hashvectors
   (g->shared_clbuilt)=rpto(g,wr_cvec_new(g,NROF_DYNALLOCINITIAL_ELS)); 
@@ -697,6 +698,7 @@ int wr_glb_init_seq_shared_complex(glb* g) {
   (g->shared_hash_pos_groundunits)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS));
   //wr_vec_zero(rotp(g,g->hash_pos_groundunits)); 
 #endif
+*/
 
   // hash vectors  must be zeroed
   /*
@@ -1100,6 +1102,10 @@ int wr_glb_free_shared_complex(glb* g) {
   wr_free_clpick_queues(g,rotp(g,g->clpick_queues));
   wr_free_termhash(g,rotp(g,g->hash_pos_groundunits));
   wr_free_termhash(g,rotp(g,g->hash_neg_groundunits));
+#ifdef SHARED_DERIVED
+  wr_free_termhash(g,rotp(g,g->shared_hash_pos_groundunits));
+  wr_free_termhash(g,rotp(g,g->shared_hash_neg_groundunits));
+#endif
   wr_free_termhash(g,rotp(g,g->hash_pos_grounddoubles));
   wr_free_termhash(g,rotp(g,g->hash_neg_grounddoubles));
 
