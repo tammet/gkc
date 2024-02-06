@@ -1916,20 +1916,32 @@ gint wr_add_cl_to_unithash(glb* g, gptr cl, gint clmeta) {
 }
 
 
-gint wr_add_cl_to_shared_unithash(glb* g, glb* shared_g, gptr cl, gint clmeta) {
-  int len;
-  gptr xatom;
-  gint hash;
+gint wr_add_cl_to_shared_unithash(glb* g, glb* shared_g, gptr xatom, gptr cl, gint clmeta, 
+       int* storecount, int pos, int type, int bucketnr) {
+  int len, histlen, atomlen;
+  //gptr xatom;
+  gint hash, tmp, history;
   void* db;
   void* shared_db;
-  gptr newcl,newxatom,tmp_buffer,oldptr;
+  gptr historyptr,newcl,newxatom,tmp_buffer,oldptr; // clptr,
 
   db=g->db;   
   shared_db=shared_g->db;
   UNUSED(db);
   UNUSED(shared_db);
+  if (!cl) return -1;
   if (wg_rec_is_fact_clause(db,cl)) len=1;
   else len=wg_count_clause_atoms(db,cl);
+  
+  /*
+  printf("\n!!! wr_add_cl_to_shared_unithash pos %d type %d, xatom:\n",pos,type);
+  wr_print_term(g,rpto(g,xatom));
+  printf("\n clause ");
+  wr_print_clause(g,cl);
+  printf("\n record");
+  wg_print_record(db,cl);
+  printf("\n");
+  */
   
   /*
   printf("\nwr_add_cl_to_shared_unithash:\n");
@@ -1938,54 +1950,191 @@ gint wr_add_cl_to_shared_unithash(glb* g, glb* shared_g, gptr cl, gint clmeta) {
   printf("\nlen %d wg_rec_is_rule_clause %d\n",len,wg_rec_is_rule_clause(db,cl));
   wr_print_termhash(g,rotp(g,g->hash_neg_groundunits)); 
   */
-  
-  if (len==1) { //} && wg_atom_meta_is_ground(db,clmeta)) { //} && wg_rec_is_rule_clause(db,cl)) {
+  if (type==0 && len!=1) return -1;
+  if (type==1 && len!=2) return -1; 
+  if (xatom==NULL) return -1;
+  atomlen=wg_get_record_len(db,xatom);
+  if (atomlen<1 || atomlen>100) {
+      /*
+      printf("\natomlen %d",atomlen);
+      printf("M xatom %ld\n",(gint)xatom);  
+      wr_print_term(g,rpto(g,xatom));
+      printf("\nclause");
+      wr_print_clause(g,cl);
+      printf("\n record");
+      wg_print_record(db,cl);
+      printf("\n record el 0 %lx %ld type %d\n",wg_decode_record(db, wg_get_field(db, cl,0)),wg_get_field(db,cl,0),wg_get_encoded_type(db,wg_get_field(db,cl,0)));
+      //wg_print_record(db,wg_get_field(db,cl,0));
+      printf("\n record el 1 %lx  %ld type %d\n",wg_get_field(db,cl,1),wg_decode_int(db,wg_get_field(db,cl,1)),wg_get_encoded_type(db,wg_get_field(db,cl,1)));
+      //wg_print_record(db,wg_get_field(db,cl,1));
+      printf("\n record el 2 %lx  %ld type %d\n",wg_decode_record(db,wg_get_field(db,cl,2)),wg_get_field(db,cl,2),wg_get_encoded_type(db,wg_get_field(db,cl,2)));
+      wg_print_record(db,wg_decode_record(db,wg_get_field(db,cl,2)));
+      printf("\nxatom again\n");
+      //wg_print_record(db,wg_decode_record(db,xatom)) ;
+      wg_print_record(db,xatom) ;
+
+      printf("\nM2\n");
+      */
+      return -1;
+      //exit(0);
+  }
+
+  if (1) { //} && wg_atom_meta_is_ground(db,clmeta)) { //} && wg_rec_is_rule_clause(db,cl)) {           
+    history=wr_get_history(g,cl);
+    historyptr=otp(db,history);    
+    histlen=wg_get_record_len(db,historyptr); 
+    /*
+    printf("\nhistlen %d history:\n",histlen);
+    wg_print_record(db,historyptr);
+    printf("\n");
+    */   
+    if (histlen==HISTORY_PREFIX_LEN) return -1; // input clause     
+    if (type==1) {
+      if (!ok_double_hash_elem(g,xatom,cl)) {
+        /*
+        printf("\n!!!atomlen %d",atomlen);
+        printf("M xatom %ld\n",(gint)xatom);  
+        wr_print_term(g,rpto(g,xatom));
+        printf("\nclause");
+        wr_print_clause(g,cl);
+        printf("\n record");
+        wg_print_record(db,cl);
+        printf("\n record el 0 %lx %ld type %d\n",wg_decode_record(db, wg_get_field(db, cl,0)),wg_get_field(db,cl,0),wg_get_encoded_type(db,wg_get_field(db,cl,0)));
+        //wg_print_record(db,wg_get_field(db,cl,0));
+        printf("\n record el 1 %lx  %ld type %d\n",wg_get_field(db,cl,1),wg_decode_int(db,wg_get_field(db,cl,1)),wg_get_encoded_type(db,wg_get_field(db,cl,1)));
+        //wg_print_record(db,wg_get_field(db,cl,1));
+        printf("\n record el 2 %lx  %ld type %d\n",wg_decode_record(db,wg_get_field(db,cl,2)),wg_get_field(db,cl,2),wg_get_encoded_type(db,wg_get_field(db,cl,2)));
+        wg_print_record(db,wg_decode_record(db,wg_get_field(db,cl,2)));
+        printf("\nxatom again\n");
+        //wg_print_record(db,wg_decode_record(db,xatom)) ;
+        wg_print_record(db,xatom) ;
+
+        printf("\n!!M2\n");
+        */
+        return -1;
+        //exit(0);
+      }
+      /*
+      printf("M1\n");
+      wr_print_term(g,rpto(g,xatom));
+      printf("\n atom as record");
+      wg_print_record(db,xatom);
+      printf("\nclause");
+      wr_print_clause(g,cl);
+      printf("\n record");
+      wg_print_record(db,cl);
+      printf("\nM2\n");
+      */
+    } 
+    /*
     if (wg_rec_is_rule_clause(db,cl)) {
-      xatom=rotp(g,wg_get_rule_clause_atom(db,cl,0));        
+      xatom=rotp(g,wg_get_rule_clause_atom(db,cl,0));   
+      //clmeta=wg_get_rule_clause_meta(db,cl,0);     
     } else {
       xatom=cl;
-    }  
-    hash=wr_lit_hash(g,rpto(g,xatom));
-    if (wg_atom_meta_is_neg(db,clmeta)) {
-      oldptr=wr_find_termhash(shared_g, rotp(shared_g,shared_g->shared_hash_neg_groundunits), xatom, hash);
+    } 
+    */ 
+   
+    hash=wr_lit_hash(g,rpto(g,xatom));   
+    //printf("# %d %d %ld ",type,bucketnr,hash);
+    if (!pos) { //(wg_atom_meta_is_neg(db,clmeta)) {
+      //CP10
+      if (type==1) {       
+        oldptr=wr_find_shared_offset_termhash(g,rotp(shared_g,shared_g->shared_hash_neg_grounddoubles), xatom, hash,type,cl);      
+      } else {
+        oldptr=wr_find_shared_offset_termhash(g,rotp(shared_g,shared_g->shared_hash_neg_groundunits), xatom, hash,type,NULL);
+      }  
+      //CP11
       //printf("\n oldptr: %ld oldptr==NULL: %d\n",(gint)oldptr,oldptr==NULL);
       if (oldptr==NULL) {
+        //CP12
         tmp_buffer=shared_g->build_buffer;
         shared_g->build_buffer=NULL;     
-        newcl=rotp(shared_g,wr_copy_clause(g,shared_g,rpto(g,cl))); 
-        //exit(0);
-        shared_g->build_buffer=tmp_buffer;
-        if (wg_rec_is_rule_clause(shared_db,newcl)) {
-          newxatom=rotp(shared_g,wg_get_rule_clause_atom(shared_db,newcl,0));        
-        } else {
-          newxatom=newcl;
-        } 
-        wr_push_termhash(shared_g,rotp(shared_g,shared_g->shared_hash_neg_groundunits),hash,newxatom,newcl);
-        //printf("\npushed to neg termhash\n");
-        //printf("\npushed to termhash shared_db %ld, shared_g %ld, shared_g->shared_hash_neg_groundunits %ld \n",
-        //  (gint)shared_db,(gint)shared_g,(gint)(shared_g->shared_hash_neg_groundunits)); 
-        //wr_print_termhash(shared_g,rotp(shared_g,shared_g->shared_hash_neg_groundunits));
-        //printf("\nsharing finished ok\n");    
+        tmp=wr_copy_clause(g,shared_g,rpto(g,cl));
+        if (tmp) {
+          newcl=rotp(shared_g,tmp);         
+          //exit(0);
+          (*storecount)++;
+          /*
+          printf("store: ");
+          wr_print_clause(shared_g,newcl);
+          printf("\n");
+          */
+          shared_g->build_buffer=tmp_buffer;
+          if (wg_rec_is_rule_clause(shared_db,newcl)) {
+            if (type==0) {
+              newxatom=rotp(shared_g,wg_get_rule_clause_atom(shared_db,newcl,0));        
+            } else {
+              if (rpto(g,xatom)==wg_get_rule_clause_atom(shared_db,cl,0)) {
+                newxatom=rotp(shared_g,wg_get_rule_clause_atom(shared_db,newcl,0));
+              } else {
+                newxatom=rotp(shared_g,wg_get_rule_clause_atom(shared_db,newcl,1));
+              }
+            }  
+          } else {
+            newxatom=newcl;
+          }         
+          if (type==1)
+            wr_push_termhash(shared_g,rotp(shared_g,shared_g->shared_hash_neg_grounddoubles),hash,newxatom,newcl);
+          else
+            wr_push_termhash(shared_g,rotp(shared_g,shared_g->shared_hash_neg_groundunits),hash,newxatom,newcl);
+          //printf("\npushed to neg termhash\n");
+          //printf("\npushed to termhash shared_db %ld, shared_g %ld, shared_g->shared_hash_neg_groundunits %ld \n",
+          //  (gint)shared_db,(gint)shared_g,(gint)(shared_g->shared_hash_neg_groundunits)); 
+          //wr_print_termhash(shared_g,rotp(shared_g,shared_g->shared_hash_neg_groundunits));
+          //printf("\nsharing finished ok\n");    
+        }  
       }  
-    } else {     
-      oldptr=wr_find_termhash(shared_g, rotp(shared_g,shared_g->shared_hash_pos_groundunits), xatom, hash);
+    } else {
+      //CP15     
+      if (type==1) {
+        oldptr=wr_find_shared_offset_termhash(g,rotp(shared_g,shared_g->shared_hash_pos_grounddoubles), xatom, hash,type,cl);
+      } else {
+        oldptr=wr_find_shared_offset_termhash(g,rotp(shared_g,shared_g->shared_hash_pos_groundunits), xatom, hash,type,NULL);   
+      }  
+      //CP16
       //printf("\n oldptr: %ld oldptr==NULL: %d\n",(gint)oldptr,oldptr==NULL);
       if (oldptr==NULL) {           
+        //CP17
         tmp_buffer=shared_g->build_buffer;
         shared_g->build_buffer=NULL;
-        newcl=rotp(shared_g,wr_copy_clause(g,shared_g,rpto(g,cl)));       
-        //exit(0);
-        //wg_print_record(shared_db,newcl);
-        shared_g->build_buffer=tmp_buffer;
-        if (wg_rec_is_rule_clause(shared_db,newcl)) {
-          newxatom=rotp(shared_g,wg_get_rule_clause_atom(shared_db,newcl,0));        
-        } else {
-          newxatom=newcl;
-        } 
-        wr_push_termhash(shared_g,rotp(shared_g,shared_g->shared_hash_pos_groundunits),hash,newxatom,newcl);        
-        //printf("\npushed to pos termhash\n"); 
-        //wr_print_termhash(shared_g,rotp(shared_g,shared_g->shared_hash_pos_groundunits));
-        //printf("\nsharing finished ok\n");            
+        //CP18
+        tmp=wr_copy_clause(g,shared_g,rpto(g,cl));
+        //CP19
+        //printf("\ntmp: %ld\n",(gint)tmp);
+        if (tmp) {
+          newcl=rotp(shared_g,tmp);               
+          //exit(0);
+          //wg_print_record(shared_db,newcl);
+          (*storecount)++;
+          /*
+          printf("store: ");
+          wr_print_clause(shared_g,newcl);
+          printf("\n");
+          */
+          //CP1
+          shared_g->build_buffer=tmp_buffer;
+          if (wg_rec_is_rule_clause(shared_db,newcl)) {                 
+            if (type==0) {
+              newxatom=rotp(shared_g,wg_get_rule_clause_atom(shared_db,newcl,0));        
+            } else {
+              if (rpto(g,xatom)==wg_get_rule_clause_atom(shared_db,cl,0)) {
+                newxatom=rotp(shared_g,wg_get_rule_clause_atom(shared_db,newcl,0));
+              } else {
+                newxatom=rotp(shared_g,wg_get_rule_clause_atom(shared_db,newcl,1));
+              }
+            }  
+          } else {            
+            newxatom=newcl;
+          } 
+          if (type==1)
+            wr_push_termhash(shared_g,rotp(shared_g,shared_g->shared_hash_pos_grounddoubles),hash,newxatom,newcl);
+          else
+            wr_push_termhash(shared_g,rotp(shared_g,shared_g->shared_hash_pos_groundunits),hash,newxatom,newcl);        
+          //printf("\npushed to pos termhash\n"); 
+          //wr_print_termhash(shared_g,rotp(shared_g,shared_g->shared_hash_pos_groundunits));
+          //printf("\nsharing finished ok\n");       
+        }       
       }  
     }      
 #ifdef DEBUGHASH    
@@ -2016,6 +2165,19 @@ gint wr_add_cl_to_shared_unithash(glb* g, glb* shared_g, gptr cl, gint clmeta) {
   return -1;
 }
 
+int ok_double_hash_elem(glb* g,gptr xatom, gptr cl) {
+  int pos;
+  gptr clatom;
+  void* db=g->db;
+
+  if (!xatom || !cl) return 0;
+  for(pos=0; pos<2; pos++) {
+    clatom=rotp(g,wg_get_rule_clause_atom(db,cl,pos));
+    if (xatom==clatom) return 1;    
+  }  
+  return 0;
+}
+
 gint wr_add_cl_to_doublehash(glb* g, gptr cl) {
   int len,pos;
   gptr xatom;
@@ -2028,13 +2190,22 @@ gint wr_add_cl_to_doublehash(glb* g, gptr cl) {
   if (wg_rec_is_fact_clause(db,cl)) return -1;
   else len=wg_count_clause_atoms(db,cl);
   
-  //printf("\nwr_add_cl_to_doublehash:\n");
-  //wr_print_clause(g,cl);
-  //printf("\nlen %d wg_rec_is_rule_clause %d\n",len,wg_rec_is_rule_clause(db,cl));
+  
 
   if (len==2) { //} && wg_atom_meta_is_ground(db,clmeta)) { //} && wg_rec_is_rule_clause(db,cl)) {
+    /*
+    printf("\nwr_add_cl_to_doublehash:\n");
+    wr_print_clause(g,cl);
+    printf("\nlen %d wg_rec_is_rule_clause %d\n",len,wg_rec_is_rule_clause(db,cl));
+    */
+
     for(pos=0; pos<2; pos++) {     
       xatom=rotp(g,wg_get_rule_clause_atom(db,cl,pos));
+      /*
+      printf("\n xatom ");
+      wr_print_term(g,rpto(g,xatom));
+      printf("\n");
+      */
       litmeta=wg_get_rule_clause_atom_meta(db,cl,pos);
       hash=wr_lit_hash(g,rpto(g,xatom));
       //printf("\nhash for storing is %d\n",(int)hash);

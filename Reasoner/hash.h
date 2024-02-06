@@ -92,8 +92,14 @@ void wr_clterm_hashlist_print_para(glb* g, vec hashvec);
 gint* wr_push_termhash(glb* g, gint* hasharr, int hash, gptr term, gptr cl);
 gint* wr_push_offset_termhash(glb* g, gint* hasharr, int hash, gptr term, gptr cl);
 gint* wr_find_termhash(glb* g, gint* hasharr, gptr term, int hash);
+
+gint* wr_find_shared_offset_termhash(glb* g, gint* hasharr, gptr term, int hash, int type, gptr cl);
+
 gint* wr_find_offset_termhash(glb* g, gint* hasharr, gptr term, int hash);
 gint wr_find_offset_termbucket(glb* g, gint* hasharr, gptr term, int hash);
+
+gint wr_find_shared_offset_termbucket(glb* g, gint* hasharr, gptr term, int hash);
+int equal_ordered_shared_clause(glb* g, gptr xcl, gptr ycl);
 
 void wr_free_termhash(glb* g, gint* hasharr);
 void wr_free_offset_termhash(glb* g, gint* hasharr);

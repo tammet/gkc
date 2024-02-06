@@ -275,6 +275,7 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
       wr_print_clause(g,foundbucket2); 
       printf("\ncuts %d\n",cuts);
       */
+      
       //printf("\n double cut found (g->cut_clvec)[0] is %d, cuts is %d \n",(g->cut_clvec)[0],cuts);
       doublecut_found=1;
       cuts++;
@@ -355,6 +356,7 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
   wr_print_clause(g,res); 
   printf("\n");
   */
+  
   if (!history || !res) {
     // allocation failed
     ++(g->stat_internlimit_discarded_cl);

@@ -185,6 +185,11 @@ typedef struct {
   gint hash_neg_grounddoubles; /**< hash structure for cutting off with negative ground double clauses */
   gint hash_pos_grounddoubles; /**< hash structure for cutting off with positive ground double clauses */
 
+#ifdef SHARED_DERIVED    
+  gint shared_hash_neg_grounddoubles; /**< hash structure for cutting off with negative ground double clauses */
+  gint shared_hash_pos_grounddoubles; /**< hash structure for cutting off with positive ground double clauses */
+#endif
+
   gint hash_neg_active_groundunits; /**< hash structure for subsuming with negative ground unit clauses in active */
   gint hash_pos_active_groundunits; /**< hash structure for subsuming with positive ground unit clauses in active */
 

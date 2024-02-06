@@ -53,6 +53,10 @@ extern "C" {
 
 #define ANS_IGNORE
 
+#define GLOBAL_UNITS
+
+#define SHARED_DERIVED
+
 /* ======= Private protos ================ */
 
 static int wr_matchable_lit_meta(glb* g, gint mx, gint my);
@@ -642,6 +646,41 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
         }
       }
 
+#ifdef GLOBAL_UNITS
+      if (r_kb_g(g) && rptr[tmp+LIT_META_POS]) {
+#ifdef DEBUG
+        wr_printf("\nexternal kb r_kb_g(g) present");
+#endif          
+        bucket=wr_find_shared_offset_termhash(g,rotp(g,(r_kb_g(g))->shared_hash_pos_groundunits),xatomptr,hash,0,NULL);      
+        if (bucket!=NULL) {         
+          //wr_printf("\ncut by shared ground hash as neg: "); 
+          //wr_print_term(g,xatom);
+          //wr_printf("\n");
+          printf("!");
+          /*
+          printf("\ncutoff by kb ground hash as neg!\n"); 
+          wr_print_term(g,xatom);
+          printf("\n bucket:\n");
+          wr_print_clause(g,bucket);     
+          */
+  #ifdef DEBUG        
+          wr_printf("\ncutoff by kb ground hash as neg!\n"); 
+          wr_print_term(g,xatom);
+          wr_printf("\n bucket:\n");
+          wr_print_clause(g,bucket);        
+  #endif        
+          cuts++;
+          rptr[tmp+LIT_META_POS]=0; // mark cutoff lit metas as 0
+          if ((g->cut_clvec)[0]>cuts+1) {
+            (g->cut_clvec)[cuts]=(gint)bucket;
+            (g->cut_clvec)[cuts+1]=(gint)NULL;
+          }  
+          (g->stat_lit_hash_cut_ok)++;   
+          //return 0;
+        }
+      }
+#endif
+
     } else {
 #ifdef DEBUG      
       wr_printf("\npos\n");
@@ -720,7 +759,43 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
           (g->stat_lit_hash_cut_ok)++;   
           //return 0;
         }
-      }  
+      }
+
+#ifdef GLOBAL_UNITS
+      if (r_kb_g(g) && rptr[tmp+LIT_META_POS]) {
+#ifdef DEBUG
+        wr_printf("\nexternal kb r_kb_g(g) present");
+#endif          
+        bucket=wr_find_shared_offset_termhash(g,rotp(g,(r_kb_g(g))->shared_hash_neg_groundunits),xatomptr,hash,0,NULL);      
+        if (bucket!=NULL) {       
+          //wr_printf("\ncut by shared ground hash as pos: "); 
+          //wr_print_term(g,xatom);
+          //wr_printf("\n");
+          printf("!");
+          /*
+          printf("\ncutoff by kb ground hash as pos!\n"); 
+          wr_print_term(g,xatom);
+          printf("\n bucket:\n");
+          wr_print_clause(g,bucket);  
+          */
+  #ifdef DEBUG        
+          wr_printf("\ncutoff by kb ground hash as pos!\n"); 
+          wr_print_term(g,xatom);
+          wr_printf("\n bucket:\n");
+          wr_print_clause(g,bucket);        
+  #endif        
+          cuts++;
+          rptr[tmp+LIT_META_POS]=0; // mark cutoff lit metas as 0
+          if ((g->cut_clvec)[0]>cuts+1) {
+            (g->cut_clvec)[cuts]=(gint)bucket;
+            (g->cut_clvec)[cuts+1]=(gint)NULL;
+          }  
+          (g->stat_lit_hash_cut_ok)++;   
+          //return 0;
+        }
+      }
+#endif
+
     } 
     if (clhashptr!=NULL && (oldcuts==cuts)) {
       // no cut during this iteration
@@ -836,7 +911,26 @@ int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucke
         return 1;
       }
     }     
+#ifdef GLOBAL_UNITS
+    if (r_kb_g(g)) {
+      bucket=wr_find_shared_offset_termhash(g,rotp(g,(r_kb_g(g))->shared_hash_pos_groundunits),xatomptr,hash,0,NULL);
+      if (bucket!=NULL) {
+        //wr_printf("\ncut by shared ground hash as neg: "); 
+        //wr_print_term(g,xatom);
+        //wr_printf("\n");
+        printf("!");
 
+  #ifdef DEBUG
+        wr_printf("\ncutoff by shared ground hash as neg!\n"); 
+        wr_print_term(g,xatom);
+        wr_printf("\n bucket:\n");
+        wr_print_clause(g,bucket);
+  #endif    
+        *foundbucket=bucket;
+        return 1;
+      }
+    }
+#endif
   } else {
     //printf("\npos\n");
     if (subsflag) {
@@ -888,6 +982,28 @@ int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucke
         return 1;
       }
     }     
+#ifdef GLOBAL_UNITS
+    if (r_kb_g(g)) {
+      bucket=wr_find_shared_offset_termhash(g,rotp(g,(r_kb_g(g))->shared_hash_neg_groundunits),xatomptr,hash,0,NULL);
+      if (bucket!=NULL) {
+        //wr_printf("\ncut by shared ground hash as pos: "); 
+        //wr_print_term(g,xatom);
+        //wr_printf("\n");
+        //wr_printf("\n bucket:\n");
+        //wr_print_clause(g,bucket);
+        printf("!");
+
+  #ifdef DEBUG
+        wr_printf("\ncutoff by shared ground hash as neg!\n"); 
+        wr_print_term(g,xatom);
+        wr_printf("\n bucket:\n");
+        wr_print_clause(g,bucket);
+  #endif    
+        *foundbucket=bucket;
+        return 1;
+      }
+    }
+#endif    
   }   
 #ifdef DEBUG
   wr_printf("\n!!!!! wr_atom_cut_and_subsume found no subs or cuts \n");
@@ -913,16 +1029,17 @@ int wr_atom_doublecut(glb* g, gint xatom, gint xatommeta, gptr xcl, int pos, cve
   gint bucket;
   gint hash;
   gptr bucket_asp;
-  int j;
+  int j, shared;
 
   /*
-  wr_printf("\n!!!!! wr_atom_doublecut is called \n");    
-  wr_printf("\n xatom %d xatommeta %d atom:\n",xatom,xatommeta);
+  printf("\n** wr_atom_doublecut is called \n");    
+  printf("\n xatom %d xatommeta %d atom:\n",xatom,xatommeta);
   wr_print_term(g,xatom);  
   printf("\nclause\n");
   wr_print_clause(g,xcl);  
   printf("\n");
   */
+  
 
 #ifdef DEBUG
   wr_printf("\nwr_atom_doublecut is called \n");    
@@ -934,36 +1051,41 @@ int wr_atom_doublecut(glb* g, gint xatom, gint xatommeta, gptr xcl, int pos, cve
   hash=wr_lit_hash(g,xatom); 
   if (wg_atom_meta_is_neg(db,xatommeta)) {
     //printf("\nneg atom\n");   
-    //bucket=wr_find_termhash(g,rotp(g,g->hash_pos_grounddoubles),xatomptr,hash);  
-    
+    //bucket=wr_find_termhash(g,rotp(g,g->hash_pos_grounddoubles),xatomptr,hash);      
     //--- new part starts
+    shared=0;
     bucket=wr_find_offset_termbucket(g,rotp(g,g->hash_pos_grounddoubles),xatomptr,hash);
-    if (bucket) {
-      // printf("\nbucket found\n");
-      //printf("bucket for hash %d size %d next free %d\n",hash,bucket[0],bucket[1]);
+#ifdef SHARED_DERIVED
+    if (!bucket) {      
+      bucket=wr_find_shared_offset_termbucket(g,rotp(g,(r_kb_g(g))->shared_hash_pos_grounddoubles),xatomptr,hash);
+      //if (bucket) printf("B-");
+      shared=1;
+    }
+#endif    
+    if (bucket) {      
       bucket_asp=rotp(g,bucket);
-      for(j=2;j<bucket_asp[0] && j<bucket_asp[1]; j=j+2) {
-        /*
-        printf("j %d meaning %d term ",j,(j-2)/2);
-        //wr_print_term(g,rpto(g,bucket_asp[j]));
-        wr_print_term(g,bucket_asp[j]);
-        printf(" in cl \n");
-        wr_print_clause(g,rotp(g,bucket_asp[j+1]));
-        printf("\n");
-        */
-
-        if (wr_atom_doublecut_aux(g,xatom,xatommeta,xcl,pos,rotp(g,bucket_asp[j+1]))) {
-          //CP10
-          /*
-          printf("\nmatch found for\n");
-          wr_print_clause(g,xcl);
-          printf("\nwith double\n");
-          wr_print_clause(g,rotp(g,bucket_asp[j+1]));
-          printf("\n");
-          */
+      //printf("\nbucket found\n");
+      //printf("bucket for hash %d size %d next free %d\n",hash,bucket_asp[0],bucket_asp[1]);
+      for(j=2;j<bucket_asp[0] && j<bucket_asp[1]; j=j+2) {       
+        if (wr_atom_doublecut_aux(g,xatom,xatommeta,xcl,pos,rotp(g,bucket_asp[j+1]))) {         
+          if (shared) printf("+");
+          else printf("*");
           *foundbucket=rotp(g,bucket_asp[j+1]);      
           return 1;
         }         
+      }
+      if (!shared) {
+        bucket=wr_find_shared_offset_termbucket(g,rotp(g,(r_kb_g(g))->shared_hash_pos_grounddoubles),xatomptr,hash);        
+        if (!bucket) return -1;
+        //printf("G-");
+        bucket_asp=rotp(g,bucket);
+        for(j=2;j<bucket_asp[0] && j<bucket_asp[1]; j=j+2) {       
+          if (wr_atom_doublecut_aux(g,xatom,xatommeta,xcl,pos,rotp(g,bucket_asp[j+1]))) {         
+            printf("+");            
+            *foundbucket=rotp(g,bucket_asp[j+1]);      
+            return 1;
+          }         
+        }
       }
     }
   } else {
@@ -971,11 +1093,21 @@ int wr_atom_doublecut(glb* g, gint xatom, gint xatommeta, gptr xcl, int pos, cve
     //bucket=wr_find_termhash(g,rotp(g,g->hash_pos_grounddoubles),xatomptr,hash);  
     
     //--- new part starts
+    shared=0;
     bucket=wr_find_offset_termbucket(g,rotp(g,g->hash_neg_grounddoubles),xatomptr,hash);
-    if (bucket) {
-      //printf("\nbucket found\n");
-      //printf("bucket for hash %d size %d next free %d\n",hash,bucket[0],bucket[1]);
+#ifdef SHARED_DERIVED
+    if (!bucket) {
+      //CP10
+      bucket=wr_find_shared_offset_termbucket(g,rotp(g,(r_kb_g(g))->shared_hash_neg_grounddoubles),xatomptr,hash);
+      //if (bucket) printf("B+");
+      //CP11
+      shared=1;
+    }
+#endif       
+    if (bucket) {      
       bucket_asp=rotp(g,bucket);
+      //printf("\nbucket found\n");
+      //printf("bucket for hash %d size %d next free %d\n",hash,bucket_asp[0],bucket_asp[1]);
       for(j=2;j<bucket_asp[0] && j<bucket_asp[1]; j=j+2) {
         
         /*
@@ -986,7 +1118,9 @@ int wr_atom_doublecut(glb* g, gint xatom, gint xatommeta, gptr xcl, int pos, cve
         wr_print_clause(g,rotp(g,bucket_asp[j+1]));
         printf("\n");
         */
+        //CP12
         if (wr_atom_doublecut_aux(g,xatom,xatommeta,xcl,pos,rotp(g,bucket_asp[j+1]))) {
+          //CP13
           //CP10
           /*
           printf("\nmatch found for\n");
@@ -995,10 +1129,25 @@ int wr_atom_doublecut(glb* g, gint xatom, gint xatommeta, gptr xcl, int pos, cve
           wr_print_clause(g,rotp(g,bucket_asp[j+1]));
           printf("\n");
           */
+          if (shared) printf("+");
+          else printf("*");
           *foundbucket=rotp(g,bucket_asp[j+1]);      
           return 1;
-        }         
-      }
+        }
+      }   
+      if (!shared) {        
+        bucket=wr_find_shared_offset_termbucket(g,rotp(g,(r_kb_g(g))->shared_hash_pos_grounddoubles),xatomptr,hash);
+        if (!bucket) return -1;
+        //printf("G+");
+        bucket_asp=rotp(g,bucket);
+        for(j=2;j<bucket_asp[0] && j<bucket_asp[1]; j=j+2) {       
+          if (wr_atom_doublecut_aux(g,xatom,xatommeta,xcl,pos,rotp(g,bucket_asp[j+1]))) {         
+            printf("+");            
+            *foundbucket=rotp(g,bucket_asp[j+1]);      
+            return 1;
+          }            
+        }
+      }  
     }
   }   
 #ifdef DEBUG
@@ -1165,6 +1314,13 @@ int wr_derived_cl_strong_cut(glb* g, gptr rptr, int rpos, int prevcuts) {
       printf("\nneg\n");
 #endif                
       cutter=strongly_cut_atom(g,xatom,rotp(g,g->hash_pos_units),(nongroundcount>1));
+/*
+#ifdef SHARED_DERIVED
+      if (!cutter) {
+        cutter=strongly_cut_atom(g,xatom,rotp(g,g->shared_hash_pos_units),(nongroundcount>1));
+      }  
+#endif      
+*/
       if (cutter!=NULL) {         
 #ifdef SCUTDEBUG        
         printf("\ncutoff as neg!\n"); 
@@ -1185,6 +1341,13 @@ int wr_derived_cl_strong_cut(glb* g, gptr rptr, int rpos, int prevcuts) {
       printf("\npos\n");
 #endif 
       cutter=strongly_cut_atom(g,xatom,rotp(g,g->hash_neg_units),(nongroundcount>1));
+/*      
+#ifdef SHARED_DERIVED
+      if (!cutter) {
+        cutter=strongly_cut_atom(g,xatom,rotp(g,g->shared_hash_pos_units),(nongroundcount>1));
+      }  
+#endif        
+*/
       if (cutter!=NULL) {              
 #ifdef SCUTDEBUG        
         printf("\ncutoff  as pos!\n"); 

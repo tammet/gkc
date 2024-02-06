@@ -86,7 +86,8 @@ static void wr_set_medium_printout(glb* g);
 void show_cur_time(void);
 
 int store_units_globally(void* db, glb* g);
-void wr_store_offset_termhash(void* db, glb* g, gint* hasharr, int pos);
+int store_doubles_globally(void* db, glb* g);
+int wr_store_offset_termhash(void* db, glb* g, gint* hasharr, int pos, int type);
 #define GLOBAL_UNITS
 
 #define SHOW_SUBSUME_STATS
@@ -95,6 +96,8 @@ void wr_store_offset_termhash(void* db, glb* g, gint* hasharr, int pos);
 
 #define SUBSFLAG_CLAUSE_COUNT_LIMIT 10000 // no subs with active clauses if more active clauses
 #define SINEORDER  
+
+#define SHARED_DERIVED
 
 /* ======= Private protos ================ */
 
@@ -595,7 +598,7 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
 #endif
 
     if (db!=child_db) {
-      printf("\nshared database used\n");
+      //printf("\nshared database used\n");
       (g->print_fof_conversion_proof)=0;
       (g->store_fof_skolem_steps)=0;      
       (g->sine_strat)=0; 
@@ -644,10 +647,10 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
         wr_printf("\n**** starting to read from the external shared mem kb\n");
 #endif                     
         //printf("\n**** no queryfocus, starting to read from the external shared mem kb\n");
-        clause_count+=wr_init_active_passive_lists_from_one(g,db,db);   
-        CP0    
+        clause_count+=wr_init_active_passive_lists_from_one(g,db,db);    
+#ifndef SHARED_DERIVED        
         (g->kb_g)=NULL;        
-        CP1
+#endif                
       } else {
         // queryfocus case
 
@@ -835,7 +838,7 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
           } else {
             wr_printf("\nsearch finished without proof.\n");
           }  
-          printf("\nPROOF NOT FOUND\n");
+          //printf("\nPROOF NOT FOUND\n");
           /*
           printf("\nclactive(g):\n");
           wr_show_clactive(g);
@@ -889,8 +892,10 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
           } 
           */ 
         }
-#ifdef GLOBAL_UNITS
+#ifdef GLOBAL_UNITS       
         store_units_globally(db,g);
+        store_doubles_globally(db,g);        
+        //wr_show_database_details(g,g->db, "local");
         /*
         void* glbdb;
         glbdb=db_get_kb_db(db);
@@ -904,7 +909,18 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
         wr_printf("\n\nfork %d: search terminated without proof.\n",g->current_fork_nr);         
       } else {
         wr_printf("\n\nsearch terminated without proof.\n");    
-      }             
+      }            
+#ifdef GLOBAL_UNITS      
+      store_units_globally(db,g);
+      store_doubles_globally(db,g);      
+      //wr_show_database_details(g,g->db, "local");
+      /*
+      void* glbdb;
+      glbdb=db_get_kb_db(db);
+      //wr_show_database_details(NULL,shmptr,"shmptr");
+      wr_show_database_details(NULL,glbdb,"shmptr");
+      */
+#endif  
     } else if (res==-1) {
 #ifdef PRINTERR       
       wr_printf("\n\nfork %d: search cancelled: memory overflow.\n",g->current_fork_nr);
@@ -2350,177 +2366,151 @@ void wg_show_db_error(void* db) {
 #ifdef GLOBAL_UNITS
 
 int store_units_globally(void* db, glb* g) {
-  printf("\nstore_units_globally called\n");
+  printf("\nstore_units_globally called,");
 
-  gptr actptr, hasharrpos, hasharrneg; //, hashvec;
-  int dbused;
-  gint iactive, iactivelimit;
+  gptr hasharrpos, hasharrneg; //, hashvec; 
+  //int dbused;
+  //gint iactive, iactivelimit;
   glb* shared_g;
-  void* global_db;
-
+  int count;
+  //void* global_db; // shared_g->db;
+  
   //printf("\n db %ld g %ld r_kb_g(g) %ld db_rglb(db) %ld\n",(gint)db,(gint)g,(gint)(r_kb_g(g)),(gint)(db_rglb(db)));
   //shared_g=r_kb_g(g);
   //shared_g=db_rglb(db);
   shared_g=(g->kb_g);
-  //global_db=shared_g->kb_db;
-  global_db=shared_g->db;
+  if (!shared_g) {
+    printf("\n*** NB! shared_g is 0, not storing! ***\n");
+    return 1;
+  }  
+  //printf("\nshared_g %ld\n",(gint)shared_g);
+  //global_db=shared_g->db;
   
   //wr_show_database_details(g,db, "local"); // works ok: if first arg given, will use this (local)
-
   //wr_show_database_details(NULL,db, "global"); // works ok: if first arg NULL, will try to use global
-
   //wr_show_database_details(db_rglb(db),db, "global"); // segfaults!
-
   //wr_show_database_details(g,NULL, "local?"); // works, shows local
-
   // g->kb_db is external db, g->kb_g is g inside this external db
-  //printf("\ng->inkb %ld g->kb_g %ld, g->kb_db %ld g->local_db %ld\n",
-  //      (gint)(g->inkb),(gint)(g->kb_g),(gint)(g->kb_db),(gint)(g->local_db));
-   // somewhy (g->kb_db) is 0 !!
-  //glb* intern_g;
-  //intern_g=(g->kb_g);
-
-  //printf("\nshared_g->inkb %ld shared_g->kb_g %ld, shared_g->kb_db %ld shared_g->local_db %ld\n",
-  //      (gint)(shared_g->inkb),(gint)(shared_g->kb_g),(gint)(shared_g->kb_db),(gint)(shared_g->local_db));
-
-  // db 140522599059456 g 30152464 r_kb_g(g) 30067504 db_rglb(db) 140522599194176
-  //        g->inkb 0        g->kb_g 30067504,        g->kb_db 0                      g->local_db 140521599057936
-  // shared_g->inkb 1 shared_g->kb_g 0,        shared_g->kb_db 140058015969280 shared_g->local_db 0
-
-  
- 
   //wr_show_database_details(g->kb_g,g->kb_db, "global?"); // works, shows global
-
   //wr_show_database_details(shared_g,shared_g->kb_db, "global???"); // works, shows global
-  wr_show_database_details_shared(shared_g,NULL, "global???"); // works, shows global, uses shared_g->db internally
-
-
-  // g->
-  // void* db;             /**< mem database used as a base for offset: either kb_db or child_db here */
-  // void* kb_db;          /**< shared-mem knowledge base */
-  // void* child_db;       /**< local child db: if kb_db present, then child_db->kb_db is set to this */
-  // gint db_offset;       /**< offset of the db ptr */
-  // gint inkb;            /**< 1 if g struct is inside shared kb, 0 otherwise */
-  // void* kb_g;            /**< if external shared mem kb_db is present, then the g ptr inside kb_db, else NULL */ 
-  // void* local_db;        /** this will be set to local db in any case in rmain.c */  
-  // char* filename;       /**< input filename */
-  // char* outfilename;       /**< output filename */
   
+  //NB! We used the one here:
+  //wr_show_database_details_shared(shared_g,NULL, "global???"); // works, shows global, uses shared_g->db internally
+  
+  //CP0
+  //wr_show_database_details(g,NULL, "local");
+  //CP1
+   
+  // local db
 
-  //exit(0);
+  //hasharrpos=rotp(g,g->hash_pos_active_groundunits);
+  //hasharrneg=rotp(g,g->hash_neg_active_groundunits);  
 
-  wr_printf("\n===== active clauses as used for subsumption =====  \n");
-  for(dbused=0; dbused<2; dbused++) {
-    if (dbused==0) {
-      // local db
-      actptr=rotp(g,g->clactivesubsume); 
-      hasharrpos=rotp(g,g->hash_pos_active_groundunits);
-      hasharrneg=rotp(g,g->hash_neg_active_groundunits);  
-      //wr_printf("\n-- in local db: -- \n");         
-    } else {     
-      // global db   
-      /*
-      if (r_kb_g(g)) {        
-        actptr=rotp(g,(r_kb_g(g))->clactivesubsume); 
-        hasharrpos=rotp(g,(r_kb_g(g))->hash_pos_active_groundunits);
-        hasharrneg=rotp(g,(r_kb_g(g))->hash_neg_active_groundunits);
-        wr_printf("\n -- in shared db: -- \n");         
-      } 
-      */ 
-      //else break;      
-    }
-    printf("\n---storing----\n");
-    // ground units:
-    if (!dbused && r_kb_g(g)) {
-      //wr_printf("\npos ground units hasharrpos %ld\n",(gint)hasharrpos); 
-      wr_store_offset_termhash(db,g,hasharrpos,1); //rotp(g,(r_kb_g(g))->hash_pos_active_groundunits));
-      //wr_store_offset_termhash(g,rotp(g,(r_kb_g(g))->hash_pos_active_groundunits),1);
-    }
-    if (!dbused && r_kb_g(g)) {
-      //wr_printf("\nneg ground units hasharrneg %ld\n",(gint)hasharrneg); 
-      wr_store_offset_termhash(db,g,hasharrneg,0);//rotp(g,(r_kb_g(g))->hash_neg_active_groundunits));
-    }
+  hasharrpos=rotp(g,g->hash_pos_groundunits);
+  hasharrneg=rotp(g,g->hash_neg_groundunits);  
+  
+  // ground units:
+  if (shared_g) {
+    //wr_printf("\npos ground units hasharrpos %ld\n",(gint)hasharrpos); 
+    count=wr_store_offset_termhash(db,g,hasharrpos,1,0); //rotp(g,(r_kb_g(g))->hash_pos_active_groundunits));
+    //wr_printf("\nneg ground units hasharrneg %ld\n",(gint)hasharrneg); 
+    count=count+wr_store_offset_termhash(db,g,hasharrneg,0,0);//rotp(g,(r_kb_g(g))->hash_neg_active_groundunits));
 
-    //wr_printf("\nshared neg ground units\n"); 
-    //printf("\ndb %ld, shared_g %ld, shared_g->shared_hash_neg_groundunits %ld \n",
-    //      (gint)db,(gint)shared_g,(gint)(shared_g->shared_hash_neg_groundunits));
-      //wr_print_offset_termhash(g,hasharrpos);
+    hasharrpos=rotp(g,g->hash_pos_active_groundunits);
+    hasharrneg=rotp(g,g->hash_neg_active_groundunits);  
 
-
-    //wr_show_database_details(g,db, "local");
-    
-    //wr_show_database_details(db_rglb(db_get_kb_db(db)),db_get_kb_db(db), "global");
-    wr_show_database_details_shared(shared_g,global_db, "global+++");
-
-    exit(0);
-    /*
-    printf("\n\n** hash_neg_groundunits\n");
-    wr_print_termhash(g,rotp(g,g->hash_neg_groundunits));
-    printf("\n** hash_pos_groundunits\n");
-    wr_print_termhash(g,rotp(g,g->hash_pos_groundunits));  
-    printf("\n");
-
-    wr_print_termhash(g,hasharrneg);  
-    wr_print_termhash(g,hasharrpos);
-    wr_print_termhash(shared_g,rotp(g,shared_g->hash_pos_groundunits));
-    */
-    //wr_print_termhash(g,(r_kb_g(g))->hash_neg_active_groundunits);
-     //wr_print_termhash(shared_g,shared_g->shared_hash_neg_groundunits); 
-     //wr_print_termhash(shared_g,rotp(shared_g,shared_g->shared_hash_neg_groundunits));
-
-    continue;
-
-    printf("\n---printing----\n");
-    // ground units:
-    if (1) {
-      wr_printf("\npos ground units\n"); 
-      //wr_print_offset_termhash(g,hasharrpos);
-      wr_print_termhash(g,hasharrpos);
-    }
-    if (1) {
-      wr_printf("\nneg ground units\n"); 
-      //wr_print_offset_termhash(g,hasharrneg);
-      wr_print_termhash(g,hasharrneg);
-    }
-    if (1) {
-      wr_printf("\nshared neg ground units\n"); 
-      printf("\ndb %ld, shared_g %ld, shared_g->shared_hash_neg_groundunits %ld \n",
-          (gint)db,(gint)shared_g,(gint)(shared_g->shared_hash_neg_groundunits));
-      //wr_print_offset_termhash(g,hasharrpos);
-      //wr_print_termhash(g,hasharrpos);
-      wr_print_termhash(shared_g,rotp(shared_g,shared_g->shared_hash_neg_groundunits));
-      //wr_print_termhash(shared_g,shared_g->shared_hash_neg_groundunits);
-    }    
-    if (1) {
-      wr_printf("\nshared pos ground units\n"); 
-      //wr_print_offset_termhash(g,hasharrpos);
-      //wr_print_termhash(g,hasharrpos);
-      wr_print_termhash(shared_g,rotp(shared_g,shared_g->shared_hash_pos_groundunits));
-    } 
-    // non-ground-units:
-    wr_printf("\nactive:\n\n");  
-    iactivelimit=CVEC_NEXT(actptr);
-    for(iactive=CVEC_START; iactive<iactivelimit; iactive+=CLMETABLOCK_ELS) {
-      wr_print_clause(g,rotp(g,(actptr[iactive+CLMETABLOCK_CL_POS])));
-      wr_printf("\n");
-    }  
+    count=count+wr_store_offset_termhash(db,g,hasharrpos,1,0); //rotp(g,(r_kb_g(g))->hash_pos_active_groundunits));
+    //wr_printf("\nneg ground units hasharrneg %ld\n",(gint)hasharrneg); 
+    count=count+wr_store_offset_termhash(db,g,hasharrneg,0,0);//rotp(g,(r_kb_g(g))->hash_neg_active_groundunits));
   }
-  exit(0);
-
-  wr_printf("\n\n===== end of active clauses as used for subsumption  =====  \n\n");
-
-  if (r_kb_g(g)) {        
-    actptr=rotp(g,(r_kb_g(g))->clactivesubsume); 
-    hasharrpos=rotp(g,(r_kb_g(g))->hash_pos_active_groundunits);
-    hasharrneg=rotp(g,(r_kb_g(g))->hash_neg_active_groundunits);
-    wr_printf("\n -- in shared db: -- \n");         
-  } 
+  printf(" stored unit count %d\n",count);
+  // NB! We used the one here:
+  //wr_show_database_details(g,g->db, "local");
+   //wr_show_database_details_shared(shared_g,NULL, "global+++");
+  //exit(0);
 
   return 0;
 }
 
 
-void wr_store_offset_termhash(void* db, glb* g, gint* hasharr, int pos) {
+int store_doubles_globally(void* db, glb* g) {
+  printf("store_doubles_globally called,");
+  
+
+  gptr hasharrpos, hasharrneg; //, hashvec; 
+  //int dbused;
+  //gint iactive, iactivelimit;
+  glb* shared_g;
+  int count;
+  //void* global_db; // shared_g->db;
+  
+  //printf("\n db %ld g %ld r_kb_g(g) %ld db_rglb(db) %ld\n",(gint)db,(gint)g,(gint)(r_kb_g(g)),(gint)(db_rglb(db)));
+  //shared_g=r_kb_g(g);
+  //shared_g=db_rglb(db);
+  shared_g=(g->kb_g);
+  if (!shared_g) {
+    printf("\n*** NB! shared_g is 0, not storing! ***\n");
+    return 1;
+  }  
+  //printf("\nshared_g %ld\n",(gint)shared_g);
+  //global_db=shared_g->db;
+  
+  //wr_show_database_details(g,db, "local"); // works ok: if first arg given, will use this (local)
+  //wr_show_database_details(NULL,db, "global"); // works ok: if first arg NULL, will try to use global
+  //wr_show_database_details(db_rglb(db),db, "global"); // segfaults!
+  //wr_show_database_details(g,NULL, "local?"); // works, shows local
+  // g->kb_db is external db, g->kb_g is g inside this external db
+  //wr_show_database_details(g->kb_g,g->kb_db, "global?"); // works, shows global
+  //wr_show_database_details(shared_g,shared_g->kb_db, "global???"); // works, shows global
+  
+  //NB! We used the one here:
+  //wr_show_database_details_shared(shared_g,NULL, "global???"); // works, shows global, uses shared_g->db internally
+  
+  //CP0
+  //wr_show_database_details(g,NULL, "local");
+  //CP1
+   
+  // local db
+  hasharrpos=rotp(g,g->hash_pos_grounddoubles);
+  hasharrneg=rotp(g,g->hash_neg_grounddoubles);  
+  
+  // ground units:
+  if (shared_g) {
+    //wr_printf("\npos ground units hasharrpos %ld\n",(gint)hasharrpos); 
+    //wr_show_database_details(g,g->db, "local");
+    //CP1
+    count=wr_store_offset_termhash(db,g,hasharrpos,1,1); //rotp(g,(r_kb_g(g))->hash_pos_active_groundunits));
+    //CP2    
+    //wr_printf("\nneg ground units hasharrneg %ld\n",(gint)hasharrneg); 
+    count=count+wr_store_offset_termhash(db,g,hasharrneg,0,1);//rotp(g,(r_kb_g(g))->hash_neg_active_groundunits));
+    //CP3
+    //wr_show_database_details_shared(shared_g,NULL, "global+++");
+  }
+  printf(" stored double count %d\n",count);
+  // NB! We used the one here:
+  //wr_show_database_details_shared(shared_g,NULL, "global+++");
+  /*
+  printf("\nnegdoublebuckets:\n");
+  int i;
+  for(i=1;i<hasharrneg[0];i++) {    
+    if (hasharrneg[i]) {
+      printf(" X%d ",i);
+    }        
+  }  
+  printf("\nposdoublebuckets:\n");
+  for(i=1;i<hasharrpos[0];i++) {    
+    if (hasharrpos[i]) {
+      printf(" Y%d ",i);
+    }        
+  } 
+  */
+  //exit(0);
+
+  return 0;
+}
+
+
+int wr_store_offset_termhash(void* db, glb* g, gint* hasharr, int pos, int type) {
   int i,j;
   //gint* tohasharr;
   cvec bucket;
@@ -2529,11 +2519,13 @@ void wr_store_offset_termhash(void* db, glb* g, gint* hasharr, int pos) {
   gptr cl;
   gint cl_metablock[CLMETABLOCK_ELS];
   glb* shared_g;
+  int count=0;
   //void* global_db;
 
   shared_g=(g->kb_g);
   //global_db=shared_g->db;
 
+  //printf("\nwr_store_offset_termhash called for pos %d type %d\n",pos,type);
   //printf("\nwr_store_offset_termhash called \n");
   /*
   if (pos) {
@@ -2549,12 +2541,13 @@ void wr_store_offset_termhash(void* db, glb* g, gint* hasharr, int pos) {
   for(i=1;i<hasharr[0];i++) {    
     if (hasharr[i]) {
       bucket=rotp(g,(hasharr[i]));      
-      //wr_printf("\nhashslot i %d size %ld next free %ld\n",i,bucket[0],bucket[1]);        
       if (1) {
         for(j=2;j<bucket[0] && j<bucket[1]; j=j+2) {
+          
+          //wr_printf("\nterm ");
+          //wr_print_term(g,bucket[j]);
+          //printf("\n");
           /*
-          wr_printf("term ");
-          wr_print_term(g,bucket[j]);
           //printf(" path %d in cl ",0);
           //CP1
           //printf("\nj %d bucket[j+1] %ld \n",j,bucket[j+1]);
@@ -2567,13 +2560,24 @@ void wr_store_offset_termhash(void* db, glb* g, gint* hasharr, int pos) {
           // -- now storing to global ---
           printf("\nabout to store\n");
           */          
+          /*
+          if (type==1) {
+            wr_printf("\nterm ");
+            wr_print_term(g,bucket[j]);
+            printf("\n");
+            wr_print_clause(g,rotp(g,bucket[j+1]));
+            printf("\n");
+          }
+          */
           cl=rotp(g,bucket[j+1]);
-          resmeta=wr_calc_clause_meta(shared_g,cl,cl_metablock);
-          wr_add_cl_to_shared_unithash(g,shared_g,cl,resmeta); 
+          //resmeta=wr_calc_clause_meta(shared_g,cl,cl_metablock);
+          resmeta=0;
+          wr_add_cl_to_shared_unithash(g,shared_g,rotp(g,bucket[j]),cl,resmeta,&count,pos,type,i); 
         }
       }  
     }
   }
+  return count;
 }
 
 

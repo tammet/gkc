@@ -410,6 +410,11 @@ void wr_show_database_details(glb* passedg,void* db, char* desc) {
   printf("\n** shared_hash_pos_groundunits:\n"); 
   wr_print_termhash(g,rotp(g,g->shared_hash_pos_groundunits));
   
+  printf("\n** hash_pos_grounddoubles:\n"); 
+  wr_print_termhash(g,rotp(g,g->hash_pos_grounddoubles));
+  printf("\n** hash_neg_grounddoubles:\n"); 
+  wr_print_termhash(g,rotp(g,g->hash_neg_grounddoubles));
+
   
   wr_printf("\n** clactivesubsume:\n"); 
   wr_show_clactivesubsume(g);
@@ -568,6 +573,11 @@ void wr_show_database_details_shared (glb* passedg,void* db, char* desc) {
   printf("\n** shared_hash_pos_groundunits:\n"); 
   wr_print_termhash(g,rotp(g,g->shared_hash_pos_groundunits));
   
+  printf("\n** shared_hash_pos_grounddoubles:\n"); 
+  wr_print_termhash(g,rotp(g,g->shared_hash_pos_grounddoubles));
+  printf("\n** shared_hash_neg_grounddoubles:\n"); 
+  wr_print_termhash(g,rotp(g,g->shared_hash_neg_grounddoubles));
+
   /*
   
   wr_printf("\n** clactivesubsume:\n"); 

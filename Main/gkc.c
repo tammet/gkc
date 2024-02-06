@@ -547,7 +547,7 @@ int gkc_main(int argc, char **argv) {
     printf("\ndb attached, showing attached shared memory db shmptr %ld\n",
       (unsigned long int)((gint)shmptr));
     gkc_show_cur_time();
-    wr_show_database_details_shared(NULL,shmptr,"shmptr");
+    // wr_show_database_details_shared(NULL,shmptr,"shmptr");
 #ifdef SHOWTIME       
     printf("\ndb attached, showing attached shared memory db shmptr %ld\n",
       (unsigned long int)((gint)shmptr));
@@ -711,7 +711,7 @@ int gkc_main(int argc, char **argv) {
         else  printf("result: proof not found.\n");
       }     
     }     
-    wr_show_database_details_shared(NULL,shmptr,"shmptr");
+    //wr_show_database_details_shared(NULL,shmptr,"shmptr");
 #ifdef SHOWTIME      
     printf("\nwg_run_reasoner returned\n");
     gkc_show_cur_time();

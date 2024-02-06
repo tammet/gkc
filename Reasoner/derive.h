@@ -65,8 +65,11 @@ gptr wr_derived_build_cl_from_initial_cl(glb* g, gptr rptr, int rpos, int rulefl
 int wr_derived_weight_check(glb* g, double avg, int weight,  int size, int depth, int length, int xatomnr, int yatomnr);
 
 gint wr_add_cl_to_unithash(glb* g, gptr cl, gint clmeta);
-gint wr_add_cl_to_shared_unithash(glb* g, glb* shared_g, gptr cl, gint clmeta);
+gint wr_add_cl_to_shared_unithash(glb* g, glb* shared_g, gptr atom, gptr cl, gint clmeta, int* storecount, int pos, int type, int bucketnr);
 gint wr_add_cl_to_doublehash(glb* g, gptr cl);
+
+int ok_double_hash_elem(glb* g,gptr xatom, gptr cl);
+
 int wr_process_resolve_result_isrulecl(glb* g, gptr rptr, int rpos);
 int wr_cl_derived_is_answer(glb* g,gptr cl);
 

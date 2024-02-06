@@ -45,7 +45,7 @@ extern "C" {
 //#define XDEBUG
 //#define DEBUGHASH
 
-
+#define GLOBAL_UNITS
 
 /* ====== Private headers ======== */
 
@@ -936,6 +936,7 @@ gint* wr_find_offset_termhash(glb* g, gint* hasharr, gptr term, int hash) {
   wr_print_clause(g,term);
   wr_printf("\n");
   */
+  
   // negative hashes not ok: make positive
   if (hash<0) hash=0-hash;
   // too big hashes are recalculated
@@ -948,18 +949,46 @@ gint* wr_find_offset_termhash(glb* g, gint* hasharr, gptr term, int hash) {
     //printf("\n no bucket found for hash\n");
     (g->stat_lit_hash_match_miss)++;
     return NULL;
-  }  
+  } 
+  /*
+  wr_printf("\nfind from termhash with ok bucket, with length %d and hash %d the term: \n",hasharr[0],hash);
+  wr_print_clause(g,term);
+  wr_printf("\n record: ");
+  wg_print_record(g->db,term);
+  wr_printf("\n");
+  */
+
   oterm=rpto(g,term);
   //printf("bucket for hash %d size %d next free %d\n",hash,bucket[0],bucket[1]);
   bucket_asp=rotp(g,bucket);
   for(j=2;j<bucket_asp[0] && j<bucket_asp[1]; j=j+2) {
     /*
-    wr_printf("%d ",(j-2)/2);
-    wr_print_term(g,rpto(g,bucket[j]));
-    wr_printf(" in cl ");
-    wr_print_clause(g,bucket[j+1]);
-    wr_printf("\n");
+    printf("count %d j %d bucket_asp[j] %ld bucket_asp[j+1] %ld",(j-2)/2,j,(gint)(bucket_asp[j]),(gint)(bucket_asp[j+1]));
+    //wg_print_record(((glb*)(g->kb_g))->db,pto(((glb*)(g->kb_g))->db,bucket_asp[j+1]));
+    wr_print_term(g,bucket_asp[j]);
+    printf("\n bucket term: ");
+    wr_print_record(g,rotp(g,bucket_asp[j]));
+    printf("\n bucket clause: ");
+    wr_print_record(g,rotp(g,bucket_asp[j+1]));
+    printf("\n");
     */
+    /*
+        wr_print_term(g,bucket[j]);
+          //printf(" path %d in cl ",0);
+          //CP1
+          //printf("\nj %d bucket[j+1] %ld \n",j,bucket[j+1]);
+          //CP2          
+          wr_printf(" in clause ");
+          wr_print_clause(g,rotp(g,bucket[j+1]));          
+          wr_printf(" as rec ");
+          wg_print_record(g->db,rotp(g,bucket[j+1]));
+    */
+
+    //wr_print_term(g,rpto(g,bucket_asp[j]));
+    //printf(" in cl ");
+    //wr_print_clause(g,bucket_asp[j+1]);
+    //printf("\n");
+    
     (g->tmp4)++;
     if (wr_equal_term(g,oterm,bucket_asp[j],1)) {
       //printf("equal term found in  wr_find_termhash !\n");
@@ -971,6 +1000,126 @@ gint* wr_find_offset_termhash(glb* g, gint* hasharr, gptr term, int hash) {
   return NULL;
 }
 
+#ifdef GLOBAL_UNITS
+
+gint* wr_find_shared_offset_termhash(glb* g, gint* hasharr, gptr term, int hash, int type, gptr clause) {
+  int j;
+  
+  cvec bucket_asp;
+  gint bucket;
+
+  gint oterm; // offset of term
+
+  // negative hashes not ok: make positive
+  if (hash<0) hash=0-hash;
+  // too big hashes are recalculated
+  if (hash+1 >= hasharr[0]) {
+    hash=hash % (hasharr[0]-1);
+  }
+
+  bucket=hasharr[hash+1];  
+  if (!bucket) {
+    //printf("\n no bucket found for hash\n");
+    (g->stat_lit_hash_match_miss)++;
+    return NULL;
+  } 
+  /*
+  wr_printf("\nfind from termhash with ok bucket, with length %d and hash %d the term: \n",hasharr[0],hash);
+  wr_print_clause(g,term);
+  wr_printf("\n record: ");
+  wg_print_record(g->db,term);
+  wr_printf("\n");
+  */
+
+  oterm=rpto(g,term);
+  //printf("bucket for hash %d size %d next free %d\n",hash,bucket[0],bucket[1]);
+  bucket_asp=rotp(g,bucket);
+  for(j=2;j<bucket_asp[0] && j<bucket_asp[1]; j=j+2) {
+    /*
+    printf("count %d j %d bucket_asp[j] %ld bucket_asp[j+1] %ld",(j-2)/2,j,(gint)(bucket_asp[j]),(gint)(bucket_asp[j+1]));
+    //wg_print_record(((glb*)(g->kb_g))->db,pto(((glb*)(g->kb_g))->db,bucket_asp[j+1]));
+    wr_print_term(g,bucket_asp[j]);
+    printf("\n bucket term: ");
+    wr_print_record(g,rotp(g,bucket_asp[j]));
+    printf("\n bucket clause: ");
+    wr_print_record(g,rotp(g,bucket_asp[j+1]));
+    printf("\n");
+    */
+    /*
+        wr_print_term(g,bucket[j]);
+          //printf(" path %d in cl ",0);
+          //CP1
+          //printf("\nj %d bucket[j+1] %ld \n",j,bucket[j+1]);
+          //CP2          
+          wr_printf(" in clause ");
+          wr_print_clause(g,rotp(g,bucket[j+1]));          
+          wr_printf(" as rec ");
+          wg_print_record(g->db,rotp(g,bucket[j+1]));
+    */
+
+    //wr_print_term(g,rpto(g,bucket_asp[j]));
+    //printf(" in cl ");
+    //wr_print_clause(g,bucket_asp[j+1]);
+    //printf("\n");
+    
+    (g->tmp4)++;
+    if (type==0) {
+      // units
+      if (wr_equal_term(g,oterm,bucket_asp[j],1)) {
+      //if (wr_shared_equal_term(g,oterm,bucket_asp[j],0)) {
+        //printf("equal term found in  wr_find_termhash !\n");
+        (g->stat_lit_hash_match_found)++;
+        return rotp(g,bucket_asp[j+1]);
+      }  
+    } else {
+      // doubles
+      /*
+      printf("\nchecking if equal double\n");
+      wr_print_clause(g,clause);
+      printf("\n"); 
+      */
+      if (equal_ordered_shared_clause(g,clause,rotp(g,bucket_asp[j+1]))) {
+        (g->stat_lit_hash_match_found)++;
+        return rotp(g,bucket_asp[j+1]);
+      }
+    }
+  }
+  (g->stat_lit_hash_match_miss)++;
+  return NULL;
+}
+
+int equal_ordered_shared_clause(glb* g, gptr xcl, gptr ycl) {
+  int i;
+  void* db;
+  gint xmeta, ymeta, xatom, yatom;
+
+  db=g->db;
+  for(i=0;i<2;i++) {
+    xmeta=wg_get_rule_clause_atom_meta(db,xcl,i); 
+    xatom=wg_get_rule_clause_atom(db,xcl,i);
+    /*
+    printf("\nxmeta %ld\n",xmeta);    
+    wr_print_term(g,xatom);
+    printf("\n");
+    */
+
+    ymeta=wg_get_rule_clause_atom_meta(db,ycl,i); 
+    //printf("\nymeta %ld\n",ymeta);   
+    yatom=wg_get_rule_clause_atom(db,ycl,i); 
+    //printf("\nyatom %ld\n",yatom);
+    //printf("\ng %ld localg %ld\n",(gint)g,(gint)localg);
+    //wr_print_term(g,yatom);
+    //wg_print_record(db,yatom);
+    //printf("\n");
+    if (!(xmeta==ymeta && wr_equal_term(g,xatom,yatom,1))) {
+      //printf("\ndifferent!\n");
+      return 0;
+    }
+  }
+  return 1;
+}
+
+#endif
 
 gint wr_find_offset_termbucket(glb* g, gint* hasharr, gptr term, int hash) {
   gint bucket;
@@ -995,6 +1144,38 @@ gint wr_find_offset_termbucket(glb* g, gint* hasharr, gptr term, int hash) {
   }  
   return bucket;
 }
+
+#ifdef GLOBAL_UNITS
+
+gint wr_find_shared_offset_termbucket(glb* g, gint* hasharr, gptr term, int hash) {
+  gint bucket;
+
+  /*
+  printf("\n??? wr_find_shared_offset_termbucket: find from termhash with length %d and hash %d the term: \n",hasharr[0],hash);   
+  wr_print_term(g,rpto(g,term));   
+  printf("\n");
+  */
+    
+ 
+  // negative hashes not ok: make positive
+  if (hash<0) hash=0-hash;
+  // too big hashes are recalculated
+  if (hash+1 >= hasharr[0]) {
+    hash=hash % (hasharr[0]-1);
+  }
+  //printf("\n hash index: %d\n ",hash+1);
+  bucket=hasharr[hash+1];  
+  //printf("\nbucket value %ld\n",bucket);
+  if (!bucket) {    
+    //printf("\n no bucket found for hash\n");
+    (g->stat_lit_hash_match_miss)++;
+    return 0;
+  }  
+  //printf("\n#### shared_offset_termbucket found\n");
+  return bucket;
+}
+
+#endif
 
 
 /*

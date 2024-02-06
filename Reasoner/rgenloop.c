@@ -97,6 +97,11 @@ int wr_genloop(glb* g) {
   float run_seconds,run_dseconds,total_seconds,fullness; // passed_ratio
   int given_from_hyperqueue_flag,tmp,origlen,simplen;
 
+
+  //wr_show_database_details_shared(shared_g,NULL, "global???");
+  //wr_show_database_details(g,db, "loca???");
+  //exit(0);
+
 #ifndef USE_RES_TERMS  
   gint ipassive;
   gint iactive;

@@ -847,6 +847,106 @@ gint wr_equal_term(glb* g, gint x, gint y, int uniquestrflag) {
 }  
 
 
+#ifdef SHARED_DERIVED
+
+
+gint wr_shared_equal_term(glb* g, gint x, gint y, int uniquestrflag) {  
+  gptr db;
+  gint encx,ency;
+  gptr xptr,yptr;
+  int xlen,ylen,uselen,i,ilimit;
+  gint eqencx; // used by the WR_EQUAL_TERM macro    
+
+  //printf("wr_shared_equal_term called with x %d and y %d\n",x,y);
+#ifdef DEBUG
+  wr_printf("wr_equal_term called with x %d and y %d\n",x,y);
+#endif   
+ 
+  UNUSED(eqencx);
+  // first check if immediately same: return 1 if yes 
+  if (x==y)  return 1; 
+  // handle immediate check cases: for these bit suffixes x is equal to y iff x==y   
+  encx=(x&NORMALPTRMASK);
+  if ((encx==LONGSTRBITS && uniquestrflag) || encx==SMALLINTBITS || encx==NORMALPTRMASK) return 0; 
+  // immediate value: must be unequal since x==y checked before
+  if (!isptr(x) || !isptr(y)) return 0;
+  // here both x and y are ptr types
+  // quick type check: last two bits
+  if (((x)&NONPTRBITS)!=((y)&NONPTRBITS)) return 0;  
+  // if one is datarec, the other must be as well
+  if (!isdatarec(x)) {
+    if (isdatarec(y)) return 0;
+    // neither x nor y are datarecs
+    // need to check pointed values
+    if (wr_equal_ptr_primitives(g,x,y,uniquestrflag)) return 1;
+    else return 0;  
+
+
+    int t1=wg_get_encoded_type(g->db,x);
+    int t2=wg_get_encoded_type(g->db,y);
+    if (t1!=t2) return 0;
+    //printf("\n type %d WG_XMLLITERALTYPE %d \n",t1,WG_XMLLITERALTYPE);
+    if (t1!=WG_URITYPE) return 0;
+    printf("\n t1 %d for x %ld, t2 %d for y %ld\n",t1,x,t2,y);
+    char* s1=wg_decode_unistr(g->db,x,t1);
+    char* s2=wg_decode_unistr(g->db,y,t2);
+    printf("\ns1 %s as num %ld s2 %s as num %ld\n",s1,(gint)s1,s2,(gint)s2);
+    if (s1==NULL && s2==NULL) return 1;
+    if (s1==NULL || s2==NULL) return 0;
+    if (!strcmp(s1,s2)) return 1;
+    //if (s1==s2) return 1;
+    return 0;
+
+    //if (wr_equal_ptr_primitives(g,x,y,uniquestrflag)) return 1;
+    //else return 0;          
+  } else {
+    if (!isdatarec(y)) return 0;
+    // both x and y are datarecs 
+    db=g->db;
+    xptr=decode_record(db,x);
+    yptr=decode_record(db,y);
+    xlen=get_record_len(xptr);
+    ylen=get_record_len(yptr);
+    if (g->unify_samelen) {
+      if (xlen!=ylen) return 0;
+#ifdef USE_TERM_META                  
+      encx=*(xptr+(RECORD_HEADER_GINTS+TERM_META_POS));
+      ency=*(yptr+(RECORD_HEADER_GINTS+TERM_META_POS));  
+      if (issmallint(encx) && issmallint(ency)) {        
+        if (encx!=ency) {                  
+          //printf("\n!!! meta-inequal:\n");
+          //wr_print_term(g,x);
+          //printf("\n");
+          //wr_print_term(g,y);
+          //printf("\n");
+
+          return 0;
+        }  
+      }       
+#endif      
+      uselen=xlen;      
+    } else {
+      if (xlen<=ylen) uselen=xlen;
+      else uselen=ylen;
+    }     
+    if (g->unify_maxuseterms) {
+      if (((g->unify_maxuseterms)+(g->unify_firstuseterm))<uselen) 
+        uselen=(g->unify_firstuseterm)+(g->unify_maxuseterms);
+    }    
+    ilimit=RECORD_HEADER_GINTS+uselen;
+    for(i=RECORD_HEADER_GINTS+(g->unify_firstuseterm); i<ilimit; i++) {      
+      encx=*(xptr+i);
+      ency=*(yptr+i);
+      //printf("\n i:%d encx: %ld ency: %ld",i,encx,ency);
+      //if (!wr_shared_equal_term(g,encx,ency,uniquestrflag)) return 0;
+      if (!WR_EQUAL_TERM(g,encx,ency,uniquestrflag)) return 0;
+    }           
+    return 1;        
+  }        
+}  
+
+#endif
+
 gint wr_equal_mod_vars_term(glb* g, gint x, gint y, int uniquestrflag) {  
   gptr db;
   gint encx,ency;

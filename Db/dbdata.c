@@ -78,6 +78,8 @@ static struct tm * localtime_r (const time_t *timer, struct tm *result);
 
 #define QUICK_REASONER
 
+#define SHARED_DERIVED
+
 /* ======= Private protos ================ */
 
 void tmp_wg_show_strhash(void* db);
@@ -2194,6 +2196,7 @@ wg_int wg_encode_uri(void* db, char* str, char* prefix) {
   gint offset;
   gint len;
   
+  //printf("\nwg_encode_uri db %ld str %s\n",(gint)db,str);
 #ifdef CHECK
   if (!dbcheck(db)) {
     show_data_error(db,"wrong database pointer given to wg_encode_uri");
@@ -2934,6 +2937,7 @@ gint wg_encode_unistr(void* db, char* str, char* lang, gint type) {
   char* sptr;
   char* dendptr;
 
+  //printf("\n  wg_encode_unistr db %ld str %s\n",(gint)db,str);
   len=(gint)(strlen(str));
 #ifdef USE_DBLOG
   /* Log before allocating. */
@@ -3068,6 +3072,11 @@ static gint find_create_longstr(void* db, char* data, char* extrastr, gint type,
       return old;
     } else {
       //printf("\nCP2 find_create_longstr str NOT found in kb_db hash\n");    
+#ifdef SHARED_DERIVED
+      old=find_create_longstr(dbh->kb_db,data,extrastr,type,length);
+      //printf("\nCP3 find_create_longstr made new old %ld \n",(gint)old);    
+      return old;
+#endif      
     }
   }
 #endif

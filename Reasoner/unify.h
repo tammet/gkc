@@ -65,6 +65,7 @@ gint wr_equal_term3(glb* g, gint x, gint y, int uniquestrflag);
 gint wr_equal_term4(glb* g, gint x, gint y, int uniquestrflag);
 
 gint wr_equal_term(glb* g, gint x, gint y, int uniquestrflag);
+gint wr_shared_equal_term(glb* g, gint x, gint y, int uniquestrflag);
 gint wr_equal_mod_vars_term(glb* g, gint x, gint y, int uniquestrflag);
 gint wr_equal_term_macroaux(glb* g, gint x, gint y, int uniquestrflag);
 int wr_equal_ptr_primitives(glb* g, gint a, gint b, int uniquestrflag);
