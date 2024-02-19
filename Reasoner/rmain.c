@@ -87,7 +87,9 @@ void show_cur_time(void);
 
 int store_units_globally(void* db, glb* g);
 int store_doubles_globally(void* db, glb* g);
+int store_fullcl_globally(void* db, glb* g);
 int wr_store_offset_termhash(void* db, glb* g, gint* hasharr, int pos, int type);
+
 #define GLOBAL_UNITS
 
 #define SHOW_SUBSUME_STATS
@@ -464,6 +466,10 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
     (g->print_derived)=(dbmemsegh(local_db)->printderived);
     (g->max_seconds)=(dbmemsegh(local_db)->max_seconds);
     (g->max_dseconds)=(dbmemsegh(local_db)->max_dseconds);
+    (g->shared_units)=(dbmemsegh(local_db)->shared_units);
+    (g->shared_doubles)=(dbmemsegh(local_db)->shared_doubles);
+    (g->shared_fullcl)=(dbmemsegh(local_db)->shared_fullcl);
+   
 
     // copy analyze_g stats to g for easier handling
     wr_copy_sin_stats(analyze_g,g);    
@@ -495,6 +501,9 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
     (g->current_run_nr)=iter;
     (g->current_fork_nr)=forkslive;
     (g->print_level_flag)=(dbmemsegh(local_db)->printlevel);
+    (g->shared_units)=(dbmemsegh(local_db)->shared_units);
+    (g->shared_doubles)=(dbmemsegh(local_db)->shared_doubles);
+    (g->shared_fullcl)=(dbmemsegh(local_db)->shared_fullcl);
     (g->print_derived)=(dbmemsegh(local_db)->printderived);
     (g->max_seconds)=(dbmemsegh(local_db)->max_seconds);
     (g->max_dseconds)=(dbmemsegh(local_db)->max_dseconds);
@@ -813,7 +822,7 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
         if (propres==2) {
           res=0;
         } 
-      }      
+      }  
     } else {
       res=0;
     }
@@ -821,7 +830,6 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
       wg_show_db_error(db);
       res=0-2;
     }
-
     //printf("\nwr_genloop exited, showing database details\n");
     //wr_show_database_details(g,NULL,"local g");
     //printf("\n res is %d\n",res);
@@ -893,15 +901,26 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
           */ 
         }
 #ifdef GLOBAL_UNITS       
-        store_units_globally(db,g);
-        store_doubles_globally(db,g);        
-        //wr_show_database_details(g,g->db, "local");
-        /*
-        void* glbdb;
-        glbdb=db_get_kb_db(db);
-        //wr_show_database_details(NULL,shmptr,"shmptr");
-        wr_show_database_details(NULL,glbdb,"shmptr");
-        */
+        if (r_kb_g(g)) {          
+          //printf("\n r_kb_g(g) is %ld\n",(gint)r_kb_g(g));
+          //printf("\nshared flags %d %d %d\n",g->shared_units,g->shared_doubles,g->shared_fullcl);    
+          check_global_stores(db,g);
+          if (g->shared_units) store_units_globally(db,g);
+          check_global_stores(db,g);
+          if (g->shared_doubles) store_doubles_globally(db,g); 
+          check_global_stores(db,g);
+          if (g->shared_fullcl) store_fullcl_globally(db,g);       
+          check_global_stores(db,g);
+      
+          //wr_show_database_details_shared(r_kb_g(g),NULL, "global++1");        
+          //wr_show_database_details(g,g->db, "local");
+          /*
+          void* glbdb;
+          glbdb=db_get_kb_db(db);
+          //wr_show_database_details(NULL,shmptr,"shmptr");
+          wr_show_database_details(NULL,glbdb,"shmptr");
+          */
+        }
 #endif          
       }  
     } else if (res==2 && (g->print_runs)) {
@@ -910,16 +929,27 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
       } else {
         wr_printf("\n\nsearch terminated without proof.\n");    
       }            
-#ifdef GLOBAL_UNITS      
-      store_units_globally(db,g);
-      store_doubles_globally(db,g);      
-      //wr_show_database_details(g,g->db, "local");
-      /*
-      void* glbdb;
-      glbdb=db_get_kb_db(db);
-      //wr_show_database_details(NULL,shmptr,"shmptr");
-      wr_show_database_details(NULL,glbdb,"shmptr");
-      */
+#ifdef GLOBAL_UNITS 
+      if (r_kb_g(g)) {     
+        //printf("\n r_kb_g(g) is %ld\n",(gint)r_kb_g(g));
+        //printf("\nshared flags %d %d %d\n",r_kb_g(g)->shared_units,g->shared_doubles,g->shared_fullcl);
+        check_global_stores(db,g);
+        if (g->shared_units) store_units_globally(db,g);
+        check_global_stores(db,g);
+        if (g->shared_doubles) store_doubles_globally(db,g);        
+        check_global_stores(db,g);
+        if (g->shared_fullcl) store_fullcl_globally(db,g);
+        check_global_stores(db,g);
+
+        //wr_show_database_details_shared(r_kb_g(g),NULL, "global++2");
+        //wr_show_database_details(g,g->db, "local");
+        /*
+        void* glbdb;
+        glbdb=db_get_kb_db(db);
+        //wr_show_database_details(NULL,shmptr,"shmptr");
+        wr_show_database_details(NULL,glbdb,"shmptr");
+        */
+      }
 #endif  
     } else if (res==-1) {
 #ifdef PRINTERR       
@@ -1417,11 +1447,31 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
       continue;
     }      
     /*
-    printf("\ni %d\n",i);
-      wr_print_clause(g,rec);
-    printf("weight %ld sine k %d\n",
+    printf("\n i %d\n",i);
+    wr_print_clause(g,rec);
+    printf("\n");
+    wr_print_record(g,rec);
+    printf("\n");
+     if(dbmemsegh(db)->errflag) {
+      CP10
+      wg_show_db_error(db);
+      exit(0);
+    }    
+    wr_get_cl_sine_k(g,rec);
+    if(dbmemsegh(db)->errflag) {
+      CP11
+      wg_show_db_error(db);
+      exit(0);
+    }    
+
+    printf(" weight %ld sine k %d\n",
       (gint)((g->tmp_sort_vec)[(i*2)+1]), 
       wr_get_cl_sine_k(g,rec));
+    if(dbmemsegh(db)->errflag) {
+      CP1
+      wg_show_db_error(db);
+      exit(0);
+    }    
     */
 #ifdef DEBUG   
     wr_printf("\n next rec from db: ");
@@ -1481,7 +1531,7 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
         else subsflag=1;
         given_cl_as_active=wr_add_given_cl_active_list
                              (g,given_cl,given_cl_metablock,subsflag,
-                              g->active_termbuf,(g->tmp_resolvability_vec));                           
+                              g->active_termbuf,(g->tmp_resolvability_vec));                                             
         if (given_cl_as_active==NULL) {
           //if (g->alloc_err) return -1;
           goto LOOPEND;
@@ -2510,6 +2560,152 @@ int store_doubles_globally(void* db, glb* g) {
 }
 
 
+
+int store_fullcl_globally(void* db, glb* g) {
+  printf("store_fullcl_globally called,");
+  
+  //gptr hasharrpos, hasharrneg; //, hashvec; 
+  //int dbused;
+  //gint iactive, iactivelimit;
+  glb* shared_g;
+  int count=0;
+  void* global_db; // shared_g->db;
+
+  int i, histlen;
+  gint history,tmp;
+  gptr cl,historyptr,tmp_buffer,newcl;
+
+  //gcell *cellptr2; 
+  gcell *cellptr;
+  gint cell; //,cell2,lastcell;
+  //int n=0;
+  //void* rec;
+
+  shared_g=(g->kb_g);
+  if (!shared_g) {
+    printf("\n*** NB! shared_g is 0, not storing! ***\n");
+    return 1;
+  }  
+  global_db=shared_g->db;
+
+  //wr_show_database_details(g,NULL, "local");
+  //wr_print_clpick_queues(g, rotp(g,g->clpick_queues));
+  
+  //printf("\n ** db %lx global_db %lx \n",(unsigned long int)db,(unsigned long int)global_db);
+  
+  /*
+  printf("\n== showing clauselist before ==\n");
+
+  cell2=(dbmemsegh(db)->clauselist);
+  lastcell=0;
+  n=0;
+  while(cell2) {
+    cellptr2=(gcell *) offsettoptr(db, cell2);
+    rec=offsettoptr(db,cellptr2->car); 
+
+    wr_print_clause(shared_g,rec);
+    printf("\nas record\n");
+    wr_print_record(shared_g,rec);  
+    printf("\n");
+
+    cell2=cellptr2->cdr;
+  }  
+  */
+
+  //printf("\n== active == \n");
+  for(i=2;i<(rotp(g,g->clactive))[1];i++) {
+    cl=(gptr)((rotp(g,g->clactive))[i]);
+    /*
+    wr_printf("\nclactive nr %d :",i);
+    wr_print_record(g,cl);  
+    printf("\n"); 
+    */
+    history=wr_get_history(g,cl);
+    historyptr=otp(db,history);  
+    //wr_print_record(g,historyptr);  
+    histlen=wg_get_record_len(db,historyptr); 
+    //printf("\nhistlen %d\n",histlen);
+
+    if (histlen==HISTORY_PREFIX_LEN) continue;
+    //printf("\nshown clause was derived\n");
+
+    tmp_buffer=shared_g->build_buffer;
+    shared_g->build_buffer=NULL;
+    //CP18
+    tmp=wr_copy_clause(g,shared_g,rpto(g,cl));
+    //CP19
+    //printf("\ntmp: %ld\n",(gint)tmp);
+    if (tmp) {
+      newcl=rotp(shared_g,tmp);   
+    } else {
+      shared_g->build_buffer=tmp_buffer;
+      continue;
+    }  
+    shared_g->build_buffer=tmp_buffer;
+    /*
+    printf("\nnew copy:\n");
+    wr_print_clause(shared_g,newcl);
+    printf("\nas record\n");
+    wr_print_record(shared_g,newcl);  
+    printf("\n");
+    */
+    /*
+    cell2=(dbmemsegh(db)->clauselist);
+    cellptr2=(gcell *) offsettoptr(db, cell2);
+    rec=offsettoptr(db,cellptr2->car); 
+    //newcl=rec;
+    */
+    cell=alloc_listcell(db);
+
+    if(dbmemsegh(db)->errflag) {
+      wg_show_db_error(db);
+      exit(0);
+    }    
+
+    if (!cell) {
+      wr_show_parse_error(g,"failed to allocate a cell for storing source formula");        
+      return 1;
+    }  
+    cellptr = (gcell *) offsettoptr(db, cell);             
+    (cellptr->car) = ptrtooffset(db, newcl); //(gint)newcl; //ptrtooffset(db, res);
+    (cellptr->cdr) = (dbmemsegh(db)->clauselist);
+    count++;
+    (dbmemsegh(db)->clauselist) = cell;        
+  } 
+
+  if(dbmemsegh(db)->errflag) {
+      wg_show_db_error(db);
+      exit(0);
+  }    
+  printf(" stored fullcl count %d\n",count);
+  /*
+  printf("\n== showing clauselist after ==\n");
+
+  cell2=(dbmemsegh(db)->clauselist);
+  lastcell=0;
+  n=0;
+  while(cell2) {
+    cellptr2=(gcell *) offsettoptr(db, cell2);
+    rec=offsettoptr(db,cellptr2->car); 
+
+    wr_print_clause(shared_g,rec);
+    printf("\nas record\n");
+    wr_print_record(shared_g,rec);  
+    printf("\n");
+
+    cell2=cellptr2->cdr;
+  }  
+
+   if(dbmemsegh(db)->errflag) {
+      wg_show_db_error(db);
+      exit(0);
+    }    
+  */
+  
+  return 0;
+}
+
+
 int wr_store_offset_termhash(void* db, glb* g, gint* hasharr, int pos, int type) {
   int i,j;
   //gint* tohasharr;
@@ -2540,12 +2736,17 @@ int wr_store_offset_termhash(void* db, glb* g, gint* hasharr, int pos, int type)
   //wr_printf("\nhashvec len %ld els:\n",hasharr[0]);  
   for(i=1;i<hasharr[0];i++) {    
     if (hasharr[i]) {
-      bucket=rotp(g,(hasharr[i]));      
+      bucket=rotp(g,(hasharr[i]));   
+      //printf("\ni %d js ",i);   
       if (1) {
         for(j=2;j<bucket[0] && j<bucket[1]; j=j+2) {
-          
-          //wr_printf("\nterm ");
-          //wr_print_term(g,bucket[j]);
+          /*
+          printf(" j %d ",j); 
+          wr_printf("\nterm ");
+          wr_print_term(g,bucket[j]);
+          printf("\n");
+          */
+          wg_check_record(db,rotp(g,bucket[j]));
           //printf("\n");
           /*
           //printf(" path %d in cl ",0);
@@ -2580,6 +2781,159 @@ int wr_store_offset_termhash(void* db, glb* g, gint* hasharr, int pos, int type)
   return count;
 }
 
+// --------------- checking ---------------
+
+int check_global_stores(void* db, glb* g) {
+  check_units_globally(db,g);
+  check_doubles_globally(db,g);
+  check_fullcl_globally(db,g);
+  return 0;
+}
+
+int check_units_globally(void* db, glb* g) {
+  printf("\ncheck_units_globally called,");
+
+  gptr hasharrpos, hasharrneg; 
+  glb* shared_g;
+  int count;
+ 
+  shared_g=(g->kb_g);
+  if (!shared_g) {
+    //printf("\n*** NB! shared_g is 0, not storing! ***\n");
+    return 1;
+  }    
+  hasharrpos=rotp(g,g->hash_pos_groundunits);
+  hasharrneg=rotp(g,g->hash_neg_groundunits);  
+  
+  // ground units:
+  if (shared_g) {
+    //wr_printf("\npos ground units hasharrpos %ld\n",(gint)hasharrpos); 
+    count=wr_check_offset_termhash(db,g,hasharrpos,1,0); //rotp(g,(r_kb_g(g))->hash_pos_active_groundunits));
+    //wr_printf("\nneg ground units hasharrneg %ld\n",(gint)hasharrneg); 
+    count=count+wr_check_offset_termhash(db,g,hasharrneg,0,0);//rotp(g,(r_kb_g(g))->hash_neg_active_groundunits));
+    hasharrpos=rotp(g,g->hash_pos_active_groundunits);
+    hasharrneg=rotp(g,g->hash_neg_active_groundunits);  
+    count=count+wr_check_offset_termhash(db,g,hasharrpos,1,0); //rotp(g,(r_kb_g(g))->hash_pos_active_groundunits));
+    //wr_printf("\nneg ground units hasharrneg %ld\n",(gint)hasharrneg); 
+    count=count+wr_check_offset_termhash(db,g,hasharrneg,0,0);//rotp(g,(r_kb_g(g))->hash_neg_active_groundunits));
+  } 
+  return 0;
+}
+
+
+int check_doubles_globally(void* db, glb* g) {
+  printf("check_doubles_globally called,");
+  
+
+  gptr hasharrpos, hasharrneg; 
+  glb* shared_g;
+  int count;
+  
+  shared_g=(g->kb_g);
+  if (!shared_g) {
+    //printf("\n*** NB! shared_g is 0, not storing! ***\n");
+    return 1;
+  }    
+  hasharrpos=rotp(g,g->hash_pos_grounddoubles);
+  hasharrneg=rotp(g,g->hash_neg_grounddoubles);  
+  
+  if (shared_g) {   
+    count=wr_check_offset_termhash(db,g,hasharrpos,1,1); //rotp(g,(r_kb_g(g))->hash_pos_active_groundunits));   
+    count=count+wr_check_offset_termhash(db,g,hasharrneg,0,1);//rotp(g,(r_kb_g(g))->hash_neg_active_groundunits));
+  }
+  //printf(" stored double count %d\n",count);  
+  return 0;
+}
+
+
+
+int check_fullcl_globally(void* db, glb* g) {
+  printf("check_fullcl_globally called,");
+    
+  glb* shared_g;
+  int count=0;
+  void* global_db; // shared_g->db;
+
+  int i, histlen;
+  gint history,tmp;
+  gptr cl,historyptr,tmp_buffer,newcl;
+
+  gcell *cellptr;
+  gint cell; 
+
+  shared_g=(g->kb_g);
+  if (!shared_g) {
+    //printf("\n*** NB! shared_g is 0, not storing! ***\n");
+    return 1;
+  }  
+  global_db=shared_g->db;
+
+  //printf("\n== active == \n");
+  for(i=2;i<(rotp(g,g->clactive))[1];i++) {
+    cl=(gptr)((rotp(g,g->clactive))[i]);
+    /*
+    wr_printf("\nclactive nr %d :",i);
+    wr_print_record(g,cl);  
+    printf("\n"); 
+    */
+
+    wg_check_record(g->db,cl);
+    /*
+    wr_printf("\nclactive nr %d :",i);
+    wr_print_record(g,cl);  
+    printf("\n"); 
+    */
+    history=wr_get_history(g,cl);
+    historyptr=otp(db,history);  
+    //wr_print_record(g,historyptr);  
+    histlen=wg_get_record_len(db,historyptr);    
+    if (histlen==HISTORY_PREFIX_LEN) continue;
+    //printf("\nshown clause was derived\n");
+  } 
+
+  if(dbmemsegh(db)->errflag) {
+      wg_show_db_error(db);
+      exit(0);
+  }    
+  //printf(" stored fullcl count %d\n",count);  
+  
+  return 0;
+}
+
+
+
+int wr_check_offset_termhash(void* db, glb* g, gint* hasharr, int pos, int type) {
+  int i,j;
+  cvec bucket;
+  gint resmeta;
+  gptr cl;
+  gint cl_metablock[CLMETABLOCK_ELS];
+  glb* shared_g;
+  int count=0;
+
+  shared_g=(g->kb_g);
+ 
+  for(i=1;i<hasharr[0];i++) {    
+    if (hasharr[i]) {
+      bucket=rotp(g,(hasharr[i]));   
+      //printf("\ni %d js ",i);   
+      if (1) {
+        for(j=2;j<bucket[0] && j<bucket[1]; j=j+2) {
+          //printf(" j %d ",j); 
+          //wr_printf("\nterm ");
+          //wr_print_term(g,bucket[j]);
+          //printf("\n");
+          wg_check_record(db,rotp(g,bucket[j]));
+          //printf("\n");
+         
+          cl=rotp(g,bucket[j+1]);
+          //resmeta=wr_calc_clause_meta(shared_g,cl,cl_metablock);          
+        }
+      }  
+    }
+  }
+  return count;
+}
 
 #endif
 

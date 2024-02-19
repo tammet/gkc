@@ -37,6 +37,7 @@
 #include <sys/types.h>
 #include <pwd.h>
 #include <grp.h>
+#include <signal.h> // to make VS Code recognize SIGALRM
 #endif
 
 #ifdef _WIN32
@@ -135,7 +136,9 @@ int parse_memmode(char *arg);
 char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsize, 
           int* parallel, int* tptp, int* json, 
           char ***lstringsptr, char ***ljstringsptr, char ***lfilesptr, char **stratfile,
-          int* convert, int* clausify, int* seconds, int* retcode, int* printlevel, int* printderived,
+          int* convert, int* clausify, 
+          int* shared_units, int* shared_doubles, int* shared_fullc,
+          int* seconds, int* retcode, int* printlevel, int* printderived,
           char** strattext);          
 void wg_set_kb_db(void* db, void* kb);
 void segment_stats(void *db);
@@ -240,6 +243,9 @@ int gkc_main(int argc, char **argv) {
   int json=0;
   int convert=0;
   int clausify=0;
+  int shared_units=0;
+  int shared_doubles=0;
+  int shared_fullcl=0;
   int seconds=0; // 0 if no time limit, other value for time limit in seconds
   //int islocaldb=0; // lreasoner sets to 1 to avoid detaching db at the end
   int printlevel=15; // normal default is 10, set to 15 for casc
@@ -266,7 +272,9 @@ int gkc_main(int argc, char **argv) {
   inputname[0]=0;
   cmdfiles=parse_cmdline(argc,argv,&cmdstr,&mbnr,&mbsize,&parallel,
                          &tptp,&json,&lstrings,&ljstrings,&lfiles,&stratfile,
-                         &convert,&clausify,&seconds,&retcode,&printlevel,&printderived,
+                         &convert,&clausify,
+                         &shared_units, &shared_doubles, &shared_fullcl,
+                         &seconds,&retcode,&printlevel,&printderived,
                          &strattext);                         
   if (retcode) return retcode;
   if (tptp && json) {
@@ -358,10 +366,13 @@ int gkc_main(int argc, char **argv) {
     (dbmemsegh(shmptr)->json)=json;
     (dbmemsegh(shmptr)->convert)=convert;
     (dbmemsegh(shmptr)->clausify)=clausify;        
+    (dbmemsegh(shmptr)->shared_units)=shared_units; 
+    (dbmemsegh(shmptr)->shared_doubles)=shared_doubles;
+    (dbmemsegh(shmptr)->shared_fullcl)=shared_fullcl;
     (dbmemsegh(shmptr)->printlevel)=printlevel;
     (dbmemsegh(shmptr)->printderived)=printderived;
     (dbmemsegh(shmptr)->max_seconds)=seconds;
-    (dbmemsegh(shmptr)->allruns_start_clock)=allruns_start_clock;
+    (dbmemsegh(shmptr)->allruns_start_clock)=allruns_start_clock;   
 
     if (lfiles) {      
       for(filenr=0; lfiles[filenr] && !err; filenr++) {
@@ -583,6 +594,9 @@ int gkc_main(int argc, char **argv) {
     (dbmemsegh(shmptrlocal)->json)=json;
     (dbmemsegh(shmptrlocal)->convert)=convert; 
     (dbmemsegh(shmptrlocal)->clausify)=clausify;
+    (dbmemsegh(shmptrlocal)->shared_units)=shared_units; 
+    (dbmemsegh(shmptrlocal)->shared_doubles)=shared_doubles;
+    (dbmemsegh(shmptrlocal)->shared_fullcl)=shared_fullcl;
     (dbmemsegh(shmptrlocal)->printlevel)=printlevel;
     (dbmemsegh(shmptrlocal)->printderived)=printderived;
     (dbmemsegh(shmptrlocal)->max_seconds)=seconds;
@@ -1062,6 +1076,12 @@ void usage(char *prog) {
          "     if present, convert to clauses only, otherwise search for proof\n"\
          "  -derived\n"\
          "     print out all the derived clauses\n"\
+         "  -sharedunits\n"\
+         "     keep and use units between runs via shared db\n"\
+         "  -shareddoubles\n"\
+         "     keep and use doubles between runs via shared db\n"\
+         "  -sharedfullcl\n"\
+         "     keep and use derived given clauses between runs via shared db\n"\
          "  -version\n"\
          "     show gkc version\n"\
          "  -help\n"\
@@ -1152,7 +1172,9 @@ int parse_memmode(char *arg) {
 char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsize, 
           int* parallel, int* tptp, int* json, 
           char ***lstringsptr, char ***ljstringsptr, char ***lfilesptr, char **stratfile,
-          int* convert, int* clausify, int* seconds, int* retcode, int* printlevel, int* printderived,
+          int* convert, int* clausify, 
+          int* shared_units, int* shared_doubles, int* shared_fullcl,
+          int* seconds, int* retcode, int* printlevel, int* printderived,
           char** strattext) {
   int i,alen,nargc;
   char* arg;
@@ -1316,6 +1338,13 @@ char** parse_cmdline(int argc, char **argv, char** cmdstr, int* mbnr, int* mbsiz
         *convert=1;               
       } else if (!(strncmp(arg,"-clausify",9))) {
         *clausify=1;  
+      } else if (!(strncmp(arg,"-sharedunits",11))) {
+        *shared_units=1;
+      } else if (!(strncmp(arg,"-shareddoubles",13))) {
+        *shared_doubles=1;
+      } else if (!(strncmp(arg,"-sharedfullcl",13))) {
+        *shared_fullcl=1;  
+
       } else if (!(strncmp(arg,"-prove",10)) || 
                 !(strncmp(arg,"-readkb",10)) ||
                 !(strncmp(arg,"-usekb",10)) || 

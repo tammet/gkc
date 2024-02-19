@@ -82,7 +82,11 @@ gptr wr_build_calc_cl(glb* g, gptr xptr) {
   wr_print_record(g,xptr);
   wr_printf("\n");
 #endif
-
+  /*
+  wr_printf("\nwr_build_calc_cl called\n");
+  wr_print_record(g,xptr);
+  wr_printf("\ng->build_buffer %ld\n",(gint)(g->build_buffer)); 
+  */
 #ifdef DEBUG
   wr_printf("\nwr_build_calc_cl called, g->build_buffer ptr is %lx \n", (unsigned long int)g->build_buffer); 
 #endif
@@ -195,6 +199,12 @@ gptr wr_build_calc_cl(glb* g, gptr xptr) {
     for(i=0;i<ilimit;i++) {
       yptr[i]=xptr[i];     
     }  
+    /*
+    CP12
+    wg_check_record(g->db,yptr);
+    check_doubles_globally(g->db,g);
+    CP13
+    */
 #ifdef DEBUG
     wr_printf("\n in wr_build_calc_cl cp0 original xptr:\n");
     wr_print_record(g,xptr);
@@ -208,10 +218,28 @@ gptr wr_build_calc_cl(glb* g, gptr xptr) {
     // loop over clause elems
     xatomnr=wg_count_clause_atoms(db,xptr);
     for(i=0;i<xatomnr;i++) {
+      //printf("\ni %d\n",i);
       xmeta=wg_get_rule_clause_atom_meta(db,xptr,i);
       xatom=wg_get_rule_clause_atom(db,xptr,i);
       wr_set_rule_clause_atom_meta(g,yptr,i,xmeta);
+      /*
+      CP14
+      wg_check_record(g->db,yptr);
+      check_doubles_globally(g->db,g);
+      CP15
+      */
       yatom=wr_build_calc_term(g,xatom);
+      /*
+      wr_printf("\nyatom ");
+      wr_print_record(g,rotp(g,yatom));
+      wr_printf("\n");
+
+
+      CP16
+      wg_check_record(g->db,rotp(g,yatom));
+      check_doubles_globally(g->db,g);
+      CP17
+      */ 
       if (yatom==WG_ILLEGAL) return NULL; // could be memory err
       if (yatom==ACONST_FALSE) return (gptr)ACONST_FALSE; // return yatom; // for computable atoms !!!! ???
       if (yatom==ACONST_TRUE) return (gptr)ACONST_TRUE; // return yatom; // for computable atoms, but should not do that here!!! ???
@@ -263,7 +291,7 @@ gint wr_build_calc_term(glb* g, gint x) {
 #endif
   if (isvar(x) && (g->build_subst || g->build_rename))  x=VARVAL_F(x,(g->varbanks));
   if (!isdatarec(x)) {
-    // now we have a simple value  
+    // now we have a simple value 
     if (!isvar(x)) {
       if (g->build_rewrite) {      
         return wr_rewrite_constant(g,x); 
@@ -293,7 +321,11 @@ gint wr_build_calc_term(glb* g, gint x) {
       return encode_var(((g->build_rename_banknr)*NROF_VARSINBANK)+(vnr-FIRST_UNREAL_VAR_NR));
     }    
   }   
-  // now we have a datarec
+  // now we have a datarec  
+  /*
+  CP16 
+  check_doubles_globally(g->db,g);
+  */
   if (0) {
   } else {  
     db=g->db;
@@ -316,15 +348,28 @@ gint wr_build_calc_term(glb* g, gint x) {
     xlen=get_record_len(xptr);
     // allocate space
     if ((g->build_buffer)!=NULL) {       
-      yptr=wr_alloc_from_cvec(g,g->build_buffer,(RECORD_HEADER_GINTS+xlen));     
+      yptr=wr_alloc_from_cvec(g,g->build_buffer,(RECORD_HEADER_GINTS+xlen)); 
+      //printf("\nv1 xlen %d yptr %ld (g->build_buffer) %ld\n",xlen,(gint)yptr,(gint)(g->build_buffer));    
       //yptr=malloc(64);
     } else {
-      yptr=wg_create_raw_record(db,xlen);     
+      yptr=wg_create_raw_record(db,xlen);  
+      //printf("\nv2 xlen %d yptr %ld (g->build_buffer) %ld\n",xlen,(gint)yptr,(gint)(g->build_buffer));   
     }    
+    /*
+    CP17 
+    //check_doubles_globally(g->db,g);
+    check_global_stores(g->db,g);
+    wr_print_buffers(g);
+    */
     if (yptr==NULL) return WG_ILLEGAL;
     // copy rec header and term header
     ilimit=RECORD_HEADER_GINTS+(g->unify_firstuseterm);
     for(i=0;i<ilimit;i++) yptr[i]=xptr[i];    
+    /*
+    CP18
+    //check_doubles_globally(g->db,g);
+    check_global_stores(g->db,g);
+    */
 #ifdef USE_TERM_META    
     // set termmeta to 0 if smallint (and not ground: but this we already know)    
     if (issmallint(yptr[RECORD_HEADER_GINTS+TERM_META_POS]) && (g->build_subst)) {
@@ -339,14 +384,25 @@ gint wr_build_calc_term(glb* g, gint x) {
         uselen=xlen+RECORD_HEADER_GINTS; 
     } else {    
       uselen=xlen+RECORD_HEADER_GINTS;
-    }  
+    }      
     substflag=(g->build_subst || g->build_rename);
     for(;i<uselen;i++) {
       if (!substflag && !isdatarec(xptr[i]) && !(g->build_rewrite)) yptr[i]=xptr[i];       
-      else {
-
+      else {     
+        /*
+        CP7 
+        check_doubles_globally(g->db,g);
+        CP15
+        */
         //tmp=wr_build_calc_term_copyground(g,xptr[i]);
         tmp=wr_build_calc_term(g,xptr[i]);
+        /*
+        CP8        
+        check_doubles_globally(g->db,g);
+        CP9
+        */
+        //wg_check_record(g->db,yptr);
+        //CP10
         
         if (tmp==WG_ILLEGAL) return WG_ILLEGAL;
 #ifdef USE_TERM_META_EXPERIMENTAL
@@ -357,8 +413,21 @@ gint wr_build_calc_term(glb* g, gint x) {
 #endif        
         //printf("wr_build_calc_term loop tmp %d \n",(gint)tmp);
         yptr[i]=tmp;
+        /*
+        CP11
+        printf("\ni %d ",i);        
+        check_doubles_globally(g->db,g);
+        CP12
+        */
+        
       }  
-    }
+    }   
+    /*
+    CP0
+    wg_check_record(g->db,yptr);
+    check_doubles_globally(g->db,g);
+    CP1
+    */
     // copy term footer (in addition to rec/term header), i already correct
     if (g->unify_maxuseterms) {
       ilimit=RECORD_HEADER_GINTS+xlen;
@@ -1719,6 +1788,14 @@ gint wr_compute_fun_list(glb* g, gptr tptr, int opcode) {
   }
 }
 
+void wr_print_buffers(glb* g) {
+  printf("\ng->build_buffer    %ld",(gint)(g->build_buffer));
+  printf("\ng->derived_termbuf %ld",(gint)(g->derived_termbuf));
+  printf("\ng->queue_termbuf   %ld",(gint)(g->queue_termbuf));
+  printf("\ng->std_termbuf   %ld",(gint)(g->std_termbuf));
+  printf("\ng->given_termbuf   %ld",(gint)(g->given_termbuf));
+  printf("\ng->hyper_termbuf   %ld",(gint)(g->hyper_termbuf));
+}
 
 #ifdef __slusplus
 }

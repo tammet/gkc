@@ -1013,6 +1013,7 @@ void wr_push_cl_clpick_queues(glb* g, gint queues_offset, gptr cl, int weight) {
   gptr historyptr=NULL;
   gint decprior, priority=0;   
 
+  //wg_check_record(g->db,cl);
 
 #ifdef QADDDEBUG
   wr_printf("\nwr_push_cl_clpick_queues called with queryfocus_strat %d (g->cl_pick_queue_strategy) %d weight %d and cl: ",

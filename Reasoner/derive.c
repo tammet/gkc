@@ -254,10 +254,27 @@ void wr_process_resolve_result
     wr_process_resolve_result_setupquecopy(g); // use g->queue_termbuf as g->build_buffer
     initial_queue_termbuf_next=CVEC_NEXT(g->build_buffer); // to be restored if not actually used
   }  
-
+  /*
+  CP1
+  wg_check_record(g->db,xcl_as_active);
+  CP2
+  wg_check_record(g->db,ycl);
+  CP3
+  */
+  gint tmpbuf=g->build_buffer;
+  g->build_buffer=g->std_termbuf;
   history=wr_build_resolve_history(g,xcl_as_active,ycl,cutpos1,cutpos2,g->cut_clvec);
+  /*
+  wg_check_record(g->db,rotp(g,history));
+  CP4
+  */
   res=wr_derived_build_cl_from_initial_cl(g,rptr,rpos,ruleflag,history);
-
+  g->build_buffer=tmpbuf;
+  /*
+  CP5
+  wg_check_record(g->db,res);
+  CP6
+  */
   //CP1  
   //printf("\nres\n");
   //wr_print_clause(g,res);
@@ -294,6 +311,11 @@ void wr_process_resolve_result
     //printf("\ndoublecut found answer\n");
     return;
   }  
+  /*
+  CP1
+  wg_check_record(g->db,simp2);
+  CP2
+  */
   if (simp2!=res) {
     //printf("+");
     /*
@@ -349,7 +371,12 @@ void wr_process_resolve_result
 #endif
     if (g->print_derived_cl) {
       wr_printf("\n+ derived by mp: ");
-      wr_print_clause(g,res);    
+      wr_print_clause(g,res);  
+      /*
+      CP1
+      wg_check_record(g->db,res);
+      CP2
+      */
     } else if (g->print_derived) {  
       wr_print_clause_via_buf(g,res);
     }  
@@ -751,8 +778,12 @@ void wr_process_factor_result
   wr_process_resolve_result_setupquecopy(g); // use g->queue_termbuf as g->build_buffer
   initial_queue_termbuf_next=CVEC_NEXT(g->build_buffer); // to be restored if not actually used 
 
+  gint tmpbuf=g->build_buffer;
+  g->build_buffer=g->std_termbuf;
   history=wr_build_factorial_history(g,xcl_as_active,x,y,g->cut_clvec);
   res=wr_derived_build_cl_from_initial_cl(g,rptr,rpos,ruleflag,history);
+  g->build_buffer=tmpbuf;
+
   if (!history || !res) {
     // allocation failed
     return;
@@ -887,6 +918,7 @@ void wr_process_paramodulate_result
   rlen=(xatomnr+yatomnr-1)*LIT_WIDTH;
   if (rlen==0) {
     g->proof_found=1;
+    /*
     printf("\nwr_process_paramodulate_result found proof1\n");
     printf("xcl ");
     wr_print_clause(g,xcl);
@@ -895,11 +927,12 @@ void wr_process_paramodulate_result
     printf("\nycl ");
     wr_print_clause(g,ycl);
     printf("\n");
+    */
     if (fromflag) {
-      printf("\n fromflag %d cutpos1 %d cutpos2 %d leftflag %d\n",fromflag,cutpos1,cutpos2,leftflag);     
+      //printf("\n fromflag %d cutpos1 %d cutpos2 %d leftflag %d\n",fromflag,cutpos1,cutpos2,leftflag);     
       g->proof_history=wr_build_para_history(g,xcl_as_active,ycl,0,0,NULL,path,leftflag,fromflag);
     } else {
-      printf("\n fromflag %d cutpos1 %d cutpos2 %d leftflag %d\n",fromflag,cutpos1,cutpos2,leftflag);
+      //printf("\n fromflag %d cutpos1 %d cutpos2 %d leftflag %d\n",fromflag,cutpos1,cutpos2,leftflag);
       g->proof_history=wr_build_para_history(g,xcl,xcl_as_active,0,0,NULL,path,leftflag,fromflag);  
     }   
     wr_register_answer(g,NULL,g->proof_history);
@@ -1050,6 +1083,9 @@ void wr_process_paramodulate_result
   //partialresflag=0;      
   wr_process_resolve_result_setupquecopy(g); // use g->queue_termbuf as g->build_buffer  
   initial_queue_termbuf_next=CVEC_NEXT(g->build_buffer); // to be restored if not actually used
+
+  gint tmpbuf=g->build_buffer;
+  g->build_buffer=g->std_termbuf;
   if (fromflag) {
     //printf("\n fromflag %d cutpos1 %d cutpos2 %d leftflag %d\n",fromflag,cutpos1,cutpos2,leftflag);
     /*
@@ -1063,7 +1099,9 @@ void wr_process_paramodulate_result
     //printf("\n fromflag %d cutpos1 %d cutpos2 %d leftflag %d\n",fromflag,cutpos1,cutpos2,leftflag);
     history=wr_build_para_history(g,xcl,xcl_as_active,cutpos2,cutpos1,g->cut_clvec,path,leftflag,fromflag);  
   }
+  //printf("\nabout to build clause using (g->build_buffer) %ld\n",(gint)(g->build_buffer)); 
   res=wr_derived_build_cl_from_initial_cl(g,rptr,rpos,ruleflag,history);
+  g->build_buffer=tmpbuf;
   if (!history || !res) {
     // allocation failed
     return;
@@ -1159,6 +1197,7 @@ void wr_process_paramodulate_result
     avg+=(weight-avg)/((g->stat_kept_cl)+1);
     (g->avg_kept_weight)=avg;
     resmeta=wr_calc_clause_meta(g,res,cl_metablock);
+    //printf("\nabout to add clause using (g->build_buffer) %ld\n",(gint)(g->build_buffer));     
     wr_add_cl_to_unithash(g,res,resmeta);
     wr_add_cl_to_doublehash(g,res);
     if (g->use_strong_unit_cutoff) wr_cl_store_res_units(g,res);
@@ -1872,9 +1911,16 @@ gint wr_add_cl_to_unithash(glb* g, gptr cl, gint clmeta) {
 
   db=g->db;   
   UNUSED(db);
+  
+  //CP0
+  //wg_check_record(db, cl);
+  //check_global_stores(db, g);
+  //check_doubles_globally(db,g);
+  //CP1
+
   if (wg_rec_is_fact_clause(db,cl)) len=1;
   else len=wg_count_clause_atoms(db,cl);
-  
+  wg_check_record(db, cl);
   /*
   printf("\nwr_add_cl_to_unithash:\n");
   wr_print_clause(g,cl);
@@ -1955,7 +2001,7 @@ gint wr_add_cl_to_shared_unithash(glb* g, glb* shared_g, gptr xatom, gptr cl, gi
   if (xatom==NULL) return -1;
   atomlen=wg_get_record_len(db,xatom);
   if (atomlen<1 || atomlen>100) {
-      /*
+      
       printf("\natomlen %d",atomlen);
       printf("M xatom %ld\n",(gint)xatom);  
       wr_print_term(g,rpto(g,xatom));
@@ -1974,9 +2020,9 @@ gint wr_add_cl_to_shared_unithash(glb* g, glb* shared_g, gptr xatom, gptr cl, gi
       wg_print_record(db,xatom) ;
 
       printf("\nM2\n");
-      */
-      return -1;
-      //exit(0);
+      
+      //return -1;
+      exit(0);
   }
 
   if (1) { //} && wg_atom_meta_is_ground(db,clmeta)) { //} && wg_rec_is_rule_clause(db,cl)) {           
@@ -1991,7 +2037,7 @@ gint wr_add_cl_to_shared_unithash(glb* g, glb* shared_g, gptr xatom, gptr cl, gi
     if (histlen==HISTORY_PREFIX_LEN) return -1; // input clause     
     if (type==1) {
       if (!ok_double_hash_elem(g,xatom,cl)) {
-        /*
+        
         printf("\n!!!atomlen %d",atomlen);
         printf("M xatom %ld\n",(gint)xatom);  
         wr_print_term(g,rpto(g,xatom));
@@ -2010,9 +2056,9 @@ gint wr_add_cl_to_shared_unithash(glb* g, glb* shared_g, gptr xatom, gptr cl, gi
         wg_print_record(db,xatom) ;
 
         printf("\n!!M2\n");
-        */
-        return -1;
-        //exit(0);
+        
+        //return -1;
+        exit(0);
       }
       /*
       printf("M1\n");
@@ -2035,8 +2081,10 @@ gint wr_add_cl_to_shared_unithash(glb* g, glb* shared_g, gptr xatom, gptr cl, gi
     } 
     */ 
    
-    hash=wr_lit_hash(g,rpto(g,xatom));   
+    //hash=wr_lit_hash(g,rpto(g,xatom)); 
+    hash=bucketnr-1;
     //printf("# %d %d %ld ",type,bucketnr,hash);
+
     if (!pos) { //(wg_atom_meta_is_neg(db,clmeta)) {
       //CP10
       if (type==1) {       
@@ -2074,16 +2122,20 @@ gint wr_add_cl_to_shared_unithash(glb* g, glb* shared_g, gptr xatom, gptr cl, gi
           } else {
             newxatom=newcl;
           }         
+          
           if (type==1)
             wr_push_termhash(shared_g,rotp(shared_g,shared_g->shared_hash_neg_grounddoubles),hash,newxatom,newcl);
           else
             wr_push_termhash(shared_g,rotp(shared_g,shared_g->shared_hash_neg_groundunits),hash,newxatom,newcl);
+           
           //printf("\npushed to neg termhash\n");
           //printf("\npushed to termhash shared_db %ld, shared_g %ld, shared_g->shared_hash_neg_groundunits %ld \n",
           //  (gint)shared_db,(gint)shared_g,(gint)(shared_g->shared_hash_neg_groundunits)); 
           //wr_print_termhash(shared_g,rotp(shared_g,shared_g->shared_hash_neg_groundunits));
           //printf("\nsharing finished ok\n");    
-        }  
+        } else {
+          shared_g->build_buffer=tmp_buffer;
+        }
       }  
     } else {
       //CP15     
@@ -2127,13 +2179,17 @@ gint wr_add_cl_to_shared_unithash(glb* g, glb* shared_g, gptr xatom, gptr cl, gi
           } else {            
             newxatom=newcl;
           } 
+          
           if (type==1)
             wr_push_termhash(shared_g,rotp(shared_g,shared_g->shared_hash_pos_grounddoubles),hash,newxatom,newcl);
           else
             wr_push_termhash(shared_g,rotp(shared_g,shared_g->shared_hash_pos_groundunits),hash,newxatom,newcl);        
+           
           //printf("\npushed to pos termhash\n"); 
           //wr_print_termhash(shared_g,rotp(shared_g,shared_g->shared_hash_pos_groundunits));
           //printf("\nsharing finished ok\n");       
+        } else {
+           shared_g->build_buffer=tmp_buffer;
         }       
       }  
     }      
@@ -2189,14 +2245,21 @@ gint wr_add_cl_to_doublehash(glb* g, gptr cl) {
   UNUSED(db);
   if (wg_rec_is_fact_clause(db,cl)) return -1;
   else len=wg_count_clause_atoms(db,cl);
-  
-  
 
   if (len==2) { //} && wg_atom_meta_is_ground(db,clmeta)) { //} && wg_rec_is_rule_clause(db,cl)) {
+    wg_check_record(db,cl); 
+    //int tmp=wg_check_record(db,cl);
+    //if (tmp) {printf("\nbad clause to wr_add_cl_to_doublehash code %d\n ",tmp); exit(0); }
+    
     /*
     printf("\nwr_add_cl_to_doublehash:\n");
     wr_print_clause(g,cl);
+    printf("\nchecking\n");
+    wg_check_record(db,cl); 
     printf("\nlen %d wg_rec_is_rule_clause %d\n",len,wg_rec_is_rule_clause(db,cl));
+    wg_print_record(db,cl);
+    printf("\n");
+    wr_print_buffers(g);
     */
 
     for(pos=0; pos<2; pos++) {     

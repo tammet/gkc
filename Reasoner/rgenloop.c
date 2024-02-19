@@ -54,6 +54,7 @@
 #include "../Db/dbcompare.h"
   
 #include "rincludes.h"
+#include "rmain.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -222,7 +223,6 @@ int wr_genloop(glb* g) {
       (g->posunitpara_strat)=1;
       */ 
     }    
-
 #ifdef DEBUG
     wr_printf("wr_genloop for loop beginning queue is\n");
     //wr_show_clqueue(g);
@@ -231,13 +231,12 @@ int wr_genloop(glb* g) {
     if (g->alloc_err) {
       wr_alloc_err(g,"Unhandled alloc_err detected in the main wr_genloop\n");
       return -1;
-    }         
+    }    
     //wr_show_clactive(g);
     //picked_given_cl_cand=wr_pick_given_cl(g,given_cl_metablock); 
     given_from_hyperqueue_flag=0;  
 
     //if ((g->print_level_flag)==50) CP0;
-
     picked_given_cl_cand=wr_pick_from_hyper_queue(g,(g->hyper_queue),given_cl_metablock);  
     if (picked_given_cl_cand==NULL) {
       //printf("\ncandidate NOT from hyper_queue:\n");
@@ -254,22 +253,28 @@ int wr_genloop(glb* g) {
        else return 2; // code for no candidates at all.
     }
     // given_kept_flag will now indicate whether to add to active list or not
+    if (picked_given_cl_cand==NULL) {
+      return 1;
+    }
+    
+    //check_units_globally(db,g);
+    //check_doubles_globally(db,g);
     if (g->print_initial_given_cl) {    
       wr_printf("\n**** given candidate %d: ",(g->stat_given_candidates));
       if (g->print_flag) {
         //wr_print_clause_name_history(g,wr_get_history(g,picked_given_cl_cand));
         wr_print_clause(g,picked_given_cl_cand);               
       }  
-    }       
-    //if ((g->print_level_flag)==50) CP2;
-    if (picked_given_cl_cand==NULL) {
-      return 1;
-    }
+    }     
+    //wr_print_clause(g,given_cl_cand);
+    //wg_print_record(db,given_cl_cand);   
     if ((g->res_arglen_limit) && (wg_rec_is_rule_clause(db,picked_given_cl_cand))) {
       if (wr_count_cl_nonans_atoms(g,picked_given_cl_cand) > (g->res_arglen_limit)) {
         continue;
       }
     }
+    //wr_print_clause(g,given_cl_cand);
+    //wg_print_record(db,given_cl_cand);   
     if ((g->endgame_mode) && (wr_count_cl_nonans_atoms(g,picked_given_cl_cand)>1)) {
       continue;
     }
@@ -278,6 +283,8 @@ int wr_genloop(glb* g) {
     if (wr_tautology_cl(g,picked_given_cl_cand)) {
       continue;
     }
+    //wr_print_clause(g,given_cl_cand);
+    //wg_print_record(db,given_cl_cand);   
     /*
     handling picked given_cl_cand:
       maybe should not happen: check if True or False: either drop or proof found
@@ -294,6 +301,8 @@ int wr_genloop(glb* g) {
       //printf("\n given is blocked\n");
       continue;      
     }
+    //wr_print_clause(g,given_cl_cand);
+    //wg_print_record(db,given_cl_cand);   
     origlen=wg_count_clause_atoms(db,picked_given_cl_cand);
     //if ((g->print_level_flag)==50) CP4;
     wr_process_given_cl_setupsubst(g,g->given_termbuf,1,1); // !!!!! new try      
@@ -303,6 +312,8 @@ int wr_genloop(glb* g) {
     printf("\nhardn ");
     wr_print_clause_hardnesses(g,picked_given_cl_cand);
     */
+    //wr_print_clause(g,given_cl_cand);
+    //wg_print_record(db,given_cl_cand);   
     wr_sort_cl(g, picked_given_cl_cand);
     /*
     printf("\nafter ");
@@ -310,7 +321,18 @@ int wr_genloop(glb* g) {
     printf("\n");
     */
     //if ((g->print_level_flag)==50) CP5;
-    given_cl_cand=wr_simplify_cl(g, picked_given_cl_cand, given_cl_metablock);
+    //wr_print_clause(g,given_cl_cand);
+    //wg_print_record(db,given_cl_cand);    
+    given_cl_cand=wr_simplify_cl(g, picked_given_cl_cand, given_cl_metablock);    
+    //wr_print_clause(g,given_cl_cand);
+    //wg_print_record(db,given_cl_cand);   
+    /*
+    CP1
+    wg_check_record(db,given_cl_cand);
+    CP2
+    check_global_stores(g->db,g);
+    */
+    //check_doubles_globally(db,g);
     //if ((g->print_level_flag)==50) CP6;
     //wr_print_cl_literals_meta(g, picked_given_cl_cand);
     //wg_print_record(db,picked_given_cl_cand);
@@ -328,7 +350,7 @@ int wr_genloop(glb* g) {
       }
       // otherwise the candidate was subsumed or otherwise useless
       continue; 
-    }   
+    }  
     if (wr_tautology_cl(g,given_cl_cand)) {
       continue;
     }
@@ -352,16 +374,42 @@ int wr_genloop(glb* g) {
       wr_register_answer(g,NULL,g->proof_history);
       if (wr_enough_answers(g)) { return 0; }
       else { continue; }  
-    }     
+    }   
     // -- check part 1 ends ---
-
+    /*
+    CP3
+    check_global_stores(g->db,g);
+    */
     if (!(g->endgame_mode) && wr_given_cl_subsumed(g,given_cl_cand,given_cl_metablock)) {      
 #ifdef DEBUG
       wr_printf("\ngiven cl is subsumed\n");
 #endif    
       continue;
     }
-    given_cl=wr_process_given_cl(g,given_cl_cand,g->given_termbuf); 
+    /*
+    CP4
+    wg_check_record(db,given_cl_cand);
+    check_doubles_globally(db,g);
+    CP5
+    */
+    /*
+    wg_check_record(db,given_cl_cand);
+    CP4
+    check_global_stores(g->db,g);
+    */
+    given_cl=wr_process_given_cl(g,given_cl_cand,g->given_termbuf);
+    /*
+    wg_check_record(db,given_cl);     
+    CP5
+    check_global_stores(g->db,g);
+    */
+    /*
+    CP6
+    wg_check_record(db,given_cl);
+    //check_global_stores(db, g);
+    check_doubles_globally(db,g);
+    CP7
+    */
     if (given_cl==NULL) {
       if (g->alloc_err) return -1;
       continue; 
@@ -375,7 +423,7 @@ int wr_genloop(glb* g) {
       //printf("\ngiven cl is ACONST_TRUE\n");
       continue;
     }
-
+    
     // -- check part 2 ends ---
 #ifdef RECORD_HISTORY_ORDER
     wr_set_history_record_given_order(g,
@@ -581,12 +629,27 @@ gptr wr_process_given_cl(glb* g, gptr given_cl_cand, gptr buf) {
 #ifdef DEBUG
   wr_printf("\nwr_process_given_cl to do wr_process_given_cl_setupsubst \n");
 #endif  
-  wr_process_given_cl_setupsubst(g,buf,1,1);
+  wr_process_given_cl_setupsubst(g,buf,1,1); // was wr_process_given_cl_setupsubst(g,buf,1,1); // 1 at end means reuse 
 #ifdef DEBUG
   wr_printf("\nwr_process_given_cl to do wr_build_calc_cl \n");
 #endif   
   if (g->endgame_mode) (g->build_rewrite)=0; 
+  /*
+  CP8
+  wg_check_record(g->db,given_cl_cand);
+  check_doubles_globally(g->db,g);
+  CP9
+  */
+  gint tmpbuf=g->build_buffer;
+  g->build_buffer=g->std_termbuf;
   given_cl=wr_build_calc_cl(g,given_cl_cand);
+  g->build_buffer=tmpbuf;
+  /*
+  CP10
+  wg_check_record(g->db,given_cl);
+  check_doubles_globally(g->db,g);
+  CP11
+  */
   if (!given_cl) return NULL;
 #ifdef DEBUG
   wr_printf("\nwr_process_given_cl got a given_cl \n");
@@ -686,13 +749,12 @@ gptr wr_add_given_cl_active_list(glb* g, gptr given_cl, gptr given_cl_metablock,
     }  
   }
   //wr_show_clactivesubsume(g);
-
   //  store neg and pos preds to hash_neg/pos_atoms and store para terms 
   wr_cl_store_res_terms(g,active_cl,resolvability);  
   if (!(g->endgame_mode) && (g->use_equality) && (g->use_equality_strat)) {   
     wr_cl_store_para_terms(g,active_cl,resolvability);
   } 
-  (g->stat_given_used)++;  // stats   
+  (g->stat_given_used)++;  // stats  
   return active_cl;
 } 
 
@@ -731,7 +793,7 @@ int wr_add_cl_to_active_unithash(glb* g, gptr cl) {
       // not a rule clause
       xatom=cl; 
       //xatom=encode_record(db,cl);           
-    }   
+    }  
     hash=wr_lit_hash(g,rpto(g,xatom));
     //printf("\nhash for storing is %d\n",(int)hash);
     if (ruleflag && wg_atom_meta_is_neg(db,clmeta)) {
@@ -742,7 +804,7 @@ int wr_add_cl_to_active_unithash(glb* g, gptr cl) {
       //printf("\npos\n");
       wr_push_termhash(g,rotp(g,g->hash_pos_active_groundunits),hash,xatom,cl); 
       //wr_print_termhash(g,rotp(g,g->hash_pos_groundunits));
-    }    
+    }
 /*
 #ifdef DEBUGHASH    
     wr_printf("\ng->hash_neg_active_groundunits after adding:");      

@@ -212,6 +212,10 @@ int wr_glb_init_simple(glb* g) {
   (g->use_posweightdoublepref)=0;
   (g->use_negweightdoublepref)=0;
 
+  (g->shared_units)=0;       // keep and use units between runs via shared db
+  (g->shared_doubles)=0;     // keep and use doubles between runs via shared db
+  (g->shared_fullcl)=0;      // keep and use derived given clauses between runs via shared db
+
   (g->reverse_clauselist_strat)=0;
   (g->queryfocus_strat)=0;
   (g->queryfocusneg_strat)=0;  
@@ -786,6 +790,7 @@ int wr_glb_init_local_complex(glb* g) {
   (g->simplified_termbuf)=NULL;
   (g->derived_termbuf)=NULL;
   (g->queue_termbuf)=NULL;
+  (g->std_termbuf)=NULL;
   (g->hyper_termbuf)=NULL;
   (g->active_termbuf)=NULL;
   (g->cut_clvec)=NULL;
@@ -835,6 +840,9 @@ int wr_glb_init_local_complex(glb* g) {
  
   (g->queue_termbuf)=wr_cvec_new(g,NROF_QUEUE_TERMBUF_ELS);
   (g->queue_termbuf)[1]=2;
+
+  (g->std_termbuf)=wr_cvec_new(g,NROF_STD_TERMBUF_ELS);
+  (g->std_termbuf)[1]=2;
 
   (g->hyper_termbuf)=wr_cvec_new(g,NROF_HYPER_TERMBUF_ELS);
   (g->hyper_termbuf)[1]=2; 
@@ -927,6 +935,7 @@ int wr_glb_init_seq_local_complex(glb* g) {
   (g->simplified_termbuf)=NULL;
   (g->derived_termbuf)=NULL;
   (g->queue_termbuf)=NULL;
+  (g->std_termbuf)=NULL;
   (g->hyper_termbuf)=NULL;
   (g->active_termbuf)=NULL;
   (g->cut_clvec)=NULL;
@@ -976,6 +985,9 @@ int wr_glb_init_seq_local_complex(glb* g) {
  
   (g->queue_termbuf)=wr_cvec_new(g,NROF_QUEUE_TERMBUF_ELS);
   (g->queue_termbuf)[1]=2;
+
+  (g->std_termbuf)=wr_cvec_new(g,NROF_STD_TERMBUF_ELS);
+  (g->std_termbuf)[1]=2;
 
   (g->hyper_termbuf)=wr_cvec_new(g,NROF_HYPER_TERMBUF_ELS);
   (g->hyper_termbuf)[1]=2; 
@@ -1153,6 +1165,7 @@ int wr_glb_free_local_complex(glb* g) {
   wr_str_free(g,(g->filename));
 
   wr_vec_free(g,g->queue_termbuf);
+  wr_vec_free(g,g->std_termbuf);
   wr_vec_free(g,g->hyper_termbuf);
   wr_vec_free(g,g->active_termbuf);  
   wr_vec_free(g,g->cut_clvec); 
@@ -1217,6 +1230,11 @@ void wr_print_glb_memarea(glb* g, gptr p) {
   if ( p>=(g->queue_termbuf)+2 &&
        p<=(g->queue_termbuf)+((g->queue_termbuf)[1]) ) {
     wr_printf("queue_termbuf\n");
+    return;
+  }
+  if ( p>=(g->std_termbuf)+2 &&
+       p<=(g->std_termbuf)+((g->std_termbuf)[1]) ) {
+    wr_printf("std_termbuf\n");
     return;
   }
   if ( p>=(g->hyper_termbuf)+2 &&

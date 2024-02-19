@@ -70,6 +70,8 @@ static gint show_print_error_nr(void* db, char* errmsg, gint nr);
 static gint show_print_error_str(void* db, char* errmsg, char* str);
 */
 
+static int wg_check_record_aux(void *db, wg_int* rec, int depth);
+
 /* ====== Functions ============== */
 
 
@@ -2565,6 +2567,260 @@ void wg_str_freeref(void* db, char** strref) {
 
 int wg_print_tptp_json(void* db) {
   //UNUSED(db);
+  return 0;
+}
+
+
+/*--- checking records ------------ */
+
+
+
+/** Check single record
+ *
+ */
+int wg_check_record(void *db, wg_int* rec) {
+
+  wg_int len, enc;
+  int i,tmp;  
+#ifdef USE_CHILD_DB
+  void *parent;
+#endif
+
+  if (rec==NULL) {
+    //printf("<null rec pointer>\n");
+    return 0;
+  }
+  //printf("\ndb %ld rec %ld diff %ld \n",(gint)db,(gint)rec,(gint)rec-(gint)db);
+#ifdef USE_CHILD_DB
+  parent = wg_get_rec_owner(db, rec);
+#endif
+  //printf("\ndb %lx db->kb_db %lx",(unsigned long int)db, (unsigned long int)( (dbmemsegh(db)->kb_db)? dbmemsegh(db)->kb_db : 0));
+  //printf("\n<rec %lx>", (unsigned long int) rec);
+  if (dbmemsegh(db)->kb_db) db=dbmemsegh(db)->kb_db;
+  len = wg_get_record_len(db, rec);
+  if (len<0) {
+    printf(" wrong len %ld \n",len);
+    exit(0);
+    //return -1;
+  }
+  if (len>1000) {
+    printf(" suspicious len %ld \n",len);
+    exit(0);
+    //return -2;
+  }
+  //printf("[");
+  for(i=1; i<len; i++) {
+    //if(i) printf(",");
+    enc = wg_get_field(db, rec, i);
+#ifdef USE_CHILD_DB
+    if(parent != db)
+      enc = wg_translate_hdroffset(db, parent, enc);
+#endif
+    tmp=wg_check_value(db, enc, 0);
+    if (tmp) {
+      printf("\nproblematic record main part i %d, err code %d\n",i,tmp);
+      exit(0);
+      //return tmp;
+    }
+  }    
+  for(i=0; i<1; i++) {
+    //if(i) printf(",");
+    enc = wg_get_field(db, rec, i);
+#ifdef USE_CHILD_DB
+    if(parent != db)
+      enc = wg_translate_hdroffset(db, parent, enc);
+#endif
+    tmp=wg_check_value(db, enc, 0);
+    if (tmp) {
+      printf("\nproblematic record history part, err code %d\n",tmp);
+      exit(0);
+      //return tmp;
+    }  
+    //printf("%ld#%s", (gint)enc,strbuf);
+  }
+  //printf("]\n");
+  return 0;
+}
+
+/** Print a record into a stream (to handle records recursively)
+ *  expects buflen to be at least 2.
+ */
+static int wg_check_record_aux(void *db, wg_int* rec, int depth) {
+
+#ifdef USE_CHILD_DB
+  void *parent;
+#endif
+
+  if(rec==NULL) {
+    //printf( "<null rec pointer>\n");
+    return 0;
+  }
+ 
+#ifdef USE_CHILD_DB
+  parent = wg_get_rec_owner(db, rec);
+#endif
+
+  int i,tmp;
+  gint enc;
+  //printf("\ntrying to get len for rec %ld\n",rec);
+  gint tmpdata=*((gint*)rec);
+  //printf("\ntmpdata %ld\n",tmpdata);
+  //printf("\ncheck cpx db %ld rec%ld\n",(gint)db,(gint)rec);
+  gint len = wg_get_record_len(db, rec);
+  //printf("\ncheck len %ld\n",len);
+  if (len<0) {
+    //printf(" wrong len %ld \n",len);
+    //exit(0);
+    return -1;
+  }
+  if (len>1000) {
+    //printf(" suspicious len %ld \n",len);
+    //exit(0);
+    return -2;
+  }
+  
+
+  //printf("["); 
+  for(i=0; i<len; i++) {
+    /* Use a fresh buffer for the value. This way we can
+      * easily count how many bytes printing the value added.
+      */
+    //if(i) { printf(","); }  
+    enc = wg_get_field(db, rec, i);
+#ifdef USE_CHILD_DB
+    if(parent != db)
+      enc = wg_translate_hdroffset(db, parent, enc);
+#endif
+    //printf("\ncpx\n");
+    tmp=wg_check_value(db, enc, depth+1);
+    //printf("\ncpy\n");
+    if (tmp) return tmp;                
+  }
+  //printf("]"); 
+  return 0;
+}
+
+/** Print a single, encoded value
+ *  The value is written into a character buffer.
+ */
+int wg_check_value(void *db, gint enc, int depth) {
+  gint ptrdata;
+  int intdata, len, tmp;
+  char *strdata, *exdata;
+  double doubledata;
+  
+  //if (dbmemsegh(db)->kb_db) db=dbmemsegh(db)->kb_db;  
+  //printf(" enc %ld ",enc);
+  //printf(" type %ld ",wg_get_encoded_type(db, enc));
+
+  switch(wg_get_encoded_type(db, enc)) {
+    case WG_NULLTYPE: // 1
+      //printf( "NULL");
+      break;
+    case WG_RECORDTYPE: // 2
+      if (depth>1000) {
+        //printf(" suspicious record depth %d \n",depth);
+        //exit(0);
+        return -3;
+      }
+      //printf("\ncp\n");
+      ptrdata = (gint) wg_decode_record(db, enc);
+      //printf("\nptrdata %ld\n",ptrdata);
+      //printf( "<rec %lx>", (unsigned long int) ptrdata);      
+      tmp=wg_check_record_aux(db, (wg_int*)ptrdata, depth);
+      if (tmp) return tmp;
+      break;
+    case WG_INTTYPE: // 3
+      intdata = wg_decode_int(db, enc);
+      //printf( "%d", intdata);
+      break;
+    case WG_DOUBLETYPE: // 4
+      doubledata = wg_decode_double(db, enc);
+      //printf( "%f", doubledata);
+      break;
+    case WG_FIXPOINTTYPE: // 10
+      doubledata = wg_decode_fixpoint(db, enc);
+      //printf( "%f", doubledata);
+      break;
+    case WG_STRTYPE: // 5
+      strdata = wg_decode_str(db, enc);
+       if (strlen(strdata)>1000) {
+        //printf(" suspicious WG_STRTYPE len %ld \n",strlen(strdata));
+        //exit(0);
+        return -4;
+      }     
+      //printf( "\"%s\"", strdata);
+      break;
+    case WG_URITYPE: // 7
+      strdata = wg_decode_uri(db, enc);
+      //printf("!%s!",strdata);
+      exdata = wg_decode_uri_prefix(db, enc);
+      if (strdata && strlen(strdata)>1000) {
+        //printf(" suspicious WG_URITYPE len %ld \n",strlen(strdata));
+        //exit(0);
+        return -5;
+      }
+      if (exdata && strlen(exdata)>1000) {
+        //printf(" suspicious WG_URITYPE exdata len %ld \n",strlen(exdata));
+        //exit(0);
+         return -6;
+      }
+      /*
+      if (exdata==NULL)
+        printf( "%s", strdata);
+      else
+        printf( "%s:%s", exdata, strdata);
+      */  
+      break;
+    case WG_XMLLITERALTYPE: // 6
+      strdata = wg_decode_xmlliteral(db, enc);
+      exdata = wg_decode_xmlliteral_xsdtype(db, enc);
+      if (strdata && strlen(strdata)>1000) {
+        //printf(" suspicious WG_XMLLITERALTYPE len %ld \n",strlen(strdata));
+        //exit(0);
+         return -7;
+      }
+      if (exdata && strlen(exdata)>1000) {
+        //printf(" suspicious WG_XMLLITERALTYPE exdata len %ld \n",strlen(exdata));
+        //exit(0);
+         return -8;
+      }
+      //printf( "\"<xsdtype %s>%s\"", exdata, strdata);
+      break;
+    case WG_CHARTYPE: // 9
+      intdata = wg_decode_char(db, enc);
+      //printf( "%c", (char) intdata);
+      break;
+    case WG_DATETYPE: // 11
+      intdata = wg_decode_date(db, enc);
+      //wg_strf_iso_datetime(db,intdata,0,strbuf);     
+      //printf( "<raw date %d>", intdata);
+      break;
+    case WG_TIMETYPE: // 12
+      intdata = wg_decode_time(db, enc);
+      //wg_strf_iso_datetime(db,1,intdata,strbuf);
+      //printf( "<raw time %d>",intdata);
+      break;
+    case WG_VARTYPE: // 14
+      intdata = wg_decode_var(db, enc);
+      //printf( "?%d", intdata);
+      break;
+    case WG_ANONCONSTTYPE: // 13
+      strdata = wg_decode_anonconst(db, enc);
+      if (strdata && strlen(strdata)>1000) {
+        //printf(" suspicious WG_ANONCONSTTYPE len %ld \n",strlen(strdata));
+        //exit(0);
+         return -9;
+      }
+      //printf( "!%s",strdata);
+      break;
+    default:
+      //printf(" <unsupported type> enc %ld \n",enc);
+      //exit(0);
+       return -10;
+      //printf( "<unsupported type>");
+      //break;
+  }
   return 0;
 }
 

@@ -272,6 +272,7 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active, cvec resol
             if (g->print_active_cl) {
               wr_printf("\n* active: ");
               wr_print_clause(g,ycl); 
+              wg_check_record(g->db,ycl);
               //printf("\n");
             }  
             /*
@@ -808,7 +809,9 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active, cvec re
       #endif                                       
                 path=wg_decode_int(db,nodeptr[CLTERM_HASHNODE_PATH_POS]);              
                 //printf("\n path before call %d\n",(int)path);
-                wr_process_paramodulate_result(g,xatom,xcl,0,ycl,cl_as_active,a,b,path,!termpos,1);                 
+                wr_process_paramodulate_result(g,xatom,xcl,0,ycl,cl_as_active,a,b,path,!termpos,1);   
+                wg_check_record(g->db,ycl);              
+                wg_check_record(g->db,cl_as_active);
       #ifdef DEBUG                        
                 wr_printf("\nin wr_paramodulate_from_all_active after wr_process_paramodulate_result\n");
                 wr_printf("\na\n");
@@ -1109,6 +1112,7 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
         wr_print_clause(g,ycl); 
         //printf("\n");
       }  
+      wg_check_record(g->db,ycl);
       if ((g->res_arglen_limit) && (wg_rec_is_rule_clause(db,ycl))) {
         if (wr_count_cl_nonans_atoms(g,ycl) > (g->res_arglen_limit)) {
           // cannot use: continue loop

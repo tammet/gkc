@@ -64,4 +64,10 @@ void wr_set_detailed_plus_printout(glb* g);
 void print_datastructs(glb* g);
 void wr_print_active_clauses(glb* g);
 
+int check_global_stores(void* db, glb* g);
+int check_units_globally(void* db, glb* g);
+int check_doubles_globally(void* db, glb* g);
+int check_fullcl_globally(void* db, glb* g);
+int wr_check_offset_termhash(void* db, glb* g, gint* hasharr, int pos, int type);
+
 #endif

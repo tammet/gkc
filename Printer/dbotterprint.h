@@ -107,4 +107,7 @@ int wg_print_tptp_json(void* db);
 void wg_printerr_tptp(void* db, char* str);
 void wg_printerr_json(void* db, char* str);
 
+int wg_check_record(void *db, wg_int* rec);
+int wg_check_value(void *db, gint enc, int depth);
+
 #endif

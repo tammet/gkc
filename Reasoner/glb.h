@@ -47,7 +47,8 @@
 
 #ifdef __EMSCRIPTEN__
 
-#define NROF_QUEUE_TERMBUF_ELS      40000000 // 40 M of int els
+#define NROF_QUEUE_TERMBUF_ELS      30000000 // 40 M of int els
+#define NROF_STD_TERMBUF_ELS        10000000 // 40 M of int els
 #define NROF_HYPER_TERMBUF_ELS       5000000 // 5 M of int els                             
 #define NROF_ACTIVE_TERMBUF_ELS     10000000 // 10 M of int els
 #define NROF_GIVEN_TERMBUF_ELS       1000000 // 1 M of gint els
@@ -62,16 +63,19 @@
 
 #ifdef _WIN32
 #ifdef _WIN64
-#define NROF_QUEUE_TERMBUF_ELS   200000000
+#define NROF_QUEUE_TERMBUF_ELS   100000000
+#define NROF_STD_TERMBUF_ELS     100000000 
 #define NROF_HYPER_TERMBUF_ELS   100000000
 #define NROF_ACTIVE_TERMBUF_ELS  100000000
 #else
 #define NROF_QUEUE_TERMBUF_ELS    20000000
+#define NROF_STD_TERMBUF_ELS      20000000
 #define NROF_HYPER_TERMBUF_ELS    10000000                              
 #define NROF_ACTIVE_TERMBUF_ELS   20000000 
 #endif
 #else
 #define NROF_QUEUE_TERMBUF_ELS   200000000  // 200 M of gint els
+#define NROF_STD_TERMBUF_ELS     200000000  // 200 M of gint els
 #define NROF_HYPER_TERMBUF_ELS   100000000  // 100 M of gint els
 #define NROF_ACTIVE_TERMBUF_ELS  100000000  // 100 M of gint els
 #endif
@@ -255,6 +259,7 @@ typedef struct {
   cvec simplified_termbuf;
   cvec derived_termbuf;    
   cvec queue_termbuf;
+  cvec std_termbuf;
   cvec hyper_termbuf;
   cvec active_termbuf;
 
@@ -336,6 +341,10 @@ typedef struct {
   int use_hornpref;
   int use_posweightdoublepref;
   int use_negweightdoublepref;
+
+  int shared_units;    // keep and use units between runs via shared db
+  int shared_doubles;  // keep and use doubles between runs via shared db
+  int shared_fullcl;    // keep and use derived given clauses between runs via shared db
 
   /* dynamically changed limits */
 

@@ -79,11 +79,17 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
   wr_print_clause(g,cl); 
   wr_printf("\n"); 
 #endif
+  /*
+  wr_printf("\nwr_simplify_cl called with ");
+  wr_print_clause(g,cl); 
+  wr_printf("\n"); 
+  wr_print_buffers(g);
+  check_doubles_globally(g->db,g);
+  */
 
   (g->tmp_rewrites)=0;
   // do not process non-rule clauses for now
   if (! wg_rec_is_rule_clause(db,cl)) {
-
     // not a ruleclause 
 
     len=1;
@@ -132,8 +138,11 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
         return cl;
       } else {
         // rewrites done
-        res=rotp(g,yatom);        
+        res=rotp(g,yatom);  
+        gint tmpbuf=g->build_buffer;
+        g->build_buffer=g->std_termbuf;
         history=wr_build_simplify_history(g,cl,g->cut_clvec,g->rewrite_clvec);
+        g->build_buffer=tmpbuf;
         wr_set_history(g,res,history); 
         //resmeta=wr_calc_clause_meta(g,res,cl_metablock);
         //wr_add_cl_to_unithash(g,res,resmeta);
@@ -146,7 +155,6 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
   } else {
     len=wg_count_clause_atoms(db,cl);
   } 
-
   // ruleclause
 
   // reserve sufficient space in termbuf for simple sequential store of atoms:
@@ -155,6 +163,7 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
   (g->derived_termbuf)[1]=2; // init termbuf
   // rptr will hold the new, simplified (shorter) clause
   rptr=wr_alloc_from_cvec(g,g->derived_termbuf,rlen); 
+  //rptr=wr_malloc(g,(rlen+10)*8);
   if (rptr==NULL) {
     ++(g->stat_internlimit_discarded_cl);
     wr_alloc_err(g,"could not alloc first buffer in wr_simplify_cl ");
@@ -170,7 +179,10 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
   wr_process_resolve_result_setupquecopy(g);
   initial_queue_termbuf_next=CVEC_NEXT(g->build_buffer); // to be restored if not actually used
   if (g->use_comp_funs_strat) g->use_comp_funs=1;  
-  
+  /*
+  CP1
+  check_doubles_globally(g->db,g);
+  */
   // loop over literals, storing the results of cuts as we go
   xcl=cl;  
   for(i=0; i<len; i++) { 
@@ -311,7 +323,10 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
       ++rpos;   
     }
   } 
-  
+  /*
+  CP2
+  check_doubles_globally(g->db,g);
+  */ 
   //printf("\n(g->tmp_rewrites) %d\n",(g->tmp_rewrites));  
   //if (!rewritten_atoms) {
   //    CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
@@ -344,19 +359,24 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
   //wr_process_resolve_result_setupsubst(g)
   wr_process_simp_setupquecopy(g);  
   // build history and a new clause
+  gint tmpbuf=g->build_buffer;
+  g->build_buffer=g->std_termbuf;
   history=wr_build_simplify_history(g,cl,g->cut_clvec,g->rewrite_clvec);
   // set up building params
   initial_queue_termbuf_next=CVEC_NEXT(g->build_buffer); // to be restored if not actually used
 
   //printf("\nrpos %d",rpos);
-
   res=wr_derived_build_cl_from_initial_cl(g,rptr,rpos,ruleflag,history);
+  g->build_buffer=tmpbuf;
   /*
   printf("\nres\n");
   wr_print_clause(g,res); 
   printf("\n");
   */
-  
+  /*
+  CP3
+  check_doubles_globally(g->db,g);
+  */
   if (!history || !res) {
     // allocation failed
     ++(g->stat_internlimit_discarded_cl);
@@ -503,11 +523,13 @@ gptr wr_simplify_doublecut_cl(glb* g, gptr cl, gptr cl_metablock) {
   //wr_process_resolve_result_setupsubst(g)
   wr_process_simp_setupquecopy(g);  
   // build history and a new clause
+  gint tmpbuf=g->build_buffer;
+  g->build_buffer=g->std_termbuf;
   history=wr_build_simplify_history(g,cl,g->cut_clvec,g->rewrite_clvec);
   // set up building params
   initial_queue_termbuf_next=CVEC_NEXT(g->build_buffer); // to be restored if not actually used
   res=wr_derived_build_cl_from_initial_cl(g,rptr,rpos,ruleflag,history);
-
+  g->build_buffer=tmpbuf;
   /*
   wr_printf("\nwr_simplify_doublecut_cl called with ");
   wr_print_clause(g,cl); 

@@ -731,7 +731,7 @@ gptr wr_flatten_history(glb* g, void* mpool, gint history, gptr cl, int depth, i
   int len, tmp1, i, start;
    
   // get history type and components
-  /* 
+  /*
   printf("\nflatten called depth %d\n",depth);  
   wr_print_clause(g,cl);
   printf("\n");
@@ -1200,7 +1200,6 @@ int wr_show_result(glb* g, gint history) {
     //printf("\nsleepi iterations done: %d\n",sleepi);
   }
 #endif      
-
   // create buf for printing
   namebuf[0]=0;
   blen=1000;
@@ -1294,7 +1293,6 @@ int wr_show_result(glb* g, gint history) {
     if (buf) wr_free(g,buf);
     return bpos;
   }      
-
   for(ansnr=2; ansnr<((g->answers)[1]); ansnr+=2) {
     // loop over all proofs 
     if (g->print_json) {
@@ -1345,7 +1343,7 @@ int wr_show_result(glb* g, gint history) {
     //if (!wr_hist_print(g,histstr,"\nproof:\n")) return -1;
     assoc=NULL;
     clnr=1;
-    htype=wg_get_encoded_type(db,history);  
+    htype=wg_get_encoded_type(db,history); 
     if (htype!=WG_RECORDTYPE) {
       bpos=wr_strprint_simpleterm_otter(g,history,1,&buf,&blen,bpos,0);
       if (bpos<0) {

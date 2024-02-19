@@ -498,6 +498,9 @@ typedef struct _db_memsegment_header {
   gint json; /** initially 0, set by cmd line switches */
   gint convert;  /** initially 0, set by cmd line switches */
   gint clausify;  /** initially 0, set by cmd line switches */ 
+  gint shared_units;  /** initially 0, set by cmd line switches */ 
+  gint shared_doubles; /** initially 0, set by cmd line switches */ 
+  gint shared_fullcl; /** initially 0, set by cmd line switches */ 
   gint min_strat_timeloop_nr; /** initially 0, set by LTB batch only */
   gint max_strat_timeloop_nr; /** initially 1000, set by by LTB batch only */
   int parse_skolem_nr;

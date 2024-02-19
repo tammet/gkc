@@ -62,6 +62,8 @@ int wr_uri_is_list(glb* g, gint fun);
 int wr_record_is_list(glb* g, gptr tptr);
 gint wr_compute_fun_list(glb* g, gptr tptr, int opcode);
 
+void wr_print_buffers(glb* g);
+
 // two argument predicate funs
 
 #define COMP_FUN_EQUAL 1
