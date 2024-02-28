@@ -55,6 +55,8 @@
 
 #define EMPTYSTRING "$emptystr"
 
+//#define REAL_CHECK_CL
+
 //#define DEBUG
 #undef DEBUG
 
@@ -2585,7 +2587,9 @@ int wg_check_record(void *db, wg_int* rec) {
 #ifdef USE_CHILD_DB
   void *parent;
 #endif
-
+#ifndef REAL_CHECK_CL
+  return 0;
+#endif  
   if (rec==NULL) {
     //printf("<null rec pointer>\n");
     return 0;

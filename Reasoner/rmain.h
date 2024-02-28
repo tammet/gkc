@@ -64,6 +64,11 @@ void wr_set_detailed_plus_printout(glb* g);
 void print_datastructs(glb* g);
 void wr_print_active_clauses(glb* g);
 
+gint g_lock_shared_read(glb* g); 
+gint g_lock_shared_write(glb* g); 
+gint g_free_shared_read(glb* g, gint lock);
+gint g_free_shared_write(glb* g, gint lock); 
+
 int check_global_stores(void* db, glb* g);
 int check_units_globally(void* db, glb* g);
 int check_doubles_globally(void* db, glb* g);

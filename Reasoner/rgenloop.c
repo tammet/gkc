@@ -302,7 +302,10 @@ int wr_genloop(glb* g) {
       continue;      
     }
     //wr_print_clause(g,given_cl_cand);
-    //wg_print_record(db,given_cl_cand);   
+    //CP1
+    //wg_print_record(db,picked_given_cl_cand);   
+    //wg_check_record(db,picked_given_cl_cand);
+
     origlen=wg_count_clause_atoms(db,picked_given_cl_cand);
     //if ((g->print_level_flag)==50) CP4;
     wr_process_given_cl_setupsubst(g,g->given_termbuf,1,1); // !!!!! new try      
@@ -326,12 +329,12 @@ int wr_genloop(glb* g) {
     given_cl_cand=wr_simplify_cl(g, picked_given_cl_cand, given_cl_metablock);    
     //wr_print_clause(g,given_cl_cand);
     //wg_print_record(db,given_cl_cand);   
-    /*
-    CP1
+    
+    //CP1
     wg_check_record(db,given_cl_cand);
-    CP2
-    check_global_stores(g->db,g);
-    */
+    //CP2
+    //check_global_stores(g->db,g);
+    
     //check_doubles_globally(db,g);
     //if ((g->print_level_flag)==50) CP6;
     //wr_print_cl_literals_meta(g, picked_given_cl_cand);
@@ -376,6 +379,7 @@ int wr_genloop(glb* g) {
       else { continue; }  
     }   
     // -- check part 1 ends ---
+    //CP3
     /*
     CP3
     check_global_stores(g->db,g);
@@ -386,12 +390,12 @@ int wr_genloop(glb* g) {
 #endif    
       continue;
     }
-    /*
-    CP4
-    wg_check_record(db,given_cl_cand);
-    check_doubles_globally(db,g);
-    CP5
-    */
+    
+    //CP4
+    //wg_check_record(db,given_cl_cand);
+    //check_doubles_globally(db,g);
+    //CP5
+    
     /*
     wg_check_record(db,given_cl_cand);
     CP4

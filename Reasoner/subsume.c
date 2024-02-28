@@ -543,6 +543,7 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
   cvec bucket;
   int cuts=0, oldcuts;
   gint clhash;
+  gint lock;
 
 #ifdef DEBUG
   wr_printf("\nwr_derived_cl_cut_and_subsume is called \n");
@@ -651,13 +652,15 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
         wr_printf("\nexternal kb r_kb_g(g) present");
 #endif  
         if (r_kb_g(g) && (g->shared_units)) {
+          lock=g_lock_shared_read(g);
           bucket=wr_find_shared_offset_termhash(g,rotp(g,(r_kb_g(g))->shared_hash_pos_groundunits),xatomptr,hash,0,NULL);      
+          g_free_shared_read(g,lock);
         }   
         if (bucket!=NULL) {         
           //wr_printf("\ncut by shared ground hash as neg: "); 
           //wr_print_term(g,xatom);
           //wr_printf("\n");
-          printf("!");
+          //printf("!");
           /*
           printf("\ncutoff by kb ground hash as neg!\n"); 
           wr_print_term(g,xatom);
@@ -768,13 +771,15 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
         wr_printf("\nexternal kb r_kb_g(g) present");
 #endif  
         if (r_kb_g(g) && (g->shared_units)) {
+          lock=g_lock_shared_read(g);
           bucket=wr_find_shared_offset_termhash(g,rotp(g,(r_kb_g(g))->shared_hash_neg_groundunits),xatomptr,hash,0,NULL);      
+          g_free_shared_read(g,lock);
         }
         if (bucket!=NULL) {       
           //wr_printf("\ncut by shared ground hash as pos: "); 
           //wr_print_term(g,xatom);
           //wr_printf("\n");
-          printf("!");
+          //printf("!");
           /*
           printf("\ncutoff by kb ground hash as pos!\n"); 
           wr_print_term(g,xatom);
@@ -855,6 +860,7 @@ int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucke
   gptr xatomptr;
   cvec bucket;
   gint hash;
+  gint lock;
 
 #ifdef DEBUG
   wr_printf("\n!!!!! wr_atom_cut_and_subsume is called \n");    
@@ -916,12 +922,14 @@ int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucke
     }     
 #ifdef GLOBAL_UNITS
     if (r_kb_g(g) && (g->shared_units)) {
+      lock=g_lock_shared_read(g);
       bucket=wr_find_shared_offset_termhash(g,rotp(g,(r_kb_g(g))->shared_hash_pos_groundunits),xatomptr,hash,0,NULL);
+      g_free_shared_read(g,lock);
       if (bucket!=NULL) {
         //wr_printf("\ncut by shared ground hash as neg: "); 
         //wr_print_term(g,xatom);
         //wr_printf("\n");
-        printf("!");
+        //printf("!");
 
   #ifdef DEBUG
         wr_printf("\ncutoff by shared ground hash as neg!\n"); 
@@ -987,14 +995,16 @@ int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucke
     }     
 #ifdef GLOBAL_UNITS
     if (r_kb_g(g) && (g->shared_units)) {
+      lock=g_lock_shared_read(g);
       bucket=wr_find_shared_offset_termhash(g,rotp(g,(r_kb_g(g))->shared_hash_neg_groundunits),xatomptr,hash,0,NULL);
+      g_free_shared_read(g,lock);
       if (bucket!=NULL) {
         //wr_printf("\ncut by shared ground hash as pos: "); 
         //wr_print_term(g,xatom);
         //wr_printf("\n");
         //wr_printf("\n bucket:\n");
         //wr_print_clause(g,bucket);
-        printf("!");
+        //printf("!");
 
   #ifdef DEBUG
         wr_printf("\ncutoff by shared ground hash as neg!\n"); 
@@ -1033,6 +1043,8 @@ int wr_atom_doublecut(glb* g, gint xatom, gint xatommeta, gptr xcl, int pos, cve
   gint hash;
   gptr bucket_asp;
   int j, shared;
+  gint lock;
+  int locktaken=0;
 
   /*
   printf("\n** wr_atom_doublecut is called \n");    
@@ -1060,8 +1072,10 @@ int wr_atom_doublecut(glb* g, gint xatom, gint xatommeta, gptr xcl, int pos, cve
     shared=0;
     bucket=wr_find_offset_termbucket(g,rotp(g,g->hash_pos_grounddoubles),xatomptr,hash);
 #ifdef SHARED_DERIVED
-    if (!bucket && (r_kb_g(g)) && (g->shared_doubles)) {      
-      bucket=wr_find_shared_offset_termbucket(g,rotp(g,(r_kb_g(g))->shared_hash_pos_grounddoubles),xatomptr,hash);
+    if (!bucket && (r_kb_g(g)) && (g->shared_doubles)) {  
+      lock=g_lock_shared_read(g);    
+      locktaken=1;
+      bucket=wr_find_shared_offset_termbucket(g,rotp(g,(r_kb_g(g))->shared_hash_pos_grounddoubles),xatomptr,hash);      
       //if (bucket) printf("B-");
       shared=1;
     }
@@ -1074,23 +1088,34 @@ int wr_atom_doublecut(glb* g, gint xatom, gint xatommeta, gptr xcl, int pos, cve
         if (wr_atom_doublecut_aux(g,xatom,xatommeta,xcl,pos,rotp(g,bucket_asp[j+1]))) {         
           if (shared) printf("+");
           else printf("*");
-          *foundbucket=rotp(g,bucket_asp[j+1]);      
+          *foundbucket=rotp(g,bucket_asp[j+1]);   
+          if (locktaken) g_free_shared_read(g,lock);   
           return 1;
         }         
       }
+      if (locktaken) g_free_shared_read(g,lock); 
       if (!shared && (r_kb_g(g)) && (g->shared_doubles)) {
-        bucket=wr_find_shared_offset_termbucket(g,rotp(g,(r_kb_g(g))->shared_hash_pos_grounddoubles),xatomptr,hash);        
-        if (!bucket) return -1;
+        lock=g_lock_shared_read(g);
+        locktaken=1;
+        bucket=wr_find_shared_offset_termbucket(g,rotp(g,(r_kb_g(g))->shared_hash_pos_grounddoubles),xatomptr,hash);                
+        if (!bucket) {
+          if (locktaken) g_free_shared_read(g,lock); 
+          return -1;
+        }  
         //printf("G-");
         bucket_asp=rotp(g,bucket);
         for(j=2;j<bucket_asp[0] && j<bucket_asp[1]; j=j+2) {       
           if (wr_atom_doublecut_aux(g,xatom,xatommeta,xcl,pos,rotp(g,bucket_asp[j+1]))) {         
             printf("+");            
             *foundbucket=rotp(g,bucket_asp[j+1]);      
+            if (locktaken) g_free_shared_read(g,lock); 
             return 1;
           }         
         }
+        if (locktaken) g_free_shared_read(g,lock); 
       }
+    } else {
+      if (locktaken) g_free_shared_read(g,lock); 
     }
   } else {
     //printf("\npos atom\n");    
@@ -1102,7 +1127,9 @@ int wr_atom_doublecut(glb* g, gint xatom, gint xatommeta, gptr xcl, int pos, cve
 #ifdef SHARED_DERIVED
     if (!bucket && (r_kb_g(g)) && (g->shared_doubles)) {
       //CP10
-      bucket=wr_find_shared_offset_termbucket(g,rotp(g,(r_kb_g(g))->shared_hash_neg_grounddoubles),xatomptr,hash);
+      lock=g_lock_shared_read(g);
+      locktaken=1;
+      bucket=wr_find_shared_offset_termbucket(g,rotp(g,(r_kb_g(g))->shared_hash_neg_grounddoubles),xatomptr,hash);      
       //if (bucket) printf("B+");
       //CP11
       shared=1;
@@ -1136,22 +1163,33 @@ int wr_atom_doublecut(glb* g, gint xatom, gint xatommeta, gptr xcl, int pos, cve
           if (shared) printf("+");
           else printf("*");
           *foundbucket=rotp(g,bucket_asp[j+1]);      
+          if (locktaken) g_free_shared_read(g,lock); 
           return 1;
         }
       }   
-      if (!shared && (r_kb_g(g)) && (g->shared_doubles)) {        
-        bucket=wr_find_shared_offset_termbucket(g,rotp(g,(r_kb_g(g))->shared_hash_pos_grounddoubles),xatomptr,hash);
-        if (!bucket) return -1;
+      if (locktaken) g_free_shared_read(g,lock); 
+      if (!shared && (r_kb_g(g)) && (g->shared_doubles)) {  
+        lock=g_lock_shared_read(g); 
+        locktaken=1;  
+        bucket=wr_find_shared_offset_termbucket(g,rotp(g,(r_kb_g(g))->shared_hash_pos_grounddoubles),xatomptr,hash);        
+        if (!bucket) {
+          if (locktaken) g_free_shared_read(g,lock); 
+          return -1;
+        }  
         //printf("G+");
         bucket_asp=rotp(g,bucket);
         for(j=2;j<bucket_asp[0] && j<bucket_asp[1]; j=j+2) {       
           if (wr_atom_doublecut_aux(g,xatom,xatommeta,xcl,pos,rotp(g,bucket_asp[j+1]))) {         
             printf("+");            
-            *foundbucket=rotp(g,bucket_asp[j+1]);      
+            *foundbucket=rotp(g,bucket_asp[j+1]); 
+            if (locktaken) g_free_shared_read(g,lock);     
             return 1;
           }            
         }
+        if (locktaken) g_free_shared_read(g,lock); 
       }  
+    } else {
+      if (locktaken) g_free_shared_read(g,lock); 
     }
   }   
 #ifdef DEBUG
