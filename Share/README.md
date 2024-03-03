@@ -1,6 +1,7 @@
 This folder contains relevant data and binaries for sharing experiments:
 
 * gkc: the binary implementing sharing: see below for instructions.
+* dummykb.txt: used for initializing the shared memory database
 * rdiff.py: a python script to compare experimental logs below
 * base_sequential.txt: no sharing, no parallel processes, 240 seconds per problem, 500 problems
 * base_parallel4.txt: no sharing, 4 parallel processes, 60 seconds per problem, 500 problems
@@ -16,6 +17,7 @@ Log files of experiments
 
 The files base_sequential.txt ... sharedunitsdboublesfull_4_hard_sequential.txt are the results of running the experimental version of gkc with 
 different sharing and parallelism options on either all the 500 FOF problems of CASC from 2023, or just the set of 190 problems gkc could not prove during CASC.
+The timing limits (either 60 or 240 seconds) were forced with the linux timeout utility.
 
 A number of additional log files have been produced during the experiments, but since these were not relevant for the lessons learned, we have not
 included these.
@@ -39,7 +41,7 @@ The small python script rdiff.py can be used to compare log files (of possibly d
     ./rdiff.py base_parallel4.txt sharedunits_parallel4.txt
   
 The script prints out all these problems where one log file contains a proof and the other contains a failed proof attempt: 
-the left log line is printed first, followed by a failed log file. Finally the script prints out the number of proofs found in
+the left log file line is printed first, followed by a corresponding right log file line. Finally the script prints out the number of proofs found in
 the left log file, for which the right log contains a failed attempt, and analogously the number of proofs found in the right log file,
 for which the left log contains a failed attempt. Example of the end of output of the call above:
 
@@ -56,8 +58,8 @@ for which the left log contains a failed attempt. Example of the end of output o
 Running experimental gkc
 ------------------------
 
-The experimental sharing-capable version of gkc can be run on linux only. The source for the experimental gkc binary can be found from the development branch dev7.
-In order to run the sharing-capable version of gkc, you have to preload the shared memory database again, 
+The experimental sharing-capable version of gkc in this folder can be run on linux only. The source for this binary can be found from the development branch dev7.
+In order to run the sharing-capable version of gkc, you have to preload the shared memory database  
 every time before running gkc, and then use a suitable set of keys for selecting the sharing type and parallelism.
 
 Importantly, parallel running is OK only for base case without sharing or sharing unit clauses. For the -shareddouble and -sharedfullcl keys, locking has not

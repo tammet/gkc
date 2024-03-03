@@ -1,0 +1,2 @@
+dummypred173(dummyconst592).
+dummypred174(X).
