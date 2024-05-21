@@ -107,6 +107,10 @@ int wr_store_offset_termhash(void* db, glb* g, gint* hasharr, int pos, int type)
 
 #define SHARED_DERIVED
 
+
+#define MAX_STORE_SHARED_UNITS 10000
+//#define SHARE_ACTIVE_UNITS_ONLY
+
 // #define REAL_CHECK_CL
 
 /* ======= Private protos ================ */
@@ -124,6 +128,8 @@ int wr_store_offset_termhash(void* db, glb* g, gint* hasharr, int pos, int type)
 //#define WEIGHT_PREFER_GOALS_ASSUMPTIONS 
 
 void* wr_free_analyze_g(glb* g);
+
+int store_processed_units_share(void* db, glb* g);
 
 /* ====== Functions ============== */
 
@@ -2478,17 +2484,24 @@ int store_units_globally(void* db, glb* g) {
   
   // ground units:
   if (shared_g) {
+#ifdef SHARE_FROM_ACTIVE_CLAUSES 
+    store_processed_units_share(db, g);
+#else    
+#ifndef SHARE_ACTIVE_UNITS_ONLY
     //wr_printf("\npos ground units hasharrpos %ld\n",(gint)hasharrpos); 
     count=wr_store_offset_termhash(db,g,hasharrpos,1,0); //rotp(g,(r_kb_g(g))->hash_pos_active_groundunits));
     //wr_printf("\nneg ground units hasharrneg %ld\n",(gint)hasharrneg); 
     count=count+wr_store_offset_termhash(db,g,hasharrneg,0,0);//rotp(g,(r_kb_g(g))->hash_neg_active_groundunits));
-
+#else
+    count=0;    
+#endif
     hasharrpos=rotp(g,g->hash_pos_active_groundunits);
     hasharrneg=rotp(g,g->hash_neg_active_groundunits);  
 
     count=count+wr_store_offset_termhash(db,g,hasharrpos,1,0); //rotp(g,(r_kb_g(g))->hash_pos_active_groundunits));
     //wr_printf("\nneg ground units hasharrneg %ld\n",(gint)hasharrneg); 
     count=count+wr_store_offset_termhash(db,g,hasharrneg,0,0);//rotp(g,(r_kb_g(g))->hash_neg_active_groundunits));
+#endif    
   }
   printf(" stored unit count %d\n",count);
   // NB! We used the one here:
@@ -2581,7 +2594,7 @@ int store_doubles_globally(void* db, glb* g) {
 int store_fullcl_globally(void* db, glb* g) {
   gint cl_metablock[CLMETABLOCK_ELS];
 
-  printf("store_fullcl_globally called,");
+  //printf("store_fullcl_globally called,");
   
   //gptr hasharrpos, hasharrneg; //, hashvec; 
   //int dbused;
@@ -2670,13 +2683,67 @@ int store_fullcl_globally(void* db, glb* g) {
     if (rflag) rlen = wg_count_clause_atoms(db,cl);
     else rlen=1;
     
+    
     if (rlen!=1) {
       continue;
     } 
-     
+    
     if (rlen>2) {
       continue;
     }  
+
+/* -- new part starts --- */
+    /*
+    gint xatom;
+    
+    if (!rflag) {
+      xatom=encode_record(db,cl);
+#ifdef DEBUG      
+      wr_print_record(g,wg_decode_record(db,xatom));
+#endif
+    } else {       
+      xatom=wg_get_rule_clause_atom(db,cl,0);       
+#ifdef DEBUG        
+      wr_printf("atom nr %d from record \n",i);
+      wr_print_record(g,xcl);
+      wr_printf("\natom\n");              
+      wr_print_record(g,wg_decode_record(db,xatom));             
+#endif                                 
+    }
+    // xcl: active clause
+    // xatom: active atom
+    if (!xatom) continue;
+
+    if (wg_get_encoded_type(db,xatom)!=WG_RECORDTYPE ||
+          wr_equality_atom(g,xatom)) {                  
+        continue;
+    }     
+    /*
+    gptr tptr, a, b;
+    int atomlen;
+
+    tptr=rotp(g,xatom);
+    atomlen=get_record_len(tptr);
+    if (atomlen<(g->unify_firstuseterm)+3) continue;
+    // xcl: active clause
+    // xatom: active atom    
+    if (1) {            
+      // check ordering: which terms are ok for para  
+   
+      a=tptr[RECORD_HEADER_GINTS+(g->unify_funarg1pos)];
+      b=tptr[RECORD_HEADER_GINTS+(g->unify_funarg2pos)];
+      
+      int eqtermorder;
+      eqtermorder=wr_order_eqterms(g,a,b,NULL);
+      if (eqtermorder !=1 && eqtermorder!=2) {
+        continue;        
+      }
+    }
+    printf("atom to store: ");
+    wr_print_clause(g,cl);
+    printf("\n");
+    */
+/* -- new part ends --- */
 
     /*
     printf("\nclactive nr %d count %d: ",i,count);
@@ -2694,7 +2761,7 @@ int store_fullcl_globally(void* db, glb* g) {
     decprior=wr_decode_priority(g,prior);
 
     // if (!(decprior<=WR_HISTORY_FROMASSUMPTION_ROLENR)) continue;
-    if (!(decprior<=WR_HISTORY_FROMGOAL_ROLENR)) continue;
+    //if (!(decprior<=WR_HISTORY_FROMGOAL_ROLENR)) continue;
     
     // WR_HISTORY_FROMGOAL_ROLENR
 
@@ -2720,10 +2787,11 @@ int store_fullcl_globally(void* db, glb* g) {
      ((255<<CLMETABLOCK_SIZE_SHIFT) & cl_metablock[CLMETABLOCK_SIZES_POS])>>CLMETABLOCK_SIZE_SHIFT);
     */
     
+    /*
     if ((1<<CLMETABLOCK_ISGROUND_SHIFT) & cl_metablock[CLMETABLOCK_LENGTHS_POS]) {
       continue;
     }
-
+    */
 
     //printf("\nstoring at i %d and count %d",i,count);
     //wr_print_clause(g,cl);
@@ -2733,6 +2801,7 @@ int store_fullcl_globally(void* db, glb* g) {
     //CP18
     
     //printf("\nfor cl wr_cl_ismarked_given %d\n", wr_cl_ismarked_given(g,cl));
+
     tmp=wr_copy_clause(g,shared_g,rpto(g,cl));
     //printf("\nfor copy wr_cl_ismarked_given %d\n", wr_cl_ismarked_given(g,rotp(shared_g,tmp)));
     /*
@@ -2814,6 +2883,195 @@ int store_fullcl_globally(void* db, glb* g) {
 }
 
 
+// --- start unit sharing from processed ---
+
+int store_processed_units_share(void* db, glb* g) {
+  gint cl_metablock[CLMETABLOCK_ELS];
+
+  printf("store_processed_units_share called,");
+  
+  //gptr hasharrpos, hasharrneg; //, hashvec; 
+  //int dbused;
+  //gint iactive, iactivelimit;
+  glb* shared_g;
+  int count=0;
+  void* global_db; // shared_g->db;
+
+  int i, histlen;
+  gint history,tmp;
+  gptr cl,historyptr,tmp_buffer,newcl;
+
+  //gcell *cellptr2; 
+  gcell *cellptr;
+  gint cell; //,cell2,lastcell;
+  gint clmeta;
+  gint xmeta;
+  int pos;
+  int type;
+  //int n=0;
+  //void* rec;
+
+  shared_g=(g->kb_g);
+  if (!shared_g) {
+    printf("\n*** NB! shared_g is 0, not storing! ***\n");
+    return 1;
+  }  
+  global_db=shared_g->db;
+
+  //printf("\n== active == \n");  
+  for(i=2;i<(rotp(g,g->clactive))[1];i++) {
+    cl=(gptr)((rotp(g,g->clactive))[i]);
+   
+    int weight, size, depth, length;
+    gint resmeta;
+    size=0; depth=0; length=0;
+   
+
+    history=wr_get_history(g,cl);
+    historyptr=otp(db,history);  
+    //wr_print_record(g,historyptr);  
+    histlen=wg_get_record_len(db,historyptr); 
+    //printf("\nhistlen %d\n",histlen);
+
+    if (histlen==HISTORY_PREFIX_LEN) continue;
+    
+    //printf("\nshown clause was derived\n");
+
+    //wr_printf("\nclactive nr %d count %d:",i,count);
+    //wr_print_record(g,cl);  
+    //printf("\n"); 
+
+    int rflag=wg_rec_is_rule_clause(db,cl);
+    int rlen;
+    if (rflag) {
+      rlen = wg_count_clause_atoms(db,cl);
+    } else {
+      rlen=1;
+    }  
+    
+    if (rlen!=1) {
+      continue;
+    } 
+    gint xatom;
+    if (rflag) {      
+      xmeta=wg_get_rule_clause_atom_meta(db,cl,0);
+      xatom=wg_get_rule_clause_atom(db,cl,0);
+      if (wg_atom_meta_is_neg(db,xmeta)) pos=0;
+      else pos=1;
+    } else {
+      pos=1;
+      xatom=encode_record(db,cl);
+    }
+    /* 
+    if (rlen>2) {
+      continue;
+    }  
+    */
+
+    /*
+    printf("\nclactive nr %d count %d: ",i,count);
+    wr_printf(" unit ");
+    wr_print_clause(g,cl);
+    printf("\n"); 
+    */
+
+    //printf("\nshown clause was unit\n");
+    /*
+    gint prior, decprior;
+    prior=wr_get_history_record_field(g,historyptr,HISTORY_PRIORITY_POS);
+    if (!prior) continue;
+    
+    decprior=wr_decode_priority(g,prior);
+
+    // if (!(decprior<=WR_HISTORY_FROMASSUMPTION_ROLENR)) continue;
+    if (!(decprior<=WR_HISTORY_FROMGOAL_ROLENR)) continue;
+    */
+    // WR_HISTORY_FROMGOAL_ROLENR
+
+    //printf("\nshown clause had ok priority\n");
+    
+    //weight=wr_calc_clause_weight(g,cl,&size,&depth,&length);
+    //printf("size %d depth %d length %d\n",size, depth, length);
+    //resmeta=wr_calc_clause_meta(g,cl,cl_metablock);
+    /*
+    printf("\n lengths   ");
+    wr_print_gint_hashmask(g,cl_metablock[CLMETABLOCK_LENGTHS_POS]);
+    printf("\n real length %d\n",
+      (*(cl_metablock) & (255<<CLMETABLOCK_LENGTH_SHIFT))>>CLMETABLOCK_LENGTH_SHIFT);
+    printf("\n sizes     ");
+    wr_print_gint_hashmask(g,cl_metablock[CLMETABLOCK_SIZES_POS]);
+    printf("\n");
+    printf("\n cl_metablock[CLMETABLOCK_LENGTHS_POS] %ld\n",cl_metablock[CLMETABLOCK_LENGTHS_POS]);
+    printf("\ngroundbit %d\n",(1<<CLMETABLOCK_ISGROUND_SHIFT) & cl_metablock[CLMETABLOCK_LENGTHS_POS]);
+    printf("\n cl_metablock[CLMETABLOCK_SIZES_POS] %ld\n",cl_metablock[CLMETABLOCK_SIZES_POS]);
+    printf("\ndepth %d\n",
+     ((255<<CLMETABLOCK_DEPTH_SHIFT) & cl_metablock[CLMETABLOCK_SIZES_POS])>>CLMETABLOCK_DEPTH_SHIFT);
+    printf("\nsize %d\n",
+     ((255<<CLMETABLOCK_SIZE_SHIFT) & cl_metablock[CLMETABLOCK_SIZES_POS])>>CLMETABLOCK_SIZE_SHIFT);
+    */
+    /*
+    if ((1<<CLMETABLOCK_ISGROUND_SHIFT) & cl_metablock[CLMETABLOCK_LENGTHS_POS]) {
+      continue;
+    }
+    */
+
+    //printf("\nstoring at i %d and count %d",i,count);
+    //wr_print_clause(g,cl);
+
+    // -- storing starts ---
+    //cl=rotp(g,bucket[j+1]);
+    //resmeta=wr_calc_clause_meta(shared_g,cl,cl_metablock);
+    resmeta=0;
+    // clmeta=rotp(g,bucket[j])
+    clmeta=0; // not actually used
+    type=0; // 0: units, 1: doubles
+    
+    gint hash=wr_lit_hash(g,rpto(g,xatom)); 
+    //hash=bucketnr-1; // this is how hash is computed in wr_add_.._unithash
+    gint bucketnr=hash+1;
+    gptr xatomptr;
+    xatomptr=rotp(g,xatom);
+    wr_add_cl_to_shared_unithash(g,shared_g,xatomptr,cl,resmeta,&count,pos,type,bucketnr); 
+
+    // -- storing ends ---
+
+  } 
+
+  if(dbmemsegh(db)->errflag) {
+      wg_show_db_error(db);
+      exit(0);
+  }    
+  printf(" stored units from processed count %d\n",count);
+  /*
+  printf("\n== showing clauselist after ==\n");
+
+  cell2=(dbmemsegh(db)->clauselist);
+  lastcell=0;
+  n=0;
+  while(cell2) {
+    cellptr2=(gcell *) offsettoptr(db, cell2);
+    rec=offsettoptr(db,cellptr2->car); 
+
+    wr_print_clause(shared_g,rec);
+    printf("\nas record\n");
+    wr_print_record(shared_g,rec);  
+    printf("\n");
+
+    cell2=cellptr2->cdr;
+  }  
+
+   if(dbmemsegh(db)->errflag) {
+      wg_show_db_error(db);
+      exit(0);
+    }    
+  */
+  
+  return count;
+}
+
+// ---
+
+
 int wr_store_offset_termhash(void* db, glb* g, gint* hasharr, int pos, int type) {
   int i,j;
   //gint* tohasharr;
@@ -2882,9 +3140,11 @@ int wr_store_offset_termhash(void* db, glb* g, gint* hasharr, int pos, int type)
           //resmeta=wr_calc_clause_meta(shared_g,cl,cl_metablock);
           resmeta=0;
           wr_add_cl_to_shared_unithash(g,shared_g,rotp(g,bucket[j]),cl,resmeta,&count,pos,type,i); 
+          //if (count>MAX_STORE_SHARED_UNITS) break;
         }
       }  
     }
+    //if (count>MAX_STORE_SHARED_UNITS) break;
   }
   return count;
 }
