@@ -3,10 +3,19 @@ This folder contains relevant data and binaries for sharing experiments:
 * gkc: the binary implementing sharing: see below for instructions.
 * dummykb.txt: used for initializing the shared memory database
 * rdiff.py: a python script to compare experimental logs below
-* base_sequential.txt: no sharing, no parallel processes, 240 seconds per problem, 500 problems
-* base_parallel4.txt: no sharing, 4 parallel processes, 60 seconds per problem, 500 problems
-* sharedunits_parallel4.txt: sharing unit clauses, 4 parallel processes, 60 seconds per problem, 500 problems
-* sharedunitsdoubles_sequential.txt: sharing unit and two-literal clauses, no parallel processes, 240 seconds per problem, 500 problems
+* base_sequential_240s.txt: no sharing, no parallel processes, 240 seconds per problem, 500 problems
+* base_parallel4_60s.txt: no sharing, 4 parallel processes, 60 seconds per problem, 500 problems
+* base_parallel8_30s.txt: no sharing, 8 parallel processes, 30 seconds per problem, 500 problems
+* base_parallel8_60s.txt: no sharing, 8 parallel processes, 60 seconds per problem, 500 problems
+* sharedunits_parallel4_60s.txt: sharing unit, 4 parallel processes, 60 seconds per problem, 500 problems
+* sharedunits_parallel4_10000limit_60s.txt: sharing unit, 4 parallel processes, max 10000 units shared, 60 seconds per problem, 500 problems
+* sharedunits_parallel4_1000limit_60s.txt: sharing unit, 4 parallel processes,max 1000 units shared, 60 seconds per problem, 500 problems
+* sharedunits_parallel4_100limit_60s.txt: sharing unit, 4 parallel processes,max 100 units shared, 60 seconds per problem, 500 problems
+* sharedunits_parallel4_processed_60s.txt: sharing unit, 4 parallel processes, only processed units shared, 60 seconds per problem, 500 problems
+* sharedunits_parallel8_1000limit_60s.txt: sharing unit, 8 parallel processes,max 1000 units shared, 60 seconds per problem, 500 problems
+* sharedunits_parallel8_30s.txt: sharing unit, 8 parallel processes, 30 seconds per problem, 500 problems
+* sharedunits_sequential_240s.txt: sharing unit, no parallelism, 240 seconds per problem, 500 problems
+* sharedunitsdoubles_sequential_240s.txt: sharing unit and two-literal clauses, no parallel processes, 240 seconds per problem, 500 problems
 * sharedunitsdboublesfull_1_hard_sequential.txt: sharing unit, two-literal and full clauses, ran on the 190 problems gkc failed to prove on CASC
 * sharedunitsdboublesfull_2_hard_sequential.txt: same as previous, with a different set of full clause selection parameters
 * sharedunitsdboublesfull_3_hard_sequential.txt: same as previous, with a different set of full clause selection parameters
@@ -15,7 +24,7 @@ This folder contains relevant data and binaries for sharing experiments:
 Log files of experiments
 ------------------------
 
-The files base_sequential.txt ... sharedunitsdboublesfull_4_hard_sequential.txt are the results of running the experimental version of gkc with 
+The files base_sequential_240s.txt ... sharedunitsdboublesfull_4_hard_sequential.txt are the results of running the experimental version of gkc with 
 different sharing and parallelism options on either all the 500 FOF problems of CASC from 2023, or just the set of 190 problems gkc could not prove during CASC.
 The timing limits (either 60 or 240 seconds) were forced with the linux timeout utility.
 
