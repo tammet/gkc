@@ -645,4 +645,6 @@ int wr_glb_free_local_complex(glb* g);
 void wr_print_glb_memarea(glb* g, gptr p);
 void wr_check_cl_memarea(glb* g, gptr xptr);
 
+void wr_hashlists_explore(glb* g);
+
 #endif

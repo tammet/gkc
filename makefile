@@ -25,9 +25,9 @@
 # - run as: ASAN_SYMBOLIZER_PATH=/usr/lib/llvm-6.0/bin/llvm-symbolizer ./gkc 
 
 CC = gcc # clang # gcc
-CFLAGS = -O2 -Wall -static -Wmissing-field-initializers  # normal compilation
+#CFLAGS = -O2 -Wall -static -Wmissing-field-initializers  # normal compilation
 #CFLAGS = -O0 -Wall  -fsanitize=address  # for clang with memory leaks detection
-#CFLAGS = -O2 -Wall -pg -Wmissing-field-initializers # for gprof
+CFLAGS = -O2 -Wall -pg -Wmissing-field-initializers # for gprof
 LIBS = -lm
 
 TESTING = true

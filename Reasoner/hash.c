@@ -728,6 +728,42 @@ void wr_clterm_hashlist_free(glb* g, vec hashvec) {
   wr_vec_free(g,hashvec);
 } 
 
+
+void wr_clterm_hashlist_explore(glb* g, vec hashvec, char* note) {
+  void* db=g->db;
+  gint vlen;
+  gint node;
+  gint tmp;
+  int i; 
+
+printf("\nhash stats note: %s\n",note);
+#ifdef MALLOC_HASHNODES
+  // need to free nodes only if created by malloc
+  vlen=VEC_LEN(hashvec);
+  int filledcount=0;     
+  int nodecount=0;
+  int maxlen=0;
+  int slotlen=0;
+  for(i=VEC_START;i<vlen+1;i++) {
+    //printf("\ni %d i hashvec[i]",i,hashvec[i]);
+    slotlen=0;
+    if (hashvec[i]!=0) {
+      filledcount++;
+      node=hashvec[i]; 
+      while(node!=0) {             
+        slotlen++;
+        nodecount++;
+        if (slotlen>maxlen) maxlen=slotlen;
+        tmp=node;
+        node=(otp(db,node))[CLTERM_HASHNODE_NEXT_POS];
+        wr_clterm_free_hashnode(g,otp(db,tmp));        
+      }        
+    }  
+  } 
+#endif  
+  printf("\nhash stats: len %ld, filledslots %d, maxlen %d, nodecount %d\n ",VEC_LEN(hashvec),filledcount,maxlen,nodecount);
+} 
+
 void wr_clterm_hashlist_print(glb* g, vec hashvec) {
   gint vlen;
   gint node;

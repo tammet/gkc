@@ -1107,10 +1107,10 @@ int wr_glb_free_shared_complex(glb* g) {
   wr_free_termhash(g,rotp(g,g->hash_neg_active_groundunits));
 
   wr_free_atomhash(g,rotp(g,g->hash_atom_occurrences));
-  wr_clterm_hashlist_free(g,rotp(g,g->hash_neg_atoms));    
-  wr_clterm_hashlist_free(g,rotp(g,g->hash_pos_atoms)); 
+  wr_clterm_hashlist_free(g,rotp(g,g->hash_neg_atoms));   
+  wr_clterm_hashlist_free(g,rotp(g,g->hash_pos_atoms));   
   if (g->use_strong_unit_cutoff) {    
-    if (g->hash_neg_units) wr_clterm_hashlist_free(g,rotp(g,g->hash_neg_units));    
+    if (g->hash_neg_units) wr_clterm_hashlist_free(g,rotp(g,g->hash_neg_units));     
     if (g->hash_pos_units) wr_clterm_hashlist_free(g,rotp(g,g->hash_pos_units)); 
   }
   //wr_clterm_hashlist_free(g,rotp(g,g->hash_units)); CP7
@@ -1130,6 +1130,16 @@ int wr_glb_free_shared_complex(glb* g) {
   //wr_vec_free(g,rotp(g,(g->tmp_uriinfo)));
   return 0;
 }  
+
+void wr_hashlists_explore(glb* g) {  
+  wr_clterm_hashlist_explore(g,rotp(g,g->hash_neg_atoms),"hash_neg_atoms");  
+  wr_clterm_hashlist_explore(g,rotp(g,g->hash_pos_atoms),"hash_pos_atoms"); 
+  if (g->hash_neg_units) wr_clterm_hashlist_explore(g,rotp(g,g->hash_neg_units),"hash_neg_units");
+  if (g->hash_pos_units) wr_clterm_hashlist_explore(g,rotp(g,g->hash_pos_units),"hash_pos_units");    
+  wr_clterm_hashlist_explore(g,rotp(g,g->hash_para_terms),"hash_para_terms");
+  wr_clterm_hashlist_explore(g,rotp(g,g->hash_eq_terms),"hash_eq_terms");
+  wr_clterm_hashlist_explore(g,rotp(g,g->hash_rewrite_terms),"hash_rewrite_terms");
+}
 
 /** Frees the local glb complex subitems.
 *

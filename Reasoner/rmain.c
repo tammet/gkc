@@ -752,6 +752,8 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
           if (seqnr>0) (g->forward_subsume_derived)=0;
           res=wr_genloop(g);          
           printf("\ngenloop ended with res %d\n",res);
+          //wr_hashlists_explore(g);
+          //exit(0);
           //print_datastructs(g);
           if (res>0 && !(res==1 && wr_have_answers(g))) {
             tmp=wr_glb_init_seq_shared_complex(g); // creates and fills in shared tables, substructures, etc: 0.03 secs
@@ -797,7 +799,9 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
       //printf("\nwg_run_reasoner about to call wr_genloop now db is %lx and db->kb_db is %lx and g->db is %lx\n",
       //  (unsigned long int)db,(unsigned long int)(dbmemsegh(db)->kb_db),(unsigned long int)(g->db));   
         res=wr_genloop(g);
-      }       
+      }  
+      //wr_hashlists_explore(g);
+      //exit(0);
       //printf("\n prop_hash_clauses:\n");  
       //wr_print_prop_clausehash(g,rotp(g,g->prop_hash_clauses));  
       if (res>0 && !(res==1 && wr_have_answers(g)) &&

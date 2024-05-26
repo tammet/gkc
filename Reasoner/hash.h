@@ -107,4 +107,6 @@ void wr_free_atomhash(glb* g, gint* hasharr);
 void wr_print_atomhash(glb* g, gint* hasharr);
 void wr_print_atomhash_clvec(glb* g, cvec clvec);
 
+void wr_clterm_hashlist_explore(glb* g, vec hashvec, char* note);
+
 #endif
