@@ -87,7 +87,9 @@ void show_cur_time(void);
 
 int store_units_globally(glb* g);
 void wr_store_offset_termhash(glb* g, gint* hasharr, int pos);
-//#define GLOBAL_UNITS
+//#define GLOBAL_UNITS  // NB! do not enable with a shared kb: the code under
+// this define adds clauses into the shared kb's own unit hashes from a query
+// process, i.e. writes into the read-only kb segment
 
 #define SHOW_SUBSUME_STATS
 #define SHOW_MEM_STATS
@@ -221,6 +223,7 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
     (analyze_g->kb_g)=kb_g; // points to the copy of globals of the external kb
   }
   (analyze_g->child_db)=child_db;
+  (analyze_g->local_db)=child_db;
   (analyze_g->db)=db; 
   (analyze_g->varbanks)=wr_vec_new(analyze_g,NROF_VARBANKS*NROF_VARSINBANK);
   (analyze_g->varstack)=wr_cvec_new(analyze_g,NROF_VARBANKS*NROF_VARSINBANK); 
@@ -516,9 +519,10 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
     // (g->cl_maxkeep_sizelimit)=30; // TESTING
 
     if (guideres<0) {
-      // error in guide requiring stop      
+      // error in guide requiring stop
       if (guidebuf!=NULL) free(guidebuf);
       if (guide!=NULL) cJSON_Delete(guide);
+      if (guidetext) free(guidetext);
       (g->guidetext)[0]=0;
       sys_free(g);
       if (analyze_g) analyze_g=wr_free_analyze_g(analyze_g);
@@ -548,15 +552,15 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
           wr_printf("\n**** run %d starts with strategy\n",iter+1);   
         }
         wr_printf("%s\n",guidetext);
-        free(guidetext);
-      } else {       
+      } else {
         if (maxforks) {
-          wr_printf("\n**** run %d fork %d starts with strategy\n",iter+1,forkslive); 
+          wr_printf("\n**** run %d fork %d starts with strategy\n",iter+1,forkslive);
         } else {
-          wr_printf("\n**** run %d starts with strategy\n",iter+1);   
+          wr_printf("\n**** run %d starts with strategy\n",iter+1);
         }
-      }          
-    }    
+      }
+    }
+    if (guidetext) { free(guidetext); guidetext=NULL; } // content already copied to g->guidetext above
     (g->cl_keep_weightlimit)=(g->cl_maxkeep_weightlimit);
     (g->cl_keep_sizelimit)=(g->cl_maxkeep_sizelimit);
     (g->cl_keep_depthlimit)=(g->cl_maxkeep_depthlimit);
@@ -873,7 +877,8 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
         show_cur_time();  
 #endif              
         if (guidebuf!=NULL) free(guidebuf);
-        if (guide!=NULL) cJSON_Delete(guide); 
+        if (guide!=NULL) cJSON_Delete(guide);
+        if (kb_g) sys_free(kb_g); // free the copy of the shared-kb globals made at entry
         if (outfilename) {
           if (local_db) (dbmemsegh(local_db)->local_g)=NULL;
           wr_glb_free(g);
@@ -908,13 +913,14 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
   }
   if (guidebuf!=NULL) free(guidebuf);
   if (guide!=NULL) cJSON_Delete(guide);
-  if (analyze_g) analyze_g=wr_free_analyze_g(analyze_g); 
-#ifdef SHOWTIME       
+  if (analyze_g) analyze_g=wr_free_analyze_g(analyze_g);
+  if (kb_g) sys_free(kb_g); // free the copy of the shared-kb globals made at entry
+#ifdef SHOWTIME
   wr_printf("\nto return from rmain\n");
-  show_cur_time(); 
-#endif  
-  return res;  
-} 
+  show_cur_time();
+#endif
+  return res;
+}
 
 void* wr_free_analyze_g(glb* g) {
   if (g) {
@@ -1023,6 +1029,7 @@ int wg_run_converter(void *db, char* inputname, char* stratfile, int informat,
   wr_printf("\nnow db is %ld and child_db is %ld \n",(gint)db,(gint)child_db);
 #endif    
   (g->child_db)=child_db;
+  (g->local_db)=child_db;
   (g->db)=db;
   if (outfilename) (g->outfilename)=outfilename;
   (g->allruns_start_clock)=clock();  
@@ -1364,11 +1371,20 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
      
     if (wg_rec_is_rule_clause(db,rec)) {
       rules_found++;      
-      clmeta=wr_calc_clause_meta(g,rec,given_cl_metablock);
-      if (wr_tautology_cl(g,rec)) {
-          goto LOOPEND;
+      // for clauses in the shared kb the metas and the kb unithash were
+      // prepared at kb build time and the kb segment must not be written to;
+      // the doublehash is local-only and is filled for all clauses below
+      if (!wg_in_attached_kb(rec)) {
+        clmeta=wr_calc_clause_meta(g,rec,given_cl_metablock);
+        if (wr_tautology_cl(g,rec)) {
+            goto LOOPEND;
+        }
+        wr_add_cl_to_unithash(g,rec,clmeta);
+      } else {
+        if (wr_tautology_cl(g,rec)) {
+            goto LOOPEND;
+        }
       }
-      wr_add_cl_to_unithash(g,rec,clmeta);
       wr_add_cl_to_doublehash(g,rec);
 
 #ifdef DEBUG      
@@ -1453,8 +1469,11 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
 
     } else if (wg_rec_is_fact_clause(db,rec)) {
       facts_found++;
-      clmeta=wr_calc_clause_meta(g,rec,given_cl_metablock);
-      wr_add_cl_to_unithash(g,rec,clmeta);
+      // same guard as the rule clause branch above
+      if (!wg_in_attached_kb(rec)) {
+        clmeta=wr_calc_clause_meta(g,rec,given_cl_metablock);
+        wr_add_cl_to_unithash(g,rec,clmeta);
+      }
 #ifdef DEBUG
       wr_printf("\n+++++++ nrec is a fact  ");
       wr_print_fact_clause_otter(g, (gint *) rec,(g->print_clause_detaillevel));

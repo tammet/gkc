@@ -831,9 +831,11 @@ lex_parsestr(const char *s)
 
 */
 
-char linebuf[1024];
-char elmparsestrbuf[1024]; 
-char *s; 
+/* static: dbprolog.l used to declare identical copies, which linked only via
+   pre-gcc-10 common-symbol merging; keep these lexer-local */
+static char linebuf[1024];
+static char elmparsestrbuf[1024];
+static char *s;
 
 #line 839 "Parser/dbotter.yy.c"
 #define YY_NO_INPUT 1

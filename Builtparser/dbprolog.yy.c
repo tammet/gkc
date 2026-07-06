@@ -748,9 +748,11 @@ static const flex_int32_t yy_rule_can_match_eol[21] =
 
 */
 
+/* unused here; the otter lexer has its own static copies
 char linebuf[1024];
-char elmparsestrbuf[1024]; 
-char *s; 
+char elmparsestrbuf[1024];
+char *s;
+*/
 
 #line 756 "Parser/dbprolog.yy.c"
 #define YY_NO_INPUT 1

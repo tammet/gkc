@@ -394,11 +394,15 @@ gint wr_term_basehash(glb* g, gint enc) {
       hash=(int)wg_decode_uri_rhash(db, enc);
       //printf("\nhash for strdata %s found %d \n", wg_decode_unistr(db, enc,WG_URITYPE), hash);
       if (!hash) {
+        // normally unreachable: rhash is precomputed at str creation (dbdata.c
+        // find_create_longstr); reachable only if the dual hash of the str is 0
         strdata = wg_decode_unistr(db, enc,WG_URITYPE);
         exdata =  wg_decode_unistr_lang(db, enc,WG_URITYPE);
         hash=str_dual_hash(strdata,exdata);      
         //printf("\nstrdata %s exdata %s hash %d\n",strdata,exdata,hash);
-        wg_set_uri_rhash(db,enc,(gint)hash);
+        // do not cache into a read-only attached kb segment
+        if (!wg_in_attached_kb(offsettoptr(db,decode_longstr_offset(enc))))
+          wg_set_uri_rhash(db,enc,(gint)hash);
       }  
       break;
     case WG_XMLLITERALTYPE:

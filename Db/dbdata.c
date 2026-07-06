@@ -76,6 +76,11 @@ static struct tm * localtime_r (const time_t *timer, struct tm *result);
 //#define CHECK 1
 #define WG_NO_ERRPRINT
 
+// NB! QUICK_REASONER must stay defined for the reasoner: it makes
+// wg_set_field a no-op and makes wg_set_new_field store the field without
+// refcounting/indexing. Without it the parser subterm stores
+// (wr_set_kb_atom_subterm etc.) would increment refcounts of strings inside
+// the read-only shared kb segment (see MEMO_shared_memory.md in the gk repo).
 #define QUICK_REASONER
 
 /* ======= Private protos ================ */
@@ -773,7 +778,8 @@ setfld_backlink_removed:
 #endif
     // increase data refcount for longstr-s
     strptr = (gint *) offsettoptr(db,decode_longstr_offset(data));
-    ++(*(strptr+LONGSTR_REFCOUNT_POS));
+    if (!wg_in_attached_kb(strptr)) // never refcount into the attached kb
+      ++(*(strptr+LONGSTR_REFCOUNT_POS));
   }
   //printf("wg_set_field adr %d offset %d\n",fieldadr,ptrtooffset(db,fieldadr));
   if (isptr(fielddata)) {
@@ -911,7 +917,8 @@ wg_int wg_set_new_field(void* db, void* record, wg_int fieldnr, wg_int data) {
 #endif
     // increase data refcount for longstr-s
     strptr = (gint *) offsettoptr(db,decode_longstr_offset(data));
-    ++(*(strptr+LONGSTR_REFCOUNT_POS));
+    if (!wg_in_attached_kb(strptr)) // never refcount into the attached kb
+      ++(*(strptr+LONGSTR_REFCOUNT_POS));
   }
 
   /* Update index after new value is written */
@@ -3791,7 +3798,8 @@ static gint show_data_error(void* db, char* errmsg) {
 #else
   LOG_ERROR(-1, "wg data handling error: %s\n", errmsg);
 #endif
-  dbmemsegh(db)->errflag=DB_DATA_ERROR;
+  if ((void*)(dbmemsegh(db))!=wg_attached_kb_segment) // never poison the attached kb
+    dbmemsegh(db)->errflag=DB_DATA_ERROR;
   return -1;
 
 }
@@ -3802,7 +3810,8 @@ static gint show_data_error_nr(void* db, char* errmsg, gint nr) {
   LOG_ERROR(-1, "wg data handling error: %s %d\n", errmsg, (int)nr);
   printf("\nwg data handling error: %s %d\n", errmsg, (int)nr);
 #endif
-  dbmemsegh(db)->errflag=DB_DATA_ERROR2;
+  if ((void*)(dbmemsegh(db))!=wg_attached_kb_segment) // never poison the attached kb
+    dbmemsegh(db)->errflag=DB_DATA_ERROR2;
   return -1;
 
 }
@@ -3812,7 +3821,8 @@ static gint show_data_error_double(void* db, char* errmsg, double nr) {
 #else
   LOG_ERROR(-1, "wg data handling error: %s %f\n",errmsg,nr);
 #endif
-  dbmemsegh(db)->errflag=DB_DATA_ERROR3;
+  if ((void*)(dbmemsegh(db))!=wg_attached_kb_segment) // never poison the attached kb
+    dbmemsegh(db)->errflag=DB_DATA_ERROR3;
   return -1;
 
 }
@@ -3822,7 +3832,8 @@ static gint show_data_error_str(void* db, char* errmsg, char* str) {
 #else
   LOG_ERROR(-1, "wg data handling error: %s %s\n",errmsg,str);
 #endif
-  dbmemsegh(db)->errflag=DB_DATA_ERROR4;
+  if ((void*)(dbmemsegh(db))!=wg_attached_kb_segment) // never poison the attached kb
+    dbmemsegh(db)->errflag=DB_DATA_ERROR4;
   return -1;
 }
 

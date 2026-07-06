@@ -511,6 +511,7 @@ gint wr_get_history(glb* g, gptr clause) {
 
 void wr_set_history_record_derived_order(glb* g, gptr rec) {
 #ifdef RECORD_HISTORY_ORDER
+  if (wg_in_attached_kb(rec)) return; // never write into a shared kb history
   wr_set_history_record_field(g,rec,HISTORY_DERIVED_ORDER_POS,
     wg_encode_int(g->db,g->stat_derived_cl));  
   wr_set_history_record_field(g,rec,HISTORY_GIVEN_ORDER_POS,
@@ -520,7 +521,9 @@ void wr_set_history_record_derived_order(glb* g, gptr rec) {
 
 void wr_set_history_record_given_order(glb* g, gptr rec) {
 #ifdef RECORD_HISTORY_ORDER
-  if (g->store_history) {
+  // NB! the given clause may be a copy whose CLAUSE_HISTORY_POS still points
+  // at the original history record inside the shared kb: never write there
+  if (g->store_history && !wg_in_attached_kb(rec)) {
     wr_set_history_record_field(g,rec,HISTORY_GIVEN_ORDER_POS,
        wg_encode_int(g->db,g->stat_given_used));  
   }   
@@ -2262,7 +2265,7 @@ gptr wr_create_raw_history_record(glb* g, gint length, gptr buffer) {
   int i;
   
   if (buffer==NULL) {
-    rec=wg_create_raw_record(g->db,length); 
+    rec=wg_create_raw_record(g->local_db,length); 
     if (rec==NULL) return NULL;  
     for(i=0;i<HISTORY_PREFIX_LEN;i++) rec[RECORD_HEADER_GINTS+i]=(gint)0;
   } else {
@@ -2288,7 +2291,7 @@ gptr wr_copy_raw_history_record(glb* g, gptr history, gptr buffer) {
   if (history==NULL) return NULL;
   length=wg_get_record_len(g->db,history);
   if (buffer==NULL) {
-    rec=wg_create_raw_record(g->db,length); 
+    rec=wg_create_raw_record(g->local_db,length); 
     if (rec==NULL) return NULL;  
     for(i=0;i<length+RECORD_HEADER_GINTS;i++) rec[i]=history[i];
   } else {

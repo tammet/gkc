@@ -370,12 +370,13 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr, int s
             } else {
               tmp=wr_parse_guide_section(g,run,-1,outstr,seqnr);
               //printf("\n wr_parse_guide_section: \n");
-              //out=cJSON_Print(run);                                    
+              //out=cJSON_Print(run);
+              if (*outstr) free(*outstr); // free the string set by the recursive call before overwriting
               out=cJSON_PrintUnformatted(run);
               *outstr=out;
-              if (tmp==10) return 10;  
-              if (tmp<0) return -1;   
-            }         
+              if (tmp==10) return 10;
+              if (tmp<0) return -1;
+            }
           } 
         }
         runcount=i;          

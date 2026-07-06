@@ -65,6 +65,9 @@ extern "C" {
 
 static int normalize_perms(int mode);
 static void* link_shared_memory(int key, int *errcode);
+
+/* base address of the attached shared kb segment (see dballoc.h) */
+void* wg_attached_kb_segment=NULL;
 static void* create_shared_memory(int key, gint size, int mode);
 static int free_shared_memory(int key);
 
@@ -795,6 +798,7 @@ static void* link_shared_memory(int key, int *errcode) {
       CloseHandle(hmapfile);
       return NULL;
    }
+   wg_attached_kb_segment=shm;
    return shm;
 #else
   int shmid; /* return value from shmget() */
@@ -806,8 +810,12 @@ static void* link_shared_memory(int key, int *errcode) {
   if (shmid < 0) {
     return NULL;
   }
-  // Attach the segment to our data space
-  shm=shmat(shmid,NULL,0);
+  // Attach the segment to our data space.
+  // NB! existing segments (the shared kb) are attached READ-ONLY: after the
+  // kb build nothing may write into the segment; any surviving write bug
+  // then crashes loudly instead of corrupting the kb. Segment creation
+  // (create_shared_memory) stays writable.
+  shm=shmat(shmid,NULL,SHM_RDONLY); // use 0 for a writable attach
   if (shm==(char *) -1) {
     *errcode = errno;
     if(*errcode == EACCES) {
@@ -818,6 +826,7 @@ static void* link_shared_memory(int key, int *errcode) {
       return NULL;
     }
   }
+  wg_attached_kb_segment=(void*)shm;
   return (void*) shm;
 #endif
 #endif
@@ -963,6 +972,7 @@ static int free_shared_memory(int key) {
 
 
 static int detach_shared_memory(void* shmptr) {
+  if (shmptr==wg_attached_kb_segment) wg_attached_kb_segment=NULL; // else wg_in_attached_kb could deref a stale mapping
 #ifdef _WIN32
   return 0;
 #else

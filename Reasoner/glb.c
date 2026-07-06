@@ -127,7 +127,10 @@ int wr_glb_init_simple(glb* g) {
   
   (g->shared_clid_next)=0;
   (g->local_clid_next)=0;
-  (g->local_db)=NULL; // must be set to the real local kb before used, done in rmain.c
+  (g->local_db)=(g->db); // default: the db this g was made for; rmain.c overrides
+                    // it to the real local db when a shared kb is attached
+                    // (g->db then becomes the shared kb base; all run-time
+                    // allocation must go through g->local_db)
 
   /* parser configuration */
 

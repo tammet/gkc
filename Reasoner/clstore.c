@@ -1327,7 +1327,9 @@ gptr wr_pick_from_clpick_queues_aux(glb* g, gptr queues, int queuenr, gptr given
 #endif
           
         wr_cl_mark_given(g,cl);
-        wr_calc_clause_meta(g,cl,given_cl_metablock);
+        if (!wg_in_attached_kb(cl)) { // kb clause metas were stored at build time
+          wr_calc_clause_meta(g,cl,given_cl_metablock);
+        }
         return cl;   
       }     
     }    
@@ -1378,7 +1380,9 @@ gptr wr_pick_from_clpick_queues_aux(glb* g, gptr queues, int queuenr, gptr given
           */
   #endif            
           wr_cl_mark_given(g,cl);
-          wr_calc_clause_meta(g,cl,given_cl_metablock);
+          if (!wg_in_attached_kb(cl)) { // kb clause metas were stored at build time
+            wr_calc_clause_meta(g,cl,given_cl_metablock);
+          }
           return cl;
         }  
       } else {
@@ -1485,9 +1489,10 @@ void wr_free_clpick_queues(glb* g, gint* queues) {
     if (queues[i+CLPICK_PRIORQUEUE_POS]!=0) {
       //printf("\n!2 i+CLPICK_PRIORQUEUE_POS %d queues[i+CLPICK_PRIORQUEUE_POS] %d",i+CLPICK_PRIORQUEUE_POS,queues[i+CLPICK_PRIORQUEUE_POS]);
       wr_free_priorqueue(g,rotp(g,queues[i+CLPICK_PRIORQUEUE_POS])); // free the complex priorqueue structure
-    }  
+    }
   }
-}  
+  wr_vec_free(g,queues); // free the top-level queues vector itself
+}
 
 
 /*

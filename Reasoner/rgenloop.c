@@ -298,7 +298,9 @@ int wr_genloop(glb* g) {
     printf("\nhardn ");
     wr_print_clause_hardnesses(g,picked_given_cl_cand);
     */
-    wr_sort_cl(g, picked_given_cl_cand);
+    if (!wg_in_attached_kb(picked_given_cl_cand)) { // never sort a shared kb clause in place
+      wr_sort_cl(g, picked_given_cl_cand);
+    }
     /*
     printf("\nafter ");
     wr_print_clause(g,picked_given_cl_cand);
@@ -328,7 +330,9 @@ int wr_genloop(glb* g) {
       continue;
     }
     simplen=wg_count_clause_atoms(db,given_cl_cand);
-    wr_calc_clause_meta(g,given_cl_cand,given_cl_metablock);
+    if (!wg_in_attached_kb(given_cl_cand)) { // kb clause metas were stored at build time
+      wr_calc_clause_meta(g,given_cl_cand,given_cl_metablock);
+    }
     // -- check part 1 starts ---
     if ((gint)given_cl_cand==ACONST_FALSE) {
       wr_printf("\ngiven_cl_cand is ACONST_FALSE\n");
@@ -545,7 +549,9 @@ gptr wr_pick_given_cl(glb* g, gptr given_cl_metablock) {
   if (next>(g->clqueue_given)) {
     cl=(gptr)((rotp(g,g->clqueue))[g->clqueue_given]);           
     ++(g->clqueue_given); 
-    wr_calc_clause_meta(g,cl,given_cl_metablock);
+    if (!wg_in_attached_kb(cl)) { // kb clause metas were stored at build time
+      wr_calc_clause_meta(g,cl,given_cl_metablock);
+    }
     return cl;
   }
   // fndidates for given found 

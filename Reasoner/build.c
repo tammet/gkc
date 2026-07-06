@@ -114,7 +114,7 @@ gptr wr_build_calc_cl(glb* g, gptr xptr) {
         yptr[i]=xptr[i];             
       }  
     } else {
-      yptr=wg_create_raw_record(db,xlen); 
+      yptr=wg_create_raw_record(g->local_db,xlen); 
       if (yptr==NULL) return NULL;
        // copy rec header and clause header
       ilimit=RECORD_HEADER_GINTS+1; // this should change with probabs!!!!
@@ -186,7 +186,7 @@ gptr wr_build_calc_cl(glb* g, gptr xptr) {
     if ((g->build_buffer)!=NULL) {
       yptr=wr_alloc_from_cvec(g,g->build_buffer,(RECORD_HEADER_GINTS+xlen));       
     } else {
-      yptr=wg_create_raw_record(db,xlen);                   
+      yptr=wg_create_raw_record(g->local_db,xlen);                   
     }        
     if (yptr==NULL) return NULL;
          
@@ -319,7 +319,7 @@ gint wr_build_calc_term(glb* g, gint x) {
       yptr=wr_alloc_from_cvec(g,g->build_buffer,(RECORD_HEADER_GINTS+xlen));     
       //yptr=malloc(64);
     } else {
-      yptr=wg_create_raw_record(db,xlen);     
+      yptr=wg_create_raw_record(g->local_db,xlen);     
     }    
     if (yptr==NULL) return WG_ILLEGAL;
     // copy rec header and term header
@@ -473,7 +473,7 @@ gint wr_build_calc_term_copyground(glb* g, gint x) {
       yptr=wr_alloc_from_cvec(g,g->build_buffer,(RECORD_HEADER_GINTS+xlen));     
       //yptr=malloc(64);
     } else {
-      yptr=wg_create_raw_record(db,xlen);     
+      yptr=wg_create_raw_record(g->local_db,xlen);     
     }    
     if (yptr==NULL) return WG_ILLEGAL;
     // copy rec header and term header
@@ -620,7 +620,7 @@ gint wr_build_calc_term_replace(glb* g, gint x, int replpos, gint replterm, int*
       yptr=wr_alloc_from_cvec(g,g->build_buffer,(RECORD_HEADER_GINTS+xlen));     
       //yptr=malloc(64);
     } else {
-      yptr=wg_create_raw_record(db,xlen);     
+      yptr=wg_create_raw_record(g->local_db,xlen);     
     }    
     if (yptr==NULL) return WG_ILLEGAL;
     // copy rec header and term header
@@ -1219,7 +1219,7 @@ gint wr_compute_fun_lesseq_core(glb* g, gptr tptr, gint ifequal, int isless) {
 }
 
 gint wr_compute_fun_arith2(glb* g, gptr tptr, int comp) {
-  void* db=g->db;
+  void* db=g->db; // decode/offset base only: allocating encodes must use g->local_db (g->db may be a read-only shared kb)
   gint len;
   gint a,b;
   gint atype, btype;
@@ -1292,7 +1292,7 @@ gint wr_compute_fun_arith2(glb* g, gptr tptr, int comp) {
       default:
         return encode_record(db,tptr);
     }
-    return wg_encode_int(db,ri);    
+    return wg_encode_int(g->local_db,ri);    
   } else { 
     // double res case
     if (atype==WG_INTTYPE) ad=(double)(wg_decode_int(db,a));
@@ -1317,37 +1317,37 @@ gint wr_compute_fun_arith2(glb* g, gptr tptr, int comp) {
         if (bd==0.0) return encode_record(db,tptr);        
         if (bd<0) ri=(gint)floor((double)ad / (double)bd);
         else ri=(gint)ceil((double)ad / (double)bd);
-        return wg_encode_int(db,ri);        
+        return wg_encode_int(g->local_db,ri);        
         break;  
       case COMP_FUN_QUOTIENT_T:        
         if (bd==0.0) return encode_record(db,tptr);
         ri=(gint)trunc((double)ad / (double)bd);            
-        return wg_encode_int(db,ri);
+        return wg_encode_int(g->local_db,ri);
         break;   
       case COMP_FUN_QUOTIENT_F:
         if (bd==0.0) return encode_record(db,tptr);       
         ri=(gint)floor((double)ad / (double)bd);            
-        return wg_encode_int(db,ri);
+        return wg_encode_int(g->local_db,ri);
         break;  
       case COMP_FUN_REMAINDER_E:       
         if (bd==0.0) return encode_record(db,tptr);        
         ri=(gint)((gint)ad % (gint)bd);        
-        return wg_encode_int(db,ri);        
+        return wg_encode_int(g->local_db,ri);        
         break;  
       case COMP_FUN_REMAINDER_T:        
         if (bd==0.0) return encode_record(db,tptr);        
         ri=(gint)((gint)ad % (gint)bd);             
-        return wg_encode_int(db,ri);
+        return wg_encode_int(g->local_db,ri);
         break;   
       case COMP_FUN_REMAINDER_F:
         if (bd==0.0) return encode_record(db,tptr);        
         ri=(gint)((gint)ad % (gint)bd);             
-        return wg_encode_int(db,ri);
+        return wg_encode_int(g->local_db,ri);
         break;      
       default: 
         return encode_record(db,tptr);
     }
-    return wg_encode_double(db,rd);        
+    return wg_encode_double(g->local_db,rd);        
   }  
 } 
 
@@ -1398,7 +1398,7 @@ gint wr_compute_fun_str(glb* g, gptr tptr, int comp) {
 
 
 gint wr_compute_fun_arith1(glb* g, gptr tptr, int comp) {
-  void* db=g->db;
+  void* db=g->db; // decode/offset base only: allocating encodes must use g->local_db (g->db may be a read-only shared kb)
   gint len;
   gint a;
   gint atype;
@@ -1447,7 +1447,7 @@ gint wr_compute_fun_arith1(glb* g, gptr tptr, int comp) {
         break;
       case COMP_FUN_TO_REAL: 
         ri=wg_decode_int(db,a); 
-        return wg_encode_double(db,(double)ri);
+        return wg_encode_double(g->local_db,(double)ri);
         break;
       case COMP_FUN_FLOOR: 
         return a;
@@ -1471,7 +1471,7 @@ gint wr_compute_fun_arith1(glb* g, gptr tptr, int comp) {
         break;          
       case COMP_FUN_UMINUS: 
         ri=wg_decode_int(db,a); 
-        return wg_encode_int(db,0-ri);
+        return wg_encode_int(g->local_db,0-ri);
         break;   
       default:
         return encode_record(db,tptr);
@@ -1503,7 +1503,7 @@ gint wr_compute_fun_arith1(glb* g, gptr tptr, int comp) {
 
       case COMP_FUN_TO_INT:         
         rd=wg_decode_double(db,a); 
-        return wg_encode_int(db,(gint)(floor(rd)));
+        return wg_encode_int(g->local_db,(gint)(floor(rd)));
         break;
       case COMP_FUN_TO_REAL:
         return a; 
@@ -1512,29 +1512,29 @@ gint wr_compute_fun_arith1(glb* g, gptr tptr, int comp) {
         break;
       case COMP_FUN_FLOOR: 
         rd=wg_decode_double(db,a); 
-        return wg_encode_int(db,(gint)(floor(rd)));
+        return wg_encode_int(g->local_db,(gint)(floor(rd)));
         break;
       case COMP_FUN_CEILING: 
         rd=wg_decode_double(db,a); 
-        return wg_encode_int(db,(gint)(ceil(rd)));
+        return wg_encode_int(g->local_db,(gint)(ceil(rd)));
         //ri=wg_decode_int(db,a); 
         //return wg_encode_int(db,ri);
         break;
       case COMP_FUN_TRUNCATE: 
         rd=wg_decode_double(db,a); 
-        return wg_encode_int(db,(gint)(trunc(rd)));
+        return wg_encode_int(g->local_db,(gint)(trunc(rd)));
         //ri=wg_decode_int(db,a); 
         //return wg_encode_int(db,ri);
         break;
       case COMP_FUN_ROUND: 
         rd=wg_decode_double(db,a); 
-        return wg_encode_int(db,(gint)(round(rd)));
+        return wg_encode_int(g->local_db,(gint)(round(rd)));
         //ri=wg_decode_int(db,a); 
         //return wg_encode_int(db,ri);
         break;          
       case COMP_FUN_UMINUS: 
         rd=wg_decode_double(db,a);  
-        return wg_encode_double(db,0-rd);
+        return wg_encode_double(g->local_db,0-rd);
         break;   
       default:
         return encode_record(db,tptr);
@@ -1588,7 +1588,7 @@ gint wr_compute_fun_arith1(glb* g, gptr tptr, int comp) {
         case COMP_FUN_STRLEN:
           str=wg_decode_uri(db,a);
           if (str) {
-            return wg_encode_int(db,(gint)(strlen(str)));
+            return wg_encode_int(g->local_db,(gint)(strlen(str)));
             break; 
           } else {
             break;  

@@ -57,7 +57,7 @@ gptr wr_create_raw_record(glb* g, gint length, gint meta, gptr buffer) {
   gptr rec;
   
   if (buffer==NULL) {
-    rec=wg_create_raw_record(g->db,length); 
+    rec=wg_create_raw_record(g->local_db,length); 
     if (rec==NULL) return NULL;
     rec[RECORD_META_POS]=meta;    
   } else {
@@ -91,7 +91,7 @@ inline int wr_term_unify_endpos(glb* g, gptr term) {
 void* wr_create_rule_clause(glb* g, int litnr) {
   void* res;
   
-  res=wg_create_raw_record(g->db,CLAUSE_EXTRAHEADERLEN+(LIT_WIDTH*litnr));
+  res=wg_create_raw_record(g->local_db,CLAUSE_EXTRAHEADERLEN+(LIT_WIDTH*litnr));
   if (!res) return NULL;
   *((gint*)res+RECORD_META_POS)=(RECORD_META_NOTDATA | RECORD_META_RULE_CLAUSE);
   return res;  
@@ -100,7 +100,7 @@ void* wr_create_rule_clause(glb* g, int litnr) {
 void* wr_create_fact_clause(glb* g, int litnr) {
   void* res;
   
-  res=wg_create_raw_record(g->db,(g->unify_firstuseterm)+litnr+(g->unify_footerlen));
+  res=wg_create_raw_record(g->local_db,(g->unify_firstuseterm)+litnr+(g->unify_footerlen));
   if (!res) return NULL;
   *((gint*)res+RECORD_META_POS)=RECORD_META_FACT_CLAUSE;
   *((gint*)res+(RECORD_HEADER_GINTS+TERM_META_POS))=0;
@@ -110,7 +110,7 @@ void* wr_create_fact_clause(glb* g, int litnr) {
 void* wr_create_atom(glb* g, int termnr) {
   void* res;
   
-  res=wg_create_raw_record(g->db,(g->unify_firstuseterm)+termnr+(g->unify_footerlen));
+  res=wg_create_raw_record(g->local_db,(g->unify_firstuseterm)+termnr+(g->unify_footerlen));
   if (!res) return NULL;
   *((gint*)res+RECORD_META_POS)=(RECORD_META_NOTDATA | RECORD_META_ATOM);
   *((gint*)res+(RECORD_HEADER_GINTS+TERM_META_POS))=0;
@@ -121,7 +121,7 @@ void* wr_create_atom(glb* g, int termnr) {
 void* wr_create_term(glb* g, int termnr) {
   void* res;
   
-  res=wg_create_raw_record(g->db,(g->unify_firstuseterm)+termnr+(g->unify_footerlen));
+  res=wg_create_raw_record(g->local_db,(g->unify_firstuseterm)+termnr+(g->unify_footerlen));
   if (!res) return NULL;
   *((gint*)res+RECORD_META_POS)=(RECORD_META_NOTDATA | RECORD_META_TERM);
   *((gint*)res+(RECORD_HEADER_GINTS+TERM_META_POS))=0;

@@ -53,9 +53,11 @@
 
 */
 
+/* unused here; the otter lexer has its own static copies
 char linebuf[1024];
-char elmparsestrbuf[1024]; 
-char *s; 
+char elmparsestrbuf[1024];
+char *s;
+*/
 
 %}
 

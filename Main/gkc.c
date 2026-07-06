@@ -678,16 +678,18 @@ int gkc_main(int argc, char **argv) {
     } else if(err<-1) {
       err_printf(json,"error when reading file or text");
 #ifdef __EMSCRIPTEN__
+      if (dbmemsegh(shmptrlocal)->infrm_mpool) wg_free_mpool(shmptrlocal, dbmemsegh(shmptrlocal)->infrm_mpool);
       wg_delete_local_database(shmptrlocal);
 #endif
-      return(1);   
+      return(1);
     } else {
       //err_printf(json,"error when reading file or text");
 #ifdef __EMSCRIPTEN__
+      if (dbmemsegh(shmptrlocal)->infrm_mpool) wg_free_mpool(shmptrlocal, dbmemsegh(shmptrlocal)->infrm_mpool);
       wg_delete_local_database(shmptrlocal);
-#endif      
-      return(1); 
-    }     
+#endif
+      return(1);
+    }
     // ---- local db created ------
 #ifdef SHOWTIME
     printf("\nto call wg_run_reasoner\n");
@@ -707,14 +709,15 @@ int gkc_main(int argc, char **argv) {
         else  printf("result: proof not found.\n");
       }     
     }     
-#ifdef SHOWTIME      
+#ifdef SHOWTIME
     printf("\nwg_run_reasoner returned\n");
     gkc_show_cur_time();
-#endif       
+#endif
 #ifdef __EMSCRIPTEN__
+    if (dbmemsegh(shmptrlocal)->infrm_mpool) wg_free_mpool(shmptrlocal, dbmemsegh(shmptrlocal)->infrm_mpool);
     wg_delete_local_database(shmptrlocal);
-#endif  
-    return(0);  
+#endif
+    return(0);
   }
 
   // -writekb

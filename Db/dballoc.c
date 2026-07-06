@@ -1473,7 +1473,8 @@ static gint show_dballoc_error(void* db, char* errmsg) {
 #else
   fprintf(stderr,"db memory allocation error: %s\n",errmsg);
 #endif
-  dbmemsegh(db)->errflag=DB_MEMORY_ALLOC_ERROR;
+  if ((void*)(dbmemsegh(db))!=wg_attached_kb_segment) // never poison the attached kb
+    dbmemsegh(db)->errflag=DB_MEMORY_ALLOC_ERROR;
   return -1;
 }
 
@@ -1488,7 +1489,8 @@ static gint show_dballoc_error_nr(void* db, char* errmsg, gint nr) {
 #else
   fprintf(stderr,"db memory allocation error: %s %d\n", errmsg, (int) nr);
 #endif
-  dbmemsegh(db)->errflag=DB_MEMORY_ALLOC_ERROR2;
+  if ((void*)(dbmemsegh(db))!=wg_attached_kb_segment) // never poison the attached kb
+    dbmemsegh(db)->errflag=DB_MEMORY_ALLOC_ERROR2;
   return -1;
 
 }

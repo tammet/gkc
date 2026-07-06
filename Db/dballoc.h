@@ -638,6 +638,18 @@ gint wg_create_hash(void *db, db_hash_area_header* areah, gint size);
 gint wg_database_freesize(void *db);
 gint wg_database_size(void *db);
 
+/* set by link_shared_memory (dbmem.c) to the base address of an attached
+   shared kb segment: after the kb is built it must never be written to,
+   so in-place writers and error handlers test against this */
+extern void* wg_attached_kb_segment;
+
+/* is ptr inside the attached shared kb segment? (0 when none attached) */
+#define wg_in_attached_kb(ptr) \
+  (wg_attached_kb_segment!=NULL && \
+   (char*)(ptr)>=(char*)wg_attached_kb_segment && \
+   (char*)(ptr)<((char*)wg_attached_kb_segment)+ \
+                 (dbmemsegh(wg_attached_kb_segment)->size))
+
 /* ------- testing ------------ */
 
 #endif /* DEFINED_DBALLOC_H */
