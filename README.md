@@ -12,6 +12,12 @@ available at [Examples/README.md](Examples/README.md). A Wasm version running
 in the browser with multiple commented examples is available as
 [logictools.org](http://logictools.org).
 
+Additional reference documentation is in the [Doc/](Doc/) folder. Start with
+[Doc/cli_reference.md](Doc/cli_reference.md) for command-line usage,
+[Doc/strategy_reference.md](Doc/strategy_reference.md) for strategy JSON,
+[Doc/ARCHITECTURE.md](Doc/ARCHITECTURE.md) for the implementation overview, and
+[Doc/DEVELOPMENT_GUIDE.md](Doc/DEVELOPMENT_GUIDE.md) when changing the code.
+
 For casc 2023 please use the compiled Linux binary and sources for version 0.8: 
 <https://github.com/tammet/gkc/releases/tag/v0.8.0>
 
@@ -166,6 +172,9 @@ may be present at the same time: use different memory database numbers for indic
 to load or use. The memory database can be dumped to a disk for quick loading later. 
 
 The following is a list of available options as output by `./gkc -help`:
+
+See [Doc/cli_reference.md](Doc/cli_reference.md) for a more structured
+command-line reference.
    
     basic proof search with an automatic strategy:
       gkc <logic file_1> ...<logic file_N>
@@ -262,7 +271,9 @@ GKC reads files in one of three formats with equivalent expressive power:
 * TPTP FOF and CNF syntaxes, see [Examples/README.md](Examples/README.md) and 
   the [TPTP docs](http://www.tptp.org/TPTP/TR/TPTPTR.shtml).
 * *JSON* syntax described in the [JSON-LD-LOGIC proposal](https://github.com/tammet/json-ld-logic)
-  and showcased in the [json playground](http://logictools.org/json).
+  and showcased in the [json playground](http://logictools.org/json). The
+  local copy [Doc/json_ld_logic.md](Doc/json_ld_logic.md) is kept as a
+  standalone JSON-LD-LOGIC reference.
 
 The *simple syntax* is an extension of the
 TPTP FOF and CNF syntaxes as described in the
@@ -470,7 +481,9 @@ The strategy file, if given like
     ./gkc blocks3.txt -strategy querystrat.txt 
 
 determines both the strategy selection and optionally time limits and
-the output level and syntax. 
+the output level and syntax. See
+[Doc/strategy_reference.md](Doc/strategy_reference.md) for the full list of
+accepted fields and strategy indicators.
 
 In case the strategy file is not given, GKC will automatically
 build a temporary strategy string in memory, running several
@@ -573,6 +586,13 @@ For problems with less than 1000 input clauses, gkc will use sine for input clau
 
 Architecture
 ------------
+
+See [Doc/ARCHITECTURE.md](Doc/ARCHITECTURE.md) for a more detailed source map,
+process overview, and reasoning-loop description. The lower-level data layout,
+matching/unification, and shared-memory details are documented in
+[Doc/DATA_REPRESENTATION.md](Doc/DATA_REPRESENTATION.md),
+[Doc/TERM_MATCHING.md](Doc/TERM_MATCHING.md), and
+[Doc/SHARED_MEMORY.md](Doc/SHARED_MEMORY.md).
 
 These standard inference rules have been implemented:
 

@@ -80,7 +80,7 @@ static struct tm * localtime_r (const time_t *timer, struct tm *result);
 // wg_set_field a no-op and makes wg_set_new_field store the field without
 // refcounting/indexing. Without it the parser subterm stores
 // (wr_set_kb_atom_subterm etc.) would increment refcounts of strings inside
-// the read-only shared kb segment (see MEMO_shared_memory.md in the gk repo).
+// the read-only shared kb segment (see Doc/SHARED_MEMORY.md).
 #define QUICK_REASONER
 
 /* ======= Private protos ================ */
