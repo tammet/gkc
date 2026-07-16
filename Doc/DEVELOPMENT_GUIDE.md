@@ -77,8 +77,8 @@ The simplest build path is:
 ```
 
 When adding a translation unit, update every applicable explicit source list:
-`compile.sh`, `compile_osx.sh`, `compile_wasm.sh`, `compile.bat`, the simple
-`makefile`, and the relevant Automake `Makefile.am`. The simple Makefile's
+`compile.sh`, `compile_osx.sh`, `compile_wasm.sh`, `compile.bat`, and the
+simple `makefile`. The simple Makefile's
 header dependencies are incomplete, so use `make -B USEBISON=false` when a
 fresh no-generator build is needed without deleting generated parser files.
 

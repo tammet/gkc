@@ -51,7 +51,6 @@ Other `Main/` files are support utilities or tests:
 | `Main/indextool.c` | Database/index inspection utility. |
 | `Main/selftest.c`, `Main/stresstest.c` | Local test/stress programs. |
 | `Main/gendata.c` | Data generation utility. |
-| `Main/Makefile.am` | Automake build description for this directory. |
 
 ### `Parser/` and `Builtparser/`
 
@@ -68,7 +67,6 @@ normal build does not need flex/bison installed.
 | `dbclausify.c`, `dbclausify.h` | FOF preprocessing and clausification: negation push, miniscope, skolemization, distribution, definition predicates, and flattening. |
 | `jsparse.c`, `jsparse.h` | JSON/JSON-LD-LOGIC input handling. |
 | `dbgenparse.h` | Shared parser data structures and helper declarations. |
-| `Makefile.am` | Automake build description for parser sources. |
 
 The parser creates WhiteDB records directly. FOF input is converted into clause
 records before proof search. CNF-like input can already be clause-shaped but
@@ -106,7 +104,6 @@ still passes through parser/import normalization.
 | `prob.c`, `prob.h` | Probability/weight helper code used by strategies. |
 | `printerrutils.c`, `printerrutils.h` | Printing and error utility functions. |
 | `rincludes.h`, `types.h` | Common reasoner include hub and basic type aliases. |
-| `Makefile.am` | Automake build description for the reasoner. |
 
 ### `Db/`
 
@@ -127,7 +124,6 @@ record store and as the backing store for shared-memory KBs.
 | `dbjson.c`, `dbjson.h`, `dbschema.c`, `dbschema.h`, `dbutil.c`, `dbutil.h`, `rdfapi.h` | JSON/schema/RDF utility layers inherited from WhiteDB and used by import/export utilities. |
 | `dblock.c`, `dblock.h` | Locking support. |
 | `dbfeatures.h` | Feature macros. |
-| `Makefile.am` | Automake build description for the DB layer. |
 
 ## 2. Process Overview
 

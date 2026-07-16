@@ -1,5 +1,5 @@
 # A simple makefile for gkc under linux: 
-# an alternative to compilation with the compile.sh script or autotools.
+# an alternative to compilation with the compile.sh script.
 #
 # Builds the gkc executable in the top folder.
 #

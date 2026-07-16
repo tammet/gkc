@@ -27,8 +27,8 @@
  *  Note: this file contains compiler and target-specific code.
  *  For compiling on plaforms that do not have support for
  *  specific opcodes needed for atomic operations and spinlocks,
- *  locking may be disabled by ./configure --disable-locking
- *  or by editing the appropriate config-xxx.h file. This will
+ *  locking may be disabled by editing the appropriate config-xxx.h
+ *  file (undefine LOCK_PROTO). This will
  *  allow the code to compile, but concurrent access will NOT
  *  work.
  */

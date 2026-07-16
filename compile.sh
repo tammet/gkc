@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Alternative to gkc compilation with make/automake: just run 
+# Alternative to gkc compilation with the makefile: just run 
 
 # Note: 
 # * uses pre-built parser in the Builtparser folder, not the bison/flex combo
