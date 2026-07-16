@@ -50,6 +50,7 @@ int wr_equality_atom(glb* g, gint atom);
 
 int wr_computable_termptr(glb* g, gptr yptr);
 gint wr_compute_from_termptr(glb* g, gptr tptr, int comp);
+int wr_computation_is_arithmetic(int comp);
 //gint wr_compute_fun_plus(glb* g, gptr tptr);
 gint wr_compute_fun_equal(glb* g, gptr tptr);
 gint wr_compute_fun_equal_terms(glb* g, gint a, gint b, gptr tptr);

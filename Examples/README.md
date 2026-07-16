@@ -46,8 +46,8 @@ which would make it use only half a gigabyte of memory.
 The default for UNIX and Windows 64 is 5 gigabytes, i.e. -mbsize 5000.
 Larger amounts of initially allocated memory make startup slightly slower.
 
-You can give an arbitrary number of files as input, interpreted as if they were
-connected with *and*, like
+You can give up to nine files as input, interpreted as if they were connected
+with *and*, like
 
     ./gkc steam_kb.txt steam_query.txt
 
@@ -1464,9 +1464,9 @@ respectively. These may be added to the list in addition to the previous strateg
 Other useful parameters, to be used outside the "strategy": [...] list:
  
 *  "print": 0 or 1, where 0 prohibits almost all printing, default 1.
-*  "print_level": integer determining the level of output: useful values are between 0 and 50, default 10
+*  "print_level": integer determining the level of output: useful values are between 0 and 50. The command-line default is 15; the lower-level strategy scalar starts at 10, but the CLI header value normally overrides it.
 *  "print_json": 0 or 1, where 0 is default and 1 forces json output.
-*  "print_tptp": 0 or 1, where 0 is default and 1 forces tptp-style proof output
+*  "print_tptp": 0 or 1; the default follows input/CLI output-format selection, and 1 forces TPTP-style proof output
 *  "max_size", "max_length", "max_depth", "max_weight" indicate limits on kept clauses, defaults are 0.
 *  "equality" : 1 or 0, with 1 being default and 0 prohibiting equality handling.
 *  "rewrite" : 1 or 0, with 1 being default and 0 prohibiting using equations for rewriting.
@@ -1480,7 +1480,7 @@ Other useful parameters, to be used outside the "strategy": [...] list:
 *  "depth_penalty": additional penalty for clause depth, default 1
 *  "length_penalty": additional penalty for clause length, default 1
 *  "var_weight": weight of a variable, default 5
-*  "var_weight": weight of a repeated variable, default 7
+*  "repeat_var_weight": additional weight of a repeated variable, default 7
 *  "query_preference": N being 0, 1, 2 or 3 indicates which parts of the problem are treated as goals, assumptions or axioms:
       0 stands for no goal/assumption preference.
       1 stands for input preference (the assumption and conjecture formulas of fof)
@@ -1489,10 +1489,13 @@ Other useful parameters, to be used outside the "strategy": [...] list:
 
 For "max_seconds"<2 gkc will automatically use immediate check for contradiction when a clause is derived. 
 
+See [`Doc/strategy_reference.md`](../Doc/strategy_reference.md) for the
+complete, source-checked strategy reference.
+
 ### Output detail level
 
 The output level can be set by the `-print N` parameter with bigger N giving cumulatively
-more details. The default level is 10. Sensible levels are:
+more details. The command-line default level is 15. Sensible levels are:
 
 * 1: only show if proof has been found or not
 * 10: show the proof
@@ -1582,22 +1585,16 @@ infix arithmetic expression like `p(X*2)`, otherwise
 the whole expression will be parsed as a single variable `X*2`. No such restrictions
 apply for the prefix form.
 
-Although gkc defines several functions and predicates on numbers, it
-does not, by default, know the properties of these functions except simple evaluation
-of ground terms. Citing TPTP:
-
-The extent to which ATP systems are able to work with the arithmetic predicates and
-functions can vary, from a simple ability to evaluate ground terms, e.g., 
-`$sum(2,3)` can be evaluated to 5, through an ability to instantiate variables 
-in equations involving such functions, e.g., `$product(2,$uminus(X)) = $uminus($sum(X,2))` 
-can instantiate `X` to 2, to extensive algebraic manipulation capability. 
-The syntax does not axiomatize arithmetic theory, but may be used to write axioms of the theory. 
+GKC evaluates ground arithmetic during clause construction and performs a small
+amount of bounded numeric instantiation by default. It still does not
+axiomatize arithmetic or perform general symbolic algebra. In the terminology
+of the TPTP arithmetic overview, arithmetic support ranges from ground
+evaluation through variable instantiation to extensive algebraic
+manipulation; GKC implements the first and a deliberately restricted form of
+the second.
 
 The same general principle holds for lists and distinct symbols interpreted as strings.
 
-For example, gkc cannot prove an example formula `["exists",["X"],["$is_number","X"]]` 
-unless neccessary additional axioms are given.
- 
 Try the simple examples `arithmetic1.txt`, `arithmetic2.txt`, `arithmetic3.txt`, 
 `arithmetic4.txt`. The [last of these](arithmetic4.txt) produces output
 
@@ -1615,6 +1612,41 @@ Try the simple examples `arithmetic1.txt`, `arithmetic2.txt`, `arithmetic3.txt`,
     8: [mp, 7, 1.1] p(134.400000).
     9: [in] $less(X,128) | -p(X).
     10: [mp, 8, 9.1] false
+
+### Numeric instantiation
+
+Conservative mode 1 is the default. In
+[`arithmetic_instantiation_apples.txt`](arithmetic_instantiation_apples.txt),
+the equation “John had `X` apples; two more made 10” produces `$ans(8)`:
+
+```sh
+./gkc arithmetic_instantiation_apples.txt -parallel 0 \
+  -strategytext '{"strategy":["unit"],"query_preference":0}'
+```
+
+Explicit mode 0 disables the pass. The second tutorial file,
+[`arithmetic_instantiation_product.txt`](arithmetic_instantiation_product.txt),
+needs the stronger two-variable mode:
+
+```sh
+./gkc arithmetic_instantiation_product.txt -parallel 0 \
+  -strategytext '{"strategy":["unit"],"query_preference":0,"arith_instantiation":2}'
+```
+
+The larger numbered matrix, ground controls, overflow boundary, and
+expected-hard cases are regression assets under
+[`Test/arithmetic/`](../Test/arithmetic/), not tutorial examples. Run them from
+the repository root with:
+
+```sh
+python3 Test/arithmetic/check_arithmetic_instantiation.py
+```
+
+The feature is not algebraic solving: it only tries bounded values which make a
+recognized arithmetic subterm or comparison ground and simplify immediately.
+With statistics enabled, the final `arithinst:` lines show its probe and
+retention counts. The implementation and exact bounds are documented in
+[`Doc/ARITHMETIC_INSTANTIATION.md`](../Doc/ARITHMETIC_INSTANTIATION.md).
 
 
 ### Lists
@@ -1782,7 +1814,7 @@ The main features of the syntax are:
 You may want to have a look at the conversion of JSON examples to the simple or TPTP FOF
 syntax by saying, for example, `./gkc jsexample1.js -convert -tptp` or 
 `./gkc jsexample1.js -clausify -tptp`. Similarly one can convert the simple or TPTP 
-syntax examples to JSON by using the key `-jsont` instead of `-tptp`.
+syntax examples to JSON by using the key `-json` instead of `-tptp`.
 
 
 ### Core examples  
@@ -1876,8 +1908,9 @@ the use of multiple values in `["mark","michael"]` and the JSON-LD `"@base"` and
 See how the proof contains absolute names instead of the shorthand names of symbols
 used in input.
 
-`jsexample10.js` shows that nesting can be arbitrarily deep and nested objects/maps may 
- contain the `@logic` key at any level. The example contains a nested "child" value indicating
+`jsexample10.js` shows deeply nested objects/maps, which may contain the
+`@logic` key at any level below the parser's safety limit. The example contains
+a nested "child" value indicating
 that the person we describe (with no id given) has two children with ages 10 and 2, 
 but nothing more is known about them. We also know the person has a father `john`. 
 The rules state the son/daughter and mother/father correspondence, define children 
@@ -1975,4 +2008,3 @@ meaning of `@type`:
     type(smith2,name,'John Smith').
     (type(X0,X2) & type(X1,X3) & X2!=X3) => X0!=X1.
     smith1=smith2.
-

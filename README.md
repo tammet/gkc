@@ -12,18 +12,16 @@ available at [Examples/README.md](Examples/README.md). A Wasm version running
 in the browser with multiple commented examples is available as
 [logictools.org](http://logictools.org).
 
-Additional reference documentation is in the [Doc/](Doc/) folder. Start with
-[Doc/cli_reference.md](Doc/cli_reference.md) for command-line usage,
+Additional reference documentation is indexed in [Doc/README.md](Doc/README.md).
+Start with [Doc/cli_reference.md](Doc/cli_reference.md) for command-line usage,
 [Doc/strategy_reference.md](Doc/strategy_reference.md) for strategy JSON,
 [Doc/ARCHITECTURE.md](Doc/ARCHITECTURE.md) for the implementation overview, and
 [Doc/DEVELOPMENT_GUIDE.md](Doc/DEVELOPMENT_GUIDE.md) when changing the code.
 
-For casc 2023 please use the compiled Linux binary and sources for version 0.8: 
-<https://github.com/tammet/gkc/releases/tag/v0.8.0>
-
-For non-casc purposes it is recommended to use the version 0.6 with compiled binaries 
-for Linux, Windows and macOS:
-<https://github.com/tammet/gkc/releases/tag/v0.6.0>
+Release 0.8 is the archived CASC 29 version; release 0.6 contains archived
+Linux, Windows, and macOS binaries. This checkout contains later parser,
+robustness, shared-KB, and arithmetic-instantiation work and should be built
+from source when those changes are needed.
 
 GKC is licenced under [AGPL v3](https://www.gnu.org/licenses/agpl-3.0.en.html). 
 The author of GKC is Tanel Tammet (tanel.tammet@gmail.com).
@@ -54,9 +52,10 @@ The GKC system consists of a single standalone executable
 with no dependencies, called  `gkc` for linux, 
 `gkc.exe` for 64-bit windows, `gkc32.exe` for 32-bit windows,
 `gkcosx` for macOS. The pre-compiled executables are 
-included in the [release 0.6.0](https://github.com/tammet/gkc/releases/tag/v0.6.0).
-The [release 0.8.0](https://github.com/tammet/gkc/releases/tag/v0.8.0) is intended
-for the [CASC 29 competition](http://www.tptp.org/CASC/29/).
+included in archived
+[release 0.6.0](https://github.com/tammet/gkc/releases/tag/v0.6.0). Release
+[0.8.0](https://github.com/tammet/gkc/releases/tag/v0.8.0) is the CASC 29
+competition version and predates the current checkout.
 
 GKC is written in C. There are three alternative ways
 to compile gkc, from simpler to more complicated:
@@ -69,15 +68,15 @@ script in the top folder creating a static binary gkc
 in the top folder. This script calls gcc once,
 the result is the binary `gkc` in the top folder.
 
-We have tested compilation with gcc 5.4, 7.5 and 9.3, 
-clang 3.8 and 6.0 under Ubuntu 16, 18 and 20. 
+The script uses the compiler named by `CC` (default `gcc`) and the checked-in
+generated sources under `Builtparser/`, so flex and bison are not required.
 
 To compile the Windows binary yourself, use the
 
     compile.bat
 
 script in the top folder creating an executable `gkc.exe`
-in the fop folder. We have tested compilation of both 
+in the top folder. We have tested compilation of both
 the 32-bit and 64-bit versions under 
 the 64-bit Windows 10 with the 2017 Visual Studio C
 community edition command-line tool cl.
@@ -105,8 +104,13 @@ Second, to compile with a simple makefile under Linux, do
 which uses `makefile`, creating an executable `gkc` 
 in the top folder. This option uses `flex` and `bison`
 utilities. In case these two are not available, you
-can change the `makefile` for optionally compiling without
-them: check the comments in the `makefile`.
+can use the checked-in parser sources with
+
+    make USEBISON=false
+
+The simple Makefile has intentionally incomplete header dependencies; after a
+header-layout change, force a complete rebuild (`make -B`) or follow its clean
+build note.
 
 The third option is to compile with the autotools under Linux:
 install `bison`, `flex`, `automake` and `libtool`, rename `makefile`
@@ -190,8 +194,8 @@ command-line reference.
         alternatively input strategy text directly from command line
 
     options and parameters for using the shared memory database of axioms:
-      -usekb
-        use the axioms in the shared memory database in addition to other input
+      -usekb <query file>
+        use the shared-memory axioms with the required local query file
       -mbnr <shared memory database nr>
         if omitted, number 1000 is used
       gkc -readkb <logic file>
@@ -213,7 +217,7 @@ command-line reference.
       -mbsize <megabytes to allocate initially>
         if omitted, 5000 megabytes assumed for UNIX, 1000 for 32-bit Windows
       -print <nr>
-        indicate the amount of output: 10 is default, bigger numbers give more,
+        indicate the amount of output: 15 is default, bigger numbers give more,
         useful values are 1,10,11,12,13,14,20,30,40,50,51
 
     options without parameters:
@@ -235,14 +239,15 @@ command-line reference.
         see https://github.com/tammet/gkc for details and examples
       
 
-The output level can be set by the `-print N` parameter with bigger N giving cumulatively
-more details. The default level is 10. Sensible levels are:
+The output level can be set by the `-print N` parameter, with larger values
+giving cumulatively more detail. The command-line default is 15. Sensible
+levels are:
 
 * 1: only show if proof has been found or not
 * 10: show the proof
 * 11: show strategy used in the successful run
 * 12: show all runs with their strategies
-* 15: show statistics and the set of all runs planned along with their strategies
+* 13 to 15: show statistics and the set of planned runs and strategies
 * 20: show *given* clauses (a tiny subset of input or derived clauses)
 * 40: show all derived clauses
 * 50: show details or rule selection and application
@@ -393,22 +398,14 @@ The numbers and arithmetic functions and predicates are defined following the
 [TPTP arithmetic system](http://www.tptp.org/TPTP/TR/TPTPTR.shtml#Arithmetic)
 plus a few convenience operators for writing infix terms:
 
-* Type detection predicates $is_int, $is_real.
-* Comparison predicates $less, $lesseq, $greater, $greatereq.
-* Type conversion functions $to_int, $to_real.
-* Arithmetic functions on integers and reals:
-  $sum, $difference, $product, 
-  $quotient, $quotient_e,
-  $remainder_e, $remainder_t, $remainder_f, 
-  $floor, $ceiling,
-  $uminus, $truncate, $round.
- 
- Note: these comparison predicates and arithmetic functions take exactly two arguments.
+* Unary type-detection predicates `$is_int`, `$is_real`, and `$is_number`.
+* Binary comparison predicates `$less`, `$lesseq`, `$greater`, and `$greatereq`.
+* Unary type-conversion functions `$to_int` and `$to_real`.
+* Binary arithmetic functions `$sum`, `$difference`, `$product`, and the
+  quotient and remainder families.
+* Unary `$floor`, `$ceiling`, `$uminus`, `$truncate`, and `$round`.
 
  Example: `$less($sum(1,$to_int(2.1)),$product(3,3))`.
-
-* Additional convenience predicate is used: $is_number is true
-if and only if $is_int or $is_real is true.
 
 * Additional infix convenience functions +, -, *, / are
 used with the same meaning as $sum, $difference, $product and 
@@ -422,6 +419,18 @@ NB! Do not use a variable or a non-numeric constant as a first element of the
 infix arithmetic expression like `p(X*2)`, otherwise 
 the whole expression will be parsed as a single variable `X*2`. No such restrictions
 apply for the prefix form.
+
+Ground arithmetic is evaluated during ordinary clause construction. Bounded
+numeric instantiation is also enabled in conservative mode 1 by default for
+clauses containing recognized non-ground arithmetic or numeric comparisons.
+It tries only a few values and retains an instance only when the existing
+calculator makes immediate progress. Set `"arith_instantiation":0` in
+strategy JSON to disable it; mode 2 permits bounded two-variable probes. See
+[Doc/ARITHMETIC_INSTANTIATION.md](Doc/ARITHMETIC_INSTANTIATION.md) and the
+tutorial examples
+[arithmetic_instantiation_apples.txt](Examples/arithmetic_instantiation_apples.txt)
+and
+[arithmetic_instantiation_product.txt](Examples/arithmetic_instantiation_product.txt).
 
  
 ### Lists
@@ -557,9 +566,9 @@ The list "strategy": [...] contains the main search strategy indicators, default
 Other useful parameters:
 
 * "print": 0 or 1, where 0 prohibits almost all printing, default 1.
-* "print_level": integer determining the level of output: useful values are between 0 and 60, default 10.
+* "print_level": integer determining the level of output: useful values are between 0 and 60. The command-line default is 15; the lower-level strategy scalar starts at 10, but the CLI header value normally overrides it.
 * "print_json": 0 or 1, where 0 is default and 1 forces json output.
-* "print_tptp": 1 or 0, where 1 is default and 0 forces non-tptp-style proof output
+* "print_tptp": 1 or 0. The effective default follows input/CLI output-format selection; 1 requests TPTP-style proof output and 0 disables it.
 * "max_size", "max_length", "max_depth", "max_weight" indicate limits on kept clauses, defaults are 0.
 * "equality" : 1 or 0, with 1 being default and 0 prohibiting equality handling.
 * "rewrite" : 1 or 0, with 1 being default and 0 prohibiting using equations for rewriting.
@@ -573,7 +582,7 @@ Other useful parameters:
 * "depth_penalty": additional penalty for clause depth, default 1
 * "length_penalty": additional penalty for clause length, default 1
 * "var_weight": weight of a variable, default 5
-* "var_weight": weight of a repeated variable, default 7
+* "repeat_var_weight": additional weight of a repeated variable, default 7
 * "query_preference": N being 0, 1, 2 or 3 indicates which parts of the problem are treated as
    goals, assumptions or axioms:
     * 0 stands for no goal/assumption preference.
@@ -583,6 +592,9 @@ Other useful parameters:
 
 For "max_seconds"<2 gkc will automatically use immediate check for contradiction when a clause is derived.
 For problems with less than 1000 input clauses, gkc will use sine for input clause ordering.
+
+The complete, source-checked list of strategy keys and their interactions is in
+[Doc/strategy_reference.md](Doc/strategy_reference.md).
 
 Architecture
 ------------
@@ -599,9 +611,13 @@ These standard inference rules have been implemented:
 * Binary resolution with optionally the set of support strategy, ordered resolution or unit restriction.
 * Hyperresolution.
 * Factorization.
-* Paramodulation and demodulation with the Knuth-Bendix ordering. 
+* Paramodulation and demodulation with the Knuth-Bendix ordering.
+* Bounded, calculator-gated numeric instantiation for arithmetic and numeric
+  comparisons.
 
-GKC does not currently implement any propositional inferences or instance generation.
+The older experimental propositional and general Inst-Gen paths are not part
+of the normal default search. Numeric instantiation is a separate, deliberately
+bounded inference and is not an SMT solver or general algebra system.
 
 By default GKC uses multiple strategies run sequentially and/or distributed between
 several parallel processes: by default, four parallel processes on UNIX and a single
@@ -625,14 +641,6 @@ feature vectors and fingerprints, while no tree indexes are used.
 
 
   
-
-
-
-
-
-
-
-
 
 
 

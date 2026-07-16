@@ -1,0 +1,22 @@
+% Regression: ground arithmetic at machine limits must never use C overflow or an
+% out-of-range floating-point-to-integer conversion.  Each disequality below
+% is reflexively false whether its arithmetic subterm is safely calculated or
+% conservatively left unevaluated, so the clause is contradictory while still
+% forcing all subterms through the ground calculator.
+
+$sum($product(1073741824,1073741824),
+     $product($product(1073741824,1073741824),7)) !=
+  $sum($product(1073741824,1073741824),
+       $product($product(1073741824,1073741824),7)) |
+$difference($product($product($uminus(1073741824),1073741824),8),1) !=
+  $difference($product($product($uminus(1073741824),1073741824),8),1) |
+$product($product(1073741824,1073741824),8) !=
+  $product($product(1073741824,1073741824),8) |
+$quotient_t($product($product($uminus(1073741824),1073741824),8),$uminus(1)) !=
+  $quotient_t($product($product($uminus(1073741824),1073741824),8),$uminus(1)) |
+$remainder_t($product($product($uminus(1073741824),1073741824),8),$uminus(1)) !=
+  $remainder_t($product($product($uminus(1073741824),1073741824),8),$uminus(1)) |
+$uminus($product($product($uminus(1073741824),1073741824),8)) !=
+  $uminus($product($product($uminus(1073741824),1073741824),8)) |
+$to_int(999999999999999999999999999999999999999999999999999999999999999.0) !=
+  $to_int(999999999999999999999999999999999999999999999999999999999999999.0).

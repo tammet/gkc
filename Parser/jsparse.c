@@ -232,6 +232,7 @@ int wr_import_js_file(glb* g, char* filename, char* strasfile, cvec clvec, int i
   pp.result=NULL;
   pp.mpool=mpool;
   pp.depth=0;
+  pp.nesterr=0;
   pp.formulanr=0;
 
   pp.jsonnull=wg_mkatom(db,mpool,WG_URITYPE,MPOOL_JSON_NULL,NULL);
@@ -495,12 +496,17 @@ static int parse_yajl_string(void *ctx, const unsigned char * stringVal,
   return 1;
 }
 
-static int parse_yajl_start_array(void *ctx) {  
-  parse_parm *pp = (parse_parm *) ctx;   
+static int parse_yajl_start_array(void *ctx) {
+  parse_parm *pp = (parse_parm *) ctx;
 
   //printf("array open '['\n");
-  (pp->depth)++; 
-  (pp->nests)[(pp->depth)]=MKWGNIL;     
+  /* bounds check: nests[] is a fixed array in the (stack-allocated)
+     parse_parm, so an unchecked write past it smashes the stack. Returning
+     0 cancels the yajl parse; wr_yajl_parse_file turns pp->nesterr into a
+     clear load error. */
+  if ((pp->depth)+1 >= PARSE_NESTING_DEPTH) { (pp->nesterr)=1; return 0; }
+  (pp->depth)++;
+  (pp->nests)[(pp->depth)]=MKWGNIL;
   //printf("\ndepth %d\n",(pp->depth));
   return 1;
 }
@@ -542,6 +548,8 @@ static int parse_yajl_start_map(void *ctx) {
   parse_parm *pp = (parse_parm *) ctx;     
 
   //printf("map open '{'\n");
+  /* bounds check: see parse_yajl_start_array */
+  if ((pp->depth)+1 >= PARSE_NESTING_DEPTH) { (pp->nesterr)=1; return 0; }
   (pp->depth)++;
   (pp->nests)[(pp->depth)]=MKWGNIL;
   //stringVal=MPOOL_STRUCT_PREFSTR;
@@ -662,8 +670,19 @@ int wr_yajl_parse_file(glb* g, parse_parm* pp, char* filename,
       if (stat != yajl_status_ok) break;
     }
   }     
-  if (streaming) (pp->result)=wg_inplace_reverselist(db,mpool,streamlist);  
+  if (streaming) (pp->result)=wg_inplace_reverselist(db,mpool,streamlist);
   stat = yajl_complete_parse(hand);
+  if (pp->nesterr) {
+    /* the input nested deeper than nests[] can hold: a specific message,
+       since yajl only knows that a callback cancelled the parse */
+    json_err_printfn2("json nesting deeper than the limit of ",
+                      PARSE_NESTING_DEPTH-1, "levels: check for a runaway "
+                      "list or a malformed file");
+    if (line!=NULL) wr_free(g,line);
+    if (filename) fclose(file);
+    yajl_free(hand);
+    return -1;
+  }
   if ((stat != yajl_status_ok) && !endfound) {
     str =  yajl_get_error(hand, 0, line, rd);
     //fflush(stdout);
@@ -720,6 +739,13 @@ int wr_yajl_parse_string(glb* g, parse_parm* pp, char* strasfile) {
   rd=strlen(strasfile);
   stat = yajl_parse(hand, line, rd); 
   stat = yajl_complete_parse(hand);
+  if (pp->nesterr) {
+    json_err_printfn2("json nesting deeper than the limit of ",
+                      PARSE_NESTING_DEPTH-1, "levels: check for a runaway "
+                      "list or a malformed text");
+    yajl_free(hand);
+    return -1;
+  }
   if (stat != yajl_status_ok) {
     unsigned char * str = yajl_get_error(hand, 0, line, rd);
     //fflush(stdout);
@@ -847,6 +873,15 @@ void* wr_preprocess_json_clauselist
     */
     pp->formulanr=clnr+1;
     pp->parse_top_level=1;
+    /* An empty statement -- [] or {} -- used to be dropped in silence
+       (/opt/gk/Doc/MEMO_input_robustness.md A9/S3). It cannot mean
+       anything: say so. */
+    if (cl==(pp->jsonempty) ||
+        (wg_ispair(db,cl) && wg_first(db,cl)==(pp->jsonstruct) &&
+         !wg_rest(db,cl))) {
+      wr_show_jsparse_error(g,pp,"empty statement: nothing to read here");
+      break;
+    }
     if (wg_isatom(db,cl) && wg_atomtype(db,cl)!=WG_URITYPE) {
       if (cl==(pp->logtrue)) continue;
       if (cl!=(pp->logfalse)) {

@@ -271,8 +271,19 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, in
 
   if (fp) fclose(fp);
   (g->use_comp_funs)=tmp_comp_funs;
+  /* An input that yielded no clauses used to return 1 in SILENCE: the
+     caller cannot tell it apart from a parse error (which has already
+     printed its own message via pp.errmsg), so an empty file, a
+     comment-only file, an unterminated block comment and an empty cnf( )
+     clause all exited 1 with no output at all
+     (/opt/gk/Doc/MEMO_input_robustness.md S1/S2). Say what happened when
+     nothing else has. */
+  if (!pres && pres2==NULL && !(g->parse_errmsg)) {
+    db_err_printf2("no clauses found in",
+                   (filename)?filename:(char*)"the input text");
+  }
   if (pres || pres2==NULL) return 1;
-  else return 0;  
+  else return 0;
 }
 
 /*
@@ -684,12 +695,37 @@ int wr_is_tptp_import_clause(void* db, void* cl) {
   return 1;
 }
 
+/** Does this formula contain an explicit quantifier anywhere? */
+static int wr_frm_has_quantifier(void* db, void* frm) {
+  void* part;
+
+  if (!frm) return 0;
+  if (wg_isatom(db,frm)) return (wg_islogall(db,frm) || wg_islogexists(db,frm));
+  if (!wg_ispair(db,frm)) return 0;
+  for(part=frm; wg_ispair(db,part); part=wg_rest(db,part)) {
+    if (wr_frm_has_quantifier(db,wg_first(db,part))) return 1;
+  }
+  return 0;
+}
+
 void* wr_preprocess_tptp_cnf_clause(glb* g, void* mpool, void* cl) {
   void* db=g->db;
   void* clpart;
   void* res;
-  
+
   clpart=wg_first(db,wg_rest(db,wg_rest(db,wg_rest(db,cl))));
+  /* A cnf formula must not carry explicit quantifiers: TPTP's grammar
+     forbids them (cnf variables are implicitly universally quantified) and
+     gkc used to ACCEPT them silently while giving a DIFFERENT answer --
+     cnf(a,axiom, ! [X] : p(X)) failed to prove p(b), which the equivalent
+     cnf(a,axiom,(p(X))) proves. A silently wrong answer is worse than a
+     rejection (/opt/gk/Doc/MEMO_input_robustness.md A8). */
+  if (wr_frm_has_quantifier(db,clpart)) {
+    wr_show_parse_error(g,"a cnf formula must not contain an explicit "
+      "quantifier (cnf variables are universally quantified already): "
+      "drop it, or use fof");
+    return NULL;
+  }
   res=clpart;
   /*
   if (wg_ispair(db,wg_first(db,clpart))) {
@@ -797,7 +833,7 @@ void *wr_parse_freeoccs(glb* g, void* mpool, void* vars, void* frm, int* clausef
     if (wg_atomstr2(db,frm)!=NULL) return NULL;
     if((wg_atomtype(db,frm)==WG_VARTYPE) ||
       ((g->parse_caps_as_var && wg_atomstr1(db,frm) &&
-        isupper(wg_atomstr1(db,frm)[0])) ||
+        isupper((unsigned char)(wg_atomstr1(db,frm)[0]))) ||
         (g->parse_question_as_var && wg_atomstr1(db,frm) &&
          wg_atomstr1(db,frm)[0]=='?') )) { 
       if (!wr_freeoccs_invars(g,mpool,vars,frm)) {
@@ -1218,7 +1254,7 @@ void* wr_parse_clause(glb* g,void* mpool,void* cl,cvec clvec,
       if (wg_atomtype(db,subterm)==WG_VARTYPE) { issimple=0; break; } 
       if (wg_atomtype(db,subterm)==WG_URITYPE && wg_atomstr1(db,subterm) && 
           wg_atomstr2(db,subterm)!=NULL &&
-          ( (g->parse_caps_as_var && isupper(wg_atomstr1(db,subterm)[0])) ||
+          ( (g->parse_caps_as_var && isupper((unsigned char)(wg_atomstr1(db,subterm)[0]))) ||
             (g->parse_question_as_var && wg_atomstr1(db,subterm)[0]=='?') )) {issimple=0; break;} 
     }      
   }        
@@ -1642,22 +1678,33 @@ gint wr_parse_primitive(glb* g,void* mpool,void* atomptr, char** vardata, int po
     switch (type) {
       case 0: ret=wg_encode_null(db,NULL); break; 
       case WG_NULLTYPE: ret=wg_encode_null(db,NULL); break;      
-      case WG_INTTYPE: 
-        intdata = atol(str1);
+      case WG_INTTYPE:
+        /* strtol/strtod, not atol/atof: only the former are defined to set
+           errno on overflow (atol's behavior is simply undefined there), and
+           errno must be cleared BEFORE the call, not merely tested after.
+           The message names the offending number: it used to surface as the
+           caller's bare "problem converting an atom to record", with no hint
+           that a number was out of range (/opt/gk/Doc/MEMO_input_robustness.md
+           M3). */
+        errno=0;
+        intdata = strtol(str1,NULL,10);
         if(errno!=ERANGE && errno!=EINVAL) {
           ret = wg_encode_int(db, intdata);
         } else {
           errno=0;
-          ret=WG_ILLEGAL;         
+          wr_show_parse_error(g,"integer constant out of the representable range: %s",str1);
+          ret=WG_ILLEGAL;
         }
-        break;         
-      case WG_DOUBLETYPE: 
-        doubledata = atof(str1);
+        break;
+      case WG_DOUBLETYPE:
+        errno=0;
+        doubledata = strtod(str1,NULL);
         if(errno!=ERANGE && errno!=EINVAL) {
           ret = wg_encode_double(db, doubledata);
         } else {
           errno=0;
-          ret=WG_ILLEGAL;         
+          wr_show_parse_error(g,"number out of the representable range: %s",str1);
+          ret=WG_ILLEGAL;
         }
         break; 
       case WG_STRTYPE: 
@@ -1670,7 +1717,7 @@ gint wr_parse_primitive(glb* g,void* mpool,void* atomptr, char** vardata, int po
         str2=wg_atomstr2(db,atomptr);
         if (!pos || !str1 || str2) {         
           ret=wg_encode_uri(db,str1,str2); 
-        } else if ((g->parse_caps_as_var && isupper(str1[0])) ||
+        } else if ((g->parse_caps_as_var && isupper((unsigned char)(str1[0]))) ||
                    (g->parse_question_as_var && str1[0]=='?') ) {
           intdata=0;
           DPRINTF("starting WG_VARTYPE block\n");
@@ -1735,14 +1782,14 @@ gint wr_parse_primitive(glb* g,void* mpool,void* atomptr, char** vardata, int po
               ((*str1=='=') || (*str1=='-') || (*str1=='+') || (*str1=='*') || (*str1=='/')) ) {
             ret=wg_encode_anonconst(db,str1);
           } else {
-            if (str1 && (isupper(str1[0]) || wg_parser_should_quote(str1))) {              
+            if (str1 && (isupper((unsigned char)(str1[0])) || wg_parser_should_quote(str1))) {              
               ret=wg_encode_uri(db,str1,"c");  
             } else {
               ret=wg_encode_uri(db,str1,NULL);
             }            
           }
         } else {
-          if (str1 && (isupper(str1[0]) || wg_parser_should_quote(str1))) {              
+          if (str1 && (isupper((unsigned char)(str1[0])) || wg_parser_should_quote(str1))) {              
             ret=wg_encode_uri(db,str1,"c");  
           } else {
             ret=wg_encode_uri(db,str1,NULL);

@@ -92,7 +92,7 @@ extern "C" {
 #define FLAGS_FORCE 0x1
 #define FLAGS_LOGGING 0x2
 
-#define DEFAULT_PARALLEL 8 // set to 1 for no parallel
+#define DEFAULT_PARALLEL 4 // set to 1 for no parallel
 #define DEFAULT_TPTP 0 // set to 1 for default tptp output
 #define TPTP
 
@@ -1022,8 +1022,8 @@ void usage(char *prog) {
          "     alternatively input strategy text directly from command line\n"\
          "\n"\
          "options and parameters for using the shared memory database of axioms:\n"\
-         "  -usekb\n"\
-         "     use the axioms in the shared memory database in addition to other input\n"\
+         "  -usekb <query file>\n"\
+         "     use the shared-memory axioms with the required local query file\n"\
          "  -mbnr <shared memory database nr>\n"\
          "     if omitted, number 1000 is used\n"\
          "  gkc -readkb <logic file>\n"\
@@ -1045,7 +1045,7 @@ void usage(char *prog) {
          "  -mbsize <megabytes to allocate initially>\n"\
          "     if omitted, 5000 megabytes assumed for UNIX, 1000 for 32-bit Windows\n"\
          "  -print <nr>\n"\
-         "     indicate the amount of output: 10 is default, bigger numbers give more,\n"\
+         "     indicate the amount of output: 15 is default, bigger numbers give more,\n"\
          "     useful values are 1,10,11,12,13,14,20,30,40,50,51\n"\
          "\n"\
          "options without parameters:\n"\

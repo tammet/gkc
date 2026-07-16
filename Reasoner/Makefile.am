@@ -19,6 +19,7 @@ libReasoner_la_SOURCES = types.h rincludes.h \
   propagate.c propagate.h\
   unify.c unify.h\
   build.c build.h\
+  arithinst.c arithinst.h\
   history.c history.h\
   prob.c prob.h\
   hash.c hash.h\
@@ -34,4 +35,3 @@ libReasoner_la_SOURCES = types.h rincludes.h \
   ../Main/gkc.c\
   ../cjson/cjson.c ../cjson/cjson.h
 #  ../Test/dbtest.c ../Test/dbtest.h
-

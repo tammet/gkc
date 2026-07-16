@@ -1,0 +1,5 @@
+% Tutorial: two variables must be instantiated before $product(X,Y) can be evaluated.
+% The unrelated facts make useful candidate numerals 2 and 3 available.
+number_seed(2).
+number_seed(3).
+$product(X,Y) != 6.

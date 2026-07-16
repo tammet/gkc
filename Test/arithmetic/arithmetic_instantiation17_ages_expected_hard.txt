@@ -1,0 +1,5 @@
+% Expected-hard regression: Alice is 3 years older than Bob and their ages total 27.
+% B = 12 and A = 15 leave $ans(12,15), but deriving these two coupled values
+% requires more than a single shallow operator-local hint.  This is an
+% expected-hard boundary case for the deliberately bounded heuristic.
+$sum(B,3) != A | $sum(A,B) != 27 | $ans(B,A).

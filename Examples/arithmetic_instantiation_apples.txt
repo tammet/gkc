@@ -1,0 +1,4 @@
+% Tutorial: John had X apples. After receiving 2 more, he had 10.
+% The desired answer is X = 8.  Instantiating X = 8 reduces the arithmetic
+% disequality to false and leaves the answer literal $ans(8).
+$sum(X,2) != 10 | $ans(X).

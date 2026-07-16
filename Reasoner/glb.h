@@ -41,6 +41,7 @@
 #include <stdint.h>
 
 #include "types.h"
+#include "arithinst.h"
 
 
 #define NROF_DYNALLOCINITIAL_ELS    10000000
@@ -144,7 +145,7 @@
 * 
 */
 
-typedef struct {    
+typedef struct glb {
   
   void* db;             /**< mem database used as a base for offset: either kb_db or child_db here */
   void* kb_db;          /**< shared-mem knowledge base */
@@ -370,6 +371,15 @@ typedef struct {
   int use_comp_funs_strat; // general strategy
   int use_comp_funs; // current principle
   int use_comp_arithmetic; // current principle for arithmetic
+  int arith_instantiation; // 0 off, 1 conservative, 2 stronger
+  int arith_inst_max_vars;
+  int arith_inst_candidate_limit;
+  int arith_inst_probe_limit;
+  int arith_inst_keep_limit;
+  int arith_inst_depth_limit;
+  int arith_inst_global_limit;
+  unsigned int arith_inst_explicit_mask;
+  int have_nonground_arithmetic;
   int use_rewrite_terms_strat; // general strategy
   int have_rewrite_terms; // observation  
   int use_strong_unit_cutoff; 
@@ -428,6 +438,16 @@ typedef struct {
   gint  tmp_unify_do_occcheck;
   gint  tmp_rewrites; // count of rewrites during one clause simplification
   char* tmp_printbuf; // temporary buffer for printing, malloced as needed
+  int arith_inst_probe_active;
+  int tmp_arithinst_calc_count;
+  int tmp_arithinst_deleted_lits;
+  int tmp_arithinst_tautology;
+
+  int arith_inst_global_candidate_count;
+  wr_arith_value arith_inst_global_candidates[WR_ARITH_MAX_GLOBAL_VALUES];
+  wr_arith_cache_entry* arith_inst_cache;
+  int arith_inst_cache_size;
+  int arith_inst_cache_saturated;
 
   /* build control: changed in code */
   
@@ -460,6 +480,18 @@ typedef struct {
   int stat_derived_partial_hyper_cl;
   int stat_binres_derived_cl;
   int stat_instgen_derived_cl;
+  int stat_arithinst_clauses_scanned;
+  int stat_arithinst_frontiers;
+  int stat_arithinst_candidates;
+  int stat_arithinst_probes;
+  int stat_arithinst_calculated;
+  int stat_arithinst_rejected_no_progress;
+  int stat_arithinst_rejected_tautology;
+  int stat_arithinst_rejected_cache;
+  int stat_arithinst_rejected_budget;
+  int stat_arithinst_truncated;
+  int stat_arithinst_kept;
+  int stat_arithinst_proofs;
   int stat_prop_inst_derived_cl;
   int stat_propagated_derived_cl;
   int stat_factor_derived_cl;
@@ -532,7 +564,8 @@ typedef struct {
 
   /* input clause set analysis */
 
-  int in_has_fof;   
+  int in_has_fof;
+  int in_has_nonground_arithmetic;
 
   int in_clause_count;
   int in_rule_clause_count;
@@ -603,6 +636,7 @@ typedef struct {
   int sin_posunit_goal_count;
   int sin_max_const_ucount;
   gint sin_max_occ_const;
+  int sin_has_nonground_arithmetic;
 
   /* run averages and measures */
   

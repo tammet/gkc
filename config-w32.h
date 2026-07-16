@@ -47,13 +47,13 @@
 #define PACKAGE_NAME "GKC"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "GKC 0.5.2"
+#define PACKAGE_STRING "GKC 1.0.0"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "gkc"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "0.5"
+#define PACKAGE_VERSION "1.0.0"
 
 /* Define to necessary symbol if this constant uses a non-standard name on
    your system. */
@@ -84,13 +84,13 @@
 #define USE_REASONER 1
 
 /* Version number of package */
-#define VERSION "0.8"
+#define VERSION "1.0"
 
 /* Package major version */
-#define VERSION_MAJOR 0
+#define VERSION_MAJOR 1
 
 /* Package minor version */
-#define VERSION_MINOR 6
+#define VERSION_MINOR 0
 
 /* Package revision number */
 #define VERSION_REV 0

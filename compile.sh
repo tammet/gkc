@@ -27,7 +27,7 @@ ${CC} -O3 -Wall -Wmissing-field-initializers -static -o gkc \
   Db/dbjson.c Db/dbschema.c \
   json/yajl_all.c \
   cjson/cjson.c \
-  Reasoner/build.c  Reasoner/clstore.c  Reasoner/clterm.c  Reasoner/derive.c  \
+  Reasoner/build.c Reasoner/arithinst.c Reasoner/clstore.c  Reasoner/clterm.c  Reasoner/derive.c  \
   Reasoner/glb.c  Reasoner/mem.c  \
   Reasoner/printerrutils.c  Reasoner/rgenloop.c  Reasoner/rmain.c  Reasoner/subsume.c  Reasoner/unify.c \
   Reasoner/resolve.c Reasoner/simp.c Reasoner/strat.c Reasoner/rewrite.c Reasoner/history.c \
@@ -45,4 +45,3 @@ ${CC} -O3 -Wall -Wmissing-field-initializers -static -o gkc \
 # -Wall -Wextra -Wcast-qual -Wcast-align -Wstrict-aliasing -Wpointer-arith -Winit-self 
 # -Wshadow -Wswitch-enum -Wstrict-prototypes -Wmissing-prototypes -Wredundant-decls
 # -Wfloat-equal -Wundef -Wvla -Wdeclaration-after-statement -Wc++-compat
-

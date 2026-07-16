@@ -1,0 +1,3 @@
+% Regression: the witness X = 2 makes both arithmetic sides evaluate to 4.
+% A useful manual instance is $product(2,2) != $sum(2,2).
+$product(2,X) != $sum(X,2).

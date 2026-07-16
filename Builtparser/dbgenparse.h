@@ -56,7 +56,15 @@
 #define MKWGINTDIRECT(pp,x)     (wg_mkatom_int(((parse_parm*)(pp))->db,((parse_parm*)(pp))->mpool,(x)))
 #define MKWGDOUBLEDIRECT(pp,x)   (wg_mkatom_double(((parse_parm*)(pp))->db,((parse_parm*)(pp))->mpool,(x)))
 
-#define PARSE_NESTING_DEPTH 256
+/* Max json nesting depth. gkc's json lists are cons cells, so this also caps
+   the LENGTH of a list literal: at the old value of 256 a merely 260-element
+   list smashed the stack (the nests[] writes below had no bounds check; see
+   /opt/gk/Doc/MEMO_input_robustness.md C1, fixed the same way in gk). 4096
+   covers realistic data; it cannot grow without limit because parse_parm is
+   a stack local AND @include recurses, so every include level costs one
+   nests[] array (4096*8 = 32KB). Exceeding it is a clean load error now,
+   never a crash. */
+#define PARSE_NESTING_DEPTH 4096
 
 // ---- reeentrant ----
 
@@ -125,6 +133,7 @@ typedef struct parse_parm_s {
   void* jsonld_graphid;  // an mpool atom for graph id creating $narc
 
   void* nests[PARSE_NESTING_DEPTH]; // stack for pure json parsing
+  int nesterr; // set when the input nests deeper than PARSE_NESTING_DEPTH
 
 } parse_parm;
 

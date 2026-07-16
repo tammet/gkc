@@ -104,14 +104,6 @@
 #define PARA_TERMPATH_LITNRMASK  0xFF0000
 #define PARA_TERMPATH_LEFTMASK  0x1000000
 
-// -- active clause vec block structure --
-
-#define CLACTIVE_NODE_GINT_NR 5
-#define CLACTIVE_NODE_META_POS 0
-#define CLACTIVE_NODE_PATH0HASH_POS 1
-#define CLACTIVE_NODE_PATH1HASH_POS 2
-#define CLACTIVE_NODE_PATH2HASH_POS 3
-#define CLACTIVE_NODE_CL_POS 4
 
 
 /* ==== Protos ==== */

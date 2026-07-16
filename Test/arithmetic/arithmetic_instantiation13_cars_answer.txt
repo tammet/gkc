@@ -1,0 +1,7 @@
+% Regression: find a positive price where Mike's car costs twice as much as
+% John's, and report whose is more expensive.  J = 1 and M = 2 make all
+% three arithmetic constraints false and leave the answer $ans(mike).
+%
+% The positivity condition matters: "twice as expensive" alone does not
+% imply a strict comparison for zero or negative mathematical values.
+$product(2,J) != M | -$greater(J,0) | -$greater(M,J) | $ans(mike).

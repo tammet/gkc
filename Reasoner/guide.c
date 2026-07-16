@@ -154,31 +154,31 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr, int s
   cJSON *elem=NULL, *run=NULL;
   char *key, *errstr; //, *valuestr;
   int i,tmp; // valueint
-  int runcount=0, runfound=0;
+  int runcount=0, runfound=0, has_total_seconds=0;
   char* out;
 
   if (json_isarray(guide)) {
+    if (runnr>=0) {
+      *outstr=NULL;
+      wr_warn(g,"top-level strategy must be an object; put run objects in a runs array");
+      return -1;
+    }
     out=cJSON_PrintUnformatted(guide);
     *outstr=out;
-    //exit(0);
     return 10;
-    errstr=cJSON_Print(guide);
-    wr_warn2(g,"seq section in the strategy:\n ", errstr);
-    exit(0);
-    if (errstr) wr_free(g,errstr);
-    elem=guide->child;
-    while(elem) {
-      errstr=cJSON_Print(elem);
-      wr_warn2(g,"seq elem:\n ", errstr);
-      if (errstr) wr_free(g,errstr);
-      elem=elem->next;
-    }  
-    return -1;
   } else if (!json_isobject(guide)) {    
     errstr=cJSON_Print(guide);
     wr_warn2(g,"misunderstood section in the strategy:\n ", errstr);
     if (errstr) wr_free(g,errstr);
     return -1;
+  }
+  // total_seconds wins regardless of its position relative to total_dseconds.
+  for(elem=guide->child; elem; elem=elem->next) {
+    key=json_key(elem);
+    if (key && !strcmp(key,"total_seconds")) {
+      has_total_seconds=1;
+      break;
+    }
   }
   //(g->cl_maxkeep_depthlimit)=2;
   elem=guide->child;
@@ -257,8 +257,11 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr, int s
       //(g->use_strong_unit_cutoff)=1;
 
     } else if (!strcmp(key,"total_dseconds")) {
-      //printf("\nmax_seconds %d\n", json_valueint(elem));
       (g->max_dseconds)=json_valueint(elem);
+      if (!has_total_seconds) {
+        tmp=(g->max_dseconds);
+        (g->max_seconds)=(tmp>0) ? ((tmp/10)+((tmp%10)!=0)) : tmp;
+      }
     } 
 
     /*
@@ -323,6 +326,26 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr, int s
     } else if (!strcmp(key,"instgen")) {
       //printf("query_preference %d\n", json_valueint(elem));
       (g->instgen_strat)=json_valueint(elem);  
+    } else if (!strcmp(key,"arith_instantiation")) {
+      (g->arith_instantiation)=json_valueint(elem);
+    } else if (!strcmp(key,"arith_inst_max_vars")) {
+      (g->arith_inst_max_vars)=json_valueint(elem);
+      (g->arith_inst_explicit_mask)|=1u;
+    } else if (!strcmp(key,"arith_inst_candidate_limit")) {
+      (g->arith_inst_candidate_limit)=json_valueint(elem);
+      (g->arith_inst_explicit_mask)|=2u;
+    } else if (!strcmp(key,"arith_inst_probe_limit")) {
+      (g->arith_inst_probe_limit)=json_valueint(elem);
+      (g->arith_inst_explicit_mask)|=4u;
+    } else if (!strcmp(key,"arith_inst_keep_limit")) {
+      (g->arith_inst_keep_limit)=json_valueint(elem);
+      (g->arith_inst_explicit_mask)|=8u;
+    } else if (!strcmp(key,"arith_inst_depth_limit")) {
+      (g->arith_inst_depth_limit)=json_valueint(elem);
+      (g->arith_inst_explicit_mask)|=16u;
+    } else if (!strcmp(key,"arith_inst_global_limit")) {
+      (g->arith_inst_global_limit)=json_valueint(elem);
+      (g->arith_inst_explicit_mask)|=32u;
     } else if (!strcmp(key,"propgen")) {
       //printf("query_preference %d\n", json_valueint(elem));
       (g->propgen_strat)=json_valueint(elem);  

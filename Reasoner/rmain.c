@@ -172,6 +172,12 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
     if (guidebuf!=NULL) sys_free(guidebuf);
     return -1;
   }
+  if (guide && cJSON_IsArray(guide)) {
+    wr_errprint("top-level strategy must be an object; put run objects in a runs array");
+    if (guidebuf!=NULL) sys_free(guidebuf);
+    cJSON_Delete(guide);
+    return -1;
+  }
   filename=inputname;
 #ifdef SHOWTIME
   //wr_printf("Guide parsed.\n");
@@ -501,6 +507,7 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
     if (iter==0) (g->allruns_start_clock)=clock();    
     guidetext=NULL;
     guideres=wr_parse_guide_section(g,guide,iter,&guidetext,-1); 
+    wr_arithinst_configure(g);
     //printf("\nguideres %d\n",guideres);
     if (dbmemsegh(local_db)->printlevel) (g->print_level_flag)=(dbmemsegh(local_db)->printlevel);
     if (dbmemsegh(local_db)->printderived) (g->print_derived)=(dbmemsegh(local_db)->printderived);
@@ -750,6 +757,8 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
           //out=cJSON_PrintUnformatted(guide);         
 
           seqguideres=wr_parse_guide_section(g,guide,iter,&guidetext1,seqnr); 
+          wr_arithinst_configure(g);
+          wr_arithinst_reset_run(g);
           if (seqguideres<0) break;
           //seqguideres=0;
           printf("seqnr %d seqguideres %d strat %s\n",seqnr,seqguideres,guidetext1);
@@ -906,7 +915,7 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
       break;
     }
     // no proof found here
-    // wr_show_stats(g,1);
+    if (g->arith_instantiation && g->print_flag) wr_show_stats(g,1);
     if (local_db) (dbmemsegh(local_db)->local_g)=NULL;
     wr_glb_free(g);        
     if ((iter+1)>=guideres) break;      
@@ -2075,6 +2084,19 @@ void wr_show_stats(glb* g, int show_local_complex) {
   //wr_printf("stat_propagated_derived_cl: %d\n",g->stat_propagated_derived_cl);
   wr_printf("stat_factor_derived_cl: %d\n",g->stat_factor_derived_cl);
   wr_printf("stat_para_derived_cl: %d\n",g->stat_para_derived_cl);
+  if (g->arith_instantiation) {
+    wr_printf("arithinst: scanned=%d frontiers=%d candidates=%d probes=%d calculated=%d\n",
+              g->stat_arithinst_clauses_scanned,g->stat_arithinst_frontiers,
+              g->stat_arithinst_candidates,g->stat_arithinst_probes,
+              g->stat_arithinst_calculated);
+    wr_printf("arithinst: kept=%d proofs=%d rejected(no-progress=%d tautology=%d cache=%d)\n",
+              g->stat_arithinst_kept,g->stat_arithinst_proofs,
+              g->stat_arithinst_rejected_no_progress,
+              g->stat_arithinst_rejected_tautology,
+              g->stat_arithinst_rejected_cache);
+    wr_printf("arithinst: rejected(budget=%d) truncated=%d\n",
+              g->stat_arithinst_rejected_budget,g->stat_arithinst_truncated);
+  }
   wr_printf("stat_tautologies_discarded: %d\n",g->stat_tautologies_discarded);
   wr_printf("stat_forward_subsumed: %d\n",g->stat_forward_subsumed);   
   wr_printf("stat_derived_cut: %d\n",g->stat_derived_cut);  

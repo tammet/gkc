@@ -61,6 +61,7 @@ test-driver
 tmp
 Rtest/
 Locdoc/
+Plans/
 Builtparser/*.y
 Examples/try*
 Examples/tmp*
@@ -105,4 +106,5 @@ makefile.orig
 
 
 
-
+__pycache__/
+*.pyc

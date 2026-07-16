@@ -1,0 +1,4 @@
+% Regression: resolution first leaves the non-ground arithmetic unit $less(X,4).
+% Instantiating X = 4 makes that unit false.
+p(a) | $less(X,4).
+-p(a).

@@ -1,8 +1,8 @@
 JSON-LD-LOGIC Input Format
 ==========================
 
-JSON-LD-LOGIC is the primary input format for GK. It embeds logical
-formulas in JSON, with optional semantic web compatibility via JSON-LD keys.
+JSON-LD-LOGIC is GKC's JSON input format. It embeds classical first-order
+formulas in JSON, with optional semantic-web compatibility via JSON-LD keys.
 
 Files typically use the `.js` extension and are valid JSON with the
 addition of C-style comments (`//` line comments and `/* ... */` block comments).
@@ -13,11 +13,11 @@ See also https://github.com/tammet/json-ld-logic for the format proposal.
 File Structure
 --------------
 
-A GK input file is a JSON array of statements. Each statement is either:
+A GKC input file is a JSON array of statements. Each statement is either:
 
-  * A bare formula (JSON array): treated as an axiom with confidence 1.0
-  * An annotated formula (JSON object): has metadata keys like `@logic`,
-    `@confidence`, `@question`, etc.
+  * A bare formula (JSON array), treated as an axiom
+  * An annotated formula (JSON object), using keys such as `@logic`,
+    `@name`, `@role`, and `@question`
 
 Example:
 
@@ -25,9 +25,9 @@ Example:
       // bare fact
       ["bird","tweety"],
 
-      // annotated rule with confidence
-      {"@logic": [["bird","?:X"], "=>", ["flies","?:X"]],
-       "@confidence": 0.9},
+      // named rule
+      {"@name": "birds_fly",
+       "@logic": [["bird","?:X"], "=>", ["flies","?:X"]]},
 
       // question
       {"@question": ["flies","tweety"]}
@@ -47,17 +47,11 @@ Top-Level JSON Keys
 
 ### Metadata keys
 
-  * **`@confidence`** (number): Confidence value for the statement.
-    - Float 0.0 to 1.0: direct confidence (e.g., `0.85`)
-    - Integer 2 to 100: percentage (e.g., `85` means 0.85)
-    - Default: 1.0 (certain)
-
   * **`@name`** (string): Name identifier for the clause, used in
     proof output.
 
   * **`@role`** (string): Role of the statement in the problem. Values:
     - `"axiom"`: background knowledge (default if no role specified)
-    - `"extaxiom"`: external axiom (from included files)
     - `"assumption"`: assumed true for this problem
     - `"hypothesis"`: hypothesis to test
     - `"conjecture"`: goal to prove (negated internally)
@@ -73,15 +67,17 @@ Top-Level JSON Keys
   * **`@type`**: Type annotation
   * **`@list`**: Marks a list structure
   * **`@set`**: Marks a set structure
-  * **`@base`**: Base URI for relative references
+  * **`@base`**: Base URI for relative references when used inside `@context`
 
-### Include and similarity keys
+### Include key
 
   * **`@include`** (string): Path to a file to include. The file is parsed
     and its contents added to the problem. Searched in: current directory,
     `$TPTP` environment variable path, `/opt/TPTP/`.
 
-  * **`@similarity`**: Similarity declarations for word-level matching.
+GKC is a classical prover. GK-only confidence annotations, default-rule
+blockers, and similarity metadata are outside this format reference and are
+not interpreted here as GK's nonclassical mechanisms.
 
 
 Formulas
@@ -181,50 +177,13 @@ Special Predicates
 
 The `$ans` predicate marks which variable bindings to report:
 
-    ["-bird","?:X"], ["$ans","?:X"]
+    [["bird","?:X"], "=>", ["$ans","?:X"]]
 
 This asks "what X is a bird?" and reports the bindings found.
 
-In annotated form:
+The convenience `@question` form constructs the corresponding answer query:
 
-    {"@question": ["-bird","?:X"], "$ans": ["?:X"]}
-
-### $block - Default rule exceptions
-
-Used in default (defeasible) rules to mark exception conditions:
-
-    [["-bird","?:X"], ["flies","?:X"],
-     ["$block", strength, ["$not", ["flies","?:X"]]]]
-
-The `$block` literal says: this rule can be overridden if a stronger
-rule proves the blocked literal.
-
-**Strength** is the first argument of `$block`:
-
-  * Integer `0`: incomparable with all other blockers
-  * Integer `>0`: larger numbers are stronger/more specific
-  * `["$", class_number]`: taxonomy-based, using class number
-  * `["$", "word"]`: taxonomy-based, word is converted to class number
-    via `gk_name_number.txt`
-  * `["$", class_or_word, integer]`: combined; uses taxonomy for
-    comparison with other taxonomy blockers, integer for comparison
-    with integer-only blockers
-
-Blockers with equal strength block each other mutually
-(unless strength is 0).
-
-### $not - Negation in blockers
-
-`$not` is used **only** inside `$block` literals to negate the
-blocked conclusion:
-
-    ["$block", 1, ["$not", ["flies","?:X"]]]
-
-means "this rule is blocked if flies(X) can be disproved."
-
-    ["$block", 1, ["flies","?:X"]]
-
-means "this rule is blocked if flies(X) can be proved."
+    {"@question": ["bird","?:X"]}
 
 ### $arc and $narc - RDF triples
 
@@ -245,7 +204,7 @@ Lists can also be written in bracket notation: `[1, 2, 3]` within terms.
 
 ### Arithmetic predicates
 
-  * `$less`, `$greater`, `$lessorequal`, `$greaterorequal`: comparison
+  * `$less`, `$greater`, `$lesseq`, `$greatereq`: comparison
   * `$sum`, `$product`, `$difference`, `$quotient`, `$remainder`: operations
   * `$floor`, `$ceiling`, `$round`, `$truncate`: rounding
   * `$is_int`, `$is_real`, `$is_number`: type tests
@@ -256,15 +215,13 @@ Infix shorthand: `+`, `-`, `*`, `/` in terms.
 
   * `$is_distinct`: test if argument is a string (distinct symbol)
   * `$strlen`: string length
-  * `$substr`: substring extraction
-  * `$substrat`: character at position
+  * `$substr(A,B)`: test whether distinct symbol A is a substring of B
+  * `$substrat(A,B,N)`: test whether A occurs in B at zero-based position N
 
 ### Equality
 
-    ["=", "a", "b"]         // a equals b
-    ["!=", "a", "b"]        // a does not equal b
-
-Infix in terms: `["p", ["f","a"], "=", ["f","b"]]`
+    ["a", "=", "b"]         // a equals b
+    ["a", "!=", "b"]        // a does not equal b
 
 
 Logical Operators Summary
@@ -291,7 +248,7 @@ Logical Operators Summary
 Comments
 --------
 
-GK's JSON parser supports C-style comments:
+GKC's JSON parser supports C-style comments:
 
     // This is a line comment
 
@@ -304,44 +261,26 @@ These are extensions to standard JSON, enabled by the YAJL parser.
 Distinct Symbols (Strings)
 ----------------------------
 
-Strings in double quotes are treated as distinct symbols (constants
-that are unequal to all other distinct symbols):
+JSON strings prefixed with `#:` are treated as distinct symbols (typed
+constants unequal to syntactically different distinct symbols):
 
-    ["name", "\"John Smith\""]
-
-The backslash-escaped quotes are needed because the value is inside
-a JSON string.
+    ["kind", "#:person"]
 
 
 Complete Example
 -----------------
 
-A file combining facts, rules, defaults, and a question:
+A file combining facts, a rule, and a question:
 
     [
-      // Facts with confidence
-      {"@logic": ["bird","tweety"], "@confidence": 0.95},
-      {"@logic": ["bird","polly"], "@confidence": 0.9},
-      {"@logic": ["penguin","tux"], "@confidence": 0.99},
-
-      // Penguins are birds
-      [["penguin","?:X"], "=>", ["bird","?:X"]],
-
-      // Default: birds fly (strength 1)
-      {"@logic": [["-bird","?:X"], ["flies","?:X"],
-                   ["$block", 1, ["$not", ["flies","?:X"]]]]},
-
-      // Exception: penguins don't fly (strength 2, overrides birds)
-      {"@logic": [["-penguin","?:X"], ["-flies","?:X"],
-                   ["$block", 2, ["flies","?:X"]]]},
-
-      // Question: what flies?
-      {"@question": ["-flies","?:X"], "$ans": ["?:X"]}
+      ["bird","tweety"],
+      {"@name": "birds_fly",
+       "@logic": [["bird","?:X"], "=>", ["flies","?:X"]]},
+      {"@question": ["flies","tweety"]}
     ]
 
 Running:
 
-    ./gk example.js -defaults
+    ./gkc example.js -parallel 0
 
-Expected output: tweety and polly fly (with their respective confidences),
-but tux does not fly (the penguin exception overrides the bird default).
+Expected result: `proof found`.

@@ -1,0 +1,3 @@
+% Regression: ground control case for $is_number. This should simplify immediately,
+% independently of any numeric-instantiation mechanism.
+-$is_number(0).

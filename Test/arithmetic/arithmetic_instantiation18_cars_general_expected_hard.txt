@@ -1,0 +1,11 @@
+% Expected-hard regression: if Mike's price M is twice John's positive price J,
+% then Mike's price is greater.  Negating this universal conjecture creates
+% Skolem constants, not variables.  Numeric variable instantiation alone
+% therefore cannot make the arithmetic ground; genuine theory reasoning or
+% theory-aware abstraction would be needed.
+fof(cars_general,conjecture,
+  (! [J,M] :
+    (((($is_number(J) & $is_number(M))
+       & ($product(2,J) = M))
+       & $greater(J,0))
+     => $greater(M,J)))).

@@ -1,0 +1,3 @@
+% Regression: ground control case for unary arithmetic. This should simplify immediately,
+% independently of any numeric-instantiation mechanism.
+$product(2,$uminus(2)) != $uminus($sum(2,2)).

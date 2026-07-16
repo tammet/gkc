@@ -117,7 +117,12 @@ static char *s;
 
 
 DIGIT    [0-9]
-ID       [a-zA-Z][a-zA-Z0-9_:+\-*/<>]*
+/* utf-8: a byte >= 0x80 is part of a utf-8 character and is a word
+   constituent; a word may also start with one, and is then an ATOM (the
+   caps-as-var test in dbparse.c only accepts ASCII uppercase).
+   See /opt/gk/Doc/MEMO_input_robustness.md I1/M2 and the same policy in
+   gk Converter/convcommon.c. */
+ID       [a-zA-Z\x80-\xff][a-zA-Z0-9_:+\-*/<>\x80-\xff]*
 
 %%
 

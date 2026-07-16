@@ -1,0 +1,5 @@
+% Regression control: when the conjecture supplies 8, ordinary unification binds X
+% and existing ground arithmetic evaluation is sufficient.  No special
+% numeric-instantiation inference should be needed for this example.
+$sum(X,2) != 10 | john_had(X).
+-john_had(8).

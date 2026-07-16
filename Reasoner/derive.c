@@ -1579,12 +1579,22 @@ int wr_process_instgen_result_aux
       return 0; // could not alloc memory, could not store clause
     }  
     if (newatom==ACONST_TRUE) {
-      if (wg_atom_meta_is_neg(db,meta)) continue;
-      else return 0;
+      if (wg_atom_meta_is_neg(db,meta)) {
+        if (g->arith_inst_probe_active) ++(g->tmp_arithinst_deleted_lits);
+        continue;
+      } else {
+        if (g->arith_inst_probe_active) g->tmp_arithinst_tautology=1;
+        return 0;
+      }
     } 
     if (newatom==ACONST_FALSE) {
-      if (wg_atom_meta_is_neg(db,meta)) return 0;
-      else continue;      
+      if (wg_atom_meta_is_neg(db,meta)) {
+        if (g->arith_inst_probe_active) g->tmp_arithinst_tautology=1;
+        return 0;
+      } else {
+        if (g->arith_inst_probe_active) ++(g->tmp_arithinst_deleted_lits);
+        continue;
+      }
     }      
     posfoundflag=0;
 
@@ -1617,6 +1627,7 @@ int wr_process_instgen_result_aux
 #endif           
           // negative sign, tautology, drop clause          
           (g->stat_tautologies_discarded)++;
+          if (g->arith_inst_probe_active) g->tmp_arithinst_tautology=1;
           return 0;
         }            
       }         

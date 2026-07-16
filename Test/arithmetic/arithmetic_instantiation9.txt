@@ -1,0 +1,4 @@
+% Regression: a non-strict lower-bound comparison needs a value below the boundary.
+% Resolution leaves $greatereq(X,7); the useful instance is X = 6.
+p(a) | $greatereq(X,7).
+-p(a).

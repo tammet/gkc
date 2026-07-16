@@ -105,6 +105,15 @@ where
 #define WR_HISTORY_TAG_PROPINST 7
 #define WR_HISTORY_TAG_INSTGEN 8
 #define WR_HISTORY_TAG_EXTPROP 9
+#define WR_HISTORY_TAG_ARITHINST 10
+
+#define HISTORY_ARITH_PARENT_POS (HISTORY_PREFIX_LEN+1)
+#define HISTORY_ARITH_SUBST_COUNT_POS (HISTORY_PREFIX_LEN+2)
+#define HISTORY_ARITH_SUBST_START_POS (HISTORY_PREFIX_LEN+3)
+#define HISTORY_ARITH_VAR_POS(n) (HISTORY_ARITH_SUBST_START_POS+((n)*2))
+#define HISTORY_ARITH_VALUE_POS(n) (HISTORY_ARITH_SUBST_START_POS+((n)*2)+1)
+#define HISTORY_ARITH_CUT_COUNT_POS(n) (HISTORY_ARITH_SUBST_START_POS+((n)*2))
+#define HISTORY_ARITH_CUT_START_POS(n) (HISTORY_ARITH_CUT_COUNT_POS(n)+1)
 
 #define WR_HISTORY_TAG_SHIFT 20
 #define WR_HISTORY_EXTRA_SHIFT 16
@@ -131,6 +140,9 @@ typedef struct {
 gint wr_build_input_history(glb* g, gptr cl1, char* name, gint priority);
 gint wr_build_resolve_history(glb* g, gptr cl1, gptr cl2, int pos1, int pos2, gptr cut_clvec);
 gint wr_build_instgen_history(glb* g, gptr cl1, gptr cl2, int pos1, int pos2, gptr cut_clvec);
+gint wr_build_arithinst_history(glb* g, gptr parent, int subst_count,
+                                const int* variables, const gint* values,
+                                gptr cut_clvec);
 gint wr_build_propagate_history(glb* g, gptr cl1, gptr cl2, int pos1, int pos2);
 gint wr_build_factorial_history(glb* g, gptr cl, int pos1, int pos2, gptr cut_clvec);
 gint wr_build_propinst_history(glb* g, gptr cl1, gint term, gptr cut_clvec);
@@ -143,6 +155,7 @@ gint wr_calc_history_priority2(glb* g, gptr cl1, gptr cl2);
 
 gint wr_encode_history_resolve(glb* g, int pos1, int pos2);
 gint wr_encode_history_instgen(glb* g, int pos1, int pos2);
+gint wr_encode_history_arithinst(glb* g);
 gint wr_encode_history_propagate(glb* g, int pos1, int pos2);
 gint wr_encode_history_factorial(glb* g, int pos1, int pos2);
 gint wr_encode_history_propinst(glb* g);

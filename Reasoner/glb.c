@@ -243,6 +243,15 @@ int wr_glb_init_simple(glb* g) {
   (g->use_comp_funs_strat)=1;
   (g->use_comp_funs)=1;
   (g->use_comp_arithmetic)=1;
+  (g->arith_instantiation)=1;
+  (g->arith_inst_max_vars)=1;
+  (g->arith_inst_candidate_limit)=4;
+  (g->arith_inst_probe_limit)=16;
+  (g->arith_inst_keep_limit)=2;
+  (g->arith_inst_depth_limit)=1;
+  (g->arith_inst_global_limit)=1000;
+  (g->arith_inst_explicit_mask)=0;
+  (g->have_nonground_arithmetic)=0;
   (g->use_rewrite_terms_strat)=1; // general strategy // NORMAL 1
   (g->have_rewrite_terms)=0; // do we actually have rewrite terms
   (g->use_strong_unit_cutoff)=0; // if 1, then cut off also with unification, not just with hash equality
@@ -318,6 +327,14 @@ int wr_glb_init_simple(glb* g) {
   /* tmp variables */
 
   (g->tmp_printbuf)=NULL;
+  (g->arith_inst_probe_active)=0;
+  (g->tmp_arithinst_calc_count)=0;
+  (g->tmp_arithinst_deleted_lits)=0;
+  (g->tmp_arithinst_tautology)=0;
+  (g->arith_inst_global_candidate_count)=0;
+  (g->arith_inst_cache)=NULL;
+  (g->arith_inst_cache_size)=0;
+  (g->arith_inst_cache_saturated)=0;
 
   /* dynamically changed limits: initialized to cl_maxkeep_* */
 
@@ -350,6 +367,18 @@ int wr_glb_init_simple(glb* g) {
   (g->stat_derived_partial_hyper_cl)=0;
   (g->stat_binres_derived_cl)=0;
   (g->stat_instgen_derived_cl)=0;
+  (g->stat_arithinst_clauses_scanned)=0;
+  (g->stat_arithinst_frontiers)=0;
+  (g->stat_arithinst_candidates)=0;
+  (g->stat_arithinst_probes)=0;
+  (g->stat_arithinst_calculated)=0;
+  (g->stat_arithinst_rejected_no_progress)=0;
+  (g->stat_arithinst_rejected_tautology)=0;
+  (g->stat_arithinst_rejected_cache)=0;
+  (g->stat_arithinst_rejected_budget)=0;
+  (g->stat_arithinst_truncated)=0;
+  (g->stat_arithinst_kept)=0;
+  (g->stat_arithinst_proofs)=0;
   (g->stat_prop_inst_derived_cl)=0;
   (g->stat_propagated_derived_cl)=0;
   (g->stat_factor_derived_cl)=0;
@@ -422,6 +451,7 @@ int wr_glb_init_simple(glb* g) {
   (g->tmp9)=0;
 
   (g->in_has_fof)=0;
+  (g->in_has_nonground_arithmetic)=0;
 
   (g->in_clause_count)=0;
   (g->in_rule_clause_count)=0;
@@ -492,6 +522,7 @@ int wr_glb_init_simple(glb* g) {
   (g->sin_posunit_goal_count)=0;
   (g->sin_max_const_ucount)=0;
   (g->sin_max_occ_const)=0;
+  (g->sin_has_nonground_arithmetic)=0;
 
   (g->current_run_nr)=0;
   (g->current_fork_nr)=0;
@@ -792,6 +823,7 @@ int wr_glb_init_local_complex(glb* g) {
   (g->prop_file_name)=NULL;  
   (g->prop_solver_name)=NULL;
   (g->prop_solver_outfile_name)=NULL;
+  (g->arith_inst_cache)=NULL;
   
 
   // then create space
@@ -1174,6 +1206,9 @@ int wr_glb_free_local_complex(glb* g) {
   if (g->sine_k_values) sys_free(g->sine_k_values); // bytestring
   if (g->sine_uri_k_values) sys_free(g->sine_uri_k_values); // bytestring
   if (g->backsubsume_values) sys_free(g->backsubsume_values); // bytestring
+  if (g->arith_inst_cache) sys_free(g->arith_inst_cache);
+  g->arith_inst_cache=NULL;
+  g->arith_inst_cache_size=0;
 
   wr_str_free(g,(g->parse_skolem_prefix));
   (g->parse_skolem_prefix)=NULL;

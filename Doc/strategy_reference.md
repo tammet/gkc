@@ -43,19 +43,61 @@ A multi-run strategy uses `runs`:
 }
 ```
 
-Top-level settings are parsed before the selected run object, so a run can
-override top-level defaults.
+`wr_parse_guide_section()` walks object members in JSON order and recurses when
+it reaches `runs`. Put shared defaults before `runs` so a selected run can
+override them. Settings written after `runs` are applied after the selected run
+and therefore override it. Strategy-name arrays only set flags, so a run's
+`strategy` adds to flags set by an outer `strategy`; it does not clear them.
 
-If the whole strategy JSON is an array, `wr_parse_guide_section()` treats it as
-a sequential strategy section. This path exists in code but is less commonly
-used than `runs`.
+A run entry inside `runs` may itself be an array of strategy objects. That
+selects the sequential-strategy path, which reuses search state between those
+objects. A top-level array is rejected because its intended independent-versus-
+sequential meaning is ambiguous; use an object with `runs` instead.
 
 ## Automatic Strategy
 
 When no strategy file or strategy text is supplied, `wg_run_reasoner()` calls
-`make_auto_guide()` after input analysis. The generated guide is based on clause
-statistics, equality presence, query roles, SINE suitability, time limits, and
-shared-KB state. It usually contains many short runs with different strategies.
+`make_auto_guide()` after `wr_analyze_clause_list()` has analyzed the input.
+The result is ordinary strategy JSON: it is parsed by the same guide parser as
+a user-supplied strategy and then distributed across workers in the same way.
+
+`make_auto_guide()` is implemented in `Reasoner/analyze.c`. It first calls
+`make_sum_input_stats()` to form the `sin_*` statistics used for selection. For
+an ordinary proof these are the local input statistics. With an attached shared
+KB, local-query and KB counts are added, minima and maxima are combined, and
+the KB symbol counts are used as estimates for the combined problem. Thus the
+automatic guide can differ between proving a file directly and proving the same
+query against a preloaded KB.
+
+The generator derives several gates from those statistics:
+
+* `eq` is true when any positive or negative equality clause is present. If it
+  is false, the outer guide sets `"equality": 0`, and equality-dependent run
+  templates are omitted.
+* `ueq` is true only when every clause is a unit equality clause. This selects a
+  dedicated unit-equality group at the start of `make_guide()`.
+* SINE variants are enabled only above 50 clauses.
+* query-preference variants are suppressed when the analyzed role distribution
+  makes them unhelpful. In particular, preferences 2 and 3 are gated by the
+  presence and polarity of axioms, assumptions, and goals; preference 1 is
+  suppressed when goals make up more than two thirds of the local input.
+* problems above 500,000 combined clauses start each template at 50
+  deciseconds; other problems start at 1 decisecond.
+
+`make_auto_guide()` emits five template blocks. The first uses the initial time
+slice, the second multiplies it by 10, and later blocks multiply it by 5. Each
+block calls the generated `make_guide()` in `Reasoner/makeguide.c`, which emits
+the concrete portfolio: combinations of unit/query/hardness preferences,
+equality and paramodulation restrictions, rewriting choices, SINE levels,
+queue ratios, term weights, and clause limits. Conditions in that generated
+function omit variants that do not fit the gates above. The generated guide is
+an object containing a `runs` array, so normal parallel execution assigns run
+indexes round-robin to worker numbers.
+
+The `LTBSPECIAL` internal mode passes `guideparam == 1`. It uses the
+`min_strat_timeloop_nr` and `max_strat_timeloop_nr` database-header bounds to
+select template blocks and emits quieter output settings. It is not the normal
+CLI default-strategy path.
 
 Use `-print 13` or a higher run-printing level to inspect the generated runs.
 
@@ -63,7 +105,8 @@ Use `-print 13` or a higher run-printing level to inspect the generated runs.
 ./gkc Examples/example1.txt -print 13
 ```
 
-The exact generated strategy is implementation-specific and changes in
+The exact run list is implementation-specific. Selection and time growth live
+in `Reasoner/analyze.c`; the concrete generated portfolio lives in
 `Reasoner/makeguide.c`.
 
 ## Time Limits
@@ -86,11 +129,21 @@ Total seconds across all runs. This sets `g->max_seconds`.
 
 ### `total_dseconds`
 
-Total deciseconds across all runs. This sets `g->max_dseconds`.
+Compatibility alias for `total_seconds`. A positive value is divided by 10 and
+rounded upward, so values 1 through 10 become one second, 11 through 20 become
+two seconds, and so on. If the same strategy object contains `total_seconds`,
+that key takes precedence regardless of JSON property order.
+
+This alias does not provide a subsecond total deadline. Use `max_dseconds` for
+a subsecond per-run CPU-time limit.
 
 The command-line `-seconds` option also sets a total search limit in the local
 DB header before strategy parsing.
 
+
+Strategy time checks use the C `clock()` value, so these limits measure process
+CPU time rather than wall time. On Unix, the separate CLI `-seconds` limit also
+installs a wall-clock `alarm()` deadline.
 ## Answer Limit
 
 ### `max_answers`
@@ -157,9 +210,10 @@ sets `g->cl_pick_queue_strategy`.
 | `1` | Use roles as marked by input: goals, assumptions, and axioms are separated. |
 | `2` | Treat non-included axioms and positive conjecture parts as assumptions. Imported/background axioms remain favored. |
 | `3` | Only fully negative goal clauses stay in the goal queue; assumptions are treated as axioms. |
+| `4` | Put every role into the axiom queue. |
 
-The comment in `glb.h` documents values 0 to 3. Some older text mentions value
-4, but this checkout does not document a distinct behavior for it.
+The comment in `glb.h` lists only values 0 to 3, but `clstore.c` implements the
+distinct value-4 behavior above.
 
 ### `given_queue_ratio`
 
@@ -252,6 +306,48 @@ If nonzero, enable propositional-generation behavior and the follow-up
 `wr_prop_solve_current()` call after a run. This path is experimental in this
 checkout.
 
+### Numeric instantiation
+
+Numeric instantiation is a bounded arithmetic aid. It generates
+only bounded numeric instances of a clause with recognized non-ground
+arithmetic, then relies on the existing ground calculator and ordinary clause
+processing. It is not SMT solving or general algebraic reasoning. Conservative
+mode 1 is enabled by default; set the key to `0` to disable it explicitly.
+
+| Key | Default | Meaning |
+| --- | --- | --- |
+| `arith_instantiation` | `1` | `0` disables it; `1` uses conservative one-variable search; `2` permits a bounded two-variable and deeper search. |
+| `arith_inst_max_vars` | mode-dependent | Maximum variables in one candidate substitution (`1` or `2`). |
+| `arith_inst_candidate_limit` | `4` / `6` | Local numeric candidates considered per arithmetic clause. |
+| `arith_inst_probe_limit` | `16` / `32` | Candidate probes per clause. |
+| `arith_inst_keep_limit` | `2` / `4` | Useful generated instances retained per clause. |
+| `arith_inst_depth_limit` | `1` / `2` | Maximum numeric-instantiation ancestry depth. |
+| `arith_inst_global_limit` | `1000` | Candidate probes allowed in one run. |
+
+The paired values are for modes `1` and `2`. Explicit limits override those
+mode defaults and are clamped to safe ranges. The feature is inert unless
+computation functions are enabled and input contains a recognized non-ground
+arithmetic operation, comparison, conversion, rounding operation, unary minus,
+or numeric type test. It targets arithmetic arguments and comparison boundaries
+sparingly; a generated instance is retained only when ground calculation gives
+immediate syntactic progress. The original clause remains available.
+
+For example, select the stronger mode with:
+
+```json
+{
+  "strategy": ["unit"],
+  "query_preference": 0,
+  "arith_instantiation": 2
+}
+```
+
+Use the ordinary JSON strategy mechanisms described above for portfolios and
+per-run overrides. With statistics enabled, an enabled run prints `arithinst:`
+counter lines for scanned clauses, probes, retained instances, proofs, and
+rejections. See `Doc/ARITHMETIC_INSTANTIATION.md` and the arithmetic examples for
+scope and limits.
+
 ## Output Keys
 
 ### `print`
@@ -261,7 +357,12 @@ checkout.
 
 ### `print_level`
 
-Detail level. The same level bands are used by the command-line `-print` flag:
+Detail level. The same level bands are used by the command-line `-print` flag.
+
+In the `gkc` CLI, the nonzero database-header print level (default `15`, or the
+value supplied with `-print`) is reapplied after each run object is parsed. It
+therefore overrides this strategy key in normal use. With `-print 0`, the
+header value is not reapplied and a strategy `print_level` can take effect:
 
 | Level | Effect |
 | --- | --- |
@@ -413,6 +514,13 @@ reverse_clauselist
 query_preference
 instgen
 propgen
+arith_instantiation
+arith_inst_max_vars
+arith_inst_candidate_limit
+arith_inst_probe_limit
+arith_inst_keep_limit
+arith_inst_depth_limit
+arith_inst_global_limit
 strategy
 runs
 ```

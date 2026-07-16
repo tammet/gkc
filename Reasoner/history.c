@@ -190,6 +190,46 @@ gint wr_build_instgen_history(glb* g, gptr cl1, gptr cl2, int pos1, int pos2, gp
   }  
 }
 
+gint wr_build_arithinst_history(glb* g, gptr parent, int subst_count,
+                                const int* variables, const gint* values,
+                                gptr cut_clvec) {
+  void* db=g->db;
+  gptr rec;
+  int i,cutn=0,cut_count_pos,datalen;
+
+  if (!g->store_history) return wg_encode_int(db,1);
+  if (subst_count<1 || subst_count>2) return wg_encode_null(db,NULL);
+  if (cut_clvec) {
+    for(cutn=1;cutn<(int)cut_clvec[0] && (gptr)cut_clvec[cutn]!=NULL;cutn++) {}
+    cutn--;
+  }
+  cut_count_pos=HISTORY_ARITH_CUT_COUNT_POS(subst_count);
+  datalen=cut_count_pos+1+cutn;
+  rec=wr_create_raw_history_record(g,datalen,g->build_buffer);
+  if (!rec) return wg_encode_null(db,NULL);
+  wr_set_history_clid(g,rec);
+  wr_set_history_record_field(g,rec,HISTORY_DERIVATION_TAG_POS,
+                              wr_encode_history_arithinst(g));
+  wr_set_history_record_field(g,rec,HISTORY_ARITH_PARENT_POS,
+                              wg_encode_record(db,parent));
+  wr_set_history_record_field(g,rec,HISTORY_ARITH_SUBST_COUNT_POS,
+                              wg_encode_int(db,subst_count));
+  for(i=0;i<subst_count;i++) {
+    wr_set_history_record_field(g,rec,HISTORY_ARITH_VAR_POS(i),
+                                wg_encode_int(db,variables[i]));
+    wr_set_history_record_field(g,rec,HISTORY_ARITH_VALUE_POS(i),values[i]);
+  }
+  wr_set_history_record_field(g,rec,cut_count_pos,wg_encode_int(db,cutn));
+  for(i=0;i<cutn;i++) {
+    wr_set_history_record_field(g,rec,cut_count_pos+1+i,
+                                wg_encode_record(db,(gptr)cut_clvec[i+1]));
+  }
+  wr_set_history_record_field(g,rec,HISTORY_PRIORITY_POS,
+                              wr_calc_history_priority2(g,parent,NULL));
+  wr_set_history_record_derived_order(g,rec);
+  return wg_encode_record(db,rec);
+}
+
 // input priority stores original markup / role
 
 // just encode int, WR_HISTORY_USED_BIT_POS is 0 to indicate "not given yet"
@@ -590,6 +630,10 @@ gint wr_encode_history_instgen(glb* g, int pos1, int pos2) {
   return wg_encode_int(g->db,n);
 }
 
+gint wr_encode_history_arithinst(glb* g) {
+  return wg_encode_int(g->db,WR_HISTORY_TAG_ARITHINST<<WR_HISTORY_TAG_SHIFT);
+}
+
 gint wr_encode_history_propagate(glb* g, int pos1, int pos2) {
   int n1,n2,n;
 
@@ -752,7 +796,29 @@ gptr wr_flatten_history(glb* g, void* mpool, gint history, gptr cl, int depth, i
   //printf("\nflatten cp1\n");
   // process parent clauses found in history
   //printf("\n wr_flatten_history got tag %d\n",tag);
-  if (tag==WR_HISTORY_TAG_RESOLVE || tag==WR_HISTORY_TAG_FACTORIAL ||
+  if (tag==WR_HISTORY_TAG_ARITHINST) {
+    int subst_count,cut_count_pos,cut_count;
+    cl1=wr_get_history_record_field(g,otp(db,history),HISTORY_ARITH_PARENT_POS);
+    h1=wr_get_history(g,otp(db,cl1));
+    if (!wg_get_assoc(db,(void*)cl1,*assoc)) {
+      wr_flatten_history(g,mpool,h1,otp(db,cl1),depth+1,clnr,assoc);
+      if (!wr_flatten_history_addcl(g,mpool,cl1,clnr,assoc)) return NULL;
+    }
+    subst_count=wg_decode_int(db,wr_get_history_record_field(
+      g,otp(db,history),HISTORY_ARITH_SUBST_COUNT_POS));
+    if (subst_count<1 || subst_count>2) return NULL;
+    cut_count_pos=HISTORY_ARITH_CUT_COUNT_POS(subst_count);
+    cut_count=wg_decode_int(db,wr_get_history_record_field(
+      g,otp(db,history),cut_count_pos));
+    for(i=0;i<cut_count && cut_count_pos+1+i<len;i++) {
+      cl1=wr_get_history_record_field(g,otp(db,history),cut_count_pos+1+i);
+      h1=wr_get_history(g,otp(db,cl1));
+      if (!wg_get_assoc(db,(void*)cl1,*assoc)) {
+        wr_flatten_history(g,mpool,h1,otp(db,cl1),depth+1,clnr,assoc);
+        if (!wr_flatten_history_addcl(g,mpool,cl1,clnr,assoc)) return NULL;
+      }
+    }
+  } else if (tag==WR_HISTORY_TAG_RESOLVE || tag==WR_HISTORY_TAG_FACTORIAL ||
       tag==WR_HISTORY_TAG_PARA || tag==WR_HISTORY_TAG_EQUALITY_REFLEXIVE || 
       tag==WR_HISTORY_TAG_SIMPLIFY || tag==WR_HISTORY_TAG_PROPAGATE || 
       tag==WR_HISTORY_TAG_PROPINST || tag==WR_HISTORY_TAG_INSTGEN) {
@@ -891,7 +957,37 @@ char* wr_print_one_history
   pos1=wr_get_history_pos1(g,dechead);
   pos2=wr_get_history_pos2(g,dechead);
   //printf("\n dechead %d tag %d pos1 %d pos2 %d \n",dechead,tag,pos1,pos2);
-  if (tag==WR_HISTORY_TAG_RESOLVE || tag==WR_HISTORY_TAG_PROPAGATE 
+  if (tag==WR_HISTORY_TAG_ARITHINST) {
+    int subst_count=wg_decode_int(db,wr_get_history_record_field(
+      g,otp(db,history),HISTORY_ARITH_SUBST_COUNT_POS));
+    int cut_count_pos=HISTORY_ARITH_CUT_COUNT_POS(subst_count);
+    int cut_count=wg_decode_int(db,wr_get_history_record_field(
+      g,otp(db,history),cut_count_pos));
+    cl1=wr_get_history_record_field(g,otp(db,history),HISTORY_ARITH_PARENT_POS);
+    tmp1=wg_get_assoc(db,(void*)cl1,*assoc);
+    num=(int)(gint)(wg_nth(db,tmp1,2));
+    wr_printf("\n %s:%s [arithinst, %d",clns,orderbuf,num);
+    for(i=0;i<subst_count;i++) {
+      int var=wg_decode_int(db,wr_get_history_record_field(
+        g,otp(db,history),HISTORY_ARITH_VAR_POS(i)));
+      gint value=wr_get_history_record_field(g,otp(db,history),
+                                             HISTORY_ARITH_VALUE_POS(i));
+      wr_printf(", V%d=",var);
+      wr_print_term(g,value);
+    }
+    for(i=0;i<cut_count;i++) {
+      cl1=wr_get_history_record_field(g,otp(db,history),cut_count_pos+1+i);
+      tmp1=wg_get_assoc(db,(void*)cl1,*assoc);
+      num=(int)(gint)(wg_nth(db,tmp1,2));
+      wr_printf(", %d",num);
+    }
+    wr_printf("] ");
+    if (!cl) {
+      wr_printf("false");
+    } else {
+      wr_print_clause(g,cl);
+    }
+  } else if (tag==WR_HISTORY_TAG_RESOLVE || tag==WR_HISTORY_TAG_PROPAGATE
      || tag==WR_HISTORY_TAG_INSTGEN) {
     if (tag==WR_HISTORY_TAG_RESOLVE) {
       wr_printf("\n %s:%s [mp, ",clns,orderbuf);
@@ -1876,6 +1972,7 @@ int wr_strprint_one_history
     else if (tag==WR_HISTORY_TAG_SIMPLIFY) { rulestr="simplify"; }
     else if (tag==WR_HISTORY_TAG_PROPINST) { rulestr="propinst"; }
     else if (tag==WR_HISTORY_TAG_INSTGEN) { rulestr="instgen"; }
+    else if (tag==WR_HISTORY_TAG_ARITHINST) { rulestr="arithinst"; extrastr="[]"; }
     else if (tag==WR_HISTORY_TAG_EXTPROP) { rulestr="extprop"; }
     else { rulestr="unknown"; }        
 
@@ -1885,7 +1982,24 @@ int wr_strprint_one_history
     if (!wr_str_guarantee_space(g,buf,blen,bpos+100)) return -1;
     bpos+=snprintf((*buf)+bpos,(*blen)-bpos,",\n  inference(%s,%s,[",rulestr,extrastr); 
     
-    for(i=pos1;i<len;i++) {
+    if (tag==WR_HISTORY_TAG_ARITHINST) {
+      int subst_count=wg_decode_int(db,wr_get_history_record_field(
+        g,otp(db,history),HISTORY_ARITH_SUBST_COUNT_POS));
+      int cut_count_pos=HISTORY_ARITH_CUT_COUNT_POS(subst_count);
+      int cut_count=wg_decode_int(db,wr_get_history_record_field(
+        g,otp(db,history),cut_count_pos));
+      cl1=wr_get_history_record_field(g,otp(db,history),HISTORY_ARITH_PARENT_POS);
+      tmp1=wg_get_assoc(db,(void*)cl1,*assoc);
+      num=(int)(gint)(wg_nth(db,tmp1,2));
+      bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"'%d'",num);
+      for(i=0;i<cut_count;i++) {
+        if (!wr_str_guarantee_space(g,buf,blen,bpos+100)) return -1;
+        cl1=wr_get_history_record_field(g,otp(db,history),cut_count_pos+1+i);
+        tmp1=wg_get_assoc(db,(void*)cl1,*assoc);
+        num=(int)(gint)(wg_nth(db,tmp1,2));
+        bpos+=snprintf((*buf)+bpos,(*blen)-bpos,",'%d'",num);
+      }
+    } else for(i=pos1;i<len;i++) {
       cl1=wr_get_history_record_field(g,otp(db,history),i);
       tmp1=wg_get_assoc(db,(void *)cl1,*assoc);
       num=(int)(gint)(wg_nth(db,tmp1,2));      
@@ -1902,7 +2016,50 @@ int wr_strprint_one_history
   
   // non-tptp case
 
-  if (tag==WR_HISTORY_TAG_RESOLVE || tag==WR_HISTORY_TAG_PROPAGATE
+  if (tag==WR_HISTORY_TAG_ARITHINST) {
+    int subst_count=wg_decode_int(db,wr_get_history_record_field(
+      g,otp(db,history),HISTORY_ARITH_SUBST_COUNT_POS));
+    int cut_count_pos=HISTORY_ARITH_CUT_COUNT_POS(subst_count);
+    int cut_count=wg_decode_int(db,wr_get_history_record_field(
+      g,otp(db,history),cut_count_pos));
+    cl1=wr_get_history_record_field(g,otp(db,history),HISTORY_ARITH_PARENT_POS);
+    tmp1=wg_get_assoc(db,(void*)cl1,*assoc);
+    num=(int)(gint)(wg_nth(db,tmp1,2));
+    if (g->print_json)
+      bpos+=snprintf((*buf)+bpos,(*blen)-bpos,
+                     "\n[%s,%s [\"arithinst\", %d, [",clns,orderbuf,num);
+    else
+      bpos+=snprintf((*buf)+bpos,(*blen)-bpos,
+                     "\n %s:%s [arithinst, %d",clns,orderbuf,num);
+    for(i=0;i<subst_count;i++) {
+      if (!wr_str_guarantee_space(g,buf,blen,bpos+100)) return -1;
+      int var=wg_decode_int(db,wr_get_history_record_field(
+        g,otp(db,history),HISTORY_ARITH_VAR_POS(i)));
+      gint value=wr_get_history_record_field(g,otp(db,history),
+                                             HISTORY_ARITH_VALUE_POS(i));
+      if (g->print_json)
+        bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"%s[\"V%d\",",
+                       i ? "," : "",var);
+      else
+        bpos+=snprintf((*buf)+bpos,(*blen)-bpos,", V%d=",var);
+      bpos=wr_strprint_term_otter(g,value,g->print_clause_detaillevel,
+                                  buf,blen,bpos);
+      if (g->print_json) bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"]");
+    }
+    if (g->print_json) bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"]");
+    for(i=0;i<cut_count;i++) {
+      if (!wr_str_guarantee_space(g,buf,blen,bpos+100)) return -1;
+      cl1=wr_get_history_record_field(g,otp(db,history),cut_count_pos+1+i);
+      tmp1=wg_get_assoc(db,(void*)cl1,*assoc);
+      num=(int)(gint)(wg_nth(db,tmp1,2));
+      bpos+=snprintf((*buf)+bpos,(*blen)-bpos,", %d",num);
+    }
+    if (g->print_json) bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"], ");
+    else bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"] ");
+    if (!wr_str_guarantee_space(g,buf,blen,bpos+100)) return -1;
+    bpos=wr_strprint_clause(g,cl,buf,blen,bpos);
+    if (bpos<0) return bpos;
+  } else if (tag==WR_HISTORY_TAG_RESOLVE || tag==WR_HISTORY_TAG_PROPAGATE
       || tag==WR_HISTORY_TAG_INSTGEN) {
     if (tag==WR_HISTORY_TAG_RESOLVE) {
       if (g->print_json) {

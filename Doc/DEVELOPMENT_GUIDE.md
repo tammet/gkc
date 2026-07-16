@@ -9,19 +9,22 @@ variable bindings, or shared-memory KBs.
 
 Before changing code, read:
 
-1. `README.md`: build modes, command-line flags, input syntaxes, and strategy
+1. `Doc/README.md`: map of current references versus design records.
+2. `README.md`: build modes, command-line flags, input syntaxes, and strategy
    file basics.
-2. `Examples/README.md`: proof examples and what output should look like.
-3. `Doc/ARCHITECTURE.md`: source-file map, process flow, shared-KB setup, and search-loop structure.
-4. `Doc/DATA_REPRESENTATION.md`: encoded values, records, clauses, terms, varbanks, and buffers.
-5. `Reasoner/clterm.h`: authoritative clause, literal, atom, and term access macros.
-6. `Reasoner/unify.h` and `Reasoner/unify.c`: equality, matching,
+3. `Examples/README.md`: proof examples and what output should look like.
+4. `Doc/ARCHITECTURE.md`: source-file map, process flow, shared-KB setup, and search-loop structure.
+5. `Doc/DATA_REPRESENTATION.md`: encoded values, records, clauses, terms, varbanks, and buffers.
+6. `Reasoner/clterm.h`: authoritative clause, literal, atom, and term access macros.
+7. `Reasoner/unify.h` and `Reasoner/unify.c`: equality, matching,
    unification, varbanks, and varstack.
-7. `Reasoner/derive.c` and `Reasoner/build.c`: how resolvents and new clauses
+8. `Reasoner/derive.c` and `Reasoner/build.c`: how resolvents and new clauses
    are built.
-8. `Reasoner/subsume.c`: canonical matching/backtracking idioms.
-9. `Doc/SHARED_MEMORY.md`: shared-memory KB invariants.
-10. `Doc/TERM_MATCHING.md`: equality, matching, unification, varstack, and subsumption traps.
+9. `Reasoner/subsume.c`: canonical matching/backtracking idioms.
+10. `Doc/SHARED_MEMORY.md`: shared-memory KB invariants.
+11. `Doc/TERM_MATCHING.md`: equality, matching, unification, varstack, and subsumption traps.
+12. `Doc/ARITHMETIC_INSTANTIATION.md`: numeric frontier, probe, history, and
+    budget rules when touching arithmetic or clause construction.
 
 Use `rg` first when exploring:
 
@@ -39,11 +42,12 @@ from fixing the symptom in the loop while leaving the real owner unchanged.
 | --- | --- | --- |
 | Command-line mode, memory setup, input dispatch | `Main/gkc.c` | Store run options in the local DB header when they must survive into `rmain.c`. |
 | Text/TPTP/JSON parsing | `Parser/dbparse.c`, `Parser/jsparse.c`, parser `.l`/`.y` files, `Builtparser/` generated copies | Keep generated parser files in sync when syntax changes. |
-| FOF-to-clause conversion | `Parser/dbclausify.c` | Skolemization, definition predicates, distribution, and flattening happen before search. |
+| FOF-to-clause conversion | `Parser/dbclausify.c` | Free-variable closure, negation push, miniscoping, Skolemization, definition predicates, distribution, and flattening happen before search; see the clausification internals in `Doc/ARCHITECTURE.md`. |
 | Reasoner entry, analysis, strategy runs | `Reasoner/rmain.c`, `Reasoner/analyze.c`, `Reasoner/guide.c`, `Reasoner/makeguide.c` | `rmain.c` owns the database split, `analyze_g`, guide parsing, per-run `glb`, and `wr_genloop()` calls. |
 | Given-clause lifecycle | `Reasoner/rgenloop.c` | Candidate picking, simplification, forward/back subsumption, active insertion, and inference call order. |
 | Binary resolution, factoring, paramodulation | `Reasoner/resolve.c` | Candidate scanning only; final clause construction belongs in `derive.c`. |
 | Derived clause construction | `Reasoner/derive.c`, `Reasoner/build.c`, `Reasoner/history.c` | Use build setup/cleanup helpers and create histories before queueing. |
+| Bounded numeric instantiation | `Reasoner/arithinst.c`, `Reasoner/arithinst.h`, `Reasoner/build.c`, `Reasoner/history.c` | Preserve calculator-progress, varstack cleanup, lazy-cache, depth, and history invariants. |
 | Clause and term layout | `Reasoner/clterm.h`, `Reasoner/clterm.c`, `Doc/DATA_REPRESENTATION.md` | Treat macros here as authoritative. Update the representation doc when invariants change. |
 | Matching, unification, subsumption | `Reasoner/unify.c`, `Reasoner/subsume.c`, `Doc/TERM_MATCHING.md` | Direction and varstack cleanup are usually the failure points. |
 | Active/passive indexes | `Reasoner/clstore.c`, `Reasoner/hash.c` | Shared KB indexes are read through `r_kb_g(g)` during query. |
@@ -56,8 +60,10 @@ Keep the process boundaries clear:
 3. `wg_run_reasoner()` analyzes input, builds/parses a strategy guide, and
    initializes a fresh `glb` for each run.
 4. `wr_genloop()` owns the active/passive given-clause loop.
-5. `resolve.c` finds inference candidates; `derive.c` and `build.c` create the
-   derived clause and queue it.
+5. Before normal activation, `arithinst.c` may generate bounded
+   calculator-progressing instances through the same build/queue machinery.
+6. `resolve.c` finds ordinary inference candidates; `derive.c` and `build.c`
+   create the derived clause and queue it.
 
 If a change crosses one of these boundaries, update both sides deliberately and
 add a regression that reaches the handoff.
@@ -69,6 +75,12 @@ The simplest build path is:
 ```sh
 ./compile.sh
 ```
+
+When adding a translation unit, update every applicable explicit source list:
+`compile.sh`, `compile_osx.sh`, `compile_wasm.sh`, `compile.bat`, the simple
+`makefile`, and the relevant Automake `Makefile.am`. The simple Makefile's
+header dependencies are incomplete, so use `make -B USEBISON=false` when a
+fresh no-generator build is needed without deleting generated parser files.
 
 or:
 
@@ -83,6 +95,7 @@ Useful smoke tests:
 ./gkc Examples/example2.txt -parallel 0
 ./gkc Examples/steam.txt -parallel 0
 ./gkc Examples/arithmetic1.txt -parallel 0
+python3 Test/arithmetic/check_arithmetic_instantiation.py
 ```
 
 Use `-parallel 0` when debugging or comparing output. Default Unix runs use
@@ -91,12 +104,13 @@ vary.
 
 Useful print levels:
 
-* `-print 10`: default proof.
+* `-print 10`: compact proof output.
 * `-print 11`: proof plus successful strategy.
 * `-print 15`: stats and planned runs.
-* `-print 20`: given clauses.
-* `-print 40`: derived clauses.
-* `-print 50` or higher: detailed rule/literal selection diagnostics.
+* `-print 20`: final given clauses.
+* `-print 30`: initial active/passive lists, initial/final given clauses, and derived clauses.
+* `-print 40` or `-print 50`: parser and detailed derivation diagnostics.
+* `-print 51` or higher: also enable literal/term selection and data-structure dumps.
 
 For derived-clause debugging:
 
@@ -372,6 +386,11 @@ Prefer adding a new `wr_process_*_result()` function modelled on
 `wr_process_resolve_result()` or `wr_process_paramodulate_result()` rather than
 splicing final-clause queue logic into candidate selection.
 
+For a bounded candidate-generation inference, also study
+`wr_generate_arith_instances()`: its probe path reuses normal clause building,
+requires observable simplification progress, restores all build/binding state,
+and records a specialized one-parent history.
+
 ## 12. Adding a New Special Predicate or Function
 
 Special predicates/functions are recognized mainly in `Reasoner/build.c`.
@@ -395,6 +414,11 @@ Checklist:
 5. Return `ACONST_TRUE` or `ACONST_FALSE` only where the caller expects a
    computable predicate truth value.
 6. Add examples covering positive and negative cases.
+
+If the symbol should trigger numeric instantiation, update the arithmetic
+classification/frontier scan as well as the calculator, and add the case to
+`Test/arithmetic/`. A recognized operator must not cause broad instantiation
+unless grounding it can enable immediate calculation.
 
 Shared-KB warning:
 
@@ -477,9 +501,13 @@ When changing syntax:
 2. Regenerate parser outputs if flex/bison are available.
 3. Update checked-in generated files used by the simple build.
 4. Confirm `./compile.sh` still works without requiring flex/bison.
-5. Add or update examples in `Examples/`.
+5. Add tutorial material to `Examples/` only when it teaches a user-facing
+   feature; put coverage-oriented inputs under `Test/`.
 6. Test simple syntax, TPTP syntax, and JSON syntax if the change affects
    shared parser/clausifier paths.
+
+Keep nesting bounds, numeric overflow checks, allocation failures, and parser
+error propagation aligned between `Parser/` and checked-in `Builtparser/`.
 
 Parser-built atoms/terms must still obey the same field layout:
 
@@ -522,6 +550,8 @@ that forces the changed path:
 * Equality: examples with rewriting and paramodulation.
 * Shared KB: build a KB, query with `-usekb`, and verify no segment mutation.
 * Parser changes: include one positive parse and one syntax error case.
+* Arithmetic/calculator changes: run
+  `python3 Test/arithmetic/check_arithmetic_instantiation.py`.
 
 Use `-parallel 0` for deterministic traces:
 
@@ -640,6 +670,8 @@ Update the focused document that owns the invariant you changed:
   and subsumption behavior.
 * `Doc/SHARED_MEMORY.md`: shared KB build/query behavior, read-only guards,
   local allocation, and platform hazards.
+* `Doc/ARITHMETIC_INSTANTIATION.md`: arithmetic gates, candidates, progress,
+  limits, cache ownership, histories, and regression boundaries.
 * `README.md` and `Examples/README.md`: user-visible commands, examples, and
   expected output behavior.
 
@@ -663,6 +695,7 @@ Before finishing a change:
 * Build flags and buffers are restored by existing cleanup helpers.
 * Histories are created for new derivations.
 * New strategy/CLI fields have defaults.
+* Arithmetic changes pass the focused acceptance driver and preserve explicit
+  mode 0 controls.
 * `-parallel 0` smoke tests pass.
 * Shared-memory changes have a no-mutation regression plan.
-

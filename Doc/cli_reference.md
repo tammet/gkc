@@ -12,11 +12,12 @@ gkc -prove [options] <logic-file> [<logic-file> ...]
 gkc -prove [options] -text '<logic text>'
 gkc -prove [options] -jstext '<json logic text>'
 gkc -readkb <logic-file> [<strategy-file>] [options]
-gkc -usekb [options] [<query-file> ...]
+gkc -usekb <query-file> [<query-file> ...] [options]
 gkc -writekb <dump-file> [options]
 gkc -loadkb <dump-file> [options]
 gkc -readwritekb <logic-file> <dump-file> [<strategy-file>] [options]
 gkc -deletekb [options]
+gkc <tptp-ltb-batch-file> <output-directory>
 gkc -help
 gkc -version
 ```
@@ -34,13 +35,20 @@ GKC accepts:
 * TPTP FOF/CNF-style input;
 * JSON/JSON-LD-LOGIC input.
 
-A filename containing `.js` is imported through the JSON path. `-jstext` also
-forces JSON text input. Other text normally goes through the simple/TPTP parser,
-with TPTP recognized during import.
+A filename whose final suffix begins with `.js` (including `.js`, `.json`, and
+`.jss`) is imported through the JSON path. `.jss` selects the streaming JSON
+reader. `-jstext` also forces JSON text input. Other text normally goes through
+the simple/TPTP parser, with TPTP recognized during import.
 
 Multiple input files are imported into the same database before proof search.
-`-text` and `-jstext` can be used multiple times, up to the current fixed parser
-array limits in `Main/gkc.c`.
+The current fixed arrays in `parse_cmdline()` allow at most nine files, nine
+`-text` values, and nine `-jstext` values in one invocation.
+
+Malformed JSON nesting beyond `PARSE_NESTING_DEPTH` (currently 4096), numeric
+tokens outside the supported integer/real range, and invalid parser structures
+produce input errors instead of being silently wrapped or written beyond parser
+buffers. Parser source and checked-in `Builtparser/` copies implement the same
+checks.
 
 ## Primary Commands
 
@@ -73,18 +81,19 @@ initialization as a strategy filename.
 ./gkc -readkb axioms.txt kb_build_strategy.json -mbnr 1001 -mbsize 2000
 ```
 
-### `-usekb [<query-file> ...]`
+### `-usekb <query-file> [<query-file> ...]`
 
 Attach an existing shared KB and create a writable local child database for the
-query. Query files, `-text`, and `-jstext` are imported into the local child DB;
-the shared KB is used as background axioms.
+query. The current command dispatcher requires at least one query filename.
+Additional query files, `-text`, and `-jstext` values are imported into the
+local child DB; the shared KB is used as background axioms.
 
 `-clausify` is rejected with `-usekb`. `-convert` returns after parsing the
 query input. SINE is disabled for shared-KB query runs in `rmain.c`.
 
 ```sh
 ./gkc -usekb Examples/steam_query.txt -mbnr 1000 -parallel 0
-./gkc -usekb -text '...' -strategy query_strategy.json
+./gkc -usekb query.txt -text 'additional_query_fact(a).' -strategy query_strategy.json
 ```
 
 See `Doc/SHARED_MEMORY.md` for the two-segment representation model and
@@ -133,12 +142,23 @@ Print the built-in usage text from `Main/gkc.c`.
 
 Print the compiled GKC version.
 
+### TPTP LTB batch mode
+
+On Unix-like builds, if the first argument names a TPTP LTB batch file and the
+second names an output directory, `gkc_ltb_main()` recognizes the batch marker
+in the first ten lines and runs the listed problems in several time rounds.
+This is a specialized competition path: it invokes `timeout` and child `gkc`
+commands through the shell and is not available on Windows.
+
 ## Numeric Options
 
 ### `-seconds <n>`
 
-Set a total wall-clock search limit in seconds. `0` means no command-line limit.
-The value is stored in the local database header and copied into each run.
+Set a total search limit in seconds. `0` means no command-line limit. On Unix,
+`gkc_main()` also installs an `alarm()` wall-clock deadline. The reasoner itself
+uses `clock()`-based checks, and those are the only checks on Windows and
+Emscripten. The value is stored in the local database header and copied into
+each run.
 
 ```sh
 ./gkc Examples/example1.txt -seconds 30
@@ -149,12 +169,13 @@ Strategy files can also set per-run `max_seconds` / `max_dseconds` and total
 
 ### `-parallel <n>`
 
-Set the maximum number of worker processes for strategy runs. `0` disables
-forking and is recommended for deterministic debugging. Negative values are
-rejected. On Windows and Emscripten, GKC forces `parallel = 0`.
+Set the number of worker processes for strategy runs. `0` and `1` both run
+without forking and are useful for deterministic debugging. Values above 64
+are accepted by the command-line parser but capped at 64 in `rmain.c`. Negative
+values are rejected. On Windows and Emscripten, GKC forces `parallel = 0`.
 
-If omitted, `DEFAULT_PARALLEL` is used; the built-in help describes the normal
-Unix default as four worker processes plus a parent.
+If omitted, `DEFAULT_PARALLEL == 4` is used on Unix-like builds. The parent only
+waits for workers; it does not run a strategy.
 
 ```sh
 ./gkc Examples/example1.txt -parallel 0
@@ -163,8 +184,8 @@ Unix default as four worker processes plus a parent.
 
 ### `-mbsize <megabytes>`
 
-Set the initial database segment size in megabytes. Values below 10 are
-rejected. Values above 100000 are rejected by the command-line parser.
+Set the initial database segment size in megabytes. Values below 10 or at least
+100000 are rejected by the command-line parser.
 
 If omitted, current defaults are:
 
@@ -183,8 +204,9 @@ Use different `-mbnr` values to keep several shared KBs available at once.
 
 ### `-print <level>`
 
-Set output detail. The command-line default in `gkc_main()` is `15`; a strategy
-file may override it with `print_level`.
+Set output detail. The command-line default in `gkc_main()` is `15`. A nonzero
+command-line/header value is reapplied after strategy parsing, so it takes
+precedence over a strategy-file `print_level` in normal CLI use.
 
 Useful levels:
 
@@ -223,6 +245,12 @@ Read strategy JSON directly from the command line.
 
 See `Doc/strategy_reference.md` for accepted keys. Unknown strategy settings
 are warnings, not silently ignored.
+
+Arithmetic instantiation has no separate command-line switch. Conservative
+mode 1 is the strategy default. Use `-strategy` or `-strategytext` with
+`"arith_instantiation":0` to disable it or `"arith_instantiation":2` for the
+bounded two-variable mode. Exact limits and examples are in
+`Doc/ARITHMETIC_INSTANTIATION.md`.
 
 ## Direct Input Options
 

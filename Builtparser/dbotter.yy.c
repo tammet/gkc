@@ -619,21 +619,21 @@ static const YY_CHAR yy_ec[256] =
 
        25,   25,   25,   25,   25,   25,   25,   25,   25,   30,
        25,   25,   25,   25,   25,   31,   25,   25,   25,   25,
-       25,   25,   32,   33,   34,   35,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
+       25,   25,   32,   33,   34,   35,    1,   25,   25,   25,
+       25,   25,   25,   25,   25,   25,   25,   25,   25,   25,
+       25,   25,   25,   25,   25,   25,   25,   25,   25,   25,
+       25,   25,   25,   25,   25,   25,   25,   25,   25,   25,
+       25,   25,   25,   25,   25,   25,   25,   25,   25,   25,
+       25,   25,   25,   25,   25,   25,   25,   25,   25,   25,
+       25,   25,   25,   25,   25,   25,   25,   25,   25,   25,
+       25,   25,   25,   25,   25,   25,   25,   25,   25,   25,
 
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1
+       25,   25,   25,   25,   25,   25,   25,   25,   25,   25,
+       25,   25,   25,   25,   25,   25,   25,   25,   25,   25,
+       25,   25,   25,   25,   25,   25,   25,   25,   25,   25,
+       25,   25,   25,   25,   25,   25,   25,   25,   25,   25,
+       25,   25,   25,   25,   25,   25,   25,   25,   25,   25,
+       25,   25,   25,   25,   25
     } ;
 
 static const YY_CHAR yy_meta[36] =
@@ -837,10 +837,15 @@ static char linebuf[1024];
 static char elmparsestrbuf[1024];
 static char *s;
 
-#line 839 "Parser/dbotter.yy.c"
+#line 841 "Parser/dbotter.yy.c"
 #define YY_NO_INPUT 1
  
-#line 842 "Parser/dbotter.yy.c"
+/* utf-8: a byte >= 0x80 is part of a utf-8 character and is a word
+   constituent; a word may also start with one, and is then an ATOM (the
+   caps-as-var test in dbparse.c only accepts ASCII uppercase).
+   See /opt/gk/Doc/MEMO_input_robustness.md I1/M2 and the same policy in
+   gk Converter/convcommon.c. */
+#line 849 "Parser/dbotter.yy.c"
 
 #define INITIAL 0
 #define STRSTATE 1
@@ -1115,10 +1120,10 @@ YY_DECL
 		}
 
 	{
-#line 120 "Parser/dbotter.l"
+#line 127 "Parser/dbotter.l"
 
 
-#line 1120 "Parser/dbotter.yy.c"
+#line 1127 "Parser/dbotter.yy.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -1189,7 +1194,7 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 122 "Parser/dbotter.l"
+#line 129 "Parser/dbotter.l"
 {
               parseprintf( "an op: %s", yytext);
               *yylval=yytext;	      
@@ -1198,7 +1203,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 128 "Parser/dbotter.l"
+#line 135 "Parser/dbotter.l"
 {
               parseprintf( "an neq: %s", yytext);
               *yylval=yytext;	      
@@ -1207,7 +1212,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 135 "Parser/dbotter.l"
+#line 142 "Parser/dbotter.l"
 {
               parseprintf( "an eq: %s", yytext);
               *yylval=yytext;	      
@@ -1216,7 +1221,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 141 "Parser/dbotter.l"
+#line 148 "Parser/dbotter.l"
 {
               parseprintf( "an rimp: %s", yytext);
               *yylval=yytext;	      
@@ -1225,7 +1230,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 147 "Parser/dbotter.l"
+#line 154 "Parser/dbotter.l"
 {
               parseprintf( "an limp: %s", yytext);
               *yylval=yytext;	      
@@ -1234,7 +1239,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 153 "Parser/dbotter.l"
+#line 160 "Parser/dbotter.l"
 {
               parseprintf( "an eqv: %s", yytext);
               *yylval=yytext;	      
@@ -1243,7 +1248,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 159 "Parser/dbotter.l"
+#line 166 "Parser/dbotter.l"
 {
               parseprintf( "an eqv: %s", yytext);
               *yylval=yytext;	      
@@ -1252,7 +1257,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 165 "Parser/dbotter.l"
+#line 172 "Parser/dbotter.l"
 {
               parseprintf( "an eqv: %s", yytext);
               *yylval=yytext;	      
@@ -1261,7 +1266,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 171 "Parser/dbotter.l"
+#line 178 "Parser/dbotter.l"
 {
               parseprintf( "an eqv: %s", yytext);
               *yylval=yytext;	      
@@ -1270,7 +1275,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 177 "Parser/dbotter.l"
+#line 184 "Parser/dbotter.l"
 {
               parseprintf( "an @: %s", yytext);
               *yylval=yytext;	      
@@ -1279,7 +1284,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 183 "Parser/dbotter.l"
+#line 190 "Parser/dbotter.l"
 {
               parseprintf( "an emptystring: %s", yytext);
               *yylval="$emptystr";	      
@@ -1288,7 +1293,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 189 "Parser/dbotter.l"
+#line 196 "Parser/dbotter.l"
 { parseprintf( "An integer: %s (%d)\n",yytext,atoi(yytext));	           
               *yylval=yytext;              
               return TINT; 
@@ -1296,7 +1301,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 193 "Parser/dbotter.l"
+#line 200 "Parser/dbotter.l"
 {
               parseprintf( "A float: %s", yytext);
               *yylval=yytext;	      
@@ -1305,7 +1310,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 199 "Parser/dbotter.l"
+#line 206 "Parser/dbotter.l"
 {
               parseprintf( "A date: %s\n", yytext);
               *yylval=yytext;	      
@@ -1314,7 +1319,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 205 "Parser/dbotter.l"
+#line 212 "Parser/dbotter.l"
 {
               parseprintf( "A time: %s\n", yytext);			  
 	            *yylval=yytext; 
@@ -1323,27 +1328,27 @@ YY_RULE_SETUP
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 211 "Parser/dbotter.l"
+#line 218 "Parser/dbotter.l"
 { BEGIN STRSTATE; s = elmparsestrbuf; } 
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 212 "Parser/dbotter.l"
+#line 219 "Parser/dbotter.l"
 { *s++ = '\n'; } 
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 213 "Parser/dbotter.l"
+#line 220 "Parser/dbotter.l"
 { *s++ = '\t'; } 
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 214 "Parser/dbotter.l"
+#line 221 "Parser/dbotter.l"
 { *s++ = '\"'; } 
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 215 "Parser/dbotter.l"
+#line 222 "Parser/dbotter.l"
 { *s = 0; BEGIN 0; 
                   parseprintf("found '%s'\n", elmparsestrbuf); 
 		              *yylval=elmparsestrbuf;
@@ -1353,7 +1358,7 @@ YY_RULE_SETUP
 case 21:
 /* rule 21 can match eol */
 YY_RULE_SETUP
-#line 220 "Parser/dbotter.l"
+#line 227 "Parser/dbotter.l"
 { *s++ = '\n'; 
                  /* parseprintf("elm parser error: invalid string (newline in string)"); 
                     exit(1); 
@@ -1362,32 +1367,32 @@ YY_RULE_SETUP
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 225 "Parser/dbotter.l"
+#line 232 "Parser/dbotter.l"
 { *s++ = *yytext; }
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 228 "Parser/dbotter.l"
+#line 235 "Parser/dbotter.l"
 { BEGIN QUOTESTATE; s = elmparsestrbuf; } /* *s++ = '#';}  */
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 229 "Parser/dbotter.l"
+#line 236 "Parser/dbotter.l"
 { *s++ = '\n'; } 
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 230 "Parser/dbotter.l"
+#line 237 "Parser/dbotter.l"
 { *s++ = '\t'; } 
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 231 "Parser/dbotter.l"
+#line 238 "Parser/dbotter.l"
 { *s++ = '\''; } 
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 232 "Parser/dbotter.l"
+#line 239 "Parser/dbotter.l"
 { *s = 0; BEGIN 0; 
                   parseprintf("found '%s'\n", elmparsestrbuf); 
 		              *yylval=elmparsestrbuf;
@@ -1397,7 +1402,7 @@ YY_RULE_SETUP
 case 28:
 /* rule 28 can match eol */
 YY_RULE_SETUP
-#line 237 "Parser/dbotter.l"
+#line 244 "Parser/dbotter.l"
 { *s++ = '\n'; 
                  /* parseprintf("elm parser error: invalid string (newline in quote)"); 
                     exit(1); 
@@ -1406,38 +1411,38 @@ YY_RULE_SETUP
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 242 "Parser/dbotter.l"
+#line 249 "Parser/dbotter.l"
 { *s++ = *yytext; }
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 245 "Parser/dbotter.l"
+#line 252 "Parser/dbotter.l"
 BEGIN(COMMENT);  
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 247 "Parser/dbotter.l"
+#line 254 "Parser/dbotter.l"
 /* eat anything that's not a '*' */
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 248 "Parser/dbotter.l"
+#line 255 "Parser/dbotter.l"
 /* eat up '*'s not followed by '/'s */
 	YY_BREAK
 case 33:
 /* rule 33 can match eol */
 YY_RULE_SETUP
-#line 249 "Parser/dbotter.l"
+#line 256 "Parser/dbotter.l"
 ;
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 250 "Parser/dbotter.l"
+#line 257 "Parser/dbotter.l"
 BEGIN(INITIAL);
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 252 "Parser/dbotter.l"
+#line 259 "Parser/dbotter.l"
 {
 	      parseprintf( "An identifier: %s\n", yytext );
 	      *yylval=yytext;
@@ -1446,7 +1451,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 258 "Parser/dbotter.l"
+#line 265 "Parser/dbotter.l"
 {
 	      parseprintf( "An identifier: %s\n", yytext );
 	      *yylval=yytext;
@@ -1455,7 +1460,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 264 "Parser/dbotter.l"
+#line 271 "Parser/dbotter.l"
 {
 	        parseprintf( "A variable: %s\n", yytext );
 	        *yylval=yytext;
@@ -1465,106 +1470,106 @@ YY_RULE_SETUP
 case 38:
 /* rule 38 can match eol */
 YY_RULE_SETUP
-#line 270 "Parser/dbotter.l"
+#line 277 "Parser/dbotter.l"
 { strncpy(linebuf, yytext+1, sizeof(linebuf)-1);
        yyless(1);      
      }
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 274 "Parser/dbotter.l"
+#line 281 "Parser/dbotter.l"
 { } /* eat up line comment until end of line */
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 276 "Parser/dbotter.l"
+#line 283 "Parser/dbotter.l"
 return '-';
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 277 "Parser/dbotter.l"
+#line 284 "Parser/dbotter.l"
 return '~';
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 278 "Parser/dbotter.l"
+#line 285 "Parser/dbotter.l"
 return '|';
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 279 "Parser/dbotter.l"
+#line 286 "Parser/dbotter.l"
 return ')';
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 280 "Parser/dbotter.l"
+#line 287 "Parser/dbotter.l"
 return '(';
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 281 "Parser/dbotter.l"
+#line 288 "Parser/dbotter.l"
 return '}';
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 282 "Parser/dbotter.l"
+#line 289 "Parser/dbotter.l"
 return '{';
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 283 "Parser/dbotter.l"
+#line 290 "Parser/dbotter.l"
 return ',';
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 284 "Parser/dbotter.l"
+#line 291 "Parser/dbotter.l"
 return '.';
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 286 "Parser/dbotter.l"
+#line 293 "Parser/dbotter.l"
 return ']';
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 287 "Parser/dbotter.l"
+#line 294 "Parser/dbotter.l"
 return '[';
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
-#line 288 "Parser/dbotter.l"
+#line 295 "Parser/dbotter.l"
 return '!';
 	YY_BREAK
 case 52:
 YY_RULE_SETUP
-#line 289 "Parser/dbotter.l"
+#line 296 "Parser/dbotter.l"
 return '?';
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
-#line 290 "Parser/dbotter.l"
+#line 297 "Parser/dbotter.l"
 return ':';
 	YY_BREAK
 case 54:
 YY_RULE_SETUP
-#line 291 "Parser/dbotter.l"
+#line 298 "Parser/dbotter.l"
 return '&';
 	YY_BREAK
 case 55:
 YY_RULE_SETUP
-#line 293 "Parser/dbotter.l"
+#line 300 "Parser/dbotter.l"
 return '*';
 	YY_BREAK
 case 56:
 YY_RULE_SETUP
-#line 294 "Parser/dbotter.l"
+#line 301 "Parser/dbotter.l"
 return '+';
 	YY_BREAK
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(STRSTATE):
 case YY_STATE_EOF(QUOTESTATE):
 case YY_STATE_EOF(COMMENT):
-#line 296 "Parser/dbotter.l"
+#line 303 "Parser/dbotter.l"
 { parseprintf("file end\n"); 
               //return FILEEND; 
 	            yyterminate();
@@ -1572,20 +1577,20 @@ case YY_STATE_EOF(COMMENT):
 	YY_BREAK
 case 57:
 YY_RULE_SETUP
-#line 301 "Parser/dbotter.l"
+#line 308 "Parser/dbotter.l"
 /* eat up whitespace */
 	YY_BREAK
 case 58:
 YY_RULE_SETUP
-#line 303 "Parser/dbotter.l"
+#line 310 "Parser/dbotter.l"
 { parseprintf( "Unrecognized character: %s\n", yytext ); }
 	YY_BREAK
 case 59:
 YY_RULE_SETUP
-#line 306 "Parser/dbotter.l"
+#line 313 "Parser/dbotter.l"
 ECHO;
 	YY_BREAK
-#line 1587 "Parser/dbotter.yy.c"
+#line 1594 "Parser/dbotter.yy.c"
 
 	case YY_END_OF_BUFFER:
 		{
@@ -2733,7 +2738,7 @@ void yyfree (void * ptr , yyscan_t yyscanner)
 
 #define YYTABLES_NAME "yytables"
 
-#line 306 "Parser/dbotter.l"
+#line 313 "Parser/dbotter.l"
 
 
 

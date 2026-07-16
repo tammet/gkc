@@ -1,0 +1,4 @@
+% Regression: three equal boxes contain 12 items. How many are in each box?
+% The operator-local product hint 12 / 3 proposes X = 4; calculation then
+% removes the disequality and leaves $ans(4).
+$product(3,X) != 12 | $ans(X).

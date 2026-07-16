@@ -1,0 +1,4 @@
+% Regression: a strict greater-than comparison becomes false at its exact boundary.
+% Resolution leaves $greater(X,7); the useful instance is X = 7.
+p(a) | $greater(X,7).
+-p(a).

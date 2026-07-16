@@ -1,0 +1,3 @@
+% Regression: negation of existence of X such that 0 < X and X < 10.
+% The instance X = 1 makes both negative comparison literals false.
+-$less(0,X) | -$less(X,10).

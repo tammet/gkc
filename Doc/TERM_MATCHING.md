@@ -273,6 +273,7 @@ Common call patterns:
 | `resolve.c` | Uses `wr_unify_term()` for binary resolution, factoring, and paramodulation candidates; clears varstack after each candidate. |
 | `rewrite.c` | Uses `wr_match_term(g, rewrite_lhs, term, 1)` to apply rewrite rules; uses `wr_equal_term()` to avoid no-op rewrites. |
 | `derive.c` | Uses `wr_equal_term()` for duplicate/tautology checks over half-built literals and clears varstack around derived-clause processing. |
+| `arithinst.c` | Binds selected encoded variables directly with `SETVAR`, rebuilds the parent under substitution, and clears the whole varstack on every probe exit. It never binds constants or leaves candidate bindings live. |
 | `hash.c` | Uses `wr_equal_term()` after hash-bucket lookup to confirm an indexed term/atom match. |
 | `prop.c` | Uses `wr_equal_mod_vars_term()` for equality modulo variable-bank differences. |
 | `history.c` | Uses `wr_equal_term()` when comparing answers and proof terms. |

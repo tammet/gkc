@@ -199,6 +199,11 @@ setting `CVEC_NEXT(buffer) = CVEC_START`.
 `wr_str_new(g, len)` creates a process-local string managed by the reasoner
 memory helpers.
 
+Unlike `wr_cvec_store()` and `wr_cvec_push()`, `wr_alloc_from_cvec()` does not
+grow its buffer. It sets `g->alloc_err` and returns `NULL` if the fixed build
+buffer lacks room. Size build buffers in their initialization code rather than
+expecting raw allocation to reallocate them.
+
 `wr_malloc()`, `wr_calloc()`, and vector allocation depend on `g->inkb`: during
 KB build, `inkb == 1` makes reasoner allocation use the DB segment; during
 ordinary runs, `inkb == 0` uses process memory. Offset-valued vector fields
@@ -226,6 +231,7 @@ Important field groups:
 | Variable state | `varbanks`, `varstack`, `tmp_unify_vc`, occurs-check fields |
 | Build buffers | `given_termbuf`, `derived_termbuf`, `queue_termbuf`, `active_termbuf`, `hyper_termbuf`, `simplified_termbuf` |
 | Strategy/run state | guide fields, limits, print flags, counters, proof state, answers |
+| Arithmetic instantiation | `arith_inst_*` mode/bounds, global candidate pool, lazy duplicate cache, probe temporaries, and `stat_arithinst_*` counters |
 
 `wr_glb_init_simple()` sets scalar defaults. Notable data-layout defaults are:
 
@@ -234,6 +240,7 @@ Important field groups:
 * `unify_funarg1pos = 2`
 * `unify_funarg2pos = 3`
 * `local_db = db` until `rmain.c` overrides it for shared-KB runs
+* `arith_instantiation = 1` for conservative bounded numeric instantiation
 
 `wr_glb_init_shared_complex()` allocates queue and index structures that may be
 stored in a KB during `-readkb`. `wr_glb_init_local_complex()` allocates the
@@ -260,6 +267,7 @@ Important temporary/build fields in `glb`:
 | `build_rewrite` | Apply rewrite rules during building. |
 | `build_buffer` | Target cvec buffer, or `NULL` for direct record allocation. |
 | `build_rename_bank`, `build_rename_banknr` | Target variable bank for renamed variables. |
+| `arith_inst_probe_active` and `tmp_arithinst_*` | Observe calculator progress/deleted literals only while a bounded numeric probe rebuilds a parent. |
 
 These fields are global state for a build phase. Use the setup/cleanup helpers
 in `derive.c`, `rgenloop.c`, and related modules instead of setting individual
@@ -638,17 +646,22 @@ The older atom-hash implementation in `hash.h` uses `ATOMHASH_NODE_SIZE == 4`:
 
 ### Active-Clause Subsumption Blocks
 
-`clactivesubsume` stores compact blocks of `CLACTIVE_NODE_GINT_NR == 5` gints:
+`clactivesubsume` stores compact `CLMETABLOCK_ELS == 6`-gint blocks produced by
+`wr_calc_clause_meta()`:
 
 | Position | Macro | Meaning |
 | --- | --- | --- |
-| 0 | `CLACTIVE_NODE_META_POS` | Packed clause meta. |
-| 1 | `CLACTIVE_NODE_PATH0HASH_POS` | Prefix/path hash 0. |
-| 2 | `CLACTIVE_NODE_PATH1HASH_POS` | Prefix/path hash 1. |
-| 3 | `CLACTIVE_NODE_PATH2HASH_POS` | Prefix/path hash 2. |
-| 4 | `CLACTIVE_NODE_CL_POS` | Clause pointer/offset. |
+| 0 | `CLMETABLOCK_LENGTHS_POS` | Packed ground/length counts. |
+| 1 | `CLMETABLOCK_SIZES_POS` | Packed depth/size/prefix length. |
+| 2 | `CLMETABLOCK_PREF1BITS_POS` | Predicate-symbol bitmask. |
+| 3 | `CLMETABLOCK_PREF2BITS_POS` | Predicate plus shallow-argument bitmask. |
+| 4 | `CLMETABLOCK_PREF3BITS_POS` | Longer prefix bitmask. |
+| 5 | `CLMETABLOCK_CL_POS` | Clause pointer/offset. |
 
-These blocks are filters. Full subsumption still uses literal matching.
+Older revisions also declared an incompatible five-gint `CLACTIVE_NODE_*`
+layout in `clstore.h`; those unused definitions were removed. Current storage
+and scans use only the six-gint `CLMETABLOCK_*` layout. These blocks are filters;
+full subsumption still uses literal matching.
 
 ### Paramodulation Paths
 
@@ -714,7 +727,8 @@ use `HISTORY_PARENT1_POS` and `HISTORY_PARENT2_POS`; paramodulation uses
 The tag head packs tag, extra bits, and literal positions with
 `WR_HISTORY_TAG_SHIFT`, `WR_HISTORY_EXTRA_SHIFT`, and
 `WR_HISTORY_POS1_SHIFT`. Tags include resolve, factorial, para, equality
-reflexive, simplify, propagate, propinst, instgen, and external prop.
+reflexive, simplify, propagate, propinst, instgen, external prop, and
+ARITHINST.
 
 Input histories are built with `wr_build_input_history()`. Derived histories
 are built by operation-specific helpers such as:
@@ -724,7 +738,14 @@ wr_build_resolve_history(g, ...);
 wr_build_factorial_history(g, ...);
 wr_build_para_history(g, ...);
 wr_build_simplify_history(g, ...);
+wr_build_arithinst_history(g, parent, subst_count, variables, values, cuts);
 ```
+
+ARITHINST records use `HISTORY_ARITH_PARENT_POS`, store the substitution count
+and `(variable number, encoded numeric value)` pairs, then a cut count and cut
+parents. They are not the two-parent Inst-Gen layout. Consumers and printers
+must dispatch on `WR_HISTORY_TAG_ARITHINST` before interpreting tag-specific
+positions.
 
 Clause roles are encoded in history priority values such as
 `WR_HISTORY_GOAL_ROLENR`, `WR_HISTORY_ASSUMPTION_ROLENR`,

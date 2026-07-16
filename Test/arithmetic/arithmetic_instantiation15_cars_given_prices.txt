@@ -1,0 +1,6 @@
+% Regression control: concrete prices are supplied by ordinary facts. Resolution
+% binds the price variables, computes Mike's price, and checks the comparison.
+% A numeric-instantiation heuristic should not add work here.
+price(john,5).
+-price(john,J) | price(mike,$product(2,J)).
+-price(john,J) | -price(mike,M) | -$greater(M,J).

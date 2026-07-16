@@ -1,0 +1,4 @@
+% Regression: negation of existence of X such that adding 2 gives 10
+% and the initial number is less than 10.
+% The instance X = 8 makes both literals false.
+$sum(X,2) != 10 | -$less(X,10).

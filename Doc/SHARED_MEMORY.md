@@ -328,6 +328,9 @@ For changes that touch shared-memory behavior, run small targeted scenarios:
    mode to catch process-local/shared-state mistakes.
 7. If tooling is available, hash or dump the shared segment before and after the
    query and verify it is unchanged.
+8. Query a KB containing a non-ground arithmetic rule. Confirm that the numeric
+   candidate and ARITHINST history are allocated locally and that an entirely
+   non-arithmetic KB/query performs zero arithmetic scans and probes.
 
 ## 13. Relationship to Other Docs
 
@@ -338,3 +341,5 @@ For changes that touch shared-memory behavior, run small targeted scenarios:
 * `Doc/DEVELOPMENT_GUIDE.md` gives practical rules for changing code safely.
 * `Doc/TERM_MATCHING.md` explains equality/matching/unification behavior that
   depends on using the correct database base.
+* `Doc/ARITHMETIC_INSTANTIATION.md` documents lazy cache ownership, local
+  numeric encoding, and the attached-KB arithmetic gate.

@@ -1,0 +1,4 @@
+% Regression: arithmetic is nested in an ordinary predicate. Instantiating X = 2
+% computes p($sum(2,1)) to p(3), contradicting the second clause.
+p($sum(X,1)).
+-p(3).

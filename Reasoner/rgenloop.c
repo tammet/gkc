@@ -360,6 +360,13 @@ int wr_genloop(glb* g) {
 #endif    
       continue;
     }
+    if (g->arith_instantiation && g->use_comp_funs_strat &&
+        g->use_comp_arithmetic && g->have_nonground_arithmetic &&
+        g->stat_arithinst_probes < g->arith_inst_global_limit) {
+      wr_generate_arith_instances(g,given_cl_cand);
+      if (g->alloc_err) return -1;
+      if (g->proof_found && wr_enough_answers(g)) return 0;
+    }
     given_cl=wr_process_given_cl(g,given_cl_cand,g->given_termbuf); 
     if (given_cl==NULL) {
       if (g->alloc_err) return -1;

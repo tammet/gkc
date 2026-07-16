@@ -114,6 +114,22 @@ int wr_analyze_clause_list(glb* g, void* db, void* child_db) {
   return 1;  
 }
 
+static int wr_term_has_nonground_arithmetic(glb* g, gint term, int* found) {
+  gptr ptr;
+  int i,start,end,hasvar=0,comp;
+  if (isvar(term)) return 1;
+  if (!isdatarec(term)) return 0;
+  ptr=decode_record(g->db,term);
+  start=wr_term_unify_startpos(g);
+  end=wr_term_unify_endpos(g,ptr);
+  for(i=start;i<end;i++) {
+    if (wr_term_has_nonground_arithmetic(g,ptr[i],found)) hasvar=1;
+  }
+  comp=wr_computable_termptr(g,ptr);
+  if (hasvar && wr_computation_is_arithmetic(comp)) *found=1;
+  return hasvar;
+}
+
 int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
   void* db=g->db;
   gint history;
@@ -196,6 +212,7 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
     neglit=0;
     poslit=1;
     atom=encode_record(db,cl);
+    wr_term_has_nonground_arithmetic(g,atom,&(g->in_has_nonground_arithmetic));
     if (wr_answer_lit(g,atom)) {
       //printf("\n!!! Warning: single ans clause\n");
       anslit++;
@@ -213,6 +230,7 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
     for(i=0; i<len; i++) {
       meta=wg_get_rule_clause_atom_meta(db,cl,i);
       atom=wg_get_rule_clause_atom(db,cl,i);
+      wr_term_has_nonground_arithmetic(g,atom,&(g->in_has_nonground_arithmetic));
       if (wg_atom_meta_is_neg(db,meta)) neglit++;
       else poslit++;
       if (wr_answer_lit(g,atom)) {        
@@ -1334,6 +1352,7 @@ void make_sum_input_stats(glb* g, glb* kb_g) {
   float s1,s2;
  
   (g->sin_clause_count)=(g->in_clause_count);
+  (g->sin_has_nonground_arithmetic)=(g->in_has_nonground_arithmetic);
   (g->sin_rule_clause_count)=(g->in_rule_clause_count);
   (g->sin_fact_clause_count)=(g->in_fact_clause_count);
   (g->sin_answer_clause_count)=(g->in_answer_clause_count);
@@ -1373,6 +1392,7 @@ void make_sum_input_stats(glb* g, glb* kb_g) {
   if (kb_g) {
 
     if (kb_g->in_has_fof) (g->in_has_fof)=1;
+    if (kb_g->in_has_nonground_arithmetic) (g->sin_has_nonground_arithmetic)=1;
 
     (g->sin_clause_count)+=(kb_g->in_clause_count);
     (g->sin_rule_clause_count)+=(kb_g->in_rule_clause_count);
@@ -1438,6 +1458,10 @@ void make_sum_input_stats(glb* g, glb* kb_g) {
 void wr_copy_sin_stats(glb* fromg, glb* tog) {
 
   if (fromg->in_has_fof) (tog->in_has_fof)=1;
+  (tog->sin_has_nonground_arithmetic)=(fromg->in_has_nonground_arithmetic);
+  if (fromg->kb_g && ((glb*)fromg->kb_g)->in_has_nonground_arithmetic)
+    (tog->sin_has_nonground_arithmetic)=1;
+  (tog->have_nonground_arithmetic)=(tog->sin_has_nonground_arithmetic);
 
   (tog->sin_clause_count)=(fromg->in_clause_count);
   (tog->sin_rule_clause_count)=(fromg->in_rule_clause_count);
@@ -1693,6 +1717,3 @@ void make_ltb_guide(glb* g, char** strats, int stratscount) {
 #ifdef __cplusplus
 }
 #endif
-
-
-

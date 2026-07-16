@@ -95,6 +95,7 @@ still passes through parser/import normalization.
 | `resolve.c`, `resolve.h` | Binary resolution, factoring, equality reflexivity, and paramodulation candidate scanning. |
 | `derive.c`, `derive.h` | Builds and filters derived clauses after resolution/factoring/paramodulation/instantiation. |
 | `build.c`, `build.h` | Recursive term/clause builder, substitution, variable renaming, computable functions, rewrite application, and term replacement. |
+| `arithinst.c`, `arithinst.h` | Bounded arithmetic/comparison frontier scan, numeric candidate ranking, calculator-gated probes, duplicate/depth limits, and ARITHINST result storage. |
 | `simp.c`, `simp.h` | Given-clause simplification pipeline. |
 | `rewrite.c`, `rewrite.h` | Rewrite rule storage/application and demodulation support. |
 | `prop.c`, `prop.h`, `propagate.c`, `propagate.h` | Propositional propagation and related clause generation. |
@@ -169,6 +170,67 @@ After this phase, the database exists but the proof search has not started.
 If `-convert` or `-clausify` is active, the command can stop after parsing and
 conversion. Otherwise `gkc_main()` calls `wg_run_reasoner()`.
 
+#### Clausification Internals
+
+The text parser first builds formulas as list trees in a parser memory pool.
+`wr_preprocess_clauselist()` in `Parser/dbparse.c` classifies each top-level
+item as an include, TPTP `cnf`, TPTP `fof`, or unwrapped Otter-style formula.
+Includes recursively import another file. A `cnf` item keeps its clause body;
+FOF and unwrapped formulas call `wr_clausify_formula()`.
+
+`wr_clausify_formula()` performs these transformations in order:
+
+1. Discover free variable occurrences with `wr_parse_freeoccs()`. Free
+   variables are wrapped in an implicit universal quantifier before the main
+   transformations.
+2. `wr_clausify_negpush()` removes implication, equivalence, and XOR forms,
+   applies De Morgan and quantifier duality, and leaves negation only at atoms.
+3. `wr_clausify_miniscope()` pushes quantifiers inward where the relevant
+   variables occur and removes quantified variables that do not occur in a
+   branch. This can reduce the arguments needed by later Skolem functions.
+4. `wr_clausify_skolemize()` removes all quantifiers. Universally quantified
+   variables receive fresh variable names. Each existential variable becomes
+   a fresh Skolem constant or a Skolem function of the universal variables in
+   its outer scope. The database header's `parse_skolem_nr` supplies unique
+   suffixes.
+5. `wr_clausify_distribute()` distributes disjunction over conjunction to form
+   CNF. When `parse_newpred_strat` is enabled, a sufficiently complex case with
+   conjunctions on both sides can use `wr_clausify_makedef()` instead of full
+   expansion. The new predicate contains the subformula's collected variables;
+   clauses for both directions of the definition are accumulated and conjoined
+   with the main result. `parse_newpred_nr` supplies unique suffixes.
+
+The distribution threshold is `MAKEDEF_COMPLEXITY_THRESHOLD` in
+`Parser/dbclausify.c`; it is an implementation heuristic, not a syntax or
+strategy-file setting. The transformations allocate replacement list nodes in
+the parser pool, while parts of Skolem substitution update term occurrences in
+place. Callers must therefore treat the parser tree as temporary mutable data.
+
+After preprocessing, `wr_parse_clauselist()` calls
+`wr_flatten_logclause()`. Top-level conjunction becomes a list of clauses and
+nested disjunction becomes each clause's literal list; logical true/false terms
+are simplified while flattening. `wr_parse_clause()` then creates the persistent
+WhiteDB representation: a one-literal ground atom may remain a fact record,
+whereas other clauses use rule-clause and atom records. It converts variables,
+sets literal polarity metadata, maps TPTP roles to goal, assumption, external
+axiom, or axiom role numbers, builds an input history, and links the record into
+the database clause list.
+
+When source/skolem-step storage is compiled and enabled, FOF source formulas
+and the post-Skolem formula are retained for conversion-proof printing. These
+records explain clausification in proof output; they are separate from the
+clause histories used by proof search. JSON input has its own front end in
+`Parser/jsparse.c`, but converges on the same flattening and clause-record
+construction model.
+
+Both front ends enforce structural and numeric safety before persistent records
+reach proof search. Parser nesting is bounded by `PARSE_NESTING_DEPTH`; numeric
+conversion checks `errno`, range, and complete-token consumption; and malformed
+list/object structure propagates a parse failure instead of returning a partial
+formula. The checked-in `Builtparser/` lexer/parser copies must preserve the
+same checks as `Parser/`, because `compile.sh` deliberately builds without
+regenerating them.
+
 ### Stage 3: Reasoner Entry and Input Analysis
 
 `Reasoner/rmain.c` `wg_run_reasoner()` is the top-level reasoner driver.
@@ -184,7 +246,9 @@ Its first job is to normalize the database view:
 Then `wg_run_reasoner()` creates a lightweight `analyze_g`, initializes its
 varbanks/varstack, and calls `wr_analyze_clause_list(analyze_g, db, child_db)`.
 Analysis counts input roles, equality presence, goals, symbols, SINE data, and
-other statistics used by strategy selection.
+other statistics used by strategy selection. It also records whether local or
+attached-KB input contains recognized non-ground arithmetic; that flag gates
+the numeric-instantiation pass before any selected-clause scan occurs.
 
 ### Stage 4: Strategy Guide Construction
 
@@ -200,7 +264,9 @@ configured.
    parallelism is disabled.
 
 The guide affects queue selection, equality, hyperresolution, SINE, limits,
-query focus, rewriting, literal preference, and output behavior.
+query focus, rewriting, literal preference, arithmetic-instantiation mode and
+bounds, and output behavior. Conservative arithmetic mode 1 is the scalar
+default unless a guide explicitly selects mode 0 or 2.
 
 ### Stage 5: Per-Run Initialization
 
@@ -210,11 +276,15 @@ For each strategy run, `wg_run_reasoner()`:
 2. Copies print/time/output settings from the database header.
 3. Copies analysis statistics from `analyze_g`.
 4. Installs `kb_g`, `child_db`, and `local_db` when a shared KB is attached.
-5. Initializes shared-style structures with `wr_glb_init_shared_complex()` and
+5. Validates mode-derived arithmetic bounds with `wr_arithinst_configure()`.
+6. Initializes shared-style structures with `wr_glb_init_shared_complex()` and
    local run structures with `wr_glb_init_local_complex()`.
-6. Disables equality if the analyzed input has no positive or negative equality
+7. Resets run-local arithmetic counters/candidate state with
+   `wr_arithinst_reset_run()`; the duplicate cache remains lazy until an actual
+   probe path.
+8. Disables equality if the analyzed input has no positive or negative equality
    clauses.
-7. Initializes active/passive lists with `wr_init_active_passive_lists_from_one()`.
+9. Initializes active/passive lists with `wr_init_active_passive_lists_from_one()`.
 
 In an ordinary one-segment run, initialization reads the single database clause
 list. In a shared-KB run, initialization may read the shared KB clause list and
@@ -230,7 +300,7 @@ locally.
 | --- | --- |
 | `0` | Proof or enough answers found. |
 | `1` | Search finished without proof, or no more useful passive clauses. |
-| `2` | Timeout/termination without proof. |
+| `2` | Timeout/termination without proof, or no candidate existed at the start of the run. |
 | Negative | Allocation or internal error. |
 
 After each run, `wg_run_reasoner()` prints the result with `wr_show_result()` if
@@ -259,19 +329,23 @@ The loop proceeds in this order:
 11. Check propositional true/false status and immediate proof cases.
 12. Run forward subsumption with `wr_given_cl_subsumed()` unless endgame mode
     disables it.
-13. Rebuild the normalized given clause with `wr_process_given_cl()`.
-14. Stamp given-history order when history ordering is enabled.
-15. Optionally perform backward subsumption.
-16. Calculate literal resolvability with `wr_calc_clause_resolvability()`.
-17. Rebuild and add the given clause to active indexes with
+13. If the arithmetic gates and budgets allow it, call
+    `wr_generate_arith_instances()` on the simplified selected clause. Useful
+    instances enter the ordinary derived/answer lifecycle; the parent remains
+    available.
+14. Rebuild the normalized given clause with `wr_process_given_cl()`.
+15. Stamp given-history order when history ordering is enabled.
+16. Optionally perform backward subsumption.
+17. Calculate literal resolvability with `wr_calc_clause_resolvability()`.
+18. Rebuild and add the given clause to active indexes with
     `wr_add_given_cl_active_list()`, unless the candidate came from the hyper
     queue and needs the partial-hyper active path.
-18. Factor the given clause.
-19. Resolve reflexive equality atoms when equality is enabled.
-20. Resolve the given clause against active clauses.
-21. Paramodulate from and into active clauses when equality is enabled and the
+19. Factor the given clause.
+20. Resolve reflexive equality atoms when equality is enabled.
+21. Resolve the given clause against active clauses.
+22. Paramodulate from and into active clauses when equality is enabled and the
     strategy allows it.
-22. Stop when enough answers are found, allocation fails, timeout triggers, or
+23. Stop when enough answers are found, allocation fails, timeout triggers, or
     no passive clauses remain.
 
 The loop uses two representations of the selected clause:
@@ -463,6 +537,8 @@ The most important groups of fields are:
 * Build buffers: `given_termbuf`, `derived_termbuf`, `queue_termbuf`,
   `active_termbuf`, `hyper_termbuf`, `simplified_termbuf`.
 * Strategy fields: flags and limits parsed from guide/strategy JSON.
+* Arithmetic-instantiation mode/bounds, observed candidates, lazy duplicate
+  cache, probe temporaries, and counters.
 * Statistics, print flags, proof state, and answer storage.
 
 `wr_glb_init_simple()` sets scalar defaults. Notable defaults include:
@@ -471,6 +547,7 @@ The most important groups of fields are:
   unification.
 * `unify_funpos = 1`, `unify_funarg1pos = 2`, `unify_funarg2pos = 3`.
 * `local_db = db` until `rmain.c` overrides it in the shared-KB case.
+* `arith_instantiation = 1`: conservative one-variable numeric instantiation.
 
 `wr_glb_init_shared_complex()` allocates queue/hash structures that may be
 stored in a KB during `-readkb`. `wr_glb_init_local_complex()` allocates
@@ -568,7 +645,7 @@ Clause history records are defined in `Reasoner/history.h`. With
 
 Then comes `HISTORY_DERIVATION_TAG_POS` and tag-specific parent/cut/path
 fields. Tags include resolve, factorial, para, equality reflexive, simplify,
-propagate, propinst, instgen, and external prop.
+propagate, propinst, instgen, external prop, and ARITHINST.
 
 Input histories are built with `wr_build_input_history()`. Derived histories
 are built by operation-specific helpers such as:
@@ -577,6 +654,11 @@ are built by operation-specific helpers such as:
 * `wr_build_factorial_history()`
 * `wr_build_para_history()`
 * `wr_build_simplify_history()`
+* `wr_build_arithinst_history()`
+
+ARITHINST history is a specialized one-parent record containing the parent,
+the numeric substitution pairs, and any cut clauses. Proof flattening follows
+both the parent and cuts; plain and TPTP output identify the inference.
 
 `wr_register_answer()` stores answer/proof pairs in `g->answers`. Answer
 literals are recognized by `wr_answer_lit()` looking for the `$ans` predicate.
@@ -603,6 +685,8 @@ Important strategy effects in gkc:
 * `equality`, `rewrite`, `posunitpara`, `prohibit_nested_para`: control
   equality reasoning.
 * `sine`: relevance filtering and ordering for large clause sets.
+* `arith_instantiation`: mode 0 disables, default mode 1 performs bounded
+  one-variable probes, and mode 2 permits bounded two-variable/deeper probes.
 * weight, depth, size, and length limits: control whether derived clauses are
   kept.
 
@@ -628,3 +712,6 @@ Keep these invariants visible during code review:
 11. `cvec` helpers can reallocate. Always use their return values.
 12. Build flags in `glb` are global state for the current construction phase.
     Set them with the established setup/cleanup helpers.
+13. Arithmetic probes must restore varstack/build state on every exit and may
+    retain only genuine calculator progress; see
+    `Doc/ARITHMETIC_INSTANTIATION.md`.

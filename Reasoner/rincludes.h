@@ -48,6 +48,7 @@
 #include "clterm.h"
 #include "unify.h"
 #include "build.h"
+#include "arithinst.h"
 #include "clstore.h"
 #include "clmeta.h"
 #include "history.h"
