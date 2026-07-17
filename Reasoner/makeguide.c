@@ -33,6 +33,66 @@ int make_guide(char* buf, int pos, int iteration, int dsecs, int probsize, int e
 
 
 if (ueq) {
+#ifdef __EMSCRIPTEN__
+  /* Browser build: the leaner pre-2021 unit-equality schedule.
+
+     max_dseconds is raised only after a whole iteration of the schedule has
+     been run through. The browser page gives the prover a few seconds in
+     total, so a long iteration 0 never completes, no strategy is ever
+     retried with a longer slice, and problems needing a second of the very
+     first strategy stay unsolved. The full schedule under #else runs 62
+     strategies before escalating (over 6 seconds at the initial 0.1s each);
+     this one runs 28 and escalates in about 3 seconds. GRP436-1 (the group
+     theory example on logictools.org) is solved by the first strategy once
+     it gets a 1 second slice, and is unsolvable within any 0.1s slice.
+
+     Native builds keep the full schedule below: they are normally given tens
+     of seconds, where the wider choice pays off. */
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"weight_select_ratio\":20},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"weight_select_ratio\":20},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"weight_select_ratio\":20,\"depth_penalty\":50},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"weight_select_ratio\":20, \"depth_penalty\":50},\n",dsecs);
+
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"rewrite\":0},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"weight_select_ratio\":20, \"rewrite\":0},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"weight_select_ratio\":2},\n",dsecs);
+
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"weight_select_ratio\":20,\"depth_penalty\":50, \"var_weight\":1, \"repeat_var_weight\":1},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"weight_select_ratio\":20, \"depth_penalty\":50, \"var_weight\":1, \"repeat_var_weight\":1},\n",dsecs);
+
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 0},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 1},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"query_focus\"], \"query_preference\": 2},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"reverse_clauselist\": 1},\n",dsecs);
+
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"max_depth\": 2},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"max_depth\": 4},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"max_depth\": 6},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"max_depth\": 8},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"max_depth\": 10},\n",dsecs);
+
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"max_size\":20},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"max_size\":30},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"max_size\":40},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"var_weight\":1},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"var_weight\":1, \"repeat_var_weight\":1},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\"],\"query_preference\":0,\"max_size\":30,\"depth_penalty\":50},\n",dsecs);
+
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\",\"prohibit_nested_para\"],\"query_preference\":1,\"reverse_clauselist\":1},\n",dsecs);
+  pos+=sprintf(buf+pos, "{\"max_dseconds\": %d,\"strategy\":[\"unit\",\"prohibit_nested_para\"],\"query_preference\":1,\"depth_penalty\":100},\n",dsecs);
+
+  if (probsize>9) {
+    pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"sine\":1},\n",dsecs);
+    pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"sine\":1, \"rewrite\":0},\n",dsecs);
+    pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"sine\":1, \"weight_select_ratio\":2},\n",dsecs);
+    pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"sine\":2},\n",dsecs);
+    pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"sine\":2},\n",dsecs);
+    pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"sine\":1},\n",dsecs);
+    pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"sine\":1, \"depth_penalty\":50},\n",dsecs);
+  }
+#else
   pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1},\n",dsecs);
   pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0},\n",dsecs);
   pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 0, \"var_weight\": 1, \"weight_select_ratio\":100, \"repeat_var_weight\":1},\n",dsecs);
@@ -123,6 +183,7 @@ if (ueq) {
   pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"query_preference\": 1, \"sine\":1, \"var_weight\": 1, \"weight_select_ratio\":100, \"repeat_var_weight\":1},\n",dsecs);
   pos+=sprintf(buf+pos, "{\"max_dseconds\": %d, \"strategy\":[\"unit\"], \"var_weight\":70,\"repeat_var_weight\":70,\"query_preference\":1, \"sine\":1},\n",dsecs);
   }
+#endif
 }
 else if (!eq) {
   // --------- no equality ---------    

@@ -42,6 +42,12 @@ gkcosx
 gkc.lib
 gkc.pc
 
+# wasm build output of compile_wasm.sh, written to the current directory:
+# the copies kept in the repo are html/gkcjs.js and html/gkcjs.wasm
+gkcjs.js
+gkcjs.wasm
+gkcjs.html
+
 Makefile
 whitedb.pc
 compile
