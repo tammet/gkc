@@ -39,8 +39,10 @@ jobs:
           # Authoritative source list is compile.sh (the maintained Linux
           # build); extract its .c files so this never drifts. clang, no
           # -static (invalid on macOS).
-          mapfile -t SRC < <(awk '/^\$\{?CC/{f=1} f{print} /-lm/{f=0}' compile.sh \
-            | grep -oE '[A-Za-z_]+/[A-Za-z0-9_.]+\.c' | sort -u)
+          # macOS ships bash 3.2 (no mapfile); the .c paths have no spaces,
+          # so plain word-splitting into the array is safe.
+          SRC=( $(awk '/^\$\{?CC/{f=1} f{print} /-lm/{f=0}' compile.sh \
+            | grep -oE '[A-Za-z_]+/[A-Za-z0-9_.]+\.c' | sort -u) )
           echo "source files: ${#SRC[@]}"
           printf '  %s\n' "${SRC[@]}"
 
