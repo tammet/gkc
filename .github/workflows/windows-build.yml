@@ -1,0 +1,63 @@
+name: Windows build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - '**.c'
+      - '**.h'
+      - 'compile.bat'
+      - '.github/workflows/windows-build.yml'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up MSVC (x64)
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Build gkc.exe
+        id: build
+        shell: cmd
+        run: |
+          cl /nologo /O2 /W2 /w34005 /wd4477 /wd4311 /wd4133 /Fegkc.exe ^
+            Main/gkc.c ^
+            Db/dbmem.c Db/dballoc.c Db/dbdata.c ^
+            Db/dblock.c Db/dbindex.c Db/dbdump.c Db/dblog.c Db/dbhash.c Db/dbcompare.c ^
+            Db/dbquery.c Db/dbutil.c Db/dbmpool.c Db/dbjson.c Db/dbschema.c ^
+            json/yajl_all.c ^
+            cjson/cjson.c ^
+            Reasoner/build.c Reasoner/arithinst.c Reasoner/clstore.c Reasoner/clterm.c Reasoner/derive.c ^
+            Reasoner/glb.c Reasoner/mem.c Reasoner/printerrutils.c Reasoner/rgenloop.c ^
+            Reasoner/rmain.c Reasoner/subsume.c Reasoner/unify.c Reasoner/resolve.c ^
+            Reasoner/simp.c Reasoner/strat.c Reasoner/rewrite.c Reasoner/history.c Reasoner/prob.c ^
+            Reasoner/hash.c Reasoner/clmeta.c Reasoner/guide.c Reasoner/propagate.c ^
+            Reasoner/analyze.c Reasoner/chains.c Reasoner/prop.c Reasoner/makeguide.c ^
+            Reasoner/init.c ^
+            Printer/dbotterprint.c ^
+            Builtparser/dbotter.tab.c Builtparser/dbotter.yy.c Builtparser/dbparse.c ^
+            Builtparser/dbprolog.tab.c Builtparser/dbprolog.yy.c Builtparser/dbclausify.c Builtparser/jsparse.c
+          if not exist gkc.exe exit /b 1
+          gkc.exe -version
+
+      - name: Smoke-test examples
+        if: steps.build.outcome == 'success'
+        shell: cmd
+        run: |
+          gkc.exe Examples\steam.txt -seconds 15
+          gkc.exe Examples\dreadbury.txt -seconds 15
+          gkc.exe Examples\jsexample1.js -seconds 15
+
+      - name: Upload binary
+        if: steps.build.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: gkc-windows-x64
+          path: gkc.exe
+          if-no-files-found: error
