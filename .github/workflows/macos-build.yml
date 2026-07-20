@@ -1,0 +1,108 @@
+name: macOS build
+
+on:
+  workflow_dispatch:
+    inputs:
+      universal:
+        description: "Build universal (arm64 + x86_64) binary"
+        type: boolean
+        default: false
+  push:
+    branches: [master]
+    paths:
+      - '**.c'
+      - '**.h'
+      - 'compile.sh'
+      - 'compile_osx.sh'
+      - '.github/workflows/macos-build.yml'
+
+jobs:
+  build:
+    # macos-14 = Apple silicon (arm64). Use macos-13 for Intel.
+    runs-on: macos-14
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          clang --version
+          sw_vers
+          uname -m
+
+      - name: Build gkc
+        id: build
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          # Authoritative source list is compile.sh (the maintained Linux
+          # build); extract its .c files so this never drifts. clang, no
+          # -static (invalid on macOS).
+          mapfile -t SRC < <(awk '/^\$\{?CC/{f=1} f{print} /-lm/{f=0}' compile.sh \
+            | grep -oE '[A-Za-z_]+/[A-Za-z0-9_.]+\.c' | sort -u)
+          echo "source files: ${#SRC[@]}"
+          printf '  %s\n' "${SRC[@]}"
+
+          ARCH_FLAGS=()
+          if [ "${{ inputs.universal }}" = "true" ]; then
+            ARCH_FLAGS=(-arch arm64 -arch x86_64)
+          fi
+
+          clang -O3 -Wall -Wmissing-field-initializers \
+            -mmacosx-version-min=11.0 \
+            ${ARCH_FLAGS[@]+"${ARCH_FLAGS[@]}"} \
+            -o gkc "${SRC[@]}" -lm
+
+          file gkc
+          ls -lh gkc
+          ./gkc -version || true
+
+      - name: Smoke-test examples
+        if: steps.build.outcome == 'success'
+        shell: bash
+        run: |
+          set -uo pipefail
+          EXAMPLES=(
+            Examples/steam.txt
+            Examples/dreadbury.txt
+            Examples/blocks.txt
+            Examples/jsexample1.js
+          )
+          mkdir -p smoke-results
+          fail=0
+          for ex in "${EXAMPLES[@]}"; do
+            [ -f "$ex" ] || { echo "MISSING: $ex"; continue; }
+            slug=$(echo "$ex" | tr '/' '_')
+            echo "===== $ex ====="
+            if ./gkc "$ex" -parallel 1 -seconds 15 > "smoke-results/$slug.out" 2>&1; then
+              grep -m1 -E 'proof found|proof not found|result' "smoke-results/$slug.out" || true
+            else
+              echo "NONZERO EXIT: $ex"; tail -5 "smoke-results/$slug.out"; fail=1
+            fi
+          done
+          # shared-memory KB roundtrip
+          echo "===== shared KB ====="
+          ./gkc -readkb Examples/steam.txt -mbsize 1000 > smoke-results/readkb.out 2>&1 || true
+          cat smoke-results/readkb.out
+          printf -- '-animal(X) | $ans(X).\n' > q.txt
+          ./gkc -usekb q.txt -strategytext '{"strategy":["query_focus"],"query_preference":1}' -parallel 1 -seconds 10 > smoke-results/usekb.out 2>&1 || true
+          grep -m1 -E 'proof found|answer' smoke-results/usekb.out || cat smoke-results/usekb.out
+          ./gkc -deletekb || true
+          exit $fail
+
+      - name: Upload binary
+        if: steps.build.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: gkc-macos-${{ runner.arch }}
+          path: gkc
+          if-no-files-found: error
+
+      - name: Upload smoke-test results
+        if: always() && steps.build.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: gkc-smoke-macos-${{ runner.arch }}
+          path: smoke-results/
+          if-no-files-found: warn
