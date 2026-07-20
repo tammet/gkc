@@ -67,7 +67,7 @@
 #define PACKAGE_NAME "GKC"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "GKC 1.0.1"
+#define PACKAGE_STRING "GKC 1.0.2"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "gkc"
@@ -76,7 +76,7 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "1.0.1"
+#define PACKAGE_VERSION "1.0.2"
 
 /* Define to necessary symbol if this constant uses a non-standard name on
    your system. */
@@ -113,7 +113,7 @@
 #define USE_REASONER 1
 
 /* Version number of package */
-#define VERSION "1.0.1"
+#define VERSION "1.0.2"
 
 /* Package major version */
 #define VERSION_MAJOR 1
@@ -122,7 +122,7 @@
 #define VERSION_MINOR 0
 
 /* Package revision number */
-#define VERSION_REV 1
+#define VERSION_REV 2
 
 /* Define to 1 if `lex' declares `yytext' as a `char *' by default, not a
    `char[]'. */

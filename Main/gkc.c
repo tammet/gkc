@@ -306,26 +306,32 @@ int gkc_main(int argc, char **argv) {
   //printf("\ncmdstr %s cmdfileslen %d\n",cmdstr,cmdfileslen);
 
   if (mbsize==0) {
-    // default
-#ifdef __EMSCRIPTEN__    
-    shmsize=(gint)100*(gint)1000000; // has to be small for wasm: 100 MB here   
-#else    
-#ifdef _WIN32
-#ifdef _WIN64    
-    shmsize = (gint)5000000000; // 5 gb default for large csr
-    shmsize2 = (gint)1000000000; // local db (used when shared mem used) is smaller 
+    // default. NB! Keep the } else { below outside the preprocessor
+    // conditionals: an earlier version had it inside the non-windows branch,
+    // which (a) made -mbsize silently inert on wasm and win32 (the whole
+    // if-body was skipped, leaving shmsize at its initial 0, i.e. the 10 MB
+    // DEFAULT_MEMDBASE_SIZE fallback) and (b) turned every default below
+    // except the non-windows one into dead code overwritten by mbsize*1e6=0.
+#ifdef __EMSCRIPTEN__
+    shmsize=(gint)100*(gint)1000000; // has to be small for wasm: 100 MB here
+    shmsize2=shmsize;
 #else
-    shmsize=(gint)1000*(gint)1000000; // has to be small for win32 
-    shmsize2 =(gint)500*(gint)1000000; // local db (used when shared mem used) is smaller   
-#endif    
+#ifdef _WIN32
+#ifdef _WIN64
+    shmsize = (gint)5000000000; // 5 gb default for large csr
+    shmsize2 = (gint)1000000000; // local db (used when shared mem used) is smaller
+#else
+    shmsize=(gint)1000*(gint)1000000; // has to be small for win32
+    shmsize2 =(gint)500*(gint)1000000; // local db (used when shared mem used) is smaller
+#endif
 #else
     // non-windows case
     shmsize = (gint)5000000000; // 5 gb default for large csr
     shmsize2 = (gint)1000000000; // local db (used when shared mem used) is smaller
-  } else {  
-#endif            
-#endif    
-    // given on cmd line  
+#endif
+#endif
+  } else {
+    // given on cmd line
     shmsize=(gint)mbsize*(gint)1000000; // mbsize given on cmdline is in megabytes
     shmsize2 = shmsize;
   }
