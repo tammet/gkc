@@ -3141,8 +3141,17 @@ static gint find_create_longstr(void* db, char* data, char* extrastr, gint type,
       dbstore(db,offset+LONGSTR_EXTRASTR_POS*sizeof(gint),tmp);
       // increase extrastr refcount
       if(islongstr(tmp)) {
-        gint *strptr = (gint *) offsettoptr(db,decode_longstr_offset(tmp));
-        ++(*(strptr+LONGSTR_REFCOUNT_POS));
+        /* with an attached external kb the encoded tmp is kb-base-relative
+           (encode_kb_offset convention) and may point into the read-only kb
+           segment: resolve against the kb base and bump the refcount only
+           when the string lives in THIS db (a kb string is never deleted, and
+           its SHM_RDONLY segment cannot be written anyway). Without a kb
+           db_to_kb is db itself and this is the old plain bump. */
+        char* strp=((char*)(dbmemsegbytes(db_to_kb(db))))+decode_longstr_offset(tmp);
+        if (strp>=(char*)(dbmemsegbytes(db)) &&
+            strp<((char*)(dbmemsegbytes(db)))+(dbmemsegh(db)->size)) {
+          ++(*(((gint*)strp)+LONGSTR_REFCOUNT_POS));
+        }
       }
     } else {
       dbstore(db,offset+LONGSTR_EXTRASTR_POS*sizeof(gint),0); // no extrastr ptr
@@ -3314,7 +3323,11 @@ char* wg_decode_unistr_lang(void* db, gint data, gint type) {
     fldptr=((gint*)objptr)+LONGSTR_EXTRASTR_POS;
     fldval=*fldptr;
     if (fldval==0) return NULL;
-    res=wg_decode_unistr(db,fldval,type);
+    /* the lang/prefix slot holds an API-encoded string value: in a db with an
+       attached external kb these are kb-base-relative (the encode_kb_offset
+       convention -- both kb-resident strings and shifted local ones), so the
+       nested decode must use the kb base; without a kb db_to_kb is db itself */
+    res=wg_decode_unistr(db_to_kb(db),fldval,type);
     return res;
   }
   show_data_error(db,"data given to wg_decode_unistr_lang is not an encoded string");

@@ -95,6 +95,7 @@ void* wr_json_unflatten_logic(glb* g, parse_parm* pp, void* ptr, void* conn, voi
 void* wr_json_make_nullvar(glb* g, parse_parm* pp);
 
 int wr_json_is_atomlist(void* db,void* ptr);
+int wr_json_is_varlist(glb* g, parse_parm* pp, void* ptr);
 int wr_json_is_connective(glb* g,void* ptr);
 int wr_json_is_eq_op(glb* g,void* ptr);
 int wr_json_equal_atoms(glb* g,void* a1, void* a2);

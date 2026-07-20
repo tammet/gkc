@@ -1480,7 +1480,7 @@ void* wr_process_json_formula_aux(glb* g, parse_parm* pp, void* cl) {
         wr_show_jsparse_error(g,pp,"not enough arguments for exists connective");
         return NULL;
       }
-      if (!wr_json_is_atomlist(db,r1el)) {
+      if (!wr_json_is_varlist(g,pp,r1el)) {
         wr_show_jsparse_error(g,pp,"first argument of exists connective not a variable list");
         return NULL;
       }    
@@ -1504,7 +1504,7 @@ void* wr_process_json_formula_aux(glb* g, parse_parm* pp, void* cl) {
         wr_show_jsparse_error(g,pp,"not enough arguments for forall connective");
         return NULL;
       }
-      if (!wr_json_is_atomlist(db,r1el)) {
+      if (!wr_json_is_varlist(g,pp,r1el)) {
         wr_show_jsparse_error(g,pp,"first argument of forall connective not a variable list");
         return NULL;
       }      
@@ -2323,16 +2323,23 @@ void* wr_process_json_term(glb* g, parse_parm* pp, void* cl, int atomlevel, int 
         wr_show_jsparse_error(g,pp,"cannot process neg atom: memory overflow");
         return NULL;
       }
-    } else if (wg_isatom(db,head) && 
-              (!strcmp("exists",wg_atomstr1(db,head)) || !strcmp("all",wg_atomstr1(db,head))) ) {      
+    } else if (wg_isatom(db,head) &&
+              (!strcmp("exists",wg_atomstr1(db,head)) || !strcmp("all",wg_atomstr1(db,head))) ) {
       if (r1==NULL) {
         wr_show_jsparse_error(g,pp,"not enough arguments for quantifier");
+        return NULL;
+      }
+      /* same check as the formula-level exists/forall branches: the variables
+         must be a list like ["?:X"], not a bare "?:X" -- a bare atom pushed
+         onto boundvars is later walked as a pair and crashes */
+      if (!wr_json_is_varlist(g,pp,r1el)) {
+        wr_show_jsparse_error(g,pp,"first argument of a quantifier must be a list of variables");
         return NULL;
       }
       if (r2==NULL) {
         wr_show_jsparse_error(g,pp,"not enough arguments for quantifier");
         return NULL;
-      }      
+      }
       (pp->boundvars)=wg_mkpair(db,mpool,r1el,(pp->boundvars));
       tmp=wr_process_json_term(g,pp,wg_first(db,r2),1,1);
       (pp->boundvars)=wg_rest(db,(pp->boundvars));
@@ -2426,6 +2433,32 @@ void* wr_json_list_logconn(glb* g, parse_parm* pp, void* cl) {
     }
   }
   return foundconn;      
+}
+
+/* like wr_json_is_atomlist, but every element must be a ?:-prefixed variable:
+   a quantifier's variable list must bind variables -- a constant there would
+   parse but silently bind nothing */
+int wr_json_is_varlist(glb* g, parse_parm* pp, void* ptr) {
+  void* db=g->db;
+  void *el;
+
+  if (ptr==NULL) return 0;
+  if (wg_isatom(db,ptr)) return 0;
+  while(ptr != NULL) {
+    el=wg_first(db,ptr);
+    /* two accepted spellings, both in live use: "?:X" (the clause-context
+       variable form, doc examples) and a plain capitalized name like "X"
+       (declared-variable form, e.g. Examples/core/grandfather.js golden).
+       A lowercase-initial name is a constant and is rejected. */
+    if (!wr_is_json_freevar(g,pp,el)) {
+      char* vs;
+      if (!wg_isatom(db,el) || wg_atomtype(db,el)!=WG_URITYPE) return 0;
+      vs=wg_atomstr1(db,el);
+      if (!vs || vs[0]<'A' || vs[0]>'Z') return 0;
+    }
+    ptr=wg_rest(db,ptr);
+  }
+  return 1;
 }
 
 int wr_json_is_atomlist(void* db,void* ptr) {
