@@ -49,13 +49,21 @@ Compiling and installing
 ------------------------
 
 The GKC system consists of a single standalone executable
-with no dependencies, called  `gkc` for linux, 
-`gkc.exe` for 64-bit windows, `gkc32.exe` for 32-bit windows,
-`gkcosx` for macOS. The pre-compiled executables are 
-included in archived
-[release 0.6.0](https://github.com/tammet/gkc/releases/tag/v0.6.0). Release
-[0.8.0](https://github.com/tammet/gkc/releases/tag/v0.8.0) is the CASC 29
-competition version and predates the current checkout.
+with no dependencies. Pre-built current binaries in this checkout:
+
+* `bin/gkc-macos-arm64` — macOS on Apple silicon (dynamically linked, clang)
+* `bin/gkc-windows-x64.exe` — 64-bit Windows (MSVC)
+* `html/gkcjs.wasm` with the glue `html/gkcjs.js` — Wasm build, as used at
+  [logictools.org](http://logictools.org)
+
+The Linux binary `gkc` is built from source with `compile.sh` (below).
+The macOS and Windows binaries are produced by the GitHub Actions workflows
+in `.github/workflows/`.
+
+Older pre-compiled executables are included in archived
+[release 0.6.0](https://github.com/tammet/gkc/releases/tag/v0.6.0).
+Release [0.8.0](https://github.com/tammet/gkc/releases/tag/v0.8.0) is the
+CASC 29 competition version and predates the current checkout.
 
 GKC is written in C. There are three alternative ways
 to compile gkc, from simpler to more complicated:
