@@ -5,72 +5,18 @@ GKC's Prolog-style notation, and JSON-LD-LOGIC. It supports equality,
 arithmetic, answer variables, automatic search strategies, and reusable
 shared-memory knowledge bases.
 
-## Binaries
+## Running GKC
 
-The binary files and build outputs use these paths:
-
-| Platform | File |
-|---|---|
-| Linux x86-64 | `gkc` |
-| macOS arm64 | `bin/gkc-macos-arm64` |
-| Windows x86-64 | `bin/gkc-windows-x64.exe` |
-| WebAssembly | `html/gkcjs.wasm` and `html/gkcjs.js` |
-
-`compile.sh` creates the statically linked Linux file at `gkc`. The macOS,
-Windows, and WebAssembly files in the table are checked in. The WebAssembly
-files run in a browser through [`html/gkc.html`](html/gkc.html), which reads the
-problem from a text box; the input is not taken from the host filesystem.
-
-Examples:
+Prebuilt binaries for macOS, Windows, and WebAssembly are in `bin/` and
+`html/`; the Linux binary is built by `./compile.sh` at `gkc`:
 
 ```sh
 ./gkc Examples/steam.txt
-./bin/gkc-macos-arm64 Examples/steam.txt
 ```
 
-On Windows:
-
-```text
-bin\gkc-windows-x64.exe Examples\steam.txt
-```
-
-Run the selected binary with `-help` for command-line options and `-version`
-for build information.
-
-## Building
-
-Run build commands from the repository root.
-
-| Target | Command | Tool | Output |
-|---|---|---|---|
-| Linux | `./compile.sh` | GCC by default; set `CC` to use another C compiler | `gkc` |
-| macOS | `./compile_osx.sh` | Clang by default | `gkc` |
-| Windows | `compile.bat` in an x64 MSVC command prompt | MSVC | `gkc.exe` |
-| WebAssembly | `./compile_wasm.sh` | Emscripten | `gkcjs.html`, `gkcjs.js`, `gkcjs.wasm` |
-
-The shell scripts compile the checked-in parser files under `Builtparser/`;
-Flex and Bison are not required. `compile_wasm.sh` currently expects Emscripten
-at `/opt/gkcjs/emsdk/upstream/emscripten/emcc`.
-
-The Linux makefile is an alternative:
-
-```sh
-make -f makefile
-```
-
-This form uses Flex and Bison. Use the checked-in parser files with:
-
-```sh
-make -f makefile USEBISON=false
-```
-
-The makefile does not track every header dependency. Rebuild after header
-changes with `make -f makefile -B`.
-
-The macOS and Windows checks are defined in:
-
-- `.github/workflows/macos-build.yml`
-- `.github/workflows/windows-build.yml`
+Run the binary with `-help` for the command-line options. Every platform takes
+the same arguments; [`bin/README.md`](bin/README.md) covers the other
+platforms, the browser build, and how each one is compiled.
 
 ## Documentation
 
@@ -87,6 +33,7 @@ The macOS and Windows checks are defined in:
 ## Main directories
 
 ```text
+bin/           prebuilt binaries and their build notes
 Main/          command-line entry point
 Reasoner/      proof search and inference
 Db/            database and shared-memory code
