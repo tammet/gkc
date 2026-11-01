@@ -224,6 +224,10 @@ int wr_import_js_file(glb* g, char* filename, char* strasfile, cvec clvec, int i
 
   //printf("\nwg_jsparse_data called\n");  
   mpool=wg_create_mpool(db,PARSER_MEMPOOL_SIZE);
+  /* fields that are read before they are set (formulanr and formulaname in
+     an early error message, errmsg, formularole) must start as 0 or NULL,
+     not as stack contents */
+  memset(&pp,0,sizeof(pp));
   pp.askpolarity=askpolarity;
   pp.askinfo=0;
   pp.db=db;
@@ -872,6 +876,9 @@ void* wr_preprocess_json_clauselist
     }
     */
     pp->formulanr=clnr+1;
+    /* the name of this statement is not known before it is processed: an
+       error in the checks below must not show the previous statement's name */
+    pp->formulaname=NULL;
     pp->parse_top_level=1;
     /* An empty statement -- [] or {} -- used to be dropped in silence
        (/opt/gk/Doc/MEMO_input_robustness.md A9/S3). It cannot mean
@@ -3470,18 +3477,27 @@ static int wr_show_jsparse_error(glb* g, parse_parm* pp, char* format, ...) {
   if (g->parse_errmsg) return -1;
   (g->parse_errmsg)=malloc(1000);
   if (!(g->parse_errmsg)) return -1;
+  /* the prefix gets at most 200 bytes and the message at most 900 bytes in
+     all of the 1000; snprintf and vsnprintf return the length they would
+     need, so continue at the length actually written: a long formula name
+     used to leave a gap that ended the message, and a name or message of
+     several hundred bytes moved the later writes past the buffer */
   if (pp && pp->formulanr) {
     if (pp->formulaname) {
-      tmp1=snprintf((g->parse_errmsg),50,
+      tmp1=snprintf((g->parse_errmsg),200,
             "{\"error\": \"error in formula nr %d %s: ",pp->formulanr,pp->formulaname);
     } else {
-      tmp1=snprintf((g->parse_errmsg),50,
+      tmp1=snprintf((g->parse_errmsg),200,
             "{\"error\": \"error in formula nr %d: ",pp->formulanr);
-    }  
+    }
   } else {
-    tmp1=snprintf((g->parse_errmsg),50,"{\"error\": \"json parser error: ");
-  }  
-  tmp2=vsnprintf((g->parse_errmsg)+tmp1,800,format,args);
+    tmp1=snprintf((g->parse_errmsg),200,"{\"error\": \"json parser error: ");
+  }
+  if (tmp1<0) tmp1=0;
+  else if (tmp1>199) tmp1=199;
+  tmp2=vsnprintf((g->parse_errmsg)+tmp1,900-tmp1,format,args);
+  if (tmp2<0) tmp2=0;
+  else if (tmp2>899-tmp1) tmp2=899-tmp1;
   snprintf((g->parse_errmsg)+tmp1+tmp2,50,"\"}");
 
   /*

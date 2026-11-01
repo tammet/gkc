@@ -119,6 +119,7 @@ where
 #define WR_HISTORY_EXTRA_SHIFT 16
 #define WR_HISTORY_POS1_SHIFT 8
 #define WR_HISTORY_TAG_BITS 15
+#define WR_HISTORY_POS_BITS 255 // a resolved position: the encoders clamp pos1 and pos2 to 8 bits
 #define WR_HISTORY_EXTRA_BITS 15
 
 #define WR_HISTORY_USED_BIT_POS  8                // if this bit is set (after decoding!) cl is marked used / given

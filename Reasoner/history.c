@@ -709,11 +709,11 @@ int wr_get_history_extra(glb* g, gint head) {
 }
 
 int wr_get_history_pos1(glb* g, gint head) {
-  return (head>>WR_HISTORY_POS1_SHIFT)&WR_HISTORY_TAG_BITS;
+  return (head>>WR_HISTORY_POS1_SHIFT)&WR_HISTORY_POS_BITS;
 }
 
 int wr_get_history_pos2(glb* g, gint head) {
-  return head&WR_HISTORY_TAG_BITS;
+  return head&WR_HISTORY_POS_BITS;
 }
 
 
@@ -786,7 +786,10 @@ gptr wr_flatten_history(glb* g, void* mpool, gint history, gptr cl, int depth, i
   printf("\n");
   */
   if (!history) return NULL;
-  len=wg_get_record_len(db,otp(db,history));   
+  len=wg_get_record_len(db,otp(db,history));
+  /* an input history has HISTORY_PREFIX_LEN fields and no derivation tag:
+     an input leaf, as when the tag is not an integer */
+  if (len<=HISTORY_DERIVATION_TAG_POS) return NULL;
   head=wr_get_history_record_field(db,otp(db,history),HISTORY_DERIVATION_TAG_POS);
   htype=wg_get_encoded_type(db,head);
   if (htype!=WG_INTTYPE) return NULL;

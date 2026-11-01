@@ -1339,6 +1339,8 @@ int wr_get_cl_history_tag(glb* g, gptr cl) {
   
   history=wr_get_history(g,cl);
   if (!history) return 0;
+  /* an input history has HISTORY_PREFIX_LEN fields and no derivation tag */
+  if (wg_get_record_len(db,otp(db,history))<=HISTORY_DERIVATION_TAG_POS) return 0;
   head=wr_get_history_record_field(db,otp(db,history),HISTORY_DERIVATION_TAG_POS);
   htype=wg_get_encoded_type(db,head);
   if (htype!=WG_INTTYPE) return 0;

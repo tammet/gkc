@@ -538,6 +538,7 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
       tmp=strlen(guidetext);
       if (tmp>=MAX_GUIDETEXT_LEN) tmp=MAX_GUIDETEXT_LEN-2;
       memcpy(g->guidetext,guidetext,tmp+1);
+      (g->guidetext)[tmp]=0; // a text cut to the array's length gets its terminator
     }
     if (!(g->print_flag)) (g->print_level_flag)=0;
     if ((g->print_level_flag)<0) (g->print_level_flag)=default_print_level;
@@ -747,7 +748,7 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
    
 
     if (!(g->proof_found) || !(wr_enough_answers(g))) {   
-      if (guideres==10 && (g->guidetext)) {
+      if (guideres==10 && (g->guidetext)[0]) {
         printf("\nseqstrat\n");
         int seqnr=0, seqguideres;
         //char *out;

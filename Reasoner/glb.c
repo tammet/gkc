@@ -118,6 +118,7 @@ int wr_glb_init_simple(glb* g) {
   //printf("\nwr_glb_init_simple called\n");
   (g->filename)=NULL;
   (g->outfilename)=NULL;
+  (g->guidetext)[0]=0; // the strategy text of the run: empty until rmain.c copies one in
   (g->proof_found)=0; // becomes 1 if proof found
   (g->proof_answer)=NULL; // becomes a ptr to pure answer clause
   (g->proof_history)=wg_encode_null(g->db,NULL); // becomes a gint encoding of the constructed history
@@ -824,6 +825,16 @@ int wr_glb_init_local_complex(glb* g) {
   (g->prop_solver_name)=NULL;
   (g->prop_solver_outfile_name)=NULL;
   (g->arith_inst_cache)=NULL;
+  /* also the fields that wr_glb_free_local_complex frees and that are
+     created below: the function returns as soon as an allocation fails,
+     and the caller then frees the local complex part */
+  (g->xcountedvarlist)=NULL;
+  (g->ycountedvarlist)=NULL;
+  (g->tmp_clinfo)=NULL;
+  (g->tmp_varinfo)=NULL;
+  (g->sine_k_values)=NULL;
+  (g->backsubsume_values)=NULL;
+  (g->sine_uri_k_values)=NULL;
   
 
   // then create space
@@ -835,12 +846,15 @@ int wr_glb_init_local_complex(glb* g) {
   (g->varbanks)=wr_vec_new(g,NROF_VARBANKS*NROF_VARSINBANK);
   //(g->varbankrepl)=wr_vec_new(g,3*NROF_VARSINBANK);
   (g->varstack)=wr_cvec_new(g,NROF_VARBANKS*NROF_VARSINBANK); 
+  if (g->alloc_err) return 1;
   (g->varstack)[1]=2; // first free elem
 
   (g->xcountedvarlist)=wr_cvec_new(g,4+(NROF_VARSINBANK*2)); 
+  if (g->alloc_err) return 1;
   (g->xcountedvarlist)[1]=2; // first free elem
  
   (g->ycountedvarlist)=wr_cvec_new(g,4+(NROF_VARSINBANK*2)); 
+  if (g->alloc_err) return 1;
   (g->ycountedvarlist)[1]=2; // first free elem
 
   //(g->tmp1_cl_vec)=wr_vec_new(g,100);    
@@ -849,38 +863,48 @@ int wr_glb_init_local_complex(glb* g) {
   //(g->tmp_litinf_vec)=wr_vec_new(g,100); 
         
   (g->given_termbuf)=wr_cvec_new(g,NROF_GIVEN_TERMBUF_ELS);
+  if (g->alloc_err) return 1;
   (g->given_termbuf)[1]=2;
   //(g->given_termbuf_freeindex)=2;
 
   (g->simplified_termbuf)=wr_cvec_new(g,NROF_SIMPLIFIED_TERMBUF_ELS);
+  if (g->alloc_err) return 1;
   (g->simplified_termbuf)[1]=2;
   
   (g->derived_termbuf)=wr_cvec_new(g,NROF_DERIVED_TERMBUF_ELS);
+  if (g->alloc_err) return 1;
   (g->derived_termbuf)[1]=2;
  
   (g->queue_termbuf)=wr_cvec_new(g,NROF_QUEUE_TERMBUF_ELS);
+  if (g->alloc_err) return 1;
   (g->queue_termbuf)[1]=2;
 
   (g->hyper_termbuf)=wr_cvec_new(g,NROF_HYPER_TERMBUF_ELS);
+  if (g->alloc_err) return 1;
   (g->hyper_termbuf)[1]=2; 
   
   (g->active_termbuf)=wr_cvec_new(g,NROF_ACTIVE_TERMBUF_ELS);
+  if (g->alloc_err) return 1;
   (g->active_termbuf)[1]=2;
 
 #ifndef MALLOC_HASHNODES
   (g->hash_nodes)=wr_cvec_new(g,NROF_CLTERM_HASHNODESVEC_ELS);
+  if (g->alloc_err) return 1;
   (g->hash_nodes)[1]=2;
 #endif
 
   (g->cut_clvec)=wr_vec_new(g,NROF_CUT_CLVEC_ELS);
   (g->rewrite_clvec)=wr_cvec_new(g,NROF_REWRITE_CLVEC_ELS);
+  if (g->alloc_err) return 1;
   (g->rewrite_clvec)[1]=2; // first free elem
 
   (g->hyper_queue)=wr_cvec_new(g,NROF_HYPER_QUEUE_ELS);
+  if (g->alloc_err) return 1;
   (g->hyper_queue)[1]=3; // next free pos in the queue (initially for empty queue 3)
   (g->hyper_queue)[2]=3; // next pos to pick for given (initially for empty queue 3)
 
   (g->answers)=wr_cvec_new(g,INITIAL_ANSWERS_LEN);
+  if (g->alloc_err) return 1;
   (g->answers)[1]=2; // next free pos in the queue (initially for empty queue 2)
 
   (g->sine_k_values)=sys_malloc(SINE_K_VALUES_SIZE); // bytestring allocated by malloc
