@@ -19,8 +19,10 @@
 # * configuration is set in config.h
 
 # First set the correct path and check the emscripten compiler to be used instead of
+# (set EMCC to use another emcc, for example EMCC=emcc after sourcing emsdk_env.sh)
 
-CC="/opt/gkcjs/emsdk/upstream/emscripten/emcc"
+[ -z "$EMCC" ] && EMCC="/opt/gkcjs/emsdk/upstream/emscripten/emcc"
+CC="$EMCC"
 
 ${CC} -Wall -Wmissing-field-initializers -Wno-unused-variable -O2 \
   Main/gkc.c \
@@ -40,10 +42,10 @@ ${CC} -Wall -Wmissing-field-initializers -Wno-unused-variable -O2 \
   Printer/dbotterprint.c \
   Builtparser/dbotter.tab.c  Builtparser/dbotter.yy.c  Builtparser/dbparse.c \
   Builtparser/dbclausify.c \
-  Parser/jsparse.c \
+  Builtparser/jsparse.c \
   -o gkcjs.html \
-  -s TOTAL_MEMORY=1000MB  -s EXPORTED_FUNCTIONS=["_main"]  \
-  -s EXTRA_EXPORTED_RUNTIME_METHODS=["cwrap","ccall","callMain"]  -lm 
+  -s TOTAL_MEMORY=1000MB  -s STACK_SIZE=5MB  -s EXPORTED_FUNCTIONS=["_main"]  \
+  -s EXPORTED_RUNTIME_METHODS=["cwrap","ccall","callMain"]  -lm 
 
 # Notes:
 #
@@ -52,8 +54,13 @@ ${CC} -Wall -Wmissing-field-initializers -Wno-unused-variable -O2 \
 #   - OK for Chrome with 2000MB
 #   - Not ok for Firefox with 2000MB, but OK with 1000MB
 #
-# * -s EXPORTED_FUNCTIONS and -s EXTRA_EXPORTED_RUNTIME_METHODS are for
-#   calling C programs from js 
+# * STACK_SIZE parameter: 5MB was the default of Emscripten before 3.1.27;
+#   the later default of 64KB is too small for gkc. The setting name needs
+#   Emscripten 3.1.27 or later (older versions call it TOTAL_STACK)
+#
+# * -s EXPORTED_FUNCTIONS and -s EXPORTED_RUNTIME_METHODS are for
+#   calling C programs from js (EXPORTED_RUNTIME_METHODS replaced
+#   EXTRA_EXPORTED_RUNTIME_METHODS, which Emscripten no longer accepts)
 #
 # * exported callMain should actually be enough (seems to be not well documented, though)
 #

@@ -345,7 +345,8 @@ var Module={
   },
   printErr:function(e){
     arguments.length>1 && (e=Array.prototype.slice.call(arguments).join(" "));
-    if ((JSON.stringify(e)).includes("abort(OOM)")) {
+    // "abort(OOM)" from Emscripten before 3.x, "Aborted(OOM)" from later versions
+    if ((JSON.stringify(e)).includes("abort(OOM)") || (JSON.stringify(e)).includes("Aborted(OOM)")) {
       location.reload();
     } else if ((JSON.stringify(e)).includes("index out of bounds")) {
       location.reload();

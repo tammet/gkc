@@ -49,8 +49,9 @@ Run the build commands from the repository root.
 | WebAssembly | `./compile_wasm.sh` | Emscripten | `gkcjs.html`, `gkcjs.js`, `gkcjs.wasm` |
 
 The shell scripts compile the checked-in parser files under `../Builtparser/`;
-Flex and Bison are not required. `compile_wasm.sh` currently expects Emscripten
-at `/opt/gkcjs/emsdk/upstream/emscripten/emcc`.
+Flex and Bison are not required. `compile_wasm.sh` uses the Emscripten compiler
+named by `EMCC`, by default `/opt/gkcjs/emsdk/upstream/emscripten/emcc`, and
+needs Emscripten 3.1.27 or later.
 
 The Linux makefile is an alternative:
 
