@@ -91,7 +91,7 @@ void* wr_warn2(glb* g, char* errstr1, char* errstr2) {
 void* wr_errprint(char* errstr) {
   //printf("Error: %s.\n",errstr);
 #ifdef PRINTERR   
-  printf("{\"error\": \"%s\"}\n",errstr);
+  printf("{\"error\": \""); wg_print_json_escaped(errstr); printf("\"}\n");
 #endif  
   return NULL;
 }  
@@ -103,7 +103,8 @@ void* wr_errprint(char* errstr) {
 void* wr_errprint2(char* errstr1, char* errstr2) {
   //printf("Error: %s %s.\n",errstr1,errstr2);
 #ifdef PRINTERR   
-  printf("{\"error\": \"%s %s\"}\n",errstr1,errstr2);
+  printf("{\"error\": \""); wg_print_json_escaped(errstr1); printf(" ");
+  wg_print_json_escaped(errstr2); printf("\"}\n");
 #endif  
   return NULL;
 }
@@ -111,7 +112,8 @@ void* wr_errprint2(char* errstr1, char* errstr2) {
 void* wr_errprint3(char* errstr1, char* errstr2, char* errstr3) {
   //printf("Error: %s %s.\n",errstr1,errstr2);
 #ifdef PRINTERR   
-  printf("{\"error\": \"%s %s %s\"}\n",errstr1,errstr2,errstr3);
+  printf("{\"error\": \""); wg_print_json_escaped(errstr1); printf(" ");
+  wg_print_json_escaped(errstr2); printf(" "); wg_print_json_escaped(errstr3); printf("\"}\n");
 #endif  
   return NULL;
 }

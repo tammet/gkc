@@ -1558,21 +1558,24 @@ void gkc_show_cur_time(void)  {
   printf("run_seconds %f time %s\n", run_seconds,asctime (timeinfo));
 }
 
+void wg_print_json_escaped(const char* s);   /* Printer/dbotterprint.c */
+
 void initial_printf(char* s) {
-  printf("{\"error\": \"%s\"}",s);
+  printf("{\"error\": \""); wg_print_json_escaped(s); printf("\"}");
 }
 
 void err_printf(int json,char* s) {
-  if(json)
-    printf("{\"error\": \"%s\"}\n",s);
-  else
+  if(json) {
+    printf("{\"error\": \""); wg_print_json_escaped(s); printf("\"}\n");
+  } else
     printf("error: %s\n",s);  
 }
 
 void err_printf2(int json,char* s1, char* s2) {
-  if(json)
-    printf("{\"error\": \"%s %s\"}\n",s1,s2);
-  else
+  if(json) {
+    printf("{\"error\": \""); wg_print_json_escaped(s1); printf(" ");
+    wg_print_json_escaped(s2); printf("\"}\n");
+  } else
     printf("error: %s %s\n",s1,s2); 
 }
 
@@ -1883,7 +1886,8 @@ void wr_output_batch_prob_failure(char* probname, char* outfullname, char* failu
     // file doesn't exist
     outfile=fopen(outfullname, "w");
     if (!outfile) {
-      printf("{\"error\": \"cannot open outfile to print failure %s\"}\n",outfullname);               
+      printf("{\"error\": \"cannot open outfile to print failure ");
+      wg_print_json_escaped(outfullname); printf("\"}\n");               
     } else {
       fprintf(outfile,"%% SZS status %s for %s\n",failure,probname);   
       fclose(outfile);

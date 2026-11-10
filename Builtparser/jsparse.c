@@ -3444,19 +3444,24 @@ int wg_suitable_context_uri_end(void* db, char c) {
 /* ------------ errors ---------------- */
 
 
+/* the error messages as json, their texts escaped */
 void json_err_printf2(char* s1, char* s2) {
-  if (s1 && s2) printf("{\"error\": \"%s %s\"}\n",s1,s2);
-  else if (s1) printf("{\"error\": \"%s\"}\n",s1);
-  else if (s2) printf("{\"error\": \"%s\"}\n",s2);
-  else printf("{\"error\": \"unspecified\"}\n");  
+  if (!s1 && !s2) { printf("{\"error\": \"unspecified\"}\n"); return; }
+  printf("{\"error\": \"");
+  if (s1) wg_print_json_escaped(s1);
+  if (s1 && s2) printf(" ");
+  if (s2) wg_print_json_escaped(s2);
+  printf("\"}\n");
 }
 
 void json_err_printfn2(char* s1, int num, char* s2)  {
-  printf("{\"error\": \"%s %d %s\"}\n",s1,num,s2);
+  printf("{\"error\": \""); wg_print_json_escaped(s1); printf(" %d ",num);
+  wg_print_json_escaped(s2); printf("\"}\n");
 }
 
 void json_err_printf3(char* s1, int num, char* s2) {
-  printf("{\"error\": \"%s %d %s\"}\n",s1,num,s2);
+  printf("{\"error\": \""); wg_print_json_escaped(s1); printf(" %d ",num);
+  wg_print_json_escaped(s2); printf("\"}\n");
 }
 
 
@@ -3484,8 +3489,11 @@ static int wr_show_jsparse_error(glb* g, parse_parm* pp, char* format, ...) {
      several hundred bytes moved the later writes past the buffer */
   if (pp && pp->formulanr) {
     if (pp->formulaname) {
+      /* the formula name escaped (at most 150 bytes of it) */
+      char nameb[160];
+      wg_json_escape(nameb,sizeof(nameb),pp->formulaname);
       tmp1=snprintf((g->parse_errmsg),200,
-            "{\"error\": \"error in formula nr %d %s: ",pp->formulanr,pp->formulaname);
+            "{\"error\": \"error in formula nr %d %s: ",pp->formulanr,nameb);
     } else {
       tmp1=snprintf((g->parse_errmsg),200,
             "{\"error\": \"error in formula nr %d: ",pp->formulanr);

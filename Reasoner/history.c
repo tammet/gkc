@@ -1534,7 +1534,8 @@ int wr_show_result(glb* g, gint history) {
   if (g->outfilename) {
     outfile=fopen(g->outfilename, "w");
     if (!outfile) {
-      printf("{\"error\": \"cannot open outfile to print proof %s\"}\n",(g->outfilename));               
+      printf("{\"error\": \"cannot open outfile to print proof ");
+      wg_print_json_escaped(g->outfilename); printf("\"}\n");               
     } else {
       fprintf(outfile,"%s",buf);
       fflush(outfile);
@@ -1878,8 +1879,12 @@ int wr_strprint_one_history
         if (bpos<0) return bpos;
       }
       namestr=wg_decode_str(db,name);
-      if (!wr_str_guarantee_space(g,buf,blen,bpos+100+strlen(namestr))) return -1;
-      if (g->print_json) bpos+=snprintf((*buf)+bpos,(*blen)-bpos,", \"%s\"",namestr);
+      if (!wr_str_guarantee_space(g,buf,blen,bpos+100+6*strlen(namestr))) return -1;
+      if (g->print_json) {
+        /* the name as an escaped json string */
+        bpos+=snprintf((*buf)+bpos,(*blen)-bpos,", ");
+        bpos+=wg_print_dquoted(buf,*blen,bpos,namestr,0,0);
+      }
       else {
         if ((g->print_fof_conversion_proof) && (g->store_fof_skolem_steps) &&
             namestr) {
@@ -2162,7 +2167,9 @@ int wr_strprint_one_history
       bpos=wr_strprint_history_extra(g,buf,blen,bpos,history);
       if (bpos<0) return bpos;
     } else {
-      bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"] ");  
+      /* json: a comma before the clause */
+      if (g->print_json) bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"], ");
+      else bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"] ");
     } 
     bpos=wr_strprint_clause(g,cl,buf,blen,bpos);        
     if (bpos<0) return bpos;
@@ -2201,7 +2208,9 @@ int wr_strprint_one_history
       bpos=wr_strprint_history_extra(g,buf,blen,bpos,history);
       if (bpos<0) return bpos;
     } else {
-      bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"] ");  
+      /* json: a comma before the clause */
+      if (g->print_json) bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"], ");
+      else bpos+=snprintf((*buf)+bpos,(*blen)-bpos,"] ");
     } 
     bpos=wr_strprint_clause(g,cl,buf,blen,bpos);        
     if (bpos<0) return bpos;

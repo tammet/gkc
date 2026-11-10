@@ -784,16 +784,18 @@ int wr_strprint_term_otter(glb* g, gint rec,int printlevel, char** buf, int *len
       if (//(g->print_clauses_tptp) && 
           wg_get_encoded_type(db,enc)==WG_URITYPE &&
           wg_decode_str(db,enc) && strlen(wg_decode_str(db,enc))==1) {
+        /* in json the name is a string: "$sum", not $sum */
+        const char* q=(g->print_clauses_json) ? "\"" : "";
         if (!strcmp(wg_decode_str(db,enc),"+")) {
-          pos+=snprintf((*buf)+pos,(*len)-pos,"$sum");
+          pos+=snprintf((*buf)+pos,(*len)-pos,"%s$sum%s",q,q);
         } else if (!strcmp(wg_decode_str(db,enc),"*")) {
-          pos+=snprintf((*buf)+pos,(*len)-pos,"$product");
+          pos+=snprintf((*buf)+pos,(*len)-pos,"%s$product%s",q,q);
         } else if (!strcmp(wg_decode_str(db,enc),"-")) {
-          pos+=snprintf((*buf)+pos,(*len)-pos,"$difference");
+          pos+=snprintf((*buf)+pos,(*len)-pos,"%s$difference%s",q,q);
         } else if (!strcmp(wg_decode_str(db,enc),"/")) {
-          pos+=snprintf((*buf)+pos,(*len)-pos,"$quotient");
+          pos+=snprintf((*buf)+pos,(*len)-pos,"%s$quotient%s",q,q);
         } else if (!strcmp(wg_decode_str(db,enc),"<")) {
-          pos+=snprintf((*buf)+pos,(*len)-pos,"$less");  
+          pos+=snprintf((*buf)+pos,(*len)-pos,"%s$less%s",q,q);
         } else {
           pos=wr_strprint_simpleterm_otter(g, enc,printlevel,buf,len,pos,0);
         }
@@ -804,7 +806,8 @@ int wr_strprint_term_otter(glb* g, gint rec,int printlevel, char** buf, int *len
     }           
     if (!wr_str_guarantee_space(g,buf,len,pos+10)) return -1;
     if (g->print_clauses_json) {
-      if (i==(g->unify_firstuseterm))  pos+=snprintf((*buf)+pos,(*len)-pos,",");
+      /* no comma after the functor of a zero-argument term: ["probe"], not ["probe",] */
+      if (i==(g->unify_firstuseterm) && i+1<clen)  pos+=snprintf((*buf)+pos,(*len)-pos,",");
     } else {
       if (i==(g->unify_firstuseterm))  pos+=snprintf((*buf)+pos,(*len)-pos,"(");
     }  
@@ -852,8 +855,17 @@ int wr_strprint_simpleterm_otter(glb* g, gint enc,int printlevel, char** buf, in
       return pos+snprintf((*buf)+pos,(*len)-pos,"%f", doubledata);
     case WG_STRTYPE:
       strdata = wg_decode_str(db, enc);
-      if (!wr_str_guarantee_space(g,buf,len,pos+strlen(strdata)+50)) return -1;
+      if (!wr_str_guarantee_space(g,buf,len,pos+6*strlen(strdata)+60)) return -1;
       if (g->print_clauses_json) {
+        if (wg_contains_dquote(strdata)) {
+          /* a string that needs escaping, as ":text" */
+          char* tmp=malloc(strlen(strdata)+2);
+          if (!tmp) return -1;
+          tmp[0]=':'; strcpy(tmp+1,strdata);
+          pos+=wg_print_dquoted(buf,*len,pos,tmp,isneg,0);
+          free(tmp);
+          return pos;
+        }
         if (isneg) {
           return pos+snprintf((*buf)+pos,(*len)-pos,"\"-:%s\"", strdata);
         } else {
@@ -873,7 +885,8 @@ int wr_strprint_simpleterm_otter(glb* g, gint enc,int printlevel, char** buf, in
       if (strdata) len1=strlen(strdata);
       if (exdata) len2=strlen(exdata);
       //printf("\nstrdata %s exdata %s\n",strdata,exdata);
-      if (!wr_str_guarantee_space(g,buf,len,pos+len1+len2+100)) return -1;
+      /* room for json escapes (\\uXXXX is 6 chars for 1) */
+      if (!wr_str_guarantee_space(g,buf,len,pos+6*len1+len2+100)) return -1;
       if (exdata==NULL) {        
         if (g->print_clauses_json) {
           if (isneg) {          
@@ -1098,10 +1111,13 @@ int wg_contains_quote(char* s) {
   return 0;
 }
 
+/* 1 when s needs escaping in a json string: a double quote, a backslash
+   or a control character (before, only the double quote counted, and
+   "a\\b" printed as the invalid json string "a\b") */
 int wg_contains_dquote(char* s) {
   if (!s) return 0;  
   for(; *s!=0; s++) {
-    if ((*s)=='"') return 1;   
+    if ((*s)=='"' || (*s)=='\\' || (unsigned char)(*s)<32) return 1;
   }
   return 0;
 }
@@ -1185,37 +1201,73 @@ int wg_print_quoted2(char** buf, int len, int pos, char* es, char* s) {
 }
 
 
-int wg_print_dquoted(char** buf, int len, int pos, char* s, int negflag, int uniqueflag) {
-  char c;
-  int i;
+/* s as the content of a json string, with the double quote, the backslash
+   and the control characters escaped, into dst of size dstlen (always
+   terminated); returns the length written */
+int wg_json_escape(char* dst, int dstlen, const char* s) {
+  int i=0;
+  unsigned char c;
 
-  //printf("\n len %d str %s\n",len,s);
-  if (!s || !buf || !len || len<2) return 0;      
-  *((*buf)+pos)='"';
-  if (negflag) {
-    pos++;
-    *((*buf)+pos)='-';
-  }  
-  if (uniqueflag) {
-    pos++;
-    *((*buf)+pos)='#';
-    pos++;
-    *((*buf)+pos)=':';    
+  if (!dst || dstlen<1) return 0;
+  if (!s) { dst[0]=0; return 0; }
+  for(; *s!=0; s++) {
+    c=(unsigned char)*s;
+    if (i+7>=dstlen) break;
+    if (c=='"' || c=='\\') { dst[i++]='\\'; dst[i++]=(char)c; }
+    else if (c=='\n') { dst[i++]='\\'; dst[i++]='n'; }
+    else if (c=='\t') { dst[i++]='\\'; dst[i++]='t'; }
+    else if (c=='\r') { dst[i++]='\\'; dst[i++]='r'; }
+    else if (c<32) i+=snprintf(dst+i,dstlen-i,"\\u%04x",c);
+    else dst[i++]=(char)c;
   }
-  for(i=1; *s!=0; s++, i++) {
-    c=*s;
-    if (c=='"') {
-      *((*buf)+pos+i)='\\';
-      i++;
-    }     
-    *((*buf)+pos+i)=c;   
-    if ((i+pos)>=len) return i;
-  }  
-  *((*buf)+pos+i)='"';
-  i++;
-  //printf("\n i %d\n",i);
-  if (negflag) return i+1+(uniqueflag ? 2 : 0);
-  else return i+(uniqueflag ? 2 : 0);
+  dst[i]=0;
+  return i;
+}
+
+/* print s to stdout as the content of a json string (escaped as in
+   wg_json_escape) */
+void wg_print_json_escaped(const char* s) {
+  unsigned char c;
+
+  if (!s) return;
+  for(; *s!=0; s++) {
+    c=(unsigned char)*s;
+    if (c=='"' || c=='\\') { putchar('\\'); putchar(c); }
+    else if (c=='\n') fputs("\\n",stdout);
+    else if (c=='\t') fputs("\\t",stdout);
+    else if (c=='\r') fputs("\\r",stdout);
+    else if (c<32) printf("\\u%04x",c);
+    else putchar(c);
+  }
+}
+
+/* s as a json string: "s", "-s" (negflag) or "#:s" (uniqueflag), with
+   the double quote, the backslash and the control characters escaped
+   (before, only the double quote). Returns the number of chars written;
+   stops before the end of buf rather than write past it */
+int wg_print_dquoted(char** buf, int len, int pos, char* s, int negflag, int uniqueflag) {
+  unsigned char c;
+  int i=0;
+  char* b;
+
+  if (!s || !buf || !len || len<2) return 0;
+  b=(*buf)+pos;
+  b[i++]='"';
+  if (negflag) b[i++]='-';
+  if (uniqueflag) { b[i++]='#'; b[i++]=':'; }
+  for(; *s!=0; s++) {
+    if (pos+i+8>=len) break;
+    c=(unsigned char)*s;
+    if (c=='"' || c=='\\') {
+      b[i++]='\\'; b[i++]=(char)c;
+    } else if (c<32) {
+      i+=snprintf(b+i,len-pos-i,"\\u%04x",c);
+    } else {
+      b[i++]=(char)c;
+    }
+  }
+  if (pos+i+1<len) b[i++]='"';
+  return i;
 }
 
 /*

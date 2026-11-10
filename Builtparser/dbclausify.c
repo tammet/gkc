@@ -1651,9 +1651,14 @@ void* show_clausify_warning(glb* g, char* format, ...) {
   if (g->parse_errmsg) return NULL;
   (g->parse_errmsg)=wr_malloc(g,1000);
   if (!(g->parse_errmsg)) return NULL;
-  tmp1=snprintf((g->parse_errmsg),50,"{\"error\": \"clausification error: ");
-  tmp2=vsnprintf((g->parse_errmsg)+tmp1,800,format,args);
-  snprintf((g->parse_errmsg)+tmp1+tmp2,50,"\"}");
+  {
+    /* the message as an escaped json string */
+    char plain[800];
+    vsnprintf(plain,sizeof(plain),format,args);
+    tmp1=snprintf((g->parse_errmsg),50,"{\"error\": \"clausification error: ");
+    tmp2=wg_json_escape((g->parse_errmsg)+tmp1,1000-tmp1-3,plain);
+    snprintf((g->parse_errmsg)+tmp1+tmp2,3,"\"}");
+  }
   va_end (args);
   //if (g && format && !strncmp(format,"could",5)) (g->parse_errflag)=1;
   //printf("\n(g->parse_errflag) %d\n",(g->parse_errflag));

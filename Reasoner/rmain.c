@@ -726,12 +726,14 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
 #endif    
     if (clause_count<0) {
       // error
-      wr_printf("\nError initializing clause lists.\n");
+      if (g->print_json) printf("{\"error\": \"error initializing clause lists\"}\n");
+      else wr_printf("\nError initializing clause lists.\n");
       wr_glb_free(g);
       break;
     } else if (!clause_count) {
-      // no clauses found
-      wr_printf("\nNo clauses found.\n");
+      // no clauses found: this run has none (the next run can have some);
+      // json output prints no text
+      if (!(g->print_json)) wr_printf("\nNo clauses found.\n");
       wr_glb_free(g);
       if (analyze_g) analyze_g=wr_free_analyze_g(analyze_g);
       break;

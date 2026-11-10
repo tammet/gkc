@@ -234,12 +234,33 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, in
   //printf("\nresult: %d pp.result %s\n",pres,(char*)pp.result);
 
   if (pp.errmsg) {
+    /* the lexer (dbotter.l) writes {"error": "<message>"} with the message
+       not escaped: it holds a newline and the text of the input line. The
+       message is escaped here, so that the generated parser stays as it is */
+    const char* pre="{\"error\": \"";
+    size_t pl=strlen(pre), ml=strlen(pp.errmsg);
     (g->parse_errflag)=1;
-    tmplen=strlen(pp.errmsg)+10;
-    (g->parse_errmsg)=malloc(tmplen);
-    if (g->parse_errmsg) {
-      strncpy(g->parse_errmsg,pp.errmsg,tmplen);
-    }  
+    if (ml>=pl && !strncmp(pp.errmsg,pre,pl)) {
+      char* mid=malloc(ml+1);
+      size_t k=ml-pl;
+      tmplen=(int)(6*ml+20);
+      (g->parse_errmsg)=malloc(tmplen);
+      if (mid && g->parse_errmsg) {
+        int n;
+        memcpy(mid,pp.errmsg+pl,k); mid[k]=0;
+        if (k>=2 && mid[k-2]=='"' && mid[k-1]=='}') mid[k-2]=0;   /* a truncated message has no end */
+        n=snprintf(g->parse_errmsg,tmplen,"%s",pre);
+        n+=wg_json_escape(g->parse_errmsg+n,tmplen-n-3,mid);
+        snprintf(g->parse_errmsg+n,tmplen-n,"\"}");
+      }
+      if (mid) free(mid);
+    } else {
+      tmplen=strlen(pp.errmsg)+10;
+      (g->parse_errmsg)=malloc(tmplen);
+      if (g->parse_errmsg) {
+        strncpy(g->parse_errmsg,pp.errmsg,tmplen);
+      }
+    }
     wr_free(g,pp.errmsg);
   }
   if (!pres && pp.result!=NULL) { 
@@ -2054,9 +2075,12 @@ int wr_show_parse_error(glb* g, char* format, ...) {
   (g->parse_errmsg)=malloc(1000);
   if (!(g->parse_errmsg)) return -1;
   if (1) { //(g->print_json) {
+    /* the message as an escaped json string */
+    char plain[800];
+    vsnprintf(plain,sizeof(plain),format,args);
     tmp1=snprintf((g->parse_errmsg),50,"{\"error\": \"parser error: ");
-    tmp2=vsnprintf((g->parse_errmsg)+tmp1,800,format,args);
-    snprintf((g->parse_errmsg)+tmp1+tmp2,50,"\"}");
+    tmp2=wg_json_escape((g->parse_errmsg)+tmp1,1000-tmp1-3,plain);
+    snprintf((g->parse_errmsg)+tmp1+tmp2,3,"\"}");
   } else {
     tmp1=snprintf((g->parse_errmsg),50,"parser error: ");
     tmp2=vsnprintf((g->parse_errmsg)+tmp1,800,format,args);
@@ -2101,6 +2125,7 @@ static int show_parse_warning(void* db, char* format, ...) {
 
 void db_err_printf2(char* s1, char* s2) {
 #ifdef ERRPRINT  
-  printf("{\"error\": \"%s %s\"}\n",s1,s2);
+  printf("{\"error\": \""); wg_print_json_escaped(s1); printf(" ");
+  wg_print_json_escaped(s2); printf("\"}\n");
 #endif  
 }
