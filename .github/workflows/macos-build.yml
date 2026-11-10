@@ -18,8 +18,8 @@ on:
 
 jobs:
   build:
-    # macos-14 = Apple silicon (arm64). Use macos-13 for Intel.
-    runs-on: macos-14
+    # macos-15 = Apple silicon (arm64); macos-14 is no longer accepted (2026-11-10).
+    runs-on: macos-15
 
     steps:
       - uses: actions/checkout@v4
