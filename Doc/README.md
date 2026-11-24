@@ -19,8 +19,10 @@ contains maintained references and implementation documentation.
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | Source map and end-to-end parser, strategy, search, inference, history, and shared-memory flow. |
 | [`DEVELOPMENT_GUIDE.md`](DEVELOPMENT_GUIDE.md) | Practical change patterns, test commands, and review checklists. |
 | [`DATA_REPRESENTATION.md`](DATA_REPRESENTATION.md) | Encoded values, records, clauses, terms, vectors, histories, queues, and run state. |
-| [`TERM_MATCHING.md`](TERM_MATCHING.md) | Equality, matching, unification, varbanks, varstack, and subsumption. |
+| [`TERM_MATCHING.md`](TERM_MATCHING.md) | Equality, matching, unification, varbanks, varstack, canonical term walking, and subsumption. |
 | [`SHARED_MEMORY.md`](SHARED_MEMORY.md) | Persistent KB segments, local query allocation, and read-only ownership rules. |
+| [`PERFORMANCE_AND_PARALLELISM.md`](PERFORMANCE_AND_PARALLELISM.md) | `fork()` worker pool, memory arenas, clause lifetimes, hot-path efficiency rules, and profiling. |
+| [`STRATEGIES_AND_HEURISTICS_DEV.md`](STRATEGIES_AND_HEURISTICS_DEV.md) | Problem analysis, portfolio scheduling, clause weighting, multi-queue selection, literal selection, ordering, and completeness rules. |
 | [`ARITHMETIC_INSTANTIATION.md`](ARITHMETIC_INSTANTIATION.md) | Current bounded numeric-instantiation algorithm, gates, limits, history, memory, and tests. |
 
 Regression inputs belong under [`Test/`](../Test/); only compact teaching

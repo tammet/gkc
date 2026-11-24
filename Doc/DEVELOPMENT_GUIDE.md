@@ -22,8 +22,10 @@ Before changing code, read:
    are built.
 9. `Reasoner/subsume.c`: canonical matching/backtracking idioms.
 10. `Doc/SHARED_MEMORY.md`: shared-memory KB invariants.
-11. `Doc/TERM_MATCHING.md`: equality, matching, unification, varstack, and subsumption traps.
-12. `Doc/ARITHMETIC_INSTANTIATION.md`: numeric frontier, probe, history, and
+11. `Doc/TERM_MATCHING.md`: equality, matching, unification, varstack, varbank lifecycle, canonical term walking, and subsumption traps.
+12. `Doc/PERFORMANCE_AND_PARALLELISM.md`: `fork()` worker pool, memory arenas, clause lifetimes, hot-path efficiency rules, and profiling.
+13. `Doc/STRATEGIES_AND_HEURISTICS_DEV.md`: analysis, portfolio scheduling, weighting, multi-queue selection, literal selection, ordering, and completeness rules.
+14. `Doc/ARITHMETIC_INSTANTIATION.md`: numeric frontier, probe, history, and
     budget rules when touching arithmetic or clause construction.
 
 Use `rg` first when exploring:
@@ -439,11 +441,24 @@ When adding an index:
 
 1. Add fields to `glb.h`.
 2. Initialize them in the shared/local complex init functions in `glb.c`.
-3. Free them in the corresponding cleanup functions.
-4. Store only offset values if the index may live inside a shared KB.
-5. Use `rotp` and `rpto` consistently.
-6. If the index is built during `-readkb`, treat it as read-only during
-   `-usekb` and read through `r_kb_g(g)`.
+3. Free them in the corresponding cleanup functions (`wr_glb_free_local_complex()`
+   for run-local heap structures so multi-strategy runs do not leak).
+4. Decide storage ownership by `g->inkb`:
+   * **Run-local indexes (`g->inkb == 0`):** Tree/trie/ordering indexes that
+     are rebuilt per run can safely live on the process heap (`sys_malloc` /
+     `wr_malloc` / typed node pools) and use normal C pointers.
+   * **Shared-KB indexes (`g->inkb != 0`):** Any index persisted during
+     `-readkb` must live inside WhiteDB memory and store only `db`-relative
+     offsets (`rpto`/`rotp`), never raw C pointers. Treat it as read-only
+     during `-usekb` and read through `r_kb_g(g)`.
+5. **Eager index removal, never clause freeing:** When a clause is
+   back-subsumed or backward-demodulated, remove its entries from active
+   indexes so scans stay clean, but **never** free or overwrite the clause
+   record or history record itself (proof printing still follows parent links
+   to deleted clauses; see `Doc/PERFORMANCE_AND_PARALLELISM.md`).
+6. Keep container element formats consistent: `clqueue`/`clactive`/`clpickstack`
+   store raw `(gint)cl` pointers, whereas `clactivesubsume` and
+   `CLTERM_HASHNODE` store `db`-relative offsets (see `Doc/DATA_REPRESENTATION.md`).
 
 If an index stores terms or clauses from both local and KB segments, remember
 that `g->db` is the offset base. Local encodings produced through `local_db`
@@ -642,7 +657,7 @@ if (wr_atom_funhash(g, a) == wr_atom_funhash(g, b) &&
 wr_clear_varstack(g, g->varstack);
 ```
 
-### Reading Atom Field 0
+### Reading Atom Field 0 or Ignoring `unify_maxuseterms`
 
 Bad:
 
@@ -653,9 +668,75 @@ gint maybe_subterm = atomptr[RECORD_HEADER_GINTS + 0];
 Good:
 
 ```c
-for (int i = g->unify_firstuseterm; i < get_record_len(atomptr); i++) {
-  gint subterm = atomptr[RECORD_HEADER_GINTS + i];
+int start = wr_term_unify_startpos(g);
+int end   = wr_term_unify_endpos(g, atomptr);
+for (int i = start + 1; i < end; i++) {
+  gint subterm = atomptr[i];
 }
+```
+
+### Unifying Two Clauses From the Same Variable Bank
+
+Bad:
+
+```c
+/* Both active_cl1 and active_cl2 live in Bank 2: X0 collides with X0! */
+wr_unify_term(g, atom_from_active1, atom_from_active2, 1);
+```
+
+Good:
+
+```c
+/* Rename one clause into a disjoint bank before unification, then clear varstack. */
+```
+
+### Freeing or Overwriting a Back-Subsumed Clause Record
+
+Bad:
+
+```c
+/* Corrupts proof printing if any derived clause references cl as a parent. */
+overwrite_or_free_clause(cl);
+```
+
+Good:
+
+```c
+/* Mark deleted and unlink from active indexes only; keep arena/history intact. */
+wr_set_cl_backsubsumed(g, cl);
+```
+
+### Mixing Raw `gptr` Elements and WhiteDB Offsets in `clstore.c`
+
+Bad:
+
+```c
+/* clqueue stores raw (gint)cl pointers, not offsets! */
+gptr cl = rotp(g, (rotp(g, g->clqueue))[i]);
+```
+
+Good:
+
+```c
+gptr cl = (gptr)((rotp(g, g->clqueue))[i]);
+/* By contrast, CLMETABLOCK_CL_POS and CLTERM_HASHNODE_CL_POS ARE offsets: */
+gptr acl = rotp(g, node[CLTERM_HASHNODE_CL_POS]);
+```
+
+### Calling `malloc()` or `wg_decode_uri()` Inside Inner Loops
+
+Bad:
+
+```c
+/* Per-comparison string decoding kills inner-loop throughput. */
+if (strcmp(wg_decode_uri(g->db, fun1), wg_decode_uri(g->db, fun2)) == 0) ...
+```
+
+Good:
+
+```c
+/* With uniquestrflag == 1, interned URI gints compare directly. */
+if (fun1 == fun2) ...
 ```
 
 ## 19. Keeping Documentation in Sync
@@ -665,11 +746,16 @@ Update the focused document that owns the invariant you changed:
 * `Doc/ARCHITECTURE.md`: source ownership, process order, and high-level
   search architecture.
 * `Doc/DATA_REPRESENTATION.md`: encoded values, record layouts, clause/term
-  representation, buffers, varbanks, and offset-base rules.
-* `Doc/TERM_MATCHING.md`: equality, one-way matching, unification, varstack,
-  and subsumption behavior.
+  representation, hash families, buffers, varbanks, and offset-base rules.
+* `Doc/TERM_MATCHING.md`: equality, one-way matching, unification, varbank
+  lifecycle, varstack, canonical term walking, and subsumption behavior.
 * `Doc/SHARED_MEMORY.md`: shared KB build/query behavior, read-only guards,
   local allocation, and platform hazards.
+* `Doc/PERFORMANCE_AND_PARALLELISM.md`: `fork()` worker pool, memory arenas,
+  clause lifetimes, hot-path efficiency rules, and profiling.
+* `Doc/STRATEGIES_AND_HEURISTICS_DEV.md`: input analysis, portfolio scheduling,
+  clause weighting, multi-queue selection, literal selection, ordering, and
+  completeness rules.
 * `Doc/ARITHMETIC_INSTANTIATION.md`: arithmetic gates, candidates, progress,
   limits, cache ownership, histories, and regression boundaries.
 * `README.md` and `Examples/README.md`: user-visible commands, examples, and
@@ -686,15 +772,25 @@ Before finishing a change:
 
 * Clause kind checks handle fact and rule clauses separately.
 * Literal polarity is read from meta.
-* Term iteration starts at `g->unify_firstuseterm`.
-* Matching/unification uses the right direction and relation.
-* Varstack is restored on every failed or completed probe.
+* Term iteration uses `wr_term_unify_startpos(g)` and
+  `wr_term_unify_endpos(g, ptr)` (skipping field 0 and honoring
+  `unify_maxuseterms`).
+* Matching/unification uses the right direction and relation, and never unifies
+  two clauses from the same variable bank without renaming.
+* Varstack is restored on every failed or completed probe and after any
+  `build_rename` pass.
+* Deleted/back-subsumed clauses are unlinked from indexes but their arena
+  records and histories are preserved for proof printing.
+* Container element formats (`(gint)cl` vs. `rpto` offset) match the container.
+* Hot paths avoid `malloc()`/`free()`, full-array `memset`, and
+  `wg_decode_uri()`/`strcmp()`.
 * New records and computed values allocate through `g->local_db`.
 * Shared-KB records are not mutated.
 * `vec`/`cvec` helper return values are reassigned.
 * Build flags and buffers are restored by existing cleanup helpers.
 * Histories are created for new derivations.
-* New strategy/CLI fields have defaults.
+* New strategy/CLI fields have defaults and preserve complete portfolio
+  fallbacks.
 * Arithmetic changes pass the focused acceptance driver and preserve explicit
   mode 0 controls.
 * `-parallel 0` smoke tests pass.

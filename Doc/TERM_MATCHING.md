@@ -81,6 +81,54 @@ varstack[2...] = addresses of varbank cells that have been assigned
 address to the varstack. Clearing the stack writes `UNASSIGNED` back to each
 pushed cell and resets `varstack[1]`.
 
+### Variable-Bank Lifecycle, Renaming, and Same-Bank Collisions
+
+Clauses transition through fixed variable banks during the given-clause loop so
+two clauses participating in a binary inference never share variable IDs:
+
+```text
+Input / Passive (queue_termbuf):   Bank 0  (var numbers    0 ..  999)
+  -> Selected given (given_termbuf): Bank 1  (var numbers 1000 .. 1999)
+  -> Activated clause (active_termbuf): Bank 2  (var numbers 2000 .. 2999)
+
+Binary inference (Bank 1 given + Bank 2 active):
+  -> Half-built derived (derived_termbuf): Bank 3  (var numbers 3000 .. 3999)
+  -> Kept queued copy (queue_termbuf):     Bank 0  (var numbers    0 ..  999)
+```
+
+Renaming is performed inside `wr_build_calc_term()` (`Reasoner/build.c`) using
+**Bank 4** (`FIRST_UNREAL_VAR_NR == 4000`) as a temporary sentinel space:
+
+1. Callers enable renaming through setup helpers such as
+   `wr_process_given_cl_setupsubst(g, buf, banknr, reuseflag)` (which sets
+   `g->build_rename = 1`, `g->build_rename_vc = 0`, `g->build_rename_banknr`,
+   and `g->tmp_unify_vc = &g->varstack[1]`).
+2. When `wr_build_calc_term()` encounters a variable `x` with
+   `vnr = decode_var(x) < FIRST_UNREAL_VAR_NR`, it allocates
+   `newvar = g->build_rename_vc + FIRST_UNREAL_VAR_NR`, records the mapping via
+   `SETVAR(x, encode_var(newvar), g->varbanks, g->varstack, g->tmp_unify_vc)`,
+   and returns `encode_var(banknr * NROF_VARSINBANK + (newvar - FIRST_UNREAL_VAR_NR))`.
+3. Subsequent occurrences of `x` dereference through `VARVAL_F` to `newvar`
+   (`>= FIRST_UNREAL_VAR_NR`) and map directly to the same target-bank variable.
+
+Three subtle invariants follow directly from this mechanism:
+
+* **`build_rename` mutates `g->varbanks` and `g->varstack`:** Even when no
+  matching or unification ran, renaming pushes entries onto `g->varstack`.
+  Callers **must** pair every rename pass with cleanup
+  (`wr_process_given_cl_cleanupsubst()` or `wr_clear_varstack*()`), and Bank 4
+  must remain `UNASSIGNED` when not in use.
+* **Per-clause variable limit (`alloc_err = 3`):** If `g->build_rename_vc >= NROF_VARSINBANK`
+  (1,000 distinct variables), `wr_build_calc_term()` increments
+  `stat_internlimit_discarded_cl`, sets `g->alloc_err = 3`, and returns
+  `WG_ILLEGAL`.
+* **Same-bank collision hazard:** Unifying two clauses from the **same** bank
+  (for example, two Bank-2 active clauses during backward demodulation, or a
+  clause with itself during self-paramodulation or factoring across distinct
+  copies) silently equates variables with the same number (`X0` in clause A
+  collides with `X0` in clause B). Whenever unifying two clauses that could
+  reside in the same bank, rename one clause into a disjoint bank first.
+
 ## 3. The Three Core Relations
 
 Use the relation that matches the intended semantics:
@@ -300,7 +348,66 @@ the same. `p(a)` and `p(b)` have the same predicate symbol. They are not equal,
 one does not match the other unless variables allow it, and they do not unify
 unless their arguments do.
 
-## 11. Failure Modes to Check in Review
+## 11. Canonical Recursive Term Walker
+
+Because compound terms are WhiteDB data records whose field 0 is reserved and
+whose compared length may be capped by `g->unify_maxuseterms`, every recursive
+term traversal (orderings, indexing, weighting, occurrence checks, rewriting)
+should follow this canonical template:
+
+```c
+static void walk_term(glb *g, gint x, gptr vb, int depth) {
+  if (depth > MAX_TERM_WALK_DEPTH) {
+    /* guard against stack overflow on pathological chains */
+    return;
+  }
+
+  /* 1. Optional dereference under active bindings (omit if walking static terms). */
+  if (vb != NULL && isvar(x)) {
+    x = VARVAL_F(x, vb);
+  }
+
+  /* 2. Unbound variable. */
+  if (isvar(x)) {
+    int vnr = decode_var(x); /* includes bank offset */
+    (void)vnr;
+    return;
+  }
+
+  /* 3. Non-record atoms/constants: URI, smallint, fullint, fulldouble, str, ACONST_*. */
+  if (!isdatarec(x)) {
+    /* Compare interned URIs & immediates directly by gint when uniquestrflag == 1. */
+    return;
+  }
+
+  /* 4. Compound term / atom data record. */
+  gptr ptr = decode_record(g->db, x);
+  int start = wr_term_unify_startpos(g);      /* RECORD_HEADER_GINTS + g->unify_firstuseterm */
+  int end   = wr_term_unify_endpos(g, ptr);   /* respects g->unify_maxuseterms */
+  gint fun  = ptr[start];                     /* functor / predicate symbol (field 1) */
+  (void)fun;
+
+  for (int i = start + 1; i < end; i++) {
+    walk_term(g, ptr[i], vb, depth + 1);
+  }
+}
+```
+
+Key details of this pattern:
+
+* **Start and end positions:** Always use `wr_term_unify_startpos(g)` and
+  `wr_term_unify_endpos(g, ptr)` (from `Reasoner/clterm.h`) rather than
+  hardcoding field `0` or raw `get_record_len(ptr)`, so reserved field 0 is
+  skipped and `g->unify_maxuseterms` is honored.
+* **Equality atoms:** For an equality atom `ptr`, the two equated terms live at
+  `ptr[RECORD_HEADER_GINTS + g->unify_funarg1pos]` and
+  `ptr[RECORD_HEADER_GINTS + g->unify_funarg2pos]` (fields 2 and 3 in the
+  normal layout).
+* **Deep terms:** If a walker can be invoked on arbitrarily deep terms inside
+  an index or ordering, either cap recursion depth explicitly or use a
+  preallocated iterative stack in `glb`.
+
+## 12. Failure Modes to Check in Review
 
 1. Matching called with arguments reversed. The general side must be first.
 2. Full unification used where one-way subsumption matching is required.
@@ -318,3 +425,7 @@ unless their arguments do.
     especially dangerous in shared-KB runs.
 12. Bindings intentionally kept across sequential matches but then accidentally
     cleared before the shared substitution is consumed.
+13. Unifying two clauses residing in the **same** variable bank without
+    renaming one to a disjoint bank first.
+14. Calling `wr_build_calc_term()` with `g->build_rename == 1` and forgetting
+    to clear `g->varstack` afterward (leaving Bank-4 rename sentinels live).

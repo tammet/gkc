@@ -454,6 +454,19 @@ If `USE_TERM_META` is enabled in a future build, field 0 is interpreted with
 current normal build it is a reserved slot, not a valid subterm. This is a
 common source of crashes in term-walking code.
 
+### Copied Trees, Not Globally Hash-Consed DAGs
+
+Compound terms (`isdatarec(x)`) are copied as fresh record trees by
+`wr_build_calc_term()` into the active build arena; gkc does **not** perform
+global hash-consing of compound terms. Therefore:
+
+* Two structurally identical compound terms usually have **different** `gint`
+  encoded offsets. `x == y` is a fast positive shortcut, but `x != y` does not
+  imply structural inequality — call `WR_EQUAL_TERM` or `wr_equal_term()`.
+* Interned URI/symbol strings (under the standard `uniquestrflag == 1` setting)
+  and immediate scalars (smallints, encoded variables, `ACONST_*`) *are* unique
+  by value and can be compared directly via `gint` equality.
+
 ## 9. Variables, Varbanks, and Varstack
 
 Variables are immediate encoded `gint` values. `decode_var(x)` is the full
@@ -624,25 +637,66 @@ for max priority, min pickable priority, max used priority, and max keep
 priority. Each priority bucket array stores length, next free index, next pick
 index, and bucket-array offset.
 
-### Hash Nodes
+### Hash Encodings and the Four Hash-Table Families
 
-Resolution, paramodulation, rewrite, and related indexes use hash-list nodes of
-`CLTERM_HASHNODE_GINT_NR == 4` gints:
+`Reasoner/hash.h` and `Reasoner/hash.c` implement four distinct hash
+mechanisms. Do not mix accessors across families:
 
-| Position | Macro | Meaning |
+1. **`clterm_hashlist` (`vec` of `NROF_CLTERM_HASHVEC_ELS == 1,000,000` buckets):**
+   Used for `hash_pos_atoms`, `hash_neg_atoms`, `hash_para_terms`,
+   `hash_eq_terms`, and `hash_rewrite_terms`. Hash values are combined with
+   `WR_HASH_ADD(toadd, orig)` (sdbm-style mixing) and folded into valid bucket
+   indices `1 .. (maxsize - 2)` via `WR_HASH_NORM(tonorm, maxsize)` (slot 0 is
+   the `vec` length header). Each bucket chains 4-`gint` `CLTERM_HASHNODE`
+   records:
+
+   | Position | Macro | Meaning |
+   | --- | --- | --- |
+   | 0 | `CLTERM_HASHNODE_TERM_POS` | Indexed term or atom (`gint`). |
+   | 1 | `CLTERM_HASHNODE_CL_POS` | Parent clause (`db`-relative offset via `rpto`). |
+   | 2 | `CLTERM_HASHNODE_PATH_POS` | Term path for paramodulation/rewrite indexes. |
+   | 3 | `CLTERM_HASHNODE_NEXT_POS` | Next node in bucket. |
+
+   `CLTERM_HASHNODE_LEN_POS` aliases position 0 for allocation/free-list
+   handling. With `MALLOC_HASHNODES` enabled, nodes come from malloc; otherwise
+   they are allocated from `g->hash_nodes`.
+
+2. **`termhash` and `offset_termhash` (dynamic `cvec` buckets):**
+   Managed via `wr_push_termhash()` / `wr_find_termhash()` and the `offset_`
+   variants. Used for ground-unit and ground-double indexes:
+   `hash_{pos,neg}_groundunits`, `hash_{pos,neg}_active_groundunits`, and
+   `hash_{pos,neg}_grounddoubles`.
+
+3. **`atomhash` (`ATOMHASH_NODE_SIZE == 4`):**
+   Managed via `wr_push_atomhash()` / `wr_find_atomhash_bucketnode()` with
+   fields `ATOMHASH_ATOM_POS`, `ATOMHASH_ATOMNR_POS`,
+   `ATOMHASH_POSCLAUSES_POS`, and `ATOMHASH_NEGCLAUSES_POS`. Used by
+   `hash_atom_occurrences` for unit propagation.
+
+4. **Base term hashing (`wr_term_basehash()`):**
+   Computes a base hash in `1 .. (N - 3)` for primitive and symbol encodings.
+   For URI/long-string records, the hash is cached in `LONGSTR_RHASH_POS`,
+   guarded by `wg_in_attached_kb()` so `-usekb` queries never write into
+   read-only shared KB URI records.
+
+### Pointer-vs-Offset Storage in Clause Containers
+
+Not every clause container in `Reasoner/clstore.c` stores clauses in the same
+representation. Mixing raw `gptr` casts with `db`-relative offsets causes
+immediate crashes:
+
+| Container / Field | Stored element format | Conversion required on read |
 | --- | --- | --- |
-| 0 | `CLTERM_HASHNODE_TERM_POS` | Indexed term or atom. |
-| 1 | `CLTERM_HASHNODE_CL_POS` | Parent clause. |
-| 2 | `CLTERM_HASHNODE_PATH_POS` | Term path for paramodulation/rewrite indexes. |
-| 3 | `CLTERM_HASHNODE_NEXT_POS` | Next node in bucket. |
+| `clqueue`, `clactive`, `clpickstack` (`clstore.c`) | Raw `(gint)cl` (`gptr` cast to `gint`) | Cast back to `(gptr)` directly — do **not** call `rotp()` on elements. |
+| `clactivesubsume` (`CLMETABLOCK_CL_POS`) | `db`-relative offset (`rpto(g, cl)`) | Decode with `rotp(g, val)`. |
+| `CLTERM_HASHNODE` (`CLTERM_HASHNODE_CL_POS`) | `db`-relative offset (`rpto(g, cl)`) | Decode with `rotp(g, val)`. |
+| `glb` vector/buffer heads (e.g. `g->clqueue`, `g->clactivesubsume`) | `db`-relative offset (`rpto(g, ptr)`) | Decode the container head with `rotp(g, g->field)`. |
 
-`CLTERM_HASHNODE_LEN_POS` aliases position 0 for allocation/free-list handling.
-With `MALLOC_HASHNODES` enabled, nodes come from malloc; otherwise they are
-allocated from `g->hash_nodes`.
-
-The older atom-hash implementation in `hash.h` uses `ATOMHASH_NODE_SIZE == 4`:
-`ATOMHASH_ATOM_POS`, `ATOMHASH_ATOMNR_POS`, `ATOMHASH_POSCLAUSES_POS`, and
-`ATOMHASH_NEGCLAUSES_POS`.
+Note the two-level trap in `clstore.c`: the container head `g->clqueue` itself
+is stored as an offset (`rotp(g, g->clqueue)`), while the clause elements
+pushed inside that `cvec` are raw `(gint)cl` pointers. By contrast,
+`clactivesubsume` and `CLTERM_HASHNODE` store clause offsets so shared-KB
+structures remain relocatable across processes.
 
 ### Active-Clause Subsumption Blocks
 
@@ -656,7 +710,7 @@ The older atom-hash implementation in `hash.h` uses `ATOMHASH_NODE_SIZE == 4`:
 | 2 | `CLMETABLOCK_PREF1BITS_POS` | Predicate-symbol bitmask. |
 | 3 | `CLMETABLOCK_PREF2BITS_POS` | Predicate plus shallow-argument bitmask. |
 | 4 | `CLMETABLOCK_PREF3BITS_POS` | Longer prefix bitmask. |
-| 5 | `CLMETABLOCK_CL_POS` | Clause pointer/offset. |
+| 5 | `CLMETABLOCK_CL_POS` | Clause offset (`rpto(g, cl)`). |
 
 Older revisions also declared an incompatible five-gint `CLACTIVE_NODE_*`
 layout in `clstore.h`; those unused definitions were removed. Current storage
@@ -676,28 +730,38 @@ Paramodulation paths are packed integers:
 Use `wr_encode_para_termpath()`, `wr_decode_para_termpath_litnr()`, and
 `wr_decode_para_termpath_pos()` rather than open-coding these masks.
 
-### Resolution Scan Pattern
+### Resolution Scan Pattern (3-Level Ground-Prefix Hashing)
 
-The binary-resolution scan follows this representation pattern:
+By default (`SIMPLE_ACTIVE_SEARCH_HASH` is undefined), binary resolution in
+`Reasoner/resolve.c` uses **3-level ground-prefix hashing** rather than a
+single functor-only hash:
 
-1. For each literal in the given clause, compute the atom functor hash with
-   `wr_atom_funhash(g, atom)`.
-2. Select the opposite-polarity active atom index:
-   `hash_pos_atoms` for a negative given literal, `hash_neg_atoms` for a
-   positive given literal.
-3. Scan the hash bucket. Each node carries the indexed term and its parent
-   clause.
-4. Call `wr_unify_term(g, xatom, yatom, 1)`.
-5. On success, build the resolvent through `wr_process_resolve_result()`.
-6. Clear the varstack before the next candidate.
+1. For an indexed active literal, `wr_atom_calc_prefhashes(g, atom, prefhashes)`
+   walks the atom in preorder up to `ATOM_PREFHASH_MAXLEN == 3` non-variable
+   symbols, stopping at the first variable and recording cumulative hashes
+   (`WR_HASH_ADD` + `WR_HASH_NORM`) in `prefhashes[0..preflen-1]`. The active
+   literal is stored in the bucket for its longest ground prefix
+   (`prefhashes[preflen - 1]`).
+2. For a given literal in `resolve.c`, `wr_atom_calc_prefhashes()` computes its
+   prefix hashes `prefhashes[0..preflen-1]`, and the scan probes **every
+   prefix level** `0 .. preflen - 1` in the opposite-polarity active atom index
+   (`hash_pos_atoms` for a negative given literal, `hash_neg_atoms` for a
+   positive given literal). Thus a ground literal `p(a, b)` probes buckets for
+   `p` (finding `p(X, Y)`), `p(a` (finding `p(a, Y)`), and `p(a, b` (finding
+   `p(a, b)`).
+3. For each node in the probed bucket(s), decode the clause offset with
+   `rotp(g, node[CLTERM_HASHNODE_CL_POS])` and call `wr_unify_term(g, xatom, yatom, 1)`.
+4. On success, build the resolvent through `wr_process_resolve_result()`.
+5. Clear the varstack before the next candidate.
 
 The relevant helpers include:
 
 ```c
 wr_cl_store_res_terms(g, cl, resolvability);
+wr_atom_calc_prefhashes(g, atom, prefhashes);
 wr_term_hashstore(g, hashdata, term, cl);
 wr_term_complexhash(g, hasharr, hashposbits, term);
-wr_atom_funhash(g, atom);
+wr_atom_funhash(g, atom); /* functor-only helper; not the default active-res scan */
 wr_clterm_add_hashlist(g, hashvec, hash, term, cl);
 wr_clterm_add_hashlist_withpath(g, hashvec, hash, term, cl, path);
 ```
