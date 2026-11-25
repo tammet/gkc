@@ -55,6 +55,43 @@ extern "C" {
 
 
 /*
+  The half-built clause of a derived clause is built in derived_termbuf. When
+  it does not fit, wr_alloc_from_cvec sets derived_build_overflow instead of
+  an allocation error, the build returns WG_ILLEGAL, and the caller drops the
+  clause as it drops a tautology. wr_derived_build_end counts the drop and,
+  when a time limit has passed, sets derived_overflow_timeout: the four
+  wr_process_*_result functions then return at once, the inference loops in
+  resolve.c end, and wr_genloop stops with its time-limit result.
+*/
+
+static void wr_derived_build_begin(glb* g) {
+  (g->derived_build_active)=1;
+  (g->derived_build_overflow)=0;
+}
+
+static void wr_derived_build_end(glb* g) {
+  clock_t curclock;
+  float run_seconds, run_dseconds, total_seconds;
+
+  if (g->derived_build_overflow) {
+    (g->stat_derived_overflow_dropped)++;
+    // a drop costs a full derived_termbuf: test the time limits of
+    // wr_genloop here, since the inference loops do not test max_seconds
+    curclock=clock();
+    run_seconds=(float)(curclock-(g->run_start_clock)) / CLOCKS_PER_SEC;
+    run_dseconds=(float)(curclock-(g->run_start_clock)) / ((float)CLOCKS_PER_SEC / 10.0);
+    total_seconds=(float)(curclock-(dbmemsegh(g->db)->allruns_start_clock)) / CLOCKS_PER_SEC;
+    if (((g->max_run_seconds) && (run_seconds>(g->max_run_seconds))) ||
+        ((g->max_run_dseconds) && (run_dseconds>(g->max_run_dseconds))) ||
+        ((g->max_seconds) && (total_seconds>(g->max_seconds)))) {
+      (g->derived_overflow_timeout)=1;
+    }
+  }
+  (g->derived_build_active)=0;
+  (g->derived_build_overflow)=0;
+}
+
+/*
   Final steps of a derived clause, shared by wr_process_resolve_result,
   wr_process_factor_result, wr_process_paramodulate_result and
   wr_process_instgen_result. They start after res and its history are built.
@@ -246,6 +283,7 @@ void wr_process_resolve_result
   wr_printf("\n");
   wr_print_vardata(g);  
 #endif  
+  if (g->derived_overflow_timeout) return; // time limit passed at a drop
   ++(g->stat_derived_cl);
   ++(g->stat_binres_derived_cl);  
   // get basic info about clauses
@@ -275,6 +313,7 @@ void wr_process_resolve_result
   //        xisrule,yisrule,xatomnr,yatomnr,rlen);
   // set up var rename params
   wr_process_resolve_result_setupsubst(g);  
+  wr_derived_build_begin(g);
   // store all ready-built atoms sequentially, excluding duplicates
   // and looking for tautology: only for rule clauses needed    
   rpos=0;
@@ -282,6 +321,7 @@ void wr_process_resolve_result
     tmp=wr_process_resolve_result_aux(g,xcl,xatom,xatomnr,rptr,&rpos,&cutpos1,-1,0);
     if (!tmp) {
       wr_process_resolve_result_cleanupsubst(g);       
+      wr_derived_build_end(g);
       return; 
     }  
   }
@@ -289,10 +329,12 @@ void wr_process_resolve_result
     tmp=wr_process_resolve_result_aux(g,ycl,yatom,yatomnr,rptr,&rpos,&cutpos2,-1,0);
     if (!tmp) {
       wr_process_resolve_result_cleanupsubst(g);   
+      wr_derived_build_end(g);
       return;
     }  
   }
   wr_process_resolve_result_cleanupsubst(g);  
+  wr_derived_build_end(g);
   if (rpos==0) {
     g->proof_found=1;     
     g->proof_history=wr_build_resolve_history(g,xcl_as_active,ycl,cutpos1,cutpos2,NULL);
@@ -436,6 +478,7 @@ void wr_process_instgen_result
     atom=yatom;
   }  
   if (wr_ground_term(g,atom)) return;
+  if (g->derived_overflow_timeout) return; // time limit passed at a drop
   ++(g->stat_derived_cl);
   ++(g->stat_instgen_derived_cl); 
   // get basic info about clauses
@@ -456,15 +499,18 @@ void wr_process_instgen_result
   //        xisrule,yisrule,xatomnr,yatomnr,rlen);
   // set up var rename params
   wr_process_resolve_result_setupsubst(g);  
+  wr_derived_build_begin(g);
   // store all ready-built atoms sequentially, excluding duplicates
   // and looking for tautology: only for rule clauses needed    
   rpos=0;
   tmp=wr_process_instgen_result_aux(g,cl,atom,atomnr,rptr,&rpos,&cutpos1,-1,0);
   if (!tmp) {
     wr_process_resolve_result_cleanupsubst(g);       
+    wr_derived_build_end(g);
     return; 
   }
   wr_process_resolve_result_cleanupsubst(g);  
+  wr_derived_build_end(g);
   if (rpos==0) {
     g->proof_found=1;   
     if (usexcl) g->proof_history=wr_build_instgen_history(g,xcl_as_active,ycl,cutpos1,cutpos2,NULL);
@@ -568,6 +614,7 @@ void wr_process_factor_result
   wr_print_vardata(g);
 #endif  
 
+  if (g->derived_overflow_timeout) return; // time limit passed at a drop
   ++(g->stat_derived_cl);
   ++(g->stat_factor_derived_cl);
   // reserve sufficient space in derived_termbuf for simple sequential store of atoms:
@@ -588,15 +635,18 @@ void wr_process_factor_result
   }  
   // set up var rename params
   wr_process_resolve_result_setupsubst(g);  
+  wr_derived_build_begin(g);
   // store all ready-built atoms sequentially, excluding duplicates
   // and looking for tautology: only for rule clauses needed    
   rpos=0;
   tmp=wr_process_resolve_result_aux(g,xcl,xatom,len,rptr,&rpos, &cutpos1,-1,0);
   if (!tmp) {
     wr_process_resolve_result_cleanupsubst(g);       
+    wr_derived_build_end(g);
     return; 
   }    
   wr_process_resolve_result_cleanupsubst(g);
+  wr_derived_build_end(g);
   if (rpos==0) { 
     g->proof_found=1; 
     g->proof_history=wr_build_factorial_history(g,xcl_as_active,x,y,NULL);
@@ -736,6 +786,7 @@ void wr_process_paramodulate_result
   wr_printf("\leftflag: %d\n",leftflag); 
   wr_print_vardata(g);
 #endif  
+  if (g->derived_overflow_timeout) return; // time limit passed at a drop
   ++(g->stat_derived_cl);
   ++(g->stat_para_derived_cl);
   // get basic info about clauses
@@ -780,6 +831,7 @@ void wr_process_paramodulate_result
   //        xisrule,yisrule,xatomnr,yatomnr,rlen);
   // set up var rename params
   wr_process_resolve_result_setupsubst(g);  
+  wr_derived_build_begin(g);
   // store all ready-built atoms sequentially, excluding duplicates
   // and looking for tautology: only for rule clauses needed    
   rpos=0;
@@ -787,6 +839,7 @@ void wr_process_paramodulate_result
     tmp=wr_process_resolve_result_aux(g,xcl,xatom,xatomnr,rptr,&rpos,&cutpos1,-1,0);    
     if (!tmp) {
       wr_process_resolve_result_cleanupsubst(g);       
+      wr_derived_build_end(g);
       return; 
     }  
   }
@@ -794,10 +847,12 @@ void wr_process_paramodulate_result
   tmp=wr_process_resolve_result_aux(g,ycl,0,yatomnr,rptr,&rpos,&cutpos2,path,bterm);
   if (!tmp) {
     wr_process_resolve_result_cleanupsubst(g);   
+    wr_derived_build_end(g);
     return;
   }  
   //}
   wr_process_resolve_result_cleanupsubst(g);  
+  wr_derived_build_end(g);
   if (rpos==0) {
     g->proof_found=1; 
     if (fromflag) {

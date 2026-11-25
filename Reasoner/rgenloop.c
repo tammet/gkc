@@ -113,6 +113,7 @@ int wr_genloop(glb* g) {
   //wr_show_clactivesubsume(r_kb_g(g));
 
   (g->run_start_clock)=clock();  
+  (g->derived_overflow_timeout)=0;
   //clear_active_cl_list(); // ???
   wr_clear_all_varbanks(g);  
   // loop until no more passive clauses available

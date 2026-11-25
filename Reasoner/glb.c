@@ -392,6 +392,10 @@ int wr_glb_init_simple(glb* g) {
   (g->stat_weight_discarded_building)=0;
   (g->stat_weight_discarded_cl)=0;
   (g->stat_internlimit_discarded_cl)=0;
+  (g->stat_derived_overflow_dropped)=0;
+  (g->derived_build_active)=0;
+  (g->derived_build_overflow)=0;
+  (g->derived_overflow_timeout)=0;
   (g->stat_internlimit_discarded_para)=0;
   (g->stat_given_candidates)=0;
   (g->stat_given_candidates_at_endgame)=0;

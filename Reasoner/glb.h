@@ -505,6 +505,10 @@ typedef struct glb {
   int stat_weight_discarded_building;
   int stat_weight_discarded_cl;
   int stat_internlimit_discarded_cl;
+  int stat_derived_overflow_dropped; // derived clauses dropped: did not fit into derived_termbuf
+  int derived_build_active;  // 1 while a wr_process_*_result builds its half-built clause
+  int derived_build_overflow; // 1 when derived_termbuf overflowed during that build
+  int derived_overflow_timeout; // 1 when the time limit passed at a drop: derivation stops
   int stat_internlimit_discarded_para;
   int stat_given_candidates;
   int stat_given_candidates_hyper;

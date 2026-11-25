@@ -457,6 +457,12 @@ gptr wr_alloc_from_cvec(glb* g, cvec buf, gint gints) {
   //printf("wr_alloc_from_cvec final pos %d buf+pos %d remainder with VEC_ALIGNMENT_BYTES %d\n",
   //        pos,buf+pos,((gint)(buf+pos))%VEC_ALIGNMENT_BYTES);
   if ((pos+gints)>=CVEC_LEN(buf)) {
+    if (buf==(g->derived_termbuf) && (g->derived_build_active)) {
+      // a half-built derived clause does not fit: the wr_process_*_result
+      // function drops this one clause and the run goes on
+      (g->derived_build_overflow)=1;
+      return NULL;
+    }
     wr_alloc_err(g," local temp buffer overflow");
     //printf("\n cpx12 CVEC_LEN(buf): %d, pos: %d, gints: %d\n",CVEC_LEN(buf),pos,gints);
     (g->alloc_err)=1;

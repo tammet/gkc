@@ -354,7 +354,8 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active, cvec resol
             wr_clear_varstack(g,g->varstack);              
             //wr_print_vardata(g);
             // extra time check
-            if ((g->stat_derived_cl%256)==0) {
+            if ((g->stat_derived_cl%256)==0 || (g->derived_overflow_timeout)) {
+              if (g->derived_overflow_timeout) return; // time limit passed at a drop
               curclock=clock();
               run_seconds = (float)(curclock - (g->run_start_clock)) / CLOCKS_PER_SEC;            
               if ((g->max_run_seconds) && (run_seconds>(g->max_run_seconds))) return;
@@ -836,7 +837,8 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active, cvec re
               wr_clear_varstack(g,g->varstack);              
               //wr_print_vardata(g);
               // extra time check              
-              if ((g->stat_derived_cl%256)==0) {
+              if ((g->stat_derived_cl%256)==0 || (g->derived_overflow_timeout)) {
+                if (g->derived_overflow_timeout) return; // time limit passed at a drop
                 curclock=clock();
                 run_seconds = (float)(curclock - (g->run_start_clock)) / CLOCKS_PER_SEC;            
                 if ((g->max_run_seconds) && (run_seconds>(g->max_run_seconds))) return;
@@ -1238,7 +1240,8 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
 
       wr_clear_varstack(g,g->varstack);              
       //wr_print_vardata(g);     
-      if ((g->stat_derived_cl%256)==0) {
+      if ((g->stat_derived_cl%256)==0 || (g->derived_overflow_timeout)) {
+        if (g->derived_overflow_timeout) return 1; // time limit passed at a drop
         curclock=clock();
         run_seconds = (float)(curclock - (g->run_start_clock)) / CLOCKS_PER_SEC;            
         if ((g->max_run_seconds) && (run_seconds>(g->max_run_seconds))) return 1;
