@@ -226,7 +226,8 @@ void wr_process_propagated_result
   gint cl_metablock[CLMETABLOCK_ELS];
   int size,depth,length;
 
-  int i,j, atom, meta;
+  int i,j;
+  gint atom, meta; // gint: atom offsets and metas are 64-bit values
 
 #ifdef DEBUG
   wr_printf("\n+++ wr_process_propagated_result called\n");
