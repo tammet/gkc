@@ -136,6 +136,8 @@ static int wr_derived_weight_drop_early(glb* g, gptr rptr, int rpos, int rulefla
   // stat_built_cl counts the clauses that reach the final build or this
   // early weight check, as in the order before the check moved
   ++(g->stat_built_cl);
+  // the skipped history record would have taken a clause id
+  if (g->store_history) (g->local_clid_next)++;
   return 1;
 }
 
