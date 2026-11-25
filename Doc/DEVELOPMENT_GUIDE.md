@@ -14,18 +14,19 @@ Before changing code, read:
    file basics.
 3. `Examples/README.md`: proof examples and what output should look like.
 4. `Doc/ARCHITECTURE.md`: source-file map, process flow, shared-KB setup, and search-loop structure.
-5. `Doc/DATA_REPRESENTATION.md`: encoded values, records, clauses, terms, varbanks, and buffers.
-6. `Reasoner/clterm.h`: authoritative clause, literal, atom, and term access macros.
-7. `Reasoner/unify.h` and `Reasoner/unify.c`: equality, matching,
+5. `Doc/SEARCH_AND_DERIVATION_PIPELINE.md`: exact given-clause loop, clause selection, simplification, activation, and derived-clause pipeline.
+6. `Doc/DATA_REPRESENTATION.md`: encoded values, records, clauses, terms, varbanks, and buffers.
+7. `Reasoner/clterm.h`: authoritative clause, literal, atom, and term access macros.
+8. `Reasoner/unify.h` and `Reasoner/unify.c`: equality, matching,
    unification, varbanks, and varstack.
-8. `Reasoner/derive.c` and `Reasoner/build.c`: how resolvents and new clauses
+9. `Reasoner/derive.c` and `Reasoner/build.c`: how resolvents and new clauses
    are built.
-9. `Reasoner/subsume.c`: canonical matching/backtracking idioms.
-10. `Doc/SHARED_MEMORY.md`: shared-memory KB invariants.
-11. `Doc/TERM_MATCHING.md`: equality, matching, unification, varstack, varbank lifecycle, canonical term walking, and subsumption traps.
-12. `Doc/PERFORMANCE_AND_PARALLELISM.md`: `fork()` worker pool, memory arenas, clause lifetimes, hot-path efficiency rules, and profiling.
-13. `Doc/STRATEGIES_AND_HEURISTICS_DEV.md`: analysis, portfolio scheduling, weighting, multi-queue selection, literal selection, ordering, and completeness rules.
-14. `Doc/ARITHMETIC_INSTANTIATION.md`: numeric frontier, probe, history, and
+10. `Reasoner/subsume.c`: canonical matching/backtracking idioms.
+11. `Doc/SHARED_MEMORY.md`: shared-memory KB invariants.
+12. `Doc/TERM_MATCHING.md`: equality, matching, unification, varstack, varbank lifecycle, canonical term walking, and subsumption traps.
+13. `Doc/PERFORMANCE_AND_PARALLELISM.md`: `fork()` worker pool, memory arenas, clause lifetimes, hot-path efficiency rules, and profiling.
+14. `Doc/STRATEGIES_AND_HEURISTICS_DEV.md`: analysis, portfolio scheduling, weighting, multi-queue selection, literal selection, ordering, and completeness rules.
+15. `Doc/ARITHMETIC_INSTANTIATION.md`: numeric frontier, probe, history, and
     budget rules when touching arithmetic or clause construction.
 
 Use `rg` first when exploring:
@@ -745,6 +746,8 @@ Update the focused document that owns the invariant you changed:
 
 * `Doc/ARCHITECTURE.md`: source ownership, process order, and high-level
   search architecture.
+* `Doc/SEARCH_AND_DERIVATION_PIPELINE.md`: given-clause loop stages, clause
+  selection, simplification, activation, and derived-clause processing order.
 * `Doc/DATA_REPRESENTATION.md`: encoded values, record layouts, clause/term
   representation, hash families, buffers, varbanks, and offset-base rules.
 * `Doc/TERM_MATCHING.md`: equality, one-way matching, unification, varbank

@@ -17,6 +17,7 @@ contains maintained references and implementation documentation.
 | Document | Purpose |
 | --- | --- |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | Source map and end-to-end parser, strategy, search, inference, history, and shared-memory flow. |
+| [`SEARCH_AND_DERIVATION_PIPELINE.md`](SEARCH_AND_DERIVATION_PIPELINE.md) | Step-by-step given-clause loop, multi-queue selection, simplification, activation, and derived-clause pipeline. |
 | [`DEVELOPMENT_GUIDE.md`](DEVELOPMENT_GUIDE.md) | Practical change patterns, test commands, and review checklists. |
 | [`DATA_REPRESENTATION.md`](DATA_REPRESENTATION.md) | Encoded values, records, clauses, terms, vectors, histories, queues, and run state. |
 | [`TERM_MATCHING.md`](TERM_MATCHING.md) | Equality, matching, unification, varbanks, varstack, canonical term walking, and subsumption. |
