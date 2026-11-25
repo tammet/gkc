@@ -455,7 +455,9 @@ int wr_genloop(glb* g) {
       continue; 
     }    
     if (simplen!=origlen && simplen==2) {
-      wr_add_cl_to_doublehash(g,given_cl);
+      // insert the active copy: given_cl lies in given_termbuf, which is
+      // reused for the next given clause
+      wr_add_cl_to_doublehash(g,given_cl_as_active);
     }  
      
     // do factorizations with the given clause

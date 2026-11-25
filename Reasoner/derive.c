@@ -1792,6 +1792,16 @@ gint wr_add_cl_to_doublehash(glb* g, gptr cl) {
 
   db=g->db;   
   UNUSED(db);
+#ifdef DEBUG
+  // an entry must stay valid for the whole run: given_termbuf and
+  // derived_termbuf are reused
+  if ((g->given_termbuf && cl>=(g->given_termbuf) &&
+       cl<(g->given_termbuf)+CVEC_LEN(g->given_termbuf)) ||
+      (g->derived_termbuf && cl>=(g->derived_termbuf) &&
+       cl<(g->derived_termbuf)+CVEC_LEN(g->derived_termbuf))) {
+    wr_printf("\nerror: wr_add_cl_to_doublehash got a clause in a reused buffer\n");
+  }
+#endif
   if (wg_rec_is_fact_clause(db,cl)) return -1;
   else len=wg_count_clause_atoms(db,cl);
   
