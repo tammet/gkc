@@ -255,7 +255,12 @@ resolution), `wr_process_paramodulate_result()` (paramodulation), or
 `wr_process_factor_result()` (factoring). The caller clears `g->varstack` after
 the function returns.
 
-All three entry points follow the same four-phase structure:
+All three entry points follow the same four-phase structure. A fourth entry
+point, `wr_process_instgen_result()`, handles instance generation (strategy
+key `instgen`, off by default). From the pure answer check onward (step 4 of
+Phase C and all of Phase D) the four functions call one shared function,
+`wr_process_derived_final()`; see "Shared Final Steps" at the end of this
+section.
 
 ### Phase A: Half-Built Clause in `derived_termbuf` (Bank 3)
 
@@ -377,6 +382,35 @@ For all normal finished clauses:
    `g->cl_pick_queue_strategy`) to select one of the 4 role blocks, then pushes
    `(gint)res` to `simplequeue` and `res` (at bucket `weight`) to `priorqueue`.
 7. **Propositional instantiation hook:** Calls `wr_cl_create_propinst(g, res)`.
+
+### Shared Final Steps (`wr_process_derived_final`)
+
+`wr_process_derived_final()` is a `static` function in `Reasoner/derive.c`.
+It runs every step after `res` and its history are built: the optional sort,
+the pure answer check, the optional double cut, the partial hyperresolution
+branch, printing, the weight check with rollback, the kept counter, clause
+meta, unit hash, double hash or propositional clause hash, propagation,
+strong-unit store, queue push and the propositional instance. The callers
+pass constant flags, so each difference between the four former copies of
+these steps stays:
+
+| Parameter | resolve | factor | paramodulate | instgen |
+| --- | --- | --- | --- | --- |
+| `sortflag`: `wr_sort_cl` before the answer check | 0 | 0 | 0 | 1 |
+| `doublecutflag`: `wr_simplify_doublecut_cl`; a NULL result returns without a rollback of the build buffer | 1 | 0 | 0 | 0 |
+| `hyperflag`: partial hyperresolution clauses go to `hyper_queue` | 1 | 1 | 1 | 0 |
+| `weightcheckflag`: `wr_derived_weight_check` with rollback | 1 | 1 | 1 | 0 |
+| `wxatomnr`, `wyatomnr`: parent lengths given to the weight check | parent lengths | 0, 0 | parent lengths | – |
+| `doublehashflag`: `wr_add_cl_to_doublehash` | 1 | 1 | 1 | 0 |
+| `propclhashflag`, `clhash`: non-units go to `prop_hash_clauses` | 0 | 0 | 0 | 1 |
+| `propagateflag`: unit propagation when `g->propagate` is set (default 0) | 1 | 0 | 0 | 1 |
+| `xcl_as_active`: parent for propagation | given clause | given clause | given clause | given clause |
+| `unittext`: print text under `#ifdef GLOBALUNITS` | "+ unit by mp: " | "+ unit by factor: " | "+ unit by factor: " | none |
+| `derivedtext`, `derivedtext2`: text of `print_derived_cl` | "+ derived by mp: " | "+ derived by merge: " | "+ derived by = " and "from: " or "into: " | "+ derived by instgen: " |
+
+The partial hyperresolution clause of the resolve path is built in
+`hyper_termbuf`; the factor and paramodulate paths build it in
+`queue_termbuf`. That choice happens before the shared function.
 
 ---
 

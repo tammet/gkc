@@ -54,6 +54,143 @@ extern "C" {
 /* ====== Functions ============== */
 
 
+/*
+  Final steps of a derived clause, shared by wr_process_resolve_result,
+  wr_process_factor_result, wr_process_paramodulate_result and
+  wr_process_instgen_result. They start after res and its history are built.
+
+  The flags keep each difference between the four former copies:
+    sortflag         sort the literals of res first (instgen)
+    doublecutflag    double cut with wr_simplify_doublecut_cl (resolve); a
+                     NULL result returns without a rollback of the buffer
+    hyperflag        partial hyperresolution clauses go to hyper_queue
+                     (resolve, factor, paramodulate)
+    weightcheckflag  wr_derived_weight_check with the parent lengths
+                     wxatomnr, wyatomnr (resolve, factor with 0,0,
+                     paramodulate; instgen has no weight check)
+    doublehashflag   wr_add_cl_to_doublehash (resolve, factor, paramodulate)
+    propclhashflag   non-unit clauses go to prop_hash_clauses with clhash
+                     (instgen)
+    propagateflag    unit propagation when g->propagate is set (resolve,
+                     instgen)
+  unittext, derivedtext and derivedtext2 are the print texts of the caller;
+  derivedtext2 is the "from: " or "into: " of paramodulation, else NULL.
+  The callers pass constant flags, so the compiler can specialize each call.
+*/
+
+static void wr_process_derived_final(glb* g, gptr res, gint history,
+      gint initial_queue_termbuf_next, gptr xcl_as_active,
+      int sortflag, int doublecutflag, int hyperflag,
+      int weightcheckflag, int wxatomnr, int wyatomnr,
+      int doublehashflag, int propclhashflag, gint clhash, int propagateflag,
+      char* unittext, char* derivedtext, char* derivedtext2) {
+  int tmp;
+  gint resmeta, hash;
+  int weight;
+  double avg;
+  gint cl_metablock[CLMETABLOCK_ELS];
+  int size,depth,length;
+
+  UNUSED(unittext);
+  if (sortflag) wr_sort_cl(g,res);
+  // check if result contains only ans predicates
+  tmp=wr_cl_derived_is_answer(g,res);
+  if (tmp>0) {
+    wr_register_answer(g,res,history);
+    g->proof_found=1;
+    g->proof_history=history;
+    return;
+  }
+  if (doublecutflag) {
+    gptr simp2=NULL;
+    gint cl_metablock2[CLMETABLOCK_ELS];
+    simp2=wr_simplify_doublecut_cl(g,res,cl_metablock2);
+    if (!simp2) {
+      return;
+    }
+    if (simp2!=res) {
+      res=simp2;
+    }
+  }
+  // start storing to queues and hashes
+  if (hyperflag && (g->hyperres_strat) &&  !wr_hyperres_satellite_cl(g,res)) {
+    // hyperresolution case: not a finished clause yet, must cut off some
+    ++(g->stat_hyperres_partial_cl);
+    ++(g->stat_derived_partial_hyper_cl);
+    if (g->print_partial_derived_cl) {
+      wr_printf("\n+ partial derived by mp: ");
+      wr_print_clause(g,res);
+    }
+    weight=wr_calc_clause_weight(g,res,&size,&depth,&length);
+    tmp=wr_push_cl_hyper_queue(g,(g->hyper_queue),res,weight);
+    if (!tmp) {
+      wr_alloc_err(g,"could not store into hyper_queue in wr_process_resolve_result ");
+      return; // could not alloc memory, could not store clause
+    }
+  } else {
+    // ordinary case (not partial hyperres): resulting clause is finished
+#ifdef GLOBALUNITS
+    if (unittext) {
+      int rflag=wg_rec_is_rule_clause(db,res);
+      int rlen;
+      if (rflag) rlen = wg_count_clause_atoms(db,res);
+      else rlen=1;
+      if (rlen==1) {
+        wr_printf("%s",unittext);
+        wr_print_clause(g,res);
+      }
+    }
+#endif
+    if (g->print_derived_cl) {
+      wr_printf("%s",derivedtext);
+      if (derivedtext2) wr_printf("%s",derivedtext2);
+      wr_print_clause(g,res);
+    } else if (g->print_derived) {
+      wr_print_clause_via_buf(g,res);
+    }
+    weight=wr_calc_clause_weight(g,res,&size,&depth,&length);
+    avg=(g->avg_kept_weight);
+    if (weightcheckflag &&
+        !wr_derived_weight_check(g,avg,weight,size,depth,length,wxatomnr,wyatomnr)) {
+      (g->stat_weight_discarded_cl)++;
+      CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
+      if (g->print_derived_cl) wr_printf("\nw discarded overweight");
+      return;
+    }
+    ++(g->stat_kept_cl);
+    avg+=(weight-avg)/((g->stat_kept_cl)+1);
+    (g->avg_kept_weight)=avg;
+    resmeta=wr_calc_clause_meta(g,res,cl_metablock);
+    hash=wr_add_cl_to_unithash(g,res,resmeta);
+    if (doublehashflag) wr_add_cl_to_doublehash(g,res);
+    if (propclhashflag && hash<0) {
+      // nonunit clause: add to clause hash
+      wr_push_prop_clausehash(g,rotp(g,g->prop_hash_clauses),clhash,res);
+    }
+    if (propagateflag) {
+      if (g->propagate) {
+        if (hash>=0)  {
+          // unit, propagate
+          wr_propagate_unit(g,res,resmeta,hash,xcl_as_active);
+          if (g->proof_found || g->alloc_err) {
+            return;
+          }
+        } else {
+          // nonunit, store occurrences
+          wr_store_atom_occurrences(g,res);
+        }
+      }
+#ifdef DEBUG
+      wr_print_atomhash(g,rotp(g,(g->hash_atom_occurrences)));
+#endif
+    }
+    if (g->use_strong_unit_cutoff) wr_cl_store_res_units(g,res);
+    wr_push_cl_clpick_queues(g,(g->clpick_queues),res,weight);
+    tmp=wr_cl_create_propinst(g,res);
+    if (tmp==2) {  return;  }
+  }
+}
+
 /* 
 
   Process binary res result
@@ -97,13 +234,9 @@ void wr_process_resolve_result
   gptr rptr;
   int rpos,cutpos1=0,cutpos2=0;
   gptr res;  
-  gint resmeta,history, hash;
+  gint history;
   int ruleflag;
   gint initial_queue_termbuf_next=0;
-  int weight;
-  double avg;
-  gint cl_metablock[CLMETABLOCK_ELS];
-  int size,depth,length; 
   
 #ifdef DEBUG
   wr_printf("\n+++ wr_process_resolve_result called\n");
@@ -267,128 +400,8 @@ void wr_process_resolve_result
     return;
   }  
 
-  // now the resulting clause is fully built
-  /*
-  if (g->print_derived_cl) {
-    wr_printf("\n+ derived by mp: ");
-    wr_print_clause(g,res);
-  }  
-  */
-  // check if result contains only ans predicates
-  
-  //printf("\n checking for pure answer clause\n");
-  //wr_print_clause(g,res);
-  tmp=wr_cl_derived_is_answer(g,res);
-  if (tmp>0) {
-    wr_register_answer(g,res,history);
-    //wr_printf("\n\nfound pure answer: ");
-    //wr_print_clause(g,res);
-    g->proof_found=1;   
-    g->proof_history=history;    
-    return;
-  }
-  gptr simp2=NULL;
-  gint cl_metablock2[CLMETABLOCK_ELS];
-  simp2=wr_simplify_doublecut_cl(g,res,cl_metablock2);
-  if (!simp2) {
-    //printf("\ndoublecut found answer\n");
-    return;
-  }  
-  if (simp2!=res) {
-    //printf("+");
-    /*
-    printf("\ndoublecut made a simplification\n");
-    printf("\norig ");
-    wr_print_clause(g,res);
-    printf("\nsimp ");
-    wr_print_clause(g,simp2);
-    printf("\n");
-    */
-    res=simp2;
-  }
-
-
-  // start storing to queues and hashes
-
-  if ((g->hyperres_strat) &&  !wr_hyperres_satellite_cl(g,res)) { 
-    // hyperresolution case: not a finished clause yet, must cut off some 
-    //printf("\nwr_process_resolve_result hyperres-strat and not satellite\n");
-    ++(g->stat_hyperres_partial_cl);
-    ++(g->stat_derived_partial_hyper_cl);
-    if (g->print_partial_derived_cl) {
-      wr_printf("\n+ partial derived by mp: ");
-      wr_print_clause(g,res);
-    }
-    weight=wr_calc_clause_weight(g,res,&size,&depth,&length);
-    //avg=(g->avg_kept_weight);       
-    //printf(" weight %d average %f count %d \n",weight,(g->avg_kept_weight),(g->stat_kept_cl));
-    /* 
-    if (!wr_derived_weight_check(g,avg,weight,size,depth,length,0,0)) {
-      (g->stat_weight_discarded_cl)++;
-      CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
-      if (g->print_derived_cl) wr_printf("\nw discarded overweight");
-      return;
-    }
-    */
-    tmp=wr_push_cl_hyper_queue(g,(g->hyper_queue),res,weight);     
-    if (!tmp) {
-      wr_alloc_err(g,"could not store into hyper_queue in wr_process_resolve_result ");
-      return; // could not alloc memory, could not store clause
-    }
-  } else {           
-    // ordinary case (not partial hyperres): resulting clause is finished
-#ifdef GLOBALUNITS
-      int rflag=wg_rec_is_rule_clause(db,res);
-      int rlen;
-      if (rflag) rlen = wg_count_clause_atoms(db,res);
-      else rlen=1;
-      if (rlen==1) {
-        wr_printf("\n+ unit by mp: ");
-        wr_print_clause(g,res);
-      }
-#endif
-    if (g->print_derived_cl) {
-      wr_printf("\n+ derived by mp: ");
-      wr_print_clause(g,res);    
-    } else if (g->print_derived) {  
-      wr_print_clause_via_buf(g,res);
-    }  
-    weight=wr_calc_clause_weight(g,res,&size,&depth,&length);
-    avg=(g->avg_kept_weight);       
-    //printf(" weight %d average %f count %d \n",weight,(g->avg_kept_weight),(g->stat_kept_cl));
-    if (!wr_derived_weight_check(g,avg,weight,size,depth,length,xatomnr,yatomnr)) {
-      (g->stat_weight_discarded_cl)++;
-      CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
-      if (g->print_derived_cl) wr_printf("\nw discarded overweight");
-      return;
-    }
-    ++(g->stat_kept_cl);
-    avg+=(weight-avg)/((g->stat_kept_cl)+1);
-    (g->avg_kept_weight)=avg;
-    resmeta=wr_calc_clause_meta(g,res,cl_metablock);
-    hash=wr_add_cl_to_unithash(g,res,resmeta); 
-    wr_add_cl_to_doublehash(g,res);
-    if (g->propagate) {
-      if (hash>=0)  {
-        // unit, propagate
-        wr_propagate_unit(g,res,resmeta,hash,xcl_as_active);
-        if (g->proof_found || g->alloc_err) {
-          //wr_clear_varstack(g,g->varstack);          
-          return;          
-        }  
-      } else {  
-        // nonunit, store occurrences
-        wr_store_atom_occurrences(g,res);
-      }  
-    }  
-#ifdef DEBUG
-    wr_print_atomhash(g,rotp(g,(g->hash_atom_occurrences)));
-#endif
-    if (g->use_strong_unit_cutoff) wr_cl_store_res_units(g,res);
-    wr_push_cl_clpick_queues(g,(g->clpick_queues),res,weight);
-    tmp=wr_cl_create_propinst(g,res);
-    if (tmp==2) {  return;  }
-  }    
+  wr_process_derived_final(g,res,history,initial_queue_termbuf_next,xcl_as_active,
+    0,1,1, 1,xatomnr,yatomnr, 1,0,0,1, "\n+ unit by mp: ","\n+ derived by mp: ",NULL);
 }  
 
 
@@ -402,13 +415,9 @@ void wr_process_instgen_result
   gptr rptr;
   int rpos,cutpos1=0,cutpos2=0;
   gptr res;  
-  gint resmeta,history, hash;
+  gint history;
   int ruleflag;
   gint initial_queue_termbuf_next=0;
-  int weight;
-  double avg;
-  gint cl_metablock[CLMETABLOCK_ELS];
-  int size,depth,length; 
   gint clhash;
   
 #ifdef DEBUG
@@ -524,81 +533,8 @@ void wr_process_instgen_result
     // allocation failed
     return;
   }  
-  wr_sort_cl(g,res); // note that sorting here is not done for resolution results
-
-  // now the resulting clause is fully built
-  /*
-  if (g->print_derived_cl) {
-    wr_printf("\n+ derived by mp: ");
-    wr_print_clause(g,res);
-  }  
-  */
-  // check if result contains only ans predicates
-  
-  //printf("\n checking for pure answer clause\n");
-  //wr_print_clause(g,res);
-  tmp=wr_cl_derived_is_answer(g,res);
-  if (tmp>0) {
-    wr_register_answer(g,res,history);
-    //wr_printf("\n\nfound pure answer: ");
-    //wr_print_clause(g,res);
-    g->proof_found=1;   
-    g->proof_history=history;    
-    return;
-  }
-
-  // start storing to queues and hashes
-
-  if (1) {           
-    // ordinary case (not partial hyperres): resulting clause is finished
-    if (g->print_derived_cl) {
-      wr_printf("\n+ derived by instgen: ");
-      wr_print_clause(g,res);    
-    } else if (g->print_derived) {  
-      wr_print_clause_via_buf(g,res);
-    } 
-    weight=wr_calc_clause_weight(g,res,&size,&depth,&length);
-    avg=(g->avg_kept_weight);       
-    //printf(" weight %d average %f count %d \n",weight,(g->avg_kept_weight),(g->stat_kept_cl));
-    if (0) { //!wr_derived_weight_check(g,avg,weight,size,depth,length,xatomnr,yatomnr)) {
-      (g->stat_weight_discarded_cl)++;
-      CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
-      if (g->print_derived_cl) wr_printf("\nw discarded overweight");
-      return;
-    }
-    ++(g->stat_kept_cl);
-    avg+=(weight-avg)/((g->stat_kept_cl)+1);
-    (g->avg_kept_weight)=avg;
-    resmeta=wr_calc_clause_meta(g,res,cl_metablock);
-    hash=wr_add_cl_to_unithash(g,res,resmeta); 
-  
-    if (hash<0) { // length is 2 or bigger
-    //if (!(wg_rec_is_fact_clause(db,cl)) && wg_count_clause_atoms(db,cl)>1) {
-      // nonunit clause: add to clause hash
-      wr_push_prop_clausehash(g,rotp(g,g->prop_hash_clauses),clhash,res);
-    }
-
-    if (g->propagate) {
-      if (hash>=0)  {
-        // unit, propagate
-        wr_propagate_unit(g,res,resmeta,hash,xcl_as_active);
-        if (g->proof_found || g->alloc_err) {
-          //wr_clear_varstack(g,g->varstack);          
-          return;          
-        }  
-      } else {  
-        // nonunit, store occurrences
-        wr_store_atom_occurrences(g,res);
-      }  
-    }  
-#ifdef DEBUG
-    wr_print_atomhash(g,rotp(g,(g->hash_atom_occurrences)));
-#endif
-    if (g->use_strong_unit_cutoff) wr_cl_store_res_units(g,res);
-    wr_push_cl_clpick_queues(g,(g->clpick_queues),res,weight);
-    tmp=wr_cl_create_propinst(g,res);
-    if (tmp==2) {  return;  }
-  }    
+  wr_process_derived_final(g,res,history,initial_queue_termbuf_next,xcl_as_active,
+    1,0,0, 0,0,0, 0,1,clhash,1, NULL,"\n+ derived by instgen: ",NULL);
 }  
 
 
@@ -618,13 +554,9 @@ void wr_process_factor_result
   gptr rptr;
   int rpos, cutpos1=0;
   gptr res;
-  gint resmeta,history;
+  gint history;
   int ruleflag;
   gint initial_queue_termbuf_next=0;
-  int weight;
-  double avg;
-  gint cl_metablock[CLMETABLOCK_ELS];
-  int size,depth,length;
   
 #ifdef DEBUG
   wr_printf("+++ wr_process_factor_result called\n");
@@ -757,73 +689,8 @@ void wr_process_factor_result
     // allocation failed
     return;
   }
-
-  // check if result contains only ans predicates
-  
-  //printf("\n checking for pure answer clause\n");
-  //wr_print_clause(g,res);
-  tmp=wr_cl_derived_is_answer(g,res);
-  if (tmp>0) {
-    wr_register_answer(g,res,history);
-    //wr_printf("\n\nfound pure answer: ");
-    //wr_print_clause(g,res);
-    g->proof_found=1;
-    g->proof_history=history;     
-    return;
-  }   
-
-  if ((g->hyperres_strat) &&  !wr_hyperres_satellite_cl(g,res)) { 
-    // hyperresolution case: not a finished clause yet, must cut off some 
-    //printf("\nwr_process_resolve_result hyperres-strat and not satellite\n");
-    ++(g->stat_hyperres_partial_cl);
-    ++(g->stat_derived_partial_hyper_cl);
-    if (g->print_partial_derived_cl) {
-      wr_printf("\n+ partial derived by mp: ");
-      wr_print_clause(g,res);
-    }
-    weight=wr_calc_clause_weight(g,res,&size,&depth,&length);   
-    tmp=wr_push_cl_hyper_queue(g,(g->hyper_queue),res,weight);     
-    if (!tmp) {
-      wr_alloc_err(g,"could not store into hyper_queue in wr_process_resolve_result ");
-      return; // could not alloc memory, could not store clause
-    }
-  } else {
-    // resulting clause is finished
-#ifdef GLOBALUNITS
-      int rflag=wg_rec_is_rule_clause(db,res);
-      int rlen;
-      if (rflag) rlen = wg_count_clause_atoms(db,res);
-      else rlen=1;
-      if (rlen==1) {
-        wr_printf("\n+ unit by factor: ");
-        wr_print_clause(g,res);
-      }
-#endif    
-    if (g->print_derived_cl) {
-      wr_printf("\n+ derived by merge: ");
-      wr_print_clause(g,res);    
-    } else if (g->print_derived) {  
-      wr_print_clause_via_buf(g,res);
-    }  
-    weight=wr_calc_clause_weight(g,res,&size,&depth,&length);
-    avg=(g->avg_kept_weight);  
-    if (!wr_derived_weight_check(g,avg,weight,size,depth,length,0,0)) {
-      (g->stat_weight_discarded_cl)++;
-      CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
-      if (g->print_derived_cl) wr_printf("\nw discarded overweight");
-      return;
-    }
-    ++(g->stat_kept_cl);
-    avg+=(weight-avg)/((g->stat_kept_cl)+1);
-    (g->avg_kept_weight)=avg;
-    resmeta=wr_calc_clause_meta(g,res,cl_metablock);
-    wr_add_cl_to_unithash(g,res,resmeta);
-    wr_add_cl_to_doublehash(g,res);
-    if (g->use_strong_unit_cutoff) wr_cl_store_res_units(g,res);
-    wr_push_cl_clpick_queues(g,(g->clpick_queues),res,weight);   
-    tmp=wr_cl_create_propinst(g,res);    
-    if (tmp==2) {  return;  }
-  }  
+  wr_process_derived_final(g,res,history,initial_queue_termbuf_next,xcl_as_active,
+    0,0,1, 1,0,0, 1,0,0,0, "\n+ unit by factor: ","\n+ derived by merge: ",NULL);
 }  
 
 /*
@@ -854,13 +721,9 @@ void wr_process_paramodulate_result
   gptr rptr;
   int rpos,cutpos1=0,cutpos2=0;
   gptr res;  
-  gint resmeta,history;
+  gint history;
   int ruleflag;
   gint initial_queue_termbuf_next=0;
-  int weight;
-  double avg;
-  gint cl_metablock[CLMETABLOCK_ELS];
-  int size,depth,length;
     
 #ifdef DEBUG
   wr_printf("\n+++ wr_process_paramodulate_result called\n");
@@ -1068,104 +931,9 @@ void wr_process_paramodulate_result
     // allocation failed
     return;
   }  
-
-  // now the resulting clause is fully built
-
-  /*
-  wr_printf("\n+!+!+!+!+ derived by = ");
-  if (fromflag) wr_printf("from: ");
-  else wr_printf("into: ");
-  wr_print_clause(g,res);
-  */
-  //printf("\n derived as raw record: \n");
-  //wg_print_record(g->db,res);
-  //printf("\n");
-  /*
-  if (g->print_derived_cl) {
-    wr_printf("\n+ derived by = ");
-    if (fromflag) wr_printf("from: ");
-    else wr_printf("into: ");
-    wr_print_clause(g,res);
-    //printf("\n derived as raw record: \n");
-    //wg_print_record(g->db,res);
-    //printf("\n");
-  }
-  */
-
-  // check if result contains only ans predicates
-  
-  //printf("\n checking for pure answer clause\n");
-  //wr_print_clause(g,res);
-  tmp=wr_cl_derived_is_answer(g,res);
-  if (tmp>0) {
-    wr_register_answer(g,res,history);
-    //wr_printf("\n\nfound pure answer: ");
-    //wr_print_clause(g,res);
-    g->proof_found=1;     
-    g->proof_history=history;   
-    return;
-  }
-
-  // start storing to queues and hashes
-
-  if ((g->hyperres_strat) &&  !wr_hyperres_satellite_cl(g,res)) { 
-    // hyperresolution case: not a finished clause yet, must cut off some 
-    //printf("\nwr_process_resolve_result hyperres-strat and not satellite\n");
-    ++(g->stat_hyperres_partial_cl);
-    ++(g->stat_derived_partial_hyper_cl);
-    if (g->print_partial_derived_cl) {
-      wr_printf("\n+ partial derived by mp: ");
-      wr_print_clause(g,res);
-    }
-    weight=wr_calc_clause_weight(g,res,&size,&depth,&length);   
-    tmp=wr_push_cl_hyper_queue(g,(g->hyper_queue),res,weight);     
-    if (!tmp) {
-      wr_alloc_err(g,"could not store into hyper_queue in wr_process_resolve_result ");
-      return; // could not alloc memory, could not store clause
-    }
-  } else {
-    //  resulting clause is finished
-#ifdef GLOBALUNITS
-      int rflag=wg_rec_is_rule_clause(db,res);
-      int rlen;
-      if (rflag) rlen = wg_count_clause_atoms(db,res);
-      else rlen=1;
-      if (rlen==1) {
-        wr_printf("\n+ unit by factor: ");
-        wr_print_clause(g,res);
-      }
-#endif    
-    if (g->print_derived_cl) {
-      wr_printf("\n+ derived by = ");
-      if (fromflag) {
-        wr_printf("from: ");
-      } else {
-        wr_printf("into: ");
-      } 
-      wr_print_clause(g,res);
-    } else if (g->print_derived) {  
-      wr_print_clause_via_buf(g,res);
-    }    
-    weight=wr_calc_clause_weight(g,res,&size,&depth,&length);  
-    avg=(g->avg_kept_weight);  
-    //printf(" weight %d average %f count %d \n",weight,(g->avg_kept_weight),(g->stat_kept_cl));
-    if (!wr_derived_weight_check(g,avg,weight,size,depth,length,xatomnr,yatomnr)) {
-      (g->stat_weight_discarded_cl)++;
-      CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
-      if (g->print_derived_cl) wr_printf("\nw discarded overweight");
-      return;
-    }
-    ++(g->stat_kept_cl);
-    avg+=(weight-avg)/((g->stat_kept_cl)+1);
-    (g->avg_kept_weight)=avg;
-    resmeta=wr_calc_clause_meta(g,res,cl_metablock);
-    wr_add_cl_to_unithash(g,res,resmeta);
-    wr_add_cl_to_doublehash(g,res);
-    if (g->use_strong_unit_cutoff) wr_cl_store_res_units(g,res);
-    wr_push_cl_clpick_queues(g,(g->clpick_queues),res,weight); 
-    tmp=wr_cl_create_propinst(g,res);    
-    if (tmp==2) {  return;  }
-  }  
+  wr_process_derived_final(g,res,history,initial_queue_termbuf_next,xcl_as_active,
+    0,0,1, 1,xatomnr,yatomnr, 1,0,0,0, "\n+ unit by factor: ","\n+ derived by = ",
+    (fromflag ? "from: " : "into: "));
 }  
 
 /* -----------

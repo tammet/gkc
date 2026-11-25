@@ -383,7 +383,10 @@ paramodulation.
 9. Check for pure answer clauses with `wr_cl_derived_is_answer()`.
 10. Apply simplification, weight/size/depth limits, metadata calculation,
     hashes, propagation, and queue insertion exactly as existing derivations
-    do.
+    do. In `Reasoner/derive.c` these steps (9 and 10) are one function,
+    `wr_process_derived_final()`; call it with the flags of the closest
+    existing caller. `Doc/SEARCH_AND_DERIVATION_PIPELINE.md` lists the flags
+    of each caller.
 
 Prefer adding a new `wr_process_*_result()` function modelled on
 `wr_process_resolve_result()` or `wr_process_paramodulate_result()` rather than
