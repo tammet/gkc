@@ -730,7 +730,6 @@ int gkc_main(int argc, char **argv) {
 
   if (!(strncmp(cmdstr,"-writekb",15))) {
      wg_int err;
-     int flags = 0;
 
     if (cmdfileslen<2) {
       err_printf(json,"-writekb needs a file as an argument");
@@ -742,11 +741,10 @@ int gkc_main(int argc, char **argv) {
       return(1);
     }
 
-    /* Locking is handled internally by the dbdump.c functions */
-    if(flags & FLAGS_FORCE)
-      err = wg_dump_internal(shmptr,cmdfiles[1], 0);
-    else
-      err = wg_dump(shmptr,cmdfiles[1]);
+    /* Dump without the lock: the kb segment is attached read-only, and
+       taking a lock writes into the segment. No process writes into a kb
+       after its build, so the image is consistent. */
+    err = wg_dump_internal(shmptr,cmdfiles[1], 0);
 
     if(err<-1) {
       err_printf(json,"cannot write to file, kb may have"\
@@ -771,7 +769,7 @@ int gkc_main(int argc, char **argv) {
     }  
     err = wg_check_dump(NULL, cmdfiles[1], &minsize, &maxsize);
     if(err) {
-      err_printf2(json,"loading failed, problem with %s",cmdfiles[1]);
+      err_printf2(json,"loading failed, problem with",cmdfiles[1]);
       return(1);
     }
 
