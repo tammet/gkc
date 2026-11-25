@@ -771,85 +771,226 @@ void wr_show_history(glb* g, gint history) {
 */
 
 
+/*
+  Proof flattening without recursion.
+
+  wr_flatten_history numbers the clauses of a proof in the order of a
+  depth-first walk over the parents of each history record: the parents of
+  a parent are numbered before the parent, and the parents of one record are
+  taken in the order of their fields. The walk uses an explicit stack, so a
+  parent chain of any length does not overflow the C stack. A hash set of
+  the numbered clauses replaces the scan of the association list. The
+  numbers and the list are the same as those of the former recursive walk.
+  The set and the stack use malloc, not wr_malloc, so that the printed
+  memory statistics stay the same.
+*/
+
+typedef struct {
+  gint* keys;   // clause offsets, 0 = empty slot
+  gint size;    // power of 2
+  gint count;
+} wr_flat_set;
+
+static gint wr_flat_set_slot(wr_flat_set* s, gint key) {
+  uint64_t h=((uint64_t)key>>3)*(uint64_t)0x9E3779B97F4A7C15ULL;
+  gint i=(gint)((h^(h>>29))&(uint64_t)(s->size-1));
+  while (s->keys[i] && s->keys[i]!=key) i=(i+1)&(s->size-1);
+  return i;
+}
+
+static int wr_flat_set_has(wr_flat_set* s, gint key) {
+  return s->keys[wr_flat_set_slot(s,key)]==key;
+}
+
+static int wr_flat_set_add(wr_flat_set* s, gint key) {
+  gint i;
+  if ((s->count+1)*2 > s->size) {
+    wr_flat_set ns;
+    ns.size=(s->size)*2;
+    ns.count=0;
+    ns.keys=sys_malloc(sizeof(gint)*ns.size);
+    if (!ns.keys) return 0;
+    memset(ns.keys,0,sizeof(gint)*ns.size);
+    for(i=0;i<s->size;i++) {
+      if (s->keys[i]) {
+        ns.keys[wr_flat_set_slot(&ns,s->keys[i])]=s->keys[i];
+        ns.count++;
+      }
+    }
+    sys_free(s->keys);
+    *s=ns;
+  }
+  i=wr_flat_set_slot(s,key);
+  if (!s->keys[i]) {
+    s->keys[i]=key;
+    s->count++;
+  }
+  return 1;
+}
+
+// add cl to the association list with the next number, unless already there
+static int wr_flat_addcl(glb* g, void* mpool, gint cl, int* clnr, void **assoc,
+                         wr_flat_set* seen) {
+  void* db=g->db;
+  void *n, *newassoc;
+  char namebuf[20];
+
+  if (wr_flat_set_has(seen,cl)) return 1;
+  snprintf(namebuf,19,"%d",(*clnr)++);
+  n=wg_mklist2(db,mpool,wg_mkatom(db,mpool,WG_STRTYPE,namebuf,NULL),(void *)(gint)((*clnr)-1));
+  if (!n) return 0;
+  newassoc=wg_add_assoc(db,mpool,(void *)cl,n,*assoc);
+  if (!newassoc) return 0;
+  *assoc=newassoc;
+  return wr_flat_set_add(seen,cl);
+}
+
+// one history record on the explicit stack of the walk
+typedef struct {
+  gint history;
+  int kind;      // 0: no parents; 1: arithinst parent; 2: arithinst cuts; 3: other tags
+  int i;         // next field to look at
+  int len;       // record length of the history
+  int tag;
+  int cutpos;    // arithinst: position of the cut count
+  int cutcount;  // arithinst: number of cuts
+  gint pending;  // parent whose own parents are being walked, 0 if none
+} wr_flat_frame;
+
+// set up a frame for one history record: decide its kind
+static void wr_flat_frame_init(glb* g, wr_flat_frame* f, gint history) {
+  void* db=g->db;
+  gint head;
+  int dechead;
+
+  f->history=history;
+  f->kind=0;
+  f->i=0;
+  f->pending=0;
+  if (!history) return;
+  f->len=wg_get_record_len(db,otp(db,history));
+  // an input history has HISTORY_PREFIX_LEN fields and no derivation tag
+  if (f->len<=HISTORY_DERIVATION_TAG_POS) return;
+  head=wr_get_history_record_field(db,otp(db,history),HISTORY_DERIVATION_TAG_POS);
+  if (wg_get_encoded_type(db,head)!=WG_INTTYPE) return;
+  dechead=wg_decode_int(db,head);
+  f->tag=wr_get_history_tag(g,dechead);
+  if (f->tag==WR_HISTORY_TAG_ARITHINST) {
+    f->kind=1;
+  } else if (f->tag==WR_HISTORY_TAG_RESOLVE || f->tag==WR_HISTORY_TAG_FACTORIAL ||
+             f->tag==WR_HISTORY_TAG_PARA || f->tag==WR_HISTORY_TAG_EQUALITY_REFLEXIVE ||
+             f->tag==WR_HISTORY_TAG_SIMPLIFY || f->tag==WR_HISTORY_TAG_PROPAGATE ||
+             f->tag==WR_HISTORY_TAG_PROPINST || f->tag==WR_HISTORY_TAG_INSTGEN) {
+    f->kind=3;
+    if (f->tag==WR_HISTORY_TAG_PARA) f->i=HISTORY_PARA_PARENT1_POS;
+    else f->i=HISTORY_PARENT1_POS;
+  }
+}
+
+/* next parent of frame f that is not numbered yet, or 0 when the frame is
+   done; returns -1 when the record is malformed (the former code returned
+   from this record without numbering its remaining parents) */
+static gint wr_flat_next_parent(glb* g, wr_flat_frame* f, wr_flat_set* seen) {
+  void* db=g->db;
+  gint cl1;
+  int subst_count;
+
+  if (f->kind==1) {
+    f->kind=2;
+    cl1=wr_get_history_record_field(g,otp(db,f->history),HISTORY_ARITH_PARENT_POS);
+    if (!wr_flat_set_has(seen,cl1)) return cl1;
+  }
+  if (f->kind==2 && f->i==0) {
+    subst_count=wg_decode_int(db,wr_get_history_record_field(
+      g,otp(db,f->history),HISTORY_ARITH_SUBST_COUNT_POS));
+    if (subst_count<1 || subst_count>2) return -1;
+    f->cutpos=HISTORY_ARITH_CUT_COUNT_POS(subst_count);
+    f->cutcount=wg_decode_int(db,wr_get_history_record_field(
+      g,otp(db,f->history),f->cutpos));
+    f->i=1;
+  }
+  if (f->kind==2) {
+    while (f->i-1<f->cutcount && f->cutpos+f->i<f->len) {
+      cl1=wr_get_history_record_field(g,otp(db,f->history),f->cutpos+f->i);
+      f->i++;
+      if (!wr_flat_set_has(seen,cl1)) return cl1;
+    }
+    return 0;
+  }
+  if (f->kind==3) {
+    while (f->i<f->len) {
+      if (f->tag==WR_HISTORY_TAG_PROPINST && f->i==HISTORY_PARENT2_POS) {
+        // instantiation term, not a clause
+        f->i++;
+        continue;
+      }
+      cl1=wr_get_history_record_field(g,otp(db,f->history),f->i);
+      f->i++;
+      if (!wr_flat_set_has(seen,cl1)) return cl1;
+    }
+  }
+  return 0;
+}
+
 gptr wr_flatten_history(glb* g, void* mpool, gint history, gptr cl, int depth, int* clnr, void **assoc) {
   void* db=g->db;
-  int htype,tag,dechead;
-  gint head, cl1, h1;
-  int len, tmp1, i, start;
-   
-  // get history type and components
-  /* 
-  printf("\nflatten called depth %d\n",depth);  
-  wr_print_clause(g,cl);
-  printf("\n");
-  wg_print_record(g->db,cl);
-  printf("\n");
-  */
+  wr_flat_set seen;
+  wr_flat_frame* stack;
+  int top, cap=1024;
+  gint next, done;
+  void* res;
+
+  UNUSED(cl);
+  UNUSED(depth);
   if (!history) return NULL;
-  len=wg_get_record_len(db,otp(db,history));
-  /* an input history has HISTORY_PREFIX_LEN fields and no derivation tag:
-     an input leaf, as when the tag is not an integer */
-  if (len<=HISTORY_DERIVATION_TAG_POS) return NULL;
-  head=wr_get_history_record_field(db,otp(db,history),HISTORY_DERIVATION_TAG_POS);
-  htype=wg_get_encoded_type(db,head);
-  if (htype!=WG_INTTYPE) return NULL;
-  dechead=wg_decode_int(db,head);
-  //printf("\n wr_flatten_history got dechead %d\n",dechead);
-  tag=wr_get_history_tag(g,dechead);
-  //printf("\nflatten cp1\n");
-  // process parent clauses found in history
-  //printf("\n wr_flatten_history got tag %d\n",tag);
-  if (tag==WR_HISTORY_TAG_ARITHINST) {
-    int subst_count,cut_count_pos,cut_count;
-    cl1=wr_get_history_record_field(g,otp(db,history),HISTORY_ARITH_PARENT_POS);
-    h1=wr_get_history(g,otp(db,cl1));
-    if (!wg_get_assoc(db,(void*)cl1,*assoc)) {
-      wr_flatten_history(g,mpool,h1,otp(db,cl1),depth+1,clnr,assoc);
-      if (!wr_flatten_history_addcl(g,mpool,cl1,clnr,assoc)) return NULL;
-    }
-    subst_count=wg_decode_int(db,wr_get_history_record_field(
-      g,otp(db,history),HISTORY_ARITH_SUBST_COUNT_POS));
-    if (subst_count<1 || subst_count>2) return NULL;
-    cut_count_pos=HISTORY_ARITH_CUT_COUNT_POS(subst_count);
-    cut_count=wg_decode_int(db,wr_get_history_record_field(
-      g,otp(db,history),cut_count_pos));
-    for(i=0;i<cut_count && cut_count_pos+1+i<len;i++) {
-      cl1=wr_get_history_record_field(g,otp(db,history),cut_count_pos+1+i);
-      h1=wr_get_history(g,otp(db,cl1));
-      if (!wg_get_assoc(db,(void*)cl1,*assoc)) {
-        wr_flatten_history(g,mpool,h1,otp(db,cl1),depth+1,clnr,assoc);
-        if (!wr_flatten_history_addcl(g,mpool,cl1,clnr,assoc)) return NULL;
-      }
-    }
-  } else if (tag==WR_HISTORY_TAG_RESOLVE || tag==WR_HISTORY_TAG_FACTORIAL ||
-      tag==WR_HISTORY_TAG_PARA || tag==WR_HISTORY_TAG_EQUALITY_REFLEXIVE || 
-      tag==WR_HISTORY_TAG_SIMPLIFY || tag==WR_HISTORY_TAG_PROPAGATE || 
-      tag==WR_HISTORY_TAG_PROPINST || tag==WR_HISTORY_TAG_INSTGEN) {
-    if (tag==WR_HISTORY_TAG_PARA) start=HISTORY_PARA_PARENT1_POS;
-    else start=HISTORY_PARENT1_POS;    
-    for(i=start;i<len;i++) {
-      //printf("\nflatten i %d depth %d\n",i,depth);
-      if (tag==WR_HISTORY_TAG_PROPINST && i==HISTORY_PARENT2_POS) {
-        // instantiation term, not a clause
-        continue;
-      }
-      cl1=wr_get_history_record_field(g,otp(db,history),i);      
-      h1=wr_get_history(g,otp(db,cl1));
-      if (wg_get_assoc(db,(void *)cl1,*assoc)) {
-        //printf("\nC");
-        continue;
-      }  
-      wr_flatten_history(g,mpool,h1,otp(db,cl1),depth+1,clnr,assoc);
-      /* 
-      printf("\n flattening adding cl nr %d\n",*clnr);
-      wr_print_clause(g,rotp(g,cl1));
-      printf("\n");
-      */
-      tmp1=wr_flatten_history_addcl(g,mpool,cl1,clnr,assoc);
-      if (!tmp1) return NULL;         
-    }   
+  seen.size=1024;
+  seen.count=0;
+  seen.keys=sys_malloc(sizeof(gint)*seen.size);
+  stack=sys_malloc(sizeof(wr_flat_frame)*cap);
+  if (!seen.keys || !stack) {
+    if (seen.keys) sys_free(seen.keys);
+    if (stack) sys_free(stack);
+    return NULL;
   }
-  return *assoc;   
+  memset(seen.keys,0,sizeof(gint)*seen.size);
+  // the clauses already in the list count as numbered
+  for(res=*assoc; res && wg_ispair(db,res); res=wg_rest(db,res)) {
+    if (!wr_flat_set_add(&seen,(gint)wg_first(db,wg_first(db,res)))) break;
+  }
+  top=0;
+  wr_flat_frame_init(g,&stack[0],history);
+  while (top>=0) {
+    wr_flat_frame* f=&stack[top];
+    done=0;
+    if (f->pending) {
+      // the parents of the pending parent are numbered: number the parent
+      next=f->pending;
+      f->pending=0;
+      if (!wr_flat_addcl(g,mpool,next,clnr,assoc,&seen)) done=1;
+    }
+    if (!done) {
+      next=wr_flat_next_parent(g,f,&seen);
+      if (next>0 || next<-1) {
+        // walk the parents of this parent first
+        f->pending=next;
+        if (top+1>=cap) {
+          wr_flat_frame* ns=sys_realloc(stack,sizeof(wr_flat_frame)*cap*2);
+          if (!ns) break;
+          stack=ns;
+          cap=cap*2;
+        }
+        top++;
+        wr_flat_frame_init(g,&stack[top],wr_get_history(g,otp(db,next)));
+        continue;
+      }
+      done=1;
+    }
+    // this record is done; its parent frame numbers it next
+    top--;
+  }
+  sys_free(seen.keys);
+  sys_free(stack);
+  return *assoc;
 }
 
 int wr_flatten_history_addcl(glb* g, void* mpool, gint cl, int* clnr, void **assoc) {
