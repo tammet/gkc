@@ -115,3 +115,4 @@ e4_include_only	Test/defects/e4_include_only.p	proof	10
 e1_deep_proof	Test/defects/e1_deep_proof.p -strategytext '{"strategy":["negative_pref"],"query_preference":0,"max_seconds":20}'	proof	60
 e3_kb_sine_order	Test/defects/e3_kb.p Test/defects/e3_query.p -strategytext '{"strategy":["unit"],"query_preference":0,"max_seconds":10}'	kbcheck	30
 e5_oversized_clause	Test/defects/e5_oversized.p -strategytext '{"strategy":["negative_pref"],"query_preference":0,"max_seconds":10}'	noproof	20
+long_quoted_constant	Test/defects/long_quoted_constant.p	proof	10

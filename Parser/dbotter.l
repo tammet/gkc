@@ -30,6 +30,8 @@
 %{
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "dbotterparse.h"
 #include "dbotter.tab.h"
 
@@ -97,8 +99,28 @@ lex_parsestr(const char *s)
 /* static: dbprolog.l used to declare identical copies, which linked only via
    pre-gcc-10 common-symbol merging; keep these lexer-local */
 static char linebuf[1024];
-static char elmparsestrbuf[1024];
+/* buffer of a quoted token: starts as a static array and grows for long
+   strings; an old block is not freed, since the parser may still hold a
+   pointer to the previous token */
+static char elmparsestrbuf_init[1024];
+static char *elmparsestrbuf=elmparsestrbuf_init;
+static size_t elmparsestrbuf_size=sizeof(elmparsestrbuf_init);
 static char *s;
+
+/* append c to the quoted token, keeping one byte for the closing 0 */
+static void wg_strbuf_put(char c) {
+  size_t pos=s-elmparsestrbuf;
+  char *nbuf;
+  if (pos+1>=elmparsestrbuf_size) {
+    nbuf=(char*)malloc(2*elmparsestrbuf_size);
+    if (nbuf==NULL) return; /* out of memory: the string is cut */
+    memcpy(nbuf,elmparsestrbuf,pos);
+    elmparsestrbuf=nbuf;
+    elmparsestrbuf_size=2*elmparsestrbuf_size;
+    s=nbuf+pos;
+  }
+  *s++=c;
+}
 
 %}
 
@@ -216,37 +238,37 @@ ID       [a-zA-Z\x80-\xff][a-zA-Z0-9_:+\-*/<>\x80-\xff]*
 	    }  	    
 
 \"              { BEGIN STRSTATE; s = elmparsestrbuf; } 
-<STRSTATE>\\n   { *s++ = '\n'; } 
-<STRSTATE>\\t   { *s++ = '\t'; } 
-<STRSTATE>\\\"  { *s++ = '\"'; } 
+<STRSTATE>\\n   { wg_strbuf_put('\n'); } 
+<STRSTATE>\\t   { wg_strbuf_put('\t'); } 
+<STRSTATE>\\\"  { wg_strbuf_put('\"'); } 
 <STRSTATE>\"    { *s = 0; BEGIN 0; 
                   parseprintf("found '%s'\n", elmparsestrbuf); 
 		              *yylval=elmparsestrbuf;
 		              return UNIQUEURI;
                 } 
-<STRSTATE>\n    { *s++ = '\n'; 
+<STRSTATE>\n    { wg_strbuf_put('\n'); 
                  /* parseprintf("elm parser error: invalid string (newline in string)"); 
                     exit(1); 
 		             */   
 	        } 
-<STRSTATE>.     { *s++ = *yytext; }
+<STRSTATE>.     { wg_strbuf_put(*yytext); }
 
 
 \'              { BEGIN QUOTESTATE; s = elmparsestrbuf; } /* *s++ = '#';}  */
-<QUOTESTATE>\\n   { *s++ = '\n'; } 
-<QUOTESTATE>\\t   { *s++ = '\t'; } 
-<QUOTESTATE>\\\'  { *s++ = '\''; } 
+<QUOTESTATE>\\n   { wg_strbuf_put('\n'); } 
+<QUOTESTATE>\\t   { wg_strbuf_put('\t'); } 
+<QUOTESTATE>\\\'  { wg_strbuf_put('\''); } 
 <QUOTESTATE>\'    { *s = 0; BEGIN 0; 
                   parseprintf("found '%s'\n", elmparsestrbuf); 
 		              *yylval=elmparsestrbuf;
 		              return CONSTURI;
                 } 
-<QUOTESTATE>\n    { *s++ = '\n'; 
+<QUOTESTATE>\n    { wg_strbuf_put('\n'); 
                  /* parseprintf("elm parser error: invalid string (newline in quote)"); 
                     exit(1); 
 		             */   
 	        } 
-<QUOTESTATE>.     { *s++ = *yytext; }
+<QUOTESTATE>.     { wg_strbuf_put(*yytext); }
 
 
 "/*"         BEGIN(COMMENT);  
