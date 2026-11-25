@@ -107,3 +107,6 @@ t_arith_inst15	Test/arithmetic/arithmetic_instantiation15_cars_given_prices.txt	
 t_arith_inst16	Test/arithmetic/arithmetic_instantiation16_boxes_answer.txt	answer:$ans(4).	10
 t_arith_inst18	Test/arithmetic/arithmetic_instantiation18_cars_general_expected_hard.txt	noproof	15
 t_arith_overflow	Test/arithmetic/arithmetic_overflow_safety.txt	proof	10
+#
+# Defect fixes (Task 03)
+e2_factor_then_reflexive	Test/defects/e2_factor_then_reflexive.p -strategytext '{"strategy":["query_focus"],"query_preference":1,"max_seconds":5}'	proof	10

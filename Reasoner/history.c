@@ -2548,7 +2548,10 @@ int wr_same_answers(glb* g, gptr cl1, gptr cl2, int uniquestrflag) {
   gint meta1,meta2;
   gint atom1,atom2;
 
-#ifdef DEBUG  
+  // a proof by the empty clause is registered with the clause NULL: two
+  // such answers are the same, a NULL and a clause are different
+  if (cl1==NULL || cl2==NULL) return cl1==cl2;
+#ifdef DEBUG
   wr_printf("\nwr_same_answers called on clauses %d %d :\n",(int)cl1,(int)cl2);
   wr_print_clause(g,cl1);
   wr_printf("\n");
