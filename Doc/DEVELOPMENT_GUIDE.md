@@ -553,6 +553,44 @@ Use existing print flags or `#ifdef DEBUG` style local diagnostics.
 
 ## 17. Tests and Example-Based Regression
 
+### Regression script
+
+`Test/regress.py` runs the cases of `Test/regress_cases.tsv` (Python 3,
+standard library only, about 20 seconds):
+
+```sh
+python3 Test/regress.py                         # tests ./gkc
+python3 Test/regress.py --binary /path/to/gkc   # tests another binary
+python3 Test/regress.py --only kb --verbose     # cases whose name contains kb
+```
+
+Each case gives the gkc arguments, the expected outcome and a timeout. The
+outcomes are `proof`, `noproof`, `answer:A1;;A2` (every answer text must occur
+in an answer line) and `error:TEXT`. Every case runs with `-parallel 0`; the
+script kills the whole process group at the timeout. It prints one line per
+failed case and a final count. The exit code is 0 only when all cases pass.
+
+For every proof the script checks that the proof output is complete. Plain
+output needs a `proof:` line, steps numbered 1 to n, parents with smaller
+numbers, and a last step `false` or an answer clause. TPTP output needs the
+`SZS output start` and `SZS output end` lines. JSON output must parse and
+contain a proof for each answer.
+
+The case kind `kbcheck` builds a KB with `-readkb`, computes a sha256 checksum
+of the shared memory segment, runs the query with `-usekb`, computes the
+checksum again and deletes the segment. Equal checksums show that the query
+did not write into the KB. The check reads `/proc/sysvipc/shm` and is skipped
+on platforms without it.
+
+The script also calls `Test/arithmetic/check_arithmetic_instantiation.py`.
+That driver always tests `./gkc`, so `regress.py` skips it for another binary.
+
+The expected outcomes come from the binary of the commit that added the
+script. Add a case when a change reaches a new path. Change an expected
+outcome only when the change of behavior is intended and documented.
+
+### Targeted cases
+
 This repository does not have a single modern test runner covering all
 reasoner behavior, so combine targeted examples with focused new cases.
 

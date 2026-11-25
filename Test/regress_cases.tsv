@@ -1,0 +1,109 @@
+# Regression cases for Test/regress.py.
+# Columns, separated by one TAB:
+#   name     unique case name
+#   args     gkc arguments, split like a shell command line; paths are
+#            relative to the repository root; regress.py adds -parallel 0
+#   expect   proof | noproof | answer:A1;;A2 | error:TEXT | kbcheck
+#            answer: every Ai must occur in an answer line of the output
+#            kbcheck: args are a KB file and a query file (shared KB check)
+#   timeout  wall-clock seconds for the case
+# Expected outcomes come from the binary of commit 8de75e0.
+#
+# Examples/, automatic strategy
+algebra	Examples/algebra.txt	proof	10
+arithmetic1	Examples/arithmetic1.txt	proof	10
+arithmetic2	Examples/arithmetic2.txt	answer:$ans(10).	10
+arithmetic3	Examples/arithmetic3.txt	proof	10
+arithmetic4	Examples/arithmetic4.txt	proof	10
+arith_inst_apples	Examples/arithmetic_instantiation_apples.txt	answer:$ans(8).	10
+blocks	Examples/blocks.txt	answer:$ans(do(putdown(c,b),do(pickup(c),do(putdown(b,a),do(pickup(b),s0))))).	10
+blocks4	Examples/blocks4.txt	answer:$ans(do(putdown("c","b"),do(pickup("c"),do(putdown("b","a"),do(pickup("b"),s0))))).	10
+boolean	Examples/boolean.txt	proof	10
+distinct	Examples/distinct.txt	proof	10
+dreadbury	Examples/dreadbury.txt	proof	10
+example1	Examples/example1.txt	proof	10
+example2	Examples/example2.txt	answer:$ans(pete).	10
+example3	Examples/example3.txt	answer:$ans(mark).	10
+example4	Examples/example4.txt	answer:$ans(mark) | $ans(mickey).	10
+example5	Examples/example5.txt	answer:$ans(pete).	10
+example6	Examples/example6.txt	answer:$ans(father(mark)).	10
+example7	Examples/example7.txt	answer:$ans(father(father(mark))).	10
+example8	Examples/example8.txt	proof	10
+example9	Examples/example9.txt	answer:$ans(mark).	10
+example10	Examples/example10.txt	answer:$ans(mike).	10
+example10a	Examples/example10a.txt	answer:$ans(gg(smbdy)).	10
+example13	Examples/example13.txt	proof	10
+group	Examples/group.txt	proof	10
+lists	Examples/lists.txt	answer:$ans(company2).	10
+medicine	Examples/medicine.txt	proof	10
+nlp	Examples/nlp.txt	proof	10
+organization	Examples/organization.txt	proof	10
+set	Examples/set.txt	proof	10
+steam	Examples/steam.txt	proof	10
+steam_kb_alone	Examples/steam_kb.txt	noproof	10
+steam_query_alone	Examples/steam_query.txt	noproof	10
+steam_kb_and_query	Examples/steam_kb.txt Examples/steam_query.txt	proof	10
+jsexample1	Examples/jsexample1.js	proof	10
+jsexample2	Examples/jsexample2.js	proof	10
+jsexample3	Examples/jsexample3.js	answer:$ans(mark).	10
+jsexample4	Examples/jsexample4.js	answer:$ans(mickey) | $ans(mark).	10
+jsexample5	Examples/jsexample5.js	answer:$ans(mark).	10
+jsexample6	Examples/jsexample6.js	answer:$ans(mike).	10
+jsexample7	Examples/jsexample7.js	answer:$ans(mark).	10
+jsexample8	Examples/jsexample8.js	answer:$ans(mark).	10
+jsexample9	Examples/jsexample9.js	answer:$ans(michael).	10
+jsexample10	Examples/jsexample10.js	answer:$ans('_:crtd_1').	10
+jsexample11	Examples/jsexample11.js	answer:$ans(mark).	10
+jsexample12	Examples/jsexample12.js	answer:$ans(company1).	10
+jsexample13	Examples/jsexample13.js	proof	10
+#
+# Examples/ with the commands of Examples/README.md (slow or special inputs)
+blocks2_querystrat	Examples/blocks2.txt -strategy Examples/querystrat.txt	answer:$ans(do(putdown(c,b),do(pickup(c),do(putdown(b,a),do(pickup(b),do(putdown(a,d),do(pickup(a),do(putdown(c,table),do(pickup(c),s0))))))))).	10
+blocks3_querystrat	Examples/blocks3.txt -strategy Examples/querystrat.txt	answer:$ans(do(putdown(b,a),do(pickup(b),do(putdown(a,d),do(pickup(a),do(putdown(d,c),do(pickup(d),do(putdown(c,table),do(pickup(c),s0))))))))).	10
+arith_inst_apples_unit	Examples/arithmetic_instantiation_apples.txt -strategytext '{"strategy":["unit"],"query_preference":0}'	answer:$ans(8).	10
+arith_inst_product_mode2	Examples/arithmetic_instantiation_product.txt -strategytext '{"strategy":["unit"],"query_preference":0,"arith_instantiation":2}'	proof	10
+arith_inst_product_mode1	Examples/arithmetic_instantiation_product.txt -strategytext '{"strategy":["unit"],"query_preference":0,"max_seconds":2}'	noproof	10
+example10_multineg	Examples/example10.txt -strategy Examples/multineg.txt	answer:$ans(mike).;;$ans(john).	10
+example11_unprovable	Examples/example11.txt -strategytext '{"strategy":["negative_pref"],"query_preference":0,"max_seconds":1}'	noproof	10
+example12_hard	Examples/example12.txt -strategytext '{"strategy":["negative_pref"],"query_preference":0,"max_seconds":1}'	noproof	10
+#
+# Strategy files
+strategy_file_strat	Examples/example1.txt -strategy Examples/strat.txt	proof	10
+strategy_file_runs	Examples/example1.txt -strategy Examples/runs.txt	proof	10
+strategy_file_querystrat	Examples/example1.txt -strategy Examples/querystrat.txt	proof	10
+strategy_file_query	Examples/example1.txt -strategy Examples/query.txt	proof	10
+#
+# Paths: hyperresolution, equality with rewriting, output formats
+hyper_steam	Examples/steam.txt -strategytext '{"strategy":["hyper"],"query_preference":0,"max_seconds":5}'	proof	10
+rewrite_algebra	Examples/algebra.txt -strategytext '{"strategy":["negative_pref"],"query_preference":0,"max_seconds":5}'	proof	10
+rewrite_example8	Examples/example8.txt -strategytext '{"strategy":["negative_pref"],"query_preference":0,"max_seconds":5}'	proof	10
+tptp_output_steam	Examples/steam.txt -tptp	proof	10
+tptp_output_answer	Examples/example2.txt -tptp	answer:$ans(pete)	10
+json_output_answer	Examples/example3.txt -json -print 10	answer:[["$ans","mark"]]	10
+#
+# Expected errors
+error_syntax	-text 'p(a) as q.'	error:syntax error	10
+error_missing_file	Test/no_such_file_for_regress.txt	error:could not open file	10
+#
+# Shared KB (L6): -readkb, checksum of the segment, -usekb, checksum again
+kb_steam	Examples/steam_kb.txt Examples/steam_query.txt	kbcheck	30
+#
+# Test/arithmetic/ inputs under 5 s, automatic strategy
+t_arith_ground1	Test/arithmetic/arithmetic_ground_regression1.txt	proof	10
+t_arith_ground2	Test/arithmetic/arithmetic_ground_regression2.txt	proof	10
+t_arith_inst1	Test/arithmetic/arithmetic_instantiation1.txt	proof	10
+t_arith_inst2	Test/arithmetic/arithmetic_instantiation2.txt	proof	10
+t_arith_inst3	Test/arithmetic/arithmetic_instantiation3.txt	proof	10
+t_arith_inst4	Test/arithmetic/arithmetic_instantiation4.txt	proof	10
+t_arith_inst5	Test/arithmetic/arithmetic_instantiation5.txt	proof	10
+t_arith_inst7	Test/arithmetic/arithmetic_instantiation7.txt	proof	10
+t_arith_inst8	Test/arithmetic/arithmetic_instantiation8.txt	proof	10
+t_arith_inst9	Test/arithmetic/arithmetic_instantiation9.txt	proof	10
+t_arith_inst10	Test/arithmetic/arithmetic_instantiation10.txt	proof	10
+t_arith_inst12	Test/arithmetic/arithmetic_instantiation12_apples_comparison.txt	proof	10
+t_arith_inst13	Test/arithmetic/arithmetic_instantiation13_cars_answer.txt	answer:$ans(mike).	10
+t_arith_inst14	Test/arithmetic/arithmetic_instantiation14_apples_given_answer.txt	proof	10
+t_arith_inst15	Test/arithmetic/arithmetic_instantiation15_cars_given_prices.txt	proof	10
+t_arith_inst16	Test/arithmetic/arithmetic_instantiation16_boxes_answer.txt	answer:$ans(4).	10
+t_arith_inst18	Test/arithmetic/arithmetic_instantiation18_cars_general_expected_hard.txt	noproof	15
+t_arith_overflow	Test/arithmetic/arithmetic_overflow_safety.txt	proof	10
