@@ -144,6 +144,33 @@ DB header before strategy parsing.
 Strategy time checks use the C `clock()` value, so these limits measure process
 CPU time rather than wall time. On Unix, the separate CLI `-seconds` limit also
 installs a wall-clock `alarm()` deadline.
+
+## Work Limit
+
+### `max_given`
+
+Maximum number of given clauses for one strategy run. `0`, a negative value, or
+a missing key means no limit. The default in `wr_glb_init_simple()` is `0`.
+
+At the top of each loop iteration, `wr_genloop()` compares
+`g->stat_given_used` with the limit. When the count has reached the limit, the
+run ends with the same return value (`2`) as a run that reaches a time limit.
+The statistics of `-print 15` appear as after a time limit. A proof found
+during the inferences of the last allowed given clause is still reported.
+
+`stat_given_used` counts the clauses that `wr_add_given_cl_active_list()`
+activates. A partial hyperresolution clause taken from `hyper_queue` does not
+increase it.
+
+The key works at the top level of a strategy and inside one entry of `runs`,
+like `max_seconds`. Use it for fixed-work runs: with `-parallel 0` and no time
+limit, two runs of the same binary on the same input do the same search on every
+machine. Do not combine it with `max_seconds` or `max_dseconds` for such
+comparisons, because those keys make the search time dependent.
+
+```sh
+./gkc problem.p -parallel 0 -strategytext '{"strategy":["unit"],"query_preference":0,"max_given":5000}'
+```
 ## Answer Limit
 
 ### `max_answers`
@@ -497,6 +524,7 @@ max_seconds
 total_seconds
 max_dseconds
 total_dseconds
+max_given
 given_queue_ratio
 weight_select_ratio
 sine

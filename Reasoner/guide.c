@@ -256,6 +256,9 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr, int s
 
       //(g->use_strong_unit_cutoff)=1;
 
+    } else if (!strcmp(key,"max_given")) {
+      // stop the run after this many given clauses; 0 means no limit
+      (g->max_given)=json_valueint(elem);
     } else if (!strcmp(key,"total_dseconds")) {
       (g->max_dseconds)=json_valueint(elem);
       if (!has_total_seconds) {

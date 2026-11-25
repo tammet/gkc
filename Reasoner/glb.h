@@ -339,6 +339,7 @@ typedef struct glb {
   int max_seconds;
   int max_run_dseconds;
   int max_dseconds;
+  int max_given; // stop a run after this many given clauses, 0: no limit
   int cl_keep_weightlimit;
   int cl_keep_sizelimit;
   int cl_keep_depthlimit;

@@ -155,6 +155,8 @@ int wr_genloop(glb* g) {
     if ((g->max_run_seconds) && (run_seconds>(g->max_run_seconds))) return 2;
     if ((g->max_run_dseconds) && (run_dseconds>(g->max_run_dseconds))) return 2;
     if ((g->max_seconds) && (total_seconds>(g->max_seconds))) return 2;
+    // stop after max_given given clauses with the return code of a time limit
+    if ((g->max_given)>0 && (g->stat_given_used)>=(g->max_given)) return 2;
     if (g->max_run_dseconds) {
       if (g->max_run_dseconds) g->passed_ratio=(float)run_dseconds / (float)(g->max_run_dseconds);
       else g->passed_ratio=0; 
