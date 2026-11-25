@@ -100,6 +100,46 @@ static gint* wr_lithash_final(glb* g, gptr rptr, int rpos) {
 }
 
 /*
+  The weight check of the final steps, run on the half-built clause before
+  the history record and the final clause are built. Only factoring and
+  paramodulation call it: they have no double cut, which can lower the
+  weight of a resolvent before the late check. wr_derived_weight_check reads
+  the fill level of queue_termbuf, which is lower here than after the copy;
+  a higher fill level only adds reasons to drop. So a clause dropped here
+  would be dropped by the late check as well, and a clause kept here goes
+  the old way: copy, history record, late check. Returns 1 if dropped.
+*/
+
+static int wr_derived_weight_drop_early(glb* g, gptr rptr, int rpos, int ruleflag,
+                                        int wxatomnr, int wyatomnr) {
+  int i, ansnr=0, weight, size, depth, length;
+
+  // the final steps send these clauses past the weight check or print them
+  if ((g->hyperres_strat) || (g->print_derived_cl) || (g->print_derived)) return 0;
+  for(i=0;i<rpos;i++) {
+    if (wr_answer_lit(g,rptr[(i*LIT_WIDTH)+LIT_ATOM_POS])) ansnr++;
+  }
+  if (ansnr==rpos) return 0; // an answer: the final steps register it
+  weight=wr_calc_lits_weight(g,ruleflag,rptr[LIT_ATOM_POS],rptr,rpos,&size,&depth,&length);
+  if (wr_derived_weight_check(g,g->avg_kept_weight,weight,size,depth,length,
+                              wxatomnr,wyatomnr)) {
+    // kept: the final clause has the same literals, so the final steps reuse
+    // these values instead of computing them again
+    (g->early_weight)[0]=weight;
+    (g->early_weight)[1]=size;
+    (g->early_weight)[2]=depth;
+    (g->early_weight)[3]=length;
+    (g->early_weight_known)=1;
+    return 0;
+  }
+  (g->stat_weight_discarded_cl)++;
+  // stat_built_cl counts the clauses that reach the final build or this
+  // early weight check, as in the order before the check moved
+  ++(g->stat_built_cl);
+  return 1;
+}
+
+/*
   The half-built clause of a derived clause is built in derived_termbuf. When
   it does not fit, wr_alloc_from_cvec sets derived_build_overflow instead of
   an allocation error, the build returns WG_ILLEGAL, and the caller drops the
@@ -113,6 +153,7 @@ static void wr_derived_build_begin(glb* g) {
   (g->derived_build_active)=1;
   (g->derived_build_overflow)=0;
   (g->lithash_n)=0; // no literal hash of this clause is known yet
+  (g->early_weight_known)=0; // no weight of this clause is known yet
 }
 
 static void wr_derived_build_end(glb* g) {
@@ -235,7 +276,16 @@ static void wr_process_derived_final(glb* g, gptr res, gint* lithash, gint histo
     } else if (g->print_derived) {
       wr_print_clause_via_buf(g,res);
     }
-    weight=wr_calc_clause_weight(g,res,&size,&depth,&length);
+    if (g->early_weight_known) {
+      // the early weight check computed these on the same literals
+      weight=(g->early_weight)[0];
+      size=(g->early_weight)[1];
+      depth=(g->early_weight)[2];
+      length=(g->early_weight)[3];
+      (g->early_weight_known)=0;
+    } else {
+      weight=wr_calc_clause_weight(g,res,&size,&depth,&length);
+    }
     avg=(g->avg_kept_weight);
     if (weightcheckflag &&
         !wr_derived_weight_check(g,avg,weight,size,depth,length,wxatomnr,wyatomnr)) {
@@ -782,6 +832,7 @@ void wr_process_factor_result
   // create new record  
   wr_process_resolve_result_setupquecopy(g); // use g->queue_termbuf as g->build_buffer
   initial_queue_termbuf_next=CVEC_NEXT(g->build_buffer); // to be restored if not actually used 
+  if (wr_derived_weight_drop_early(g,rptr,rpos,ruleflag,0,0)) return;
 
   history=wr_build_factorial_history(g,xcl_as_active,x,y,g->cut_clvec);
   res=wr_derived_build_cl_from_initial_cl(g,rptr,rpos,ruleflag,history);
@@ -1018,6 +1069,7 @@ void wr_process_paramodulate_result
   //partialresflag=0;      
   wr_process_resolve_result_setupquecopy(g); // use g->queue_termbuf as g->build_buffer  
   initial_queue_termbuf_next=CVEC_NEXT(g->build_buffer); // to be restored if not actually used
+  if (wr_derived_weight_drop_early(g,rptr,rpos,ruleflag,xatomnr,yatomnr)) return;
   if (fromflag) {
     //printf("\n fromflag %d cutpos1 %d cutpos2 %d leftflag %d\n",fromflag,cutpos1,cutpos2,leftflag);
     /*

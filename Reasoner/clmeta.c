@@ -80,8 +80,25 @@ ignoring ans literals
 
 
 int  wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length) {
+  if (wg_rec_is_rule_clause(g->db,xptr))
+    return wr_calc_lits_weight(g,1,0,
+             xptr+RECORD_HEADER_GINTS+CLAUSE_EXTRAHEADERLEN,
+             wg_count_clause_atoms(g->db,xptr),size,depth,length);
+  else
+    return wr_calc_lits_weight(g,0,encode_datarec_offset(pto(g->db,xptr)),
+             NULL,1,size,depth,length);
+}
+
+/*
+  The weight of a clause given by its literals: lits holds nlits (meta, atom)
+  pairs in the layout of a clause record (and of a half-built derived
+  clause). For a fact clause (ruleflag 0), factatom is the atom and lits is
+  not used. The result is the same as wr_calc_clause_weight of the record.
+*/
+
+int wr_calc_lits_weight(glb* g, int ruleflag, gint factatom, gptr lits, int nlits,
+                        int* size, int* depth, int* length) {
   void* db;
-  int ruleflag;       
   gint xatomnr; 
   gint xatom=0, xmeta;  
   int i;
@@ -96,14 +113,12 @@ int  wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length
 
 #ifdef DEBUG  
   wr_printf("wr_calc_clause_weight called for:\n"); 
-  wr_print_clause(g,xptr);
   wr_printf("\n");
 #endif
   db=g->db; 
   *size=0;
   *depth=0;
   *length=0;
-  ruleflag=wg_rec_is_rule_clause(db,xptr);  
 #ifdef WEIGHT_VARS  
   vc_tmp=*(g->tmp_unify_vc);
 #endif
@@ -111,7 +126,7 @@ int  wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length
     xatomnr=1;
     *length=1;
     posatoms=1;
-    xatom=encode_datarec_offset(pto(db,xptr));
+    xatom=factatom;
     hasvars=0;
     if (wr_answer_lit(g,xatom)) w=1; // !! special answer-lit weight
     else w=wr_calc_term_weight(g,xatom,0,size,depth,0,&hasvars);    
@@ -128,13 +143,13 @@ int  wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length
   } else {        
     w=0;
     // loop over clause elems
-    xatomnr=wg_count_clause_atoms(db,xptr); 
+    xatomnr=nlits; 
     max_ground_weight=0;   
     max_weight=0;
     posatoms=0;
     for(i=0;i<xatomnr;i++) {
-      xmeta=wg_get_rule_clause_atom_meta(db,xptr,i);
-      xatom=wg_get_rule_clause_atom(db,xptr,i);
+      xmeta=lits[(i*LIT_WIDTH)+LIT_META_POS];
+      xatom=lits[(i*LIT_WIDTH)+LIT_ATOM_POS];
       if (wr_answer_lit(g,xatom)) w=w+1;
       else {
         atomdepth=0;
@@ -179,7 +194,7 @@ int  wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length
       (g->use_equality) && (g->use_rewrite_terms_strat) && 
       wr_equality_atom(g,xatom) &&
       ruleflag && 
-      ! wg_atom_meta_is_neg(db,wg_get_rule_clause_atom_meta(db,xptr,0)) ) {
+      ! wg_atom_meta_is_neg(db,lits[LIT_META_POS]) ) {
     tptr=rotp(g,xatom);
     atomlen=get_record_len(tptr);
     if (atomlen>=(g->unify_firstuseterm)+3) {

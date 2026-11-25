@@ -514,6 +514,8 @@ typedef struct glb {
   gint* lithash_final; // the hashes by literal position of the final clause
   int lithash_n;       // number of pairs in lithash_atoms and lithash_vals
   int lithash_size;    // capacity of the three arrays
+  int early_weight_known; // 1 when early_weight holds the weight values of the current clause
+  int early_weight[4];    // weight, size, depth and length from the early weight check
   int stat_internlimit_discarded_para;
   int stat_given_candidates;
   int stat_given_candidates_hyper;

@@ -401,6 +401,7 @@ int wr_glb_init_simple(glb* g) {
   (g->lithash_final)=NULL;
   (g->lithash_n)=0;
   (g->lithash_size)=0;
+  (g->early_weight_known)=0;
   (g->stat_internlimit_discarded_para)=0;
   (g->stat_given_candidates)=0;
   (g->stat_given_candidates_at_endgame)=0;
