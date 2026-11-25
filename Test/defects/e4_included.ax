@@ -1,0 +1,4 @@
+% Included by e4_include_only.p
+cnf(a1,axiom, p(a)).
+cnf(a2,axiom, ~p(X) | q(X)).
+cnf(g1,negated_conjecture, ~q(a)).

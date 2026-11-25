@@ -110,3 +110,4 @@ t_arith_overflow	Test/arithmetic/arithmetic_overflow_safety.txt	proof	10
 #
 # Defect fixes (Task 03)
 e2_factor_then_reflexive	Test/defects/e2_factor_then_reflexive.p -strategytext '{"strategy":["query_focus"],"query_preference":1,"max_seconds":5}'	proof	10
+e4_include_only	Test/defects/e4_include_only.p	proof	10

@@ -131,6 +131,11 @@ int wr_is_tptp_import_clause(void* db, void* cl);
 //void* wr_preprocess_tptp_fof_clause(glb* g, void* mpool, void* cl, void* clname);
 void* wr_process_tptp_import_clause(glb* g, void* mpool, void* cl);
 
+/* number of included files that yielded clauses, counted over the whole
+   process; wr_import_otter_file compares it with its value at entry, so
+   that a file with include lines only is not reported as empty */
+static int wr_included_files_with_clauses=0;
+
 void db_err_printf2(char* s1, char* s2);
 
 /* ====== Functions ============== */
@@ -151,6 +156,7 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, in
   void* pres2=NULL;
   void *mpool=NULL;  
   int tmp_comp_funs,tmplen;
+  int included_before=wr_included_files_with_clauses;
   
   //printf("\nstarting to read file %s \n",filename);
 #ifdef DEBUG
@@ -299,6 +305,12 @@ int wr_import_otter_file(glb* g, char* filename, char* strasfile, cvec clvec, in
      clause all exited 1 with no output at all
      (/opt/gk/Doc/MEMO_input_robustness.md S1/S2). Say what happened when
      nothing else has. */
+  if (!pres && pres2==NULL && !(g->parse_errmsg) && !(g->parse_errflag) &&
+      wr_included_files_with_clauses>included_before) {
+    /* the file has include lines only, and the included files yielded
+       clauses */
+    return 0;
+  }
   if (!pres && pres2==NULL && !(g->parse_errmsg)) {
     db_err_printf2("no clauses found in",
                    (filename)?filename:(char*)"the input text");
@@ -1096,7 +1108,7 @@ void* wr_process_tptp_import_clause(glb* g, void* mpool, void* cl) {
   printf("\nfilename %s\n",filename);
 #endif   
   tmp=(g->parse_is_included_file);
-  wr_import_otter_file(g,filename,NULL,NULL,1);  
+  if (!wr_import_otter_file(g,filename,NULL,NULL,1)) wr_included_files_with_clauses++;
   (g->parse_is_included_file)=tmp;
   return NULL;
 }
