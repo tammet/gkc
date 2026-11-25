@@ -88,28 +88,40 @@ def read_cases(path):
   return cases
 
 
-def run_gkc(cmd, timeout):
-  """Run cmd in its own process group. Return (rc, output, timed_out, secs)."""
+def run_gkc(cmd, timeout, stdout_only=None):
+  """Run cmd in its own process group. Return (rc, output, timed_out, secs).
+
+  The output holds stdout and stderr. If stdout_only is a list, stderr is
+  read apart (appended after stdout in the output), and stdout alone is
+  stored as stdout_only[0]: a sanitizer build writes its reports to stderr,
+  and they must not enter the JSON that a case checks.
+  """
   start = time.monotonic()
+  split = stdout_only is not None
   proc = subprocess.Popen(cmd, cwd=ROOT, stdout=subprocess.PIPE,
-                          stderr=subprocess.STDOUT, start_new_session=True)
+                          stderr=subprocess.PIPE if split else subprocess.STDOUT,
+                          start_new_session=True)
   timed_out = False
   try:
-    raw, _ = proc.communicate(timeout=timeout)
+    raw, err = proc.communicate(timeout=timeout)
   except subprocess.TimeoutExpired:
     timed_out = True
     try:
       os.killpg(proc.pid, signal.SIGKILL)
     except ProcessLookupError:
       pass
-    raw, _ = proc.communicate()
+    raw, err = proc.communicate()
   finally:
     try:
       os.killpg(proc.pid, signal.SIGKILL)
     except ProcessLookupError:
       pass
   secs = time.monotonic() - start
-  return proc.returncode, raw.decode("utf-8", "replace"), timed_out, secs
+  out = raw.decode("utf-8", "replace")
+  if split:
+    stdout_only.append(out)
+    out = out + (err or b"").decode("utf-8", "replace")
+  return proc.returncode, out, timed_out, secs
 
 
 def classify(out, rc, timed_out):
@@ -229,7 +241,9 @@ def check_answers(case, out, wanted):
 def run_case(binary, case):
   """Run one ordinary case. Return (ok, message, seconds)."""
   cmd = [str(binary)] + case.args + ["-parallel", "0"]
-  rc, out, timed_out, secs = run_gkc(cmd, case.timeout)
+  stdout = [] if "-json" in case.args else None
+  rc, out, timed_out, secs = run_gkc(cmd, case.timeout, stdout)
+  jsonout = stdout[0] if stdout else out  # the JSON checks read stdout only
   got = classify(out, rc, timed_out)
   exp = case.expect
   if exp.startswith("error:"):
@@ -250,11 +264,11 @@ def run_case(binary, case):
   if exp == "proof" or exp.startswith("answer:"):
     if got != "proof":
       return False, f"expected proof, got {got} (rc {rc})", secs
-    err = check_proof(case, out)
+    err = check_proof(case, jsonout)
     if err:
       return False, f"incomplete proof output: {err}", secs
     if exp.startswith("answer:"):
-      err = check_answers(case, out, exp[len("answer:"):].split(";;"))
+      err = check_answers(case, jsonout, exp[len("answer:"):].split(";;"))
       if err:
         return False, err, secs
     return True, "", secs
