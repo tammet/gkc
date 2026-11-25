@@ -66,6 +66,9 @@ int wr_derived_weight_check(glb* g, double avg, int weight,  int size, int depth
 
 gint wr_add_cl_to_unithash(glb* g, gptr cl, gint clmeta);
 gint wr_add_cl_to_doublehash(glb* g, gptr cl);
+gint wr_add_cl_to_unithash_h(glb* g, gptr cl, gint clmeta, gint* lithash);
+gint wr_add_cl_to_doublehash_h(glb* g, gptr cl, gint* lithash);
+int wr_lithash_reserve(glb* g, int n);
 int wr_process_resolve_result_isrulecl(glb* g, gptr rptr, int rpos);
 int wr_cl_derived_is_answer(glb* g,gptr cl);
 

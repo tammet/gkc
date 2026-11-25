@@ -547,6 +547,8 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
   (g->stat_forwardsubs_attempted)++;
   (g->cut_clvec)[1]=(gint)NULL;
   clhash=0;  
+  // keep the literal hashes for the final steps of the derived clause
+  if (!wr_lithash_reserve(g,rpos)) (g->lithash_n)=0;
   for(i=0;i<rpos;i++) { 
     tmp=i*LIT_WIDTH;
     xatom=rptr[tmp+LIT_ATOM_POS];
@@ -558,6 +560,11 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
 #endif    
     xatomptr=rotp(g,xatom);
     hash=wr_lit_hash(g,xatom);    
+    if ((g->lithash_size)>i) {
+      (g->lithash_atoms)[i]=xatom;
+      (g->lithash_vals)[i]=hash;
+      (g->lithash_n)=i+1;
+    }
 #ifdef DEBUG    
     wr_printf("\ncalculated hash %d \n",hash);
 #endif    
@@ -908,10 +915,16 @@ int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucke
 */
 
 int wr_atom_doublecut(glb* g, gint xatom, gint xatommeta, gptr xcl, int pos, cvec* foundbucket) {
+  return wr_atom_doublecut_h(g,xatom,xatommeta,xcl,pos,foundbucket,wr_lit_hash(g,xatom));
+}
+
+/* wr_atom_doublecut with the literal hash of xatom given by the caller */
+
+int wr_atom_doublecut_h(glb* g, gint xatom, gint xatommeta, gptr xcl, int pos,
+                        cvec* foundbucket, gint hash) {
   gptr xatomptr;
   //cvec bucket;
   gint bucket;
-  gint hash;
   gptr bucket_asp;
   int j;
 
@@ -931,7 +944,6 @@ int wr_atom_doublecut(glb* g, gint xatom, gint xatommeta, gptr xcl, int pos, cve
 #endif     
   
   xatomptr=rotp(g,xatom);
-  hash=wr_lit_hash(g,xatom); 
   if (wg_atom_meta_is_neg(db,xatommeta)) {
     //printf("\nneg atom\n");   
     //bucket=wr_find_termhash(g,rotp(g,g->hash_pos_grounddoubles),xatomptr,hash);  

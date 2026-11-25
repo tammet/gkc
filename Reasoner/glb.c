@@ -396,6 +396,11 @@ int wr_glb_init_simple(glb* g) {
   (g->derived_build_active)=0;
   (g->derived_build_overflow)=0;
   (g->derived_overflow_timeout)=0;
+  (g->lithash_atoms)=NULL;
+  (g->lithash_vals)=NULL;
+  (g->lithash_final)=NULL;
+  (g->lithash_n)=0;
+  (g->lithash_size)=0;
   (g->stat_internlimit_discarded_para)=0;
   (g->stat_given_candidates)=0;
   (g->stat_given_candidates_at_endgame)=0;
@@ -1233,6 +1238,14 @@ int wr_glb_free_local_complex(glb* g) {
   wr_vec_free(g,g->hyper_queue);
   wr_vec_free(g,g->answers);
   if (g->sine_k_values) sys_free(g->sine_k_values); // bytestring
+  if (g->lithash_atoms) sys_free(g->lithash_atoms);
+  if (g->lithash_vals) sys_free(g->lithash_vals);
+  if (g->lithash_final) sys_free(g->lithash_final);
+  (g->lithash_atoms)=NULL;
+  (g->lithash_vals)=NULL;
+  (g->lithash_final)=NULL;
+  (g->lithash_n)=0;
+  (g->lithash_size)=0;
   if (g->sine_uri_k_values) sys_free(g->sine_uri_k_values); // bytestring
   if (g->backsubsume_values) sys_free(g->backsubsume_values); // bytestring
   if (g->arith_inst_cache) sys_free(g->arith_inst_cache);

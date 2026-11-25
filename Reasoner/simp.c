@@ -380,7 +380,7 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
 } 
 
 
-gptr wr_simplify_doublecut_cl(glb* g, gptr cl, gptr cl_metablock) {
+gptr wr_simplify_doublecut_cl(glb* g, gptr cl, gptr cl_metablock, gint* lithash) {
   
   //void* db=g->db;
   gptr res;
@@ -436,8 +436,9 @@ gptr wr_simplify_doublecut_cl(glb* g, gptr cl, gptr cl_metablock) {
     xatom=wg_get_rule_clause_atom(db,xcl,i);            
     yatom=xatom;
     if (!doublecut_found) {
-      // attempt double cut
-      tmp2=wr_atom_doublecut(g,yatom,xmeta,xcl,i,&foundbucket2); 
+      // attempt double cut; lithash: the literal hashes of cl by position, or NULL
+      if (lithash) tmp2=wr_atom_doublecut_h(g,yatom,xmeta,xcl,i,&foundbucket2,lithash[i]);
+      else tmp2=wr_atom_doublecut(g,yatom,xmeta,xcl,i,&foundbucket2); 
     } else {
       tmp2=2;
     }

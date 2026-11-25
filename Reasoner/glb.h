@@ -509,6 +509,11 @@ typedef struct glb {
   int derived_build_active;  // 1 while a wr_process_*_result builds its half-built clause
   int derived_build_overflow; // 1 when derived_termbuf overflowed during that build
   int derived_overflow_timeout; // 1 when the time limit passed at a drop: derivation stops
+  gint* lithash_atoms; // atoms of the current derived clause whose literal hash is known
+  gint* lithash_vals;  // their hashes, computed once in wr_derived_cl_cut_and_subsume
+  gint* lithash_final; // the hashes by literal position of the final clause
+  int lithash_n;       // number of pairs in lithash_atoms and lithash_vals
+  int lithash_size;    // capacity of the three arrays
   int stat_internlimit_discarded_para;
   int stat_given_candidates;
   int stat_given_candidates_hyper;

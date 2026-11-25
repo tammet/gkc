@@ -55,6 +55,51 @@ extern "C" {
 
 
 /*
+  Literal hashes of a derived clause. wr_derived_cl_cut_and_subsume computes
+  wr_lit_hash of each literal of the half-built clause and keeps the pairs
+  (atom, hash) in lithash_atoms and lithash_vals. The removal of cut literals
+  and of strong duplicates keeps the order of the other literals, and the
+  final clause copies the atoms in that order without a renaming of the
+  variables. So wr_lithash_final finds the hash of each literal of the final
+  clause, and the final steps need not compute it again.
+*/
+
+int wr_lithash_reserve(glb* g, int n) {
+  gint *atoms, *vals, *final;
+  int size;
+
+  if (n<=(g->lithash_size)) return 1;
+  size=(n<16 ? 16 : 2*n);
+  atoms=sys_realloc(g->lithash_atoms,size*sizeof(gint));
+  if (atoms==NULL) return 0;
+  (g->lithash_atoms)=atoms;
+  vals=sys_realloc(g->lithash_vals,size*sizeof(gint));
+  if (vals==NULL) return 0;
+  (g->lithash_vals)=vals;
+  final=sys_realloc(g->lithash_final,size*sizeof(gint));
+  if (final==NULL) return 0;
+  (g->lithash_final)=final;
+  (g->lithash_size)=size;
+  return 1;
+}
+
+/* the hashes of the rpos literals of rptr by position, or NULL if unknown */
+
+static gint* wr_lithash_final(glb* g, gptr rptr, int rpos) {
+  int i, j=0;
+  gint atom;
+
+  for(i=0;i<rpos;i++) {
+    atom=rptr[(i*LIT_WIDTH)+LIT_ATOM_POS];
+    while (j<(g->lithash_n) && (g->lithash_atoms)[j]!=atom) j++;
+    if (j>=(g->lithash_n)) return NULL;
+    (g->lithash_final)[i]=(g->lithash_vals)[j];
+    j++;
+  }
+  return g->lithash_final;
+}
+
+/*
   The half-built clause of a derived clause is built in derived_termbuf. When
   it does not fit, wr_alloc_from_cvec sets derived_build_overflow instead of
   an allocation error, the build returns WG_ILLEGAL, and the caller drops the
@@ -67,6 +112,7 @@ extern "C" {
 static void wr_derived_build_begin(glb* g) {
   (g->derived_build_active)=1;
   (g->derived_build_overflow)=0;
+  (g->lithash_n)=0; // no literal hash of this clause is known yet
 }
 
 static void wr_derived_build_end(glb* g) {
@@ -115,7 +161,7 @@ static void wr_derived_build_end(glb* g) {
   The callers pass constant flags, so the compiler can specialize each call.
 */
 
-static void wr_process_derived_final(glb* g, gptr res, gint history,
+static void wr_process_derived_final(glb* g, gptr res, gint* lithash, gint history,
       gint initial_queue_termbuf_next, gptr xcl_as_active,
       int sortflag, int doublecutflag, int hyperflag,
       int weightcheckflag, int wxatomnr, int wyatomnr,
@@ -129,7 +175,10 @@ static void wr_process_derived_final(glb* g, gptr res, gint history,
   int size,depth,length;
 
   UNUSED(unittext);
-  if (sortflag) wr_sort_cl(g,res);
+  if (sortflag) {
+    wr_sort_cl(g,res);
+    lithash=NULL; // the literal order may have changed
+  }
   // check if result contains only ans predicates
   tmp=wr_cl_derived_is_answer(g,res);
   if (tmp>0) {
@@ -141,12 +190,13 @@ static void wr_process_derived_final(glb* g, gptr res, gint history,
   if (doublecutflag) {
     gptr simp2=NULL;
     gint cl_metablock2[CLMETABLOCK_ELS];
-    simp2=wr_simplify_doublecut_cl(g,res,cl_metablock2);
+    simp2=wr_simplify_doublecut_cl(g,res,cl_metablock2,lithash);
     if (!simp2) {
       return;
     }
     if (simp2!=res) {
       res=simp2;
+      lithash=NULL; // a literal was cut: positions changed
     }
   }
   // start storing to queues and hashes
@@ -198,8 +248,8 @@ static void wr_process_derived_final(glb* g, gptr res, gint history,
     avg+=(weight-avg)/((g->stat_kept_cl)+1);
     (g->avg_kept_weight)=avg;
     resmeta=wr_calc_clause_meta(g,res,cl_metablock);
-    hash=wr_add_cl_to_unithash(g,res,resmeta);
-    if (doublehashflag) wr_add_cl_to_doublehash(g,res);
+    hash=wr_add_cl_to_unithash_h(g,res,resmeta,lithash);
+    if (doublehashflag) wr_add_cl_to_doublehash_h(g,res,lithash);
     if (propclhashflag && hash<0) {
       // nonunit clause: add to clause hash
       wr_push_prop_clausehash(g,rotp(g,g->prop_hash_clauses),clhash,res);
@@ -442,7 +492,7 @@ void wr_process_resolve_result
     return;
   }  
 
-  wr_process_derived_final(g,res,history,initial_queue_termbuf_next,xcl_as_active,
+  wr_process_derived_final(g,res,wr_lithash_final(g,rptr,rpos),history,initial_queue_termbuf_next,xcl_as_active,
     0,1,1, 1,xatomnr,yatomnr, 1,0,0,1, "\n+ unit by mp: ","\n+ derived by mp: ",NULL);
 }  
 
@@ -579,7 +629,7 @@ void wr_process_instgen_result
     // allocation failed
     return;
   }  
-  wr_process_derived_final(g,res,history,initial_queue_termbuf_next,xcl_as_active,
+  wr_process_derived_final(g,res,wr_lithash_final(g,rptr,rpos),history,initial_queue_termbuf_next,xcl_as_active,
     1,0,0, 0,0,0, 0,1,clhash,1, NULL,"\n+ derived by instgen: ",NULL);
 }  
 
@@ -739,7 +789,7 @@ void wr_process_factor_result
     // allocation failed
     return;
   }
-  wr_process_derived_final(g,res,history,initial_queue_termbuf_next,xcl_as_active,
+  wr_process_derived_final(g,res,wr_lithash_final(g,rptr,rpos),history,initial_queue_termbuf_next,xcl_as_active,
     0,0,1, 1,0,0, 1,0,0,0, "\n+ unit by factor: ","\n+ derived by merge: ",NULL);
 }  
 
@@ -986,7 +1036,7 @@ void wr_process_paramodulate_result
     // allocation failed
     return;
   }  
-  wr_process_derived_final(g,res,history,initial_queue_termbuf_next,xcl_as_active,
+  wr_process_derived_final(g,res,wr_lithash_final(g,rptr,rpos),history,initial_queue_termbuf_next,xcl_as_active,
     0,0,1, 1,xatomnr,yatomnr, 1,0,0,0, "\n+ unit by factor: ","\n+ derived by = ",
     (fromflag ? "from: " : "into: "));
 }  
@@ -1699,6 +1749,12 @@ int wr_derived_weight_check(glb* g, double avg, int weight,  int size, int depth
 
 
 gint wr_add_cl_to_unithash(glb* g, gptr cl, gint clmeta) {
+  return wr_add_cl_to_unithash_h(g,cl,clmeta,NULL);
+}
+
+/* wr_add_cl_to_unithash; lithash: the literal hashes of cl by position, or NULL */
+
+gint wr_add_cl_to_unithash_h(glb* g, gptr cl, gint clmeta, gint* lithash) {
   int len;
   gptr xatom;
   gint hash;
@@ -1719,7 +1775,8 @@ gint wr_add_cl_to_unithash(glb* g, gptr cl, gint clmeta) {
     } else {
       xatom=cl;
     }  
-    hash=wr_lit_hash(g,rpto(g,xatom));
+    if (lithash) hash=lithash[0];
+    else hash=wr_lit_hash(g,rpto(g,xatom));
     //printf("\nhash for storing is %d\n",(int)hash);
     if (wg_atom_meta_is_neg(db,clmeta)) {
       //printf("\nneg\n");
@@ -1784,6 +1841,12 @@ gint wr_add_cl_to_unithash(glb* g, gptr cl, gint clmeta) {
 
 
 gint wr_add_cl_to_doublehash(glb* g, gptr cl) {
+  return wr_add_cl_to_doublehash_h(g,cl,NULL);
+}
+
+/* wr_add_cl_to_doublehash; lithash: the literal hashes of cl by position, or NULL */
+
+gint wr_add_cl_to_doublehash_h(glb* g, gptr cl, gint* lithash) {
   int len,pos;
   gptr xatom;
   gint hash;
@@ -1813,7 +1876,8 @@ gint wr_add_cl_to_doublehash(glb* g, gptr cl) {
     for(pos=0; pos<2; pos++) {     
       xatom=rotp(g,wg_get_rule_clause_atom(db,cl,pos));
       litmeta=wg_get_rule_clause_atom_meta(db,cl,pos);
-      hash=wr_lit_hash(g,rpto(g,xatom));
+      if (lithash) hash=lithash[pos];
+      else hash=wr_lit_hash(g,rpto(g,xatom));
       //printf("\nhash for storing is %d\n",(int)hash);
       if (wg_atom_meta_is_neg(db,litmeta)) {
         //printf("\nneg\n");
