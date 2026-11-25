@@ -102,6 +102,8 @@ read-only KB rules.
 ### `-writekb <dump-file>`
 
 Attach the existing shared DB selected by `-mbnr` and write it to a dump file.
+The dump holds the used part of the segment, about 960 MB for a KB built with
+`-mbsize 1000`. The KB is attached read-only, so the dump takes no lock.
 
 ```sh
 ./gkc -writekb kb.dump -mbnr 1000

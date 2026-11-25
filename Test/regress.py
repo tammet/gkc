@@ -23,6 +23,11 @@ The case kind "kbcheck" builds a shared KB with -readkb, computes a sha256
 checksum of the shared memory segment, runs the query with -usekb, computes
 the checksum again and deletes the segment. The two checksums must be equal.
 
+The case kind "kbdump" checks a dump round trip: -readkb, -writekb to a file
+in a temporary folder (the segment checksum must not change), -deletekb,
+-loadkb of the file and a -usekb query that must find a proof. The dump file
+has the used size of the segment, about 1 GB, and is removed at the end.
+
 The script also runs Test/arithmetic/check_arithmetic_instantiation.py. That
 driver always tests ./gkc, so the script runs it only when --binary is ./gkc.
 """
@@ -35,8 +40,10 @@ import os
 import re
 import shlex
 import signal
+import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -325,6 +332,64 @@ def run_kbcheck(binary, case):
       print(f"WARNING: shared memory segment {mbnr} was not deleted")
 
 
+def run_kbdump(binary, case):
+  """Dump round trip. Return (ok or None for skip, message, seconds)."""
+  if len(case.args) < 2:
+    return False, "kbdump needs a KB file and a query file", 0.0
+  if not Path("/proc/sysvipc/shm").is_file():
+    return None, "no /proc/sysvipc/shm on this platform", 0.0
+  kbfile, query = case.args[:2]
+  extra = case.args[2:]  # flags for the -usekb query
+  mbnr = 7000 + os.getpid() % 1000
+  mbnr2 = mbnr + 1000  # segment of the loaded dump
+  tmpdir = tempfile.mkdtemp(prefix="gkc_regress_")
+  dump = str(Path(tmpdir) / "kb.dump")
+  start = time.monotonic()
+  try:
+    rc, out, to, _ = run_gkc([str(binary), "-readkb", kbfile, "-mbnr",
+                              str(mbnr), "-mbsize", "1000"], case.timeout)
+    if to or rc != 0 or "Db ready in shared memory" not in out:
+      return False, f"-readkb failed (rc {rc}): {out[-300:]!r}", 0.0
+    try:
+      before = segment_sha256(mbnr)
+    except OSError as e:
+      return None, f"cannot read the segment: {e}", 0.0
+    rc, out, to, _ = run_gkc([str(binary), "-writekb", dump, "-mbnr",
+                              str(mbnr)], case.timeout)
+    if to or rc != 0 or not Path(dump).is_file():
+      return False, f"-writekb failed (rc {rc}): {out[-300:]!r}", \
+          time.monotonic() - start
+    after = segment_sha256(mbnr)
+    if before != after:
+      return False, (f"KB segment changed by -writekb: {before[:16]} -> "
+                     f"{after[:16]}"), time.monotonic() - start
+    run_gkc([str(binary), "-deletekb", "-mbnr", str(mbnr)], 30)
+    rc, out, to, _ = run_gkc([str(binary), "-loadkb", dump, "-mbnr",
+                              str(mbnr2)], case.timeout)
+    if to or rc != 0 or "Database imported" not in out:
+      return False, f"-loadkb failed (rc {rc}): {out[-300:]!r}", \
+          time.monotonic() - start
+    rc, out, to, _ = run_gkc([str(binary), "-usekb", query, "-mbnr",
+                              str(mbnr2), "-parallel", "0"] + extra,
+                             case.timeout)
+    got = classify(out, rc, to)
+    secs = time.monotonic() - start
+    if got != "proof":
+      return False, f"-usekb on the loaded dump: expected proof, got {got} " \
+          f"(rc {rc})", secs
+    err = check_plain_proofs(out)
+    if err:
+      return False, f"-usekb: incomplete proof output: {err}", secs
+    return True, "", secs
+  finally:
+    for n in (mbnr, mbnr2):
+      if find_segment(n) is not None:
+        run_gkc([str(binary), "-deletekb", "-mbnr", str(n)], 30)
+      if find_segment(n) is not None:
+        print(f"WARNING: shared memory segment {n} was not deleted")
+    shutil.rmtree(tmpdir, ignore_errors=True)
+
+
 def main():
   ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
   ap.add_argument("--binary", default=str(ROOT / "gkc"),
@@ -350,6 +415,8 @@ def main():
   for case in cases:
     if case.expect == "kbcheck":
       ok, msg, secs = run_kbcheck(binary, case)
+    elif case.expect == "kbdump":
+      ok, msg, secs = run_kbdump(binary, case)
     else:
       ok, msg, secs = run_case(binary, case)
     if ok is None:

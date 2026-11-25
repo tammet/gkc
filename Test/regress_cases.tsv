@@ -3,10 +3,12 @@
 #   name     unique case name
 #   args     gkc arguments, split like a shell command line; paths are
 #            relative to the repository root; regress.py adds -parallel 0
-#   expect   proof | noproof | answer:A1;;A2 | error:TEXT | kbcheck
+#   expect   proof | noproof | answer:A1;;A2 | error:TEXT | kbcheck | kbdump
 #            answer: every Ai must occur in an answer line of the output
 #            kbcheck: args are a KB file, a query file and optional flags for
 #            the -usekb query (shared KB check)
+#            kbdump: the same arguments; dump round trip with -writekb and
+#            -loadkb (see Test/regress.py)
 #   timeout  wall-clock seconds for the case
 # Expected outcomes come from the binary of commit 8de75e0.
 #
@@ -88,6 +90,7 @@ error_missing_file	Test/no_such_file_for_regress.txt	error:could not open file	1
 #
 # Shared KB (L6): -readkb, checksum of the segment, -usekb, checksum again
 kb_steam	Examples/steam_kb.txt Examples/steam_query.txt	kbcheck	30
+kb_steam_dump	Examples/steam_kb.txt Examples/steam_query.txt	kbdump	30
 #
 # Test/arithmetic/ inputs under 5 s, automatic strategy
 t_arith_ground1	Test/arithmetic/arithmetic_ground_regression1.txt	proof	10
