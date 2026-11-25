@@ -5,7 +5,8 @@
 #            relative to the repository root; regress.py adds -parallel 0
 #   expect   proof | noproof | answer:A1;;A2 | error:TEXT | kbcheck
 #            answer: every Ai must occur in an answer line of the output
-#            kbcheck: args are a KB file and a query file (shared KB check)
+#            kbcheck: args are a KB file, a query file and optional flags for
+#            the -usekb query (shared KB check)
 #   timeout  wall-clock seconds for the case
 # Expected outcomes come from the binary of commit 8de75e0.
 #
@@ -112,3 +113,4 @@ t_arith_overflow	Test/arithmetic/arithmetic_overflow_safety.txt	proof	10
 e2_factor_then_reflexive	Test/defects/e2_factor_then_reflexive.p -strategytext '{"strategy":["query_focus"],"query_preference":1,"max_seconds":5}'	proof	10
 e4_include_only	Test/defects/e4_include_only.p	proof	10
 e1_deep_proof	Test/defects/e1_deep_proof.p -strategytext '{"strategy":["negative_pref"],"query_preference":0,"max_seconds":20}'	proof	60
+e3_kb_sine_order	Test/defects/e3_kb.p Test/defects/e3_query.p -strategytext '{"strategy":["unit"],"query_preference":0,"max_seconds":10}'	kbcheck	30

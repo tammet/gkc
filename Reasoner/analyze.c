@@ -331,11 +331,14 @@ int wr_analyze_clause(glb* g, gptr cl, int haveextdb) {
     //printf(" count %ld ",wg_decode_uri_scount(db,uriinfo[i]));
     // add clause to occs list    
     tmp=(g->inkb);
-#ifdef __EMSCRIPTEN__    
+#ifdef __EMSCRIPTEN__
     (g->inkb)=1; // use inkb allocation temporarily
 #else
-    (g->inkb)=0; // use malloc allocation temporarily
-#endif    
+    // malloc allocation, except when building a shared KB (inkb 1): the
+    // URI record stores the vector as an offset from the KB base, so the
+    // vector must lie inside the KB segment to be valid in a -usekb process
+    if (!tmp) (g->inkb)=0;
+#endif
     //printf("\nbefore wg_decode_uri_occs i %d uriinfo[i] %ld\n",i,uriinfo[i]);
     occs=wg_decode_uri_occs(db,uriinfo[i]);
     //printf("\nwg_decode_uri_occs gave occs %ld \n",(gint)occs);

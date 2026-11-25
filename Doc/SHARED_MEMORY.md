@@ -208,6 +208,7 @@ Current gkc has guards or local allocation in the important write classes:
 | --- | --- |
 | Clause sorting and metadata recalculation in `rgenloop.c` | Skipped when the clause pointer is inside `wg_in_attached_kb()`. |
 | Initial rule/fact clause metadata and unit-hash setup in `rmain.c` | Metadata/unit-hash writes skipped for KB-resident clauses; local doublehash may still be filled. |
+| Symbol occurrence vectors of the input analysis in `analyze.c` | During `-readkb` (`inkb` 1) the vectors are allocated inside the KB segment, because the URI record stores them as an offset from the KB base; a `-usekb` query reads them in its SINE order analysis. Other runs allocate them with malloc. |
 | Active-clause storage in `clstore.c` | Avoids recalculating/storing metadata into KB-resident clauses. |
 | History derived/given order stamps in `history.c` | Return/skip when the history record is inside the attached KB. |
 | Raw clause/atom/term creation in `clterm.c` | Allocates through `g->local_db`. |

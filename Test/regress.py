@@ -288,11 +288,12 @@ def segment_sha256(key):
 
 def run_kbcheck(binary, case):
   """Shared KB check. Return (ok or None for skip, message, seconds)."""
-  if len(case.args) != 2:
+  if len(case.args) < 2:
     return False, "kbcheck needs a KB file and a query file", 0.0
   if not Path("/proc/sysvipc/shm").is_file():
     return None, "no /proc/sysvipc/shm on this platform", 0.0
-  kbfile, query = case.args
+  kbfile, query = case.args[:2]
+  extra = case.args[2:]  # flags for the -usekb query, for example a strategy
   mbnr = 7000 + os.getpid() % 1000
   start = time.monotonic()
   try:
@@ -305,7 +306,8 @@ def run_kbcheck(binary, case):
     except OSError as e:
       return None, f"cannot read the segment: {e}", 0.0
     rc, out, to, _ = run_gkc([str(binary), "-usekb", query, "-mbnr",
-                              str(mbnr), "-parallel", "0"], case.timeout)
+                              str(mbnr), "-parallel", "0"] + extra,
+                             case.timeout)
     got = classify(out, rc, to)
     after = segment_sha256(mbnr)
     secs = time.monotonic() - start
