@@ -772,6 +772,9 @@ gptr wr_add_given_cl_active_list(glb* g, gptr given_cl, gptr given_cl_metablock,
     // only add to active subsumption structures if subsflag==1 (ie not for queryfocus big sos list)
     hashadded=wr_add_cl_to_active_unithash(g,active_cl);
     if (!hashadded && subsflag && (g->clactivesubsume)!=(gint)NULL) {    
+#ifdef USE_LIT_HASH64
+      gint fsipos=CVEC_NEXT(rotp(g,(g->clactivesubsume))); // position of this meta block
+#endif
   #ifdef DEBUG  
       wr_printf("\npushing to clactivesubsume pos %d\n",(int)((rotp(g,g->clactivesubsume))[1]));
   #endif  
@@ -782,6 +785,9 @@ gptr wr_add_given_cl_active_list(glb* g, gptr given_cl, gptr given_cl_metablock,
       (g->clactivesubsume)=rpto(g,wr_cvec_push(g,rotp(g,(g->clactivesubsume)),given_cl_metablock[4]));
       (g->clactivesubsume)=rpto(g,wr_cvec_push(g,rotp(g,(g->clactivesubsume)),
           rpto(g,(gint)active_cl))); 
+#ifdef USE_LIT_HASH64
+      wr_fsi_insert(g,active_cl,fsipos);
+#endif
       //printf("\n cl offset stored in (g->clactivesubsume): %ld", rpto(g,(gint)active_cl));     
     }  
   }

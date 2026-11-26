@@ -56,6 +56,8 @@ gptr strongly_cut_atom(glb* g, gint xatom, vec hashvec, int usematch);
 int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos,  gptr clhashptr);
 
 gint wr_subsume_cl(glb* g, gptr cl1, gptr cl2, int uniquestrflag);
+void wr_fsi_insert(glb* g, gptr cl, gint pos);
+void wr_fsi_free(glb* g);
 gint wr_subsume_cl_aux(glb* g,gptr cl1vec, gptr cl2vec, 
 	                  gptr litpt1, gptr litpt2, 
 	                  int litind1, int litind2, 

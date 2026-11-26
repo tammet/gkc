@@ -37,6 +37,8 @@
 extern "C" {
 #endif
 
+#include <stdint.h>
+#include <string.h>
 #include "rincludes.h"  
  
 
@@ -67,6 +69,294 @@ static int wr_matchable_lit_meta(glb* g, gint mx, gint my);
    ------------------------------------------------------
 */
 
+
+
+/* =============================================
+
+  Index of clactivesubsume for the forward subsumption of the picked clause
+  (64-bit builds). Each active clause in clactivesubsume is filed once,
+  under one of its literals: the one whose predicate and sign are the
+  rarest among the literals filed so far. The key is the predicate, the
+  sign and the top symbols of the first two arguments; a variable or a
+  number at an argument of the filed literal is a wildcard. The picked
+  clause probes, for each of its literals, the keys with its own symbols
+  and with wildcards (and, for an equality, both argument orders). A
+  clause C subsumes D only if each literal of C, under the substitution,
+  equals a literal of D, so every subsumer is under a probed key. The
+  candidates get the same meta pre-test and full test as the walk, so the
+  answer (subsumed or not) is the same; only the order of the tests
+  differs.
+
+================================================ */
+
+#ifdef USE_LIT_HASH64
+
+typedef struct { uint64_t key; gint* list; gint n, cap; } wr_fsi_bucket;
+typedef struct { uint64_t key; gint cnt; } wr_fsi_freq;
+typedef struct {
+  wr_fsi_bucket* tab; gint cap, cnt;   // keys and their lists of clactivesubsume positions
+  wr_fsi_freq* freq; gint fcap, fcnt;  // counts of filed literals per predicate and sign
+  gint* stamp; gint scap;              // per position: the call that tested it last
+  gint calls;
+} wr_fsi_t;
+
+#define FSI_WILD 0
+#define FSI_SYMBOL 1
+#define FSI_NOARG 2
+#define FSI_QVAR 3
+
+static uint64_t wr_fsi_mix(uint64_t a, uint64_t b) {
+  uint64_t k=(a^(b+UINT64_C(0x9E3779B97F4A7C15)+(a<<6)+(a>>2)))*UINT64_C(0xBF58476D1CE4E5B9);
+  return k^(k>>31);
+}
+
+/* the kind and the symbol of an argument of an atom: stored is 1 for a
+   filed literal (a variable or a number is a wildcard), 0 for a literal
+   of the picked clause (a variable or a number matches only a wildcard) */
+
+static void wr_fsi_arg(glb* g, gptr ap, int pos, int stored, int* kind, gint* sym) {
+  gint x;
+  int len=get_record_len(ap);
+  *sym=0;
+  if (len<(g->unify_firstuseterm)+pos+1) { *kind=FSI_NOARG; return; }
+  x=ap[RECORD_HEADER_GINTS+(pos==1 ? (g->unify_funarg1pos) : (g->unify_funarg2pos))];
+  if (isdatarec(x)) { *kind=FSI_SYMBOL; *sym=(rotp(g,x))[RECORD_HEADER_GINTS+(g->unify_funpos)]; return; }
+  if (!isvar(x) && islongstr(x)) { *kind=FSI_SYMBOL; *sym=x; return; }
+  *kind=(stored ? FSI_WILD : FSI_QVAR);
+}
+
+static uint64_t wr_fsi_key(gint pred, int neg, int k1, gint s1, int k2, gint s2) {
+  uint64_t h=wr_fsi_mix((uint64_t)pred,(uint64_t)(neg ? 1 : 0));
+  h=wr_fsi_mix(h,((uint64_t)k1<<1)^((uint64_t)s1<<8));
+  h=wr_fsi_mix(h,((uint64_t)k2<<1)^((uint64_t)s2<<8));
+  return h|1; // 0 marks an empty slot
+}
+
+static void wr_fsi_lit(glb* g, gptr cl, int i, gint* atom, gint* pred, int* neg) {
+  void* db=g->db;
+  gint meta;
+  if (wg_rec_is_rule_clause(db,cl)) {
+    *atom=wg_get_rule_clause_atom(db,cl,i);
+    meta=wg_get_rule_clause_atom_meta(db,cl,i);
+  } else {
+    *atom=encode_record(db,cl);
+    meta=0;
+  }
+  *neg=wg_atom_meta_is_neg(db,meta) ? 1 : 0;
+  *pred=(rotp(g,*atom))[RECORD_HEADER_GINTS+(g->unify_funpos)];
+}
+
+void wr_fsi_free(glb* g) {
+  wr_fsi_t* x=(wr_fsi_t*)(g->fsi_index);
+  gint i;
+  if (!x) return;
+  if (x==(void*)1) { (g->fsi_index)=NULL; return; }
+  if (x->tab) {
+    for(i=0;i<x->cap;i++) if (x->tab[i].list) sys_free(x->tab[i].list);
+    sys_free(x->tab);
+  }
+  if (x->freq) sys_free(x->freq);
+  if (x->stamp) sys_free(x->stamp);
+  sys_free(x);
+  (g->fsi_index)=NULL;
+}
+
+static gint* wr_fsi_freq_slot(wr_fsi_t* x, uint64_t key) {
+  gint i=(gint)(key&(uint64_t)(x->fcap-1));
+  while(x->freq[i].key && x->freq[i].key!=key) i=(i+1)&(x->fcap-1);
+  if (!x->freq[i].key) { x->freq[i].key=key; x->freq[i].cnt=0; (x->fcnt)++; }
+  return &(x->freq[i].cnt);
+}
+
+static wr_fsi_bucket* wr_fsi_find(wr_fsi_t* x, uint64_t key, int ins) {
+  gint i=(gint)(key&(uint64_t)(x->cap-1));
+  while(x->tab[i].key) {
+    if (x->tab[i].key==key) return &(x->tab[i]);
+    i=(i+1)&(x->cap-1);
+  }
+  if (!ins) return NULL;
+  x->tab[i].key=key; x->tab[i].list=NULL; x->tab[i].n=0; x->tab[i].cap=0;
+  (x->cnt)++;
+  return &(x->tab[i]);
+}
+
+/* grow a table to twice its size; returns 0 on a failed allocation */
+
+static int wr_fsi_grow(wr_fsi_t* x) {
+  wr_fsi_bucket* ot=x->tab; gint oc=x->cap, i, j;
+  wr_fsi_bucket* nt=sys_malloc(sizeof(wr_fsi_bucket)*oc*2);
+  if (!nt) return 0;
+  memset(nt,0,sizeof(wr_fsi_bucket)*oc*2);
+  x->tab=nt; x->cap=oc*2;
+  for(i=0;i<oc;i++) if (ot[i].key) {
+    j=(gint)(ot[i].key&(uint64_t)(x->cap-1));
+    while(nt[j].key) j=(j+1)&(x->cap-1);
+    nt[j]=ot[i];
+  }
+  sys_free(ot);
+  return 1;
+}
+
+static int wr_fsi_grow_freq(wr_fsi_t* x) {
+  wr_fsi_freq* of=x->freq; gint oc=x->fcap, i, j;
+  wr_fsi_freq* nf=sys_malloc(sizeof(wr_fsi_freq)*oc*2);
+  if (!nf) return 0;
+  memset(nf,0,sizeof(wr_fsi_freq)*oc*2);
+  x->freq=nf; x->fcap=oc*2;
+  for(i=0;i<oc;i++) if (of[i].key) {
+    j=(gint)(of[i].key&(uint64_t)(x->fcap-1));
+    while(nf[j].key) j=(j+1)&(x->fcap-1);
+    nf[j]=of[i];
+  }
+  sys_free(of);
+  return 1;
+}
+
+/* drop the index: the walk takes over */
+
+static void wr_fsi_fail(glb* g) {
+  wr_fsi_free(g);
+  (g->fsi_index)=(void*)1; // marks a failed index for the rest of the run
+}
+
+/* file the active clause cl whose meta block starts at position pos of
+   clactivesubsume */
+
+void wr_fsi_insert(glb* g, gptr cl, gint pos) {
+  wr_fsi_t* x=(wr_fsi_t*)(g->fsi_index);
+  void* db=g->db;
+  gint i, n, best=0, bc=-1, atom, pred, s1, s2, *c;
+  int neg, k1, k2;
+  wr_fsi_bucket* b;
+
+  UNUSED(db);
+  if ((g->inkb) || x==(void*)1) return;
+  if (!x) {
+    x=sys_malloc(sizeof(wr_fsi_t));
+    if (!x) { wr_fsi_fail(g); return; }
+    memset(x,0,sizeof(wr_fsi_t));
+    x->cap=1<<12; x->fcap=1<<10; x->scap=1<<12;
+    x->tab=sys_malloc(sizeof(wr_fsi_bucket)*x->cap);
+    x->freq=sys_malloc(sizeof(wr_fsi_freq)*x->fcap);
+    x->stamp=sys_malloc(sizeof(gint)*x->scap);
+    (g->fsi_index)=x;
+    if (!x->tab || !x->freq || !x->stamp) { wr_fsi_fail(g); return; }
+    memset(x->tab,0,sizeof(wr_fsi_bucket)*x->cap);
+    memset(x->freq,0,sizeof(wr_fsi_freq)*x->fcap);
+    memset(x->stamp,0,sizeof(gint)*x->scap);
+  }
+  n=wg_rec_is_rule_clause(db,cl) ? wg_count_clause_atoms(db,cl) : 1;
+  if (2*(x->fcnt+n+1)>x->fcap && !wr_fsi_grow_freq(x)) { wr_fsi_fail(g); return; }
+  for(i=0;i<n;i++) {
+    wr_fsi_lit(g,cl,i,&atom,&pred,&neg);
+    c=wr_fsi_freq_slot(x,wr_fsi_mix((uint64_t)pred,(uint64_t)neg)|1);
+    if (bc<0 || *c<bc) { bc=*c; best=i; }
+  }
+  for(i=0;i<n;i++) {
+    wr_fsi_lit(g,cl,i,&atom,&pred,&neg);
+    (*wr_fsi_freq_slot(x,wr_fsi_mix((uint64_t)pred,(uint64_t)neg)|1))++;
+  }
+  wr_fsi_lit(g,cl,best,&atom,&pred,&neg);
+  wr_fsi_arg(g,rotp(g,atom),1,1,&k1,&s1);
+  wr_fsi_arg(g,rotp(g,atom),2,1,&k2,&s2);
+  if (2*(x->cnt+1)>x->cap && !wr_fsi_grow(x)) { wr_fsi_fail(g); return; }
+  b=wr_fsi_find(x,wr_fsi_key(pred,neg,k1,s1,k2,s2),1);
+  if (b->n>=b->cap) {
+    gint ncap=(b->cap ? 2*(b->cap) : 4);
+    gint* nl=sys_malloc(sizeof(gint)*ncap);
+    if (!nl) { wr_fsi_fail(g); return; }
+    if (b->list) { memcpy(nl,b->list,sizeof(gint)*b->n); sys_free(b->list); }
+    b->list=nl; b->cap=ncap;
+  }
+  b->list[(b->n)++]=pos;
+  while (pos/CLMETABLOCK_ELS>=x->scap) {
+    gint* ns=sys_malloc(sizeof(gint)*x->scap*2);
+    if (!ns) { wr_fsi_fail(g); return; }
+    memset(ns,0,sizeof(gint)*x->scap*2);
+    memcpy(ns,x->stamp,sizeof(gint)*x->scap);
+    sys_free(x->stamp);
+    x->stamp=ns; x->scap*=2;
+  }
+}
+
+/* the test of one entry of clactivesubsume, as in the walk */
+
+static int wr_fsi_test_entry(glb* g, gptr actptr, gint iactive, gptr given_cl, gptr given_cl_metablock) {
+  gptr cl;
+  if (given_cl_metablock!=NULL) {
+    (g->stat_clsubs_top_meta_attempted)++;
+    if (!wr_clmetablock_can_subsume(g,actptr+iactive,given_cl_metablock)) {
+      (g->stat_clsubs_top_meta_failed)++;
+      return 0;
+    }
+  }
+  cl=rotp(g,(actptr[iactive+CLMETABLOCK_CL_POS]));
+  if (cl!=NULL && wr_subsume_cl(g,cl,given_cl,1)) return 1;
+  return 0;
+}
+
+static int wr_fsi_probe(glb* g, wr_fsi_t* x, gptr actptr, uint64_t key,
+                        gptr given_cl, gptr given_cl_metablock) {
+  wr_fsi_bucket* b=wr_fsi_find(x,key,0);
+  gint j, pos;
+  if (!b) return 0;
+  for(j=0;j<b->n;j++) {
+    pos=b->list[j];
+    if (x->stamp[pos/CLMETABLOCK_ELS]==x->calls) continue; // tested in this call
+    x->stamp[pos/CLMETABLOCK_ELS]=x->calls;
+    if (wr_fsi_test_entry(g,actptr,pos,given_cl,given_cl_metablock)) return 1;
+  }
+  return 0;
+}
+
+/* the forward subsumption of given_cl by the clauses of clactivesubsume
+   through the index: 1 subsumed, 0 not, -1 no index (use the walk) */
+
+static int wr_fsi_subsumed(glb* g, gptr given_cl, gptr given_cl_metablock) {
+  wr_fsi_t* x=(wr_fsi_t*)(g->fsi_index);
+  void* db=g->db;
+  gptr actptr;
+  gint i, n, atom, pred, s1, s2;
+  int neg, k1, k2, eq, a, c;
+  int ka[2], kb[2]; gint sa[2], sb[2];
+
+  UNUSED(db);
+  actptr=rotp(g,g->clactivesubsume);
+  if (!x) return (CVEC_NEXT(actptr)>CVEC_START) ? -1 : 0; // no index: the walk
+  if (x==(void*)1) return -1;
+  (x->calls)++;
+  n=wg_rec_is_rule_clause(db,given_cl) ? wg_count_clause_atoms(db,given_cl) : 1;
+  for(i=0;i<n;i++) {
+    wr_fsi_lit(g,given_cl,i,&atom,&pred,&neg);
+    wr_fsi_arg(g,rotp(g,atom),1,0,&k1,&s1);
+    wr_fsi_arg(g,rotp(g,atom),2,0,&k2,&s2);
+    eq=wr_equality_atom(g,atom);
+    // the argument kinds that a filed literal can have at each position:
+    // the same symbol (or the same missing argument), or a wildcard
+    for(c=0;c<(eq ? 2 : 1);c++) {
+      int qk1=(c ? k2 : k1), qk2=(c ? k1 : k2); gint qs1=(c ? s2 : s1), qs2=(c ? s1 : s2);
+      int na=0, nb=0;
+      if (qk1==FSI_SYMBOL || qk1==FSI_NOARG) { ka[na]=qk1; sa[na]=qs1; na++; }
+      if (qk1!=FSI_NOARG) { ka[na]=FSI_WILD; sa[na]=0; na++; }
+      if (qk2==FSI_SYMBOL || qk2==FSI_NOARG) { kb[nb]=qk2; sb[nb]=qs2; nb++; }
+      if (qk2!=FSI_NOARG) { kb[nb]=FSI_WILD; sb[nb]=0; nb++; }
+      for(a=0;a<na;a++) {
+        int bb;
+        for(bb=0;bb<nb;bb++) {
+          if (wr_fsi_probe(g,x,actptr,wr_fsi_key(pred,neg,ka[a],sa[a],kb[bb],sb[bb]),
+                           given_cl,given_cl_metablock)) return 1;
+        }
+      }
+    }
+  }
+  return 0;
+}
+
+#else
+
+void wr_fsi_free(glb* g) { UNUSED(g); }
+
+#endif
 
 int wr_given_cl_subsumed(glb* g, gptr given_cl, gptr given_cl_metablock) {
   void* db=g->db;
@@ -125,6 +415,12 @@ int wr_given_cl_subsumed(glb* g, gptr given_cl, gptr given_cl_metablock) {
 
   for(dbused=0; dbused<2; dbused++) {
     if (dbused==0) {
+#ifdef USE_LIT_HASH64
+      // the clauses of this run through the index, if it exists
+      sres=wr_fsi_subsumed(g,given_cl,given_cl_metablock);
+      if (sres==1) return 1;
+      if (sres==0) continue;
+#endif
       actptr=rotp(g,g->clactivesubsume);   
 #ifdef DEBUG
       wr_printf("\n ** dbused %d trying local clactivesubsume\n",dbused);

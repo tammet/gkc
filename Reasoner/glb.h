@@ -671,6 +671,7 @@ typedef struct glb {
   int qwl_sample_next;     // next pair to write in qwl_samples
   double qwl_first_pick_time; // run seconds at the first pick, -1 before it
   void* qwb_cache;         // literal weights of the parent clauses for queue_weight_bound, or NULL
+  void* fsi_index;         // index of clactivesubsume for the forward subsumption of the picked clause, or NULL
   clock_t allruns_start_clock;
   //clock_t allruns_end_clock;
   clock_t run_start_clock;
