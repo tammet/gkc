@@ -53,6 +53,18 @@ int wr_atom_doublecut_hp(glb* g, gint xatom, gint xatommeta, gptr xcl, int len, 
 int wr_atom_doublecut_aux(glb* g, gint xatom, gint xatommeta, gptr xcl, int pos, cvec bucket);
 int wr_derived_cl_strong_cut(glb* g, gptr rptr, int rpos, int prevcuts); 
 gptr strongly_cut_atom(glb* g, gint xatom, vec hashvec, int usematch);
+gptr strongly_cut_atom_lists(glb* g, gint xatom, vec hashvec, int usematch);
+
+/* the index of the units for the strong cut: 64-bit builds only; a 32-bit
+   build (wasm) and a build with -DGKC_NO_SCUT_INDEX use the lists */
+#if defined(__SIZEOF_POINTER__) && (__SIZEOF_POINTER__ == 8) && !defined(GKC_NO_SCUT_INDEX)
+#define USE_SCUT_INDEX
+#endif
+#ifdef USE_SCUT_INDEX
+void wr_sci_insert(glb* g, gint atom, gptr cl, int neg, int preflen);
+gptr wr_sci_cut_atom(glb* g, gint xatom, int neg, int usematch, int* used, vec hashvec);
+#endif
+void wr_sci_free(glb* g);
 int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos,  gptr clhashptr);
 
 gint wr_subsume_cl(glb* g, gptr cl1, gptr cl2, int uniquestrflag);

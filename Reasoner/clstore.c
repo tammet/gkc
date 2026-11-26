@@ -491,6 +491,9 @@ int wr_cl_store_res_units(glb* g, gptr cl) {
           return 1;        
         }          
       }  
+#if defined(USE_SCUT_INDEX) && !defined(SIMPLE_ACTIVE_SEARCH_HASH)
+      wr_sci_insert(g,atom,cl,negflag,preflen);
+#endif
 #ifdef DEBUGHASH               
       wr_printf("\nhash_pos_units after adding:");      
       wr_clterm_hashlist_print(g,rotp(g,g->hash_pos_units));

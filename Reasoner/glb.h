@@ -673,6 +673,7 @@ typedef struct glb {
   double qwl_first_pick_time; // run seconds at the first pick, -1 before it
   void* qwb_cache;         // literal weights of the parent clauses for queue_weight_bound, or NULL
   void* fsi_index;         // index of clactivesubsume for the forward subsumption of the picked clause, or NULL
+  void* sci_index;         // index of the stored units for the strong cut, NULL, or 1 after a failed allocation
   clock_t allruns_start_clock;
   //clock_t allruns_end_clock;
   clock_t run_start_clock;

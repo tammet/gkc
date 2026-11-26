@@ -574,6 +574,7 @@ int wr_glb_init_shared_complex(glb* g) {
   (g->clactive)=(gint)NULL;
   (g->clactivesubsume)=(gint)NULL;
   (g->fsi_index)=NULL;
+  (g->sci_index)=NULL;
   (g->clpickpriorqueue)=(gint)NULL;
   (g->clpick_queues)=(gint)NULL;
 
@@ -712,6 +713,7 @@ int wr_glb_init_seq_shared_complex(glb* g) {
   (g->clactive)=(gint)NULL;
   (g->clactivesubsume)=(gint)NULL;
   (g->fsi_index)=NULL;
+  (g->sci_index)=NULL;
   (g->clpickpriorqueue)=(gint)NULL;
   (g->clpick_queues)=(gint)NULL;
 
@@ -1185,6 +1187,7 @@ int wr_glb_free_shared_complex(glb* g) {
   wr_vec_free(g,rotp(g,g->clactive));  
   wr_vec_free(g,rotp(g,g->clactivesubsume));  
   wr_fsi_free(g);
+  wr_sci_free(g);
   wr_vec_free(g,rotp(g,g->clpickstack));  
   wr_vec_free(g,rotp(g,g->clqueue));     
   //wr_vec_free(g,rotp(g,g->clweightqueue)); 
