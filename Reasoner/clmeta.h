@@ -102,6 +102,7 @@ int wr_calc_clause_weight(glb* g, gptr xptr, int* size, int* depth, int* length)
 int wr_calc_lits_weight(glb* g, int ruleflag, gint factatom, gptr lits, int nlits,
                         int* size, int* depth, int* length);
 int wr_calc_term_weight(glb* g, gint x, int depth, int* size, int* maxdepth, int pos, int* hasvars);
+int wr_calc_term_weight_novars(glb* g, gint x, int depth, int* size, int* maxdepth, int pos, int* hasvars);
 
 gint wr_calc_clause_meta(glb* g, gptr xptr, gptr cl_metablock);
 void wr_print_term_metacalc(glb* g, term_metacalc* metaptr);

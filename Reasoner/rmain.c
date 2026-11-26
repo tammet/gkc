@@ -2109,6 +2109,7 @@ void wr_show_stats(glb* g, int show_local_complex) {
   wr_printf("stat_internlimit_discarded_cl: %d\n",g->stat_internlimit_discarded_cl);
   wr_printf("stat_derived_overflow_dropped: %d\n",g->stat_derived_overflow_dropped);
   wr_printf("stat_queue_limit_dropped: %d\n",g->stat_queue_limit_dropped);
+  wr_printf("stat_queue_bound_dropped: %d\n",g->stat_queue_bound_dropped);
   wr_printf("stat_simplified:  %d simplified %d derived %d given\n",
          g->stat_simplified, g->stat_simplified_derived, g->stat_simplified_given);  
   wr_printf("stat_kept_cl: %d\n",g->stat_kept_cl);       

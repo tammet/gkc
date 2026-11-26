@@ -340,6 +340,83 @@ int wr_calc_term_weight(glb* g, gint x, int depth, int* size, int* maxdepth, int
   return w;
 }  
 
+/*
+  The weight of the term x as wr_calc_term_weight computes it, but without
+  the variable bindings: used for the lower bound of the weight of a clause
+  before its build (strategy key queue_weight_bound).
+*/
+
+int wr_calc_term_weight_novars(glb* g, gint x, int depth, int* size, int* maxdepth, int pos, int* hasvars) {
+  void* db;
+  gptr xptr;
+  int i, start, end;  
+  int w;
+#ifdef PENALIZE_DEFS
+  char* str;
+#endif  
+
+#ifdef DEBUG    
+  wr_printf("wr_calc_term_weight called with x %d type %d depth %d size %d maxdepth %d pos %d hasvars %d\n",
+       x,wg_get_encoded_type(g->db,x),depth,*size,*maxdepth,pos,*hasvars);
+#endif
+  if (!isdatarec(x)) {
+    // now we have a simple value  
+    (*size)++;
+    if (!isvar(x)) {
+#ifdef PENALIZE_DEFS
+      //db=g->db;
+      //if (wg_get_encoded_type(db,x)==WG_URITYPE) {   
+      if (!pos && depth<2 && islongstr(x)) {
+        str = wg_decode_uri(g->db,x);    
+        if (str[0]=='$' && str[1]=='d' && str[2]=='f') {
+          return 50;
+        } else {
+          return 10;
+        }  
+      } else return 10;  
+#else
+      //*hasvars=1;
+#ifdef PREFER_DEFS
+      char* str; 
+      //db=g->db;
+      //if (wg_get_encoded_type(db,x)==WG_URITYPE) {   
+      if (islongstr(x)) {
+        str = wg_decode_uri(g->db,x);    
+        if (str[0]=='$' && str[1]=='d' && str[2]=='f') {
+          return 2;
+        } else {
+          return 10;
+        }  
+      } else return 10;  
+#endif      
+      return 10;
+#endif               
+  }  
+
+    // here x is a var
+
+    *hasvars=1; // fix in june 2020!!!!
+
+    // every variable weighs the smaller of the two variable weights: this
+    // reads no variable bindings, and the weight is not above the weight
+    // of the term in a clause or under a substitution that keeps weights
+    return ((g->var_weight)<(g->repeat_var_weight) ? (g->var_weight) : (g->repeat_var_weight));
+   
+  }   
+  // now we have a datarec
+  db=g->db;
+  xptr=decode_record(db,x);
+  start=wr_term_unify_startpos(g);
+  end=wr_term_unify_endpos(g,xptr);
+  w=0;    
+  depth++;
+  if (depth>(*maxdepth)) *maxdepth=depth;
+  for(i=start;i<end;i++) {
+    w=w+wr_calc_term_weight_novars(g,xptr[i],depth,size,maxdepth,i-start,hasvars);      
+  }   
+  return w;
+}  
+
 
 int wr_term_has_vars(glb* g, gint x) {
   void* db;

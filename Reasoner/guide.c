@@ -259,6 +259,9 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr, int s
     } else if (!strcmp(key,"max_given")) {
       // stop the run after this many given clauses; 0 means no limit
       (g->max_given)=json_valueint(elem);
+    } else if (!strcmp(key,"queue_weight_bound")) {
+      // experimental: with queue_weight_limit, a lower bound before the build
+      (g->queue_weight_bound)=json_valueint(elem);
     } else if (!strcmp(key,"queue_weight_limit")) {
       // experimental: drop a new clause that its queue block would not reach
       (g->queue_weight_limit)=json_valueint(elem);

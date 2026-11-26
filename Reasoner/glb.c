@@ -208,6 +208,7 @@ int wr_glb_init_simple(glb* g) {
   (g->max_dseconds)=0;     // total max deciseconds
   (g->max_given)=0;        // max given clauses of one run, 0: no limit
   (g->queue_weight_limit)=0; // experimental, off
+  (g->queue_weight_bound)=0; // experimental, off
   (g->cl_maxkeep_weightlimit)=0;
   (g->cl_maxkeep_sizelimit)=0;
   (g->cl_maxkeep_depthlimit)=0; // !! EXPERIMENT
@@ -270,6 +271,7 @@ int wr_glb_init_simple(glb* g) {
   //(g->cl_limitkept)=1;
   (g->sine_k_values)=NULL;
   (g->qwl_samples)=NULL;
+  (g->qwb_cache)=NULL;
   (g->sine_uri_k_values)=NULL;
   (g->sine_k_bytes)=SINE_K_VALUES_SIZE;
   (g->backsubsume_bytes)=SINE_K_VALUES_SIZE;
@@ -396,6 +398,7 @@ int wr_glb_init_simple(glb* g) {
   (g->stat_internlimit_discarded_cl)=0;
   (g->stat_derived_overflow_dropped)=0;
   (g->stat_queue_limit_dropped)=0;
+  (g->stat_queue_bound_dropped)=0;
   (g->derived_build_active)=0;
   (g->derived_build_overflow)=0;
   (g->derived_overflow_timeout)=0;
@@ -858,6 +861,7 @@ int wr_glb_init_local_complex(glb* g) {
   (g->tmp_varinfo)=NULL;
   (g->sine_k_values)=NULL;
   (g->qwl_samples)=NULL;
+  (g->qwb_cache)=NULL;
   (g->backsubsume_values)=NULL;
   (g->sine_uri_k_values)=NULL;
   
@@ -1257,6 +1261,7 @@ int wr_glb_free_local_complex(glb* g) {
   if (g->sine_k_values) sys_free(g->sine_k_values); // bytestring
   if (g->qwl_samples) sys_free(g->qwl_samples);
   (g->qwl_samples)=NULL;
+  wr_qwb_free(g);
   if (g->lithash_atoms) sys_free(g->lithash_atoms);
   if (g->lithash_vals) sys_free(g->lithash_vals);
   if (g->lithash_final) sys_free(g->lithash_final);

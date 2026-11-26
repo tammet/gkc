@@ -32,6 +32,8 @@
 extern "C" {
 #endif
 
+#include <stdint.h>
+#include <string.h>
 #include "rincludes.h"  
  
 
@@ -1261,6 +1263,241 @@ int wr_qwl_drop(glb* g, gptr cl, int weight) {
   if (b<0 || b>=NROF_CLPICK_QUEUES || (g->qwl_weight)[b]<0) return 0;
   if (weight>MAX_CLPRIOR) weight=MAX_CLPRIOR; // as wr_push_priorqueue
   if (weight<=(g->qwl_weight)[b]) return 0;
+  queues=rotp(g,g->clpick_queues);
+  if (!queues[qstart+CLPICK_QUEUE_POS]) return 0;
+  simplequeue=rotp(g,queues[qstart+CLPICK_QUEUE_POS]);
+  if (CVEC_NEXT(simplequeue)<(g->qwl_fifo_reach)[b]) return 0;
+  return 1;
+}
+
+
+/* =============================================
+
+  Experimental lower bound of the weight of a derived clause before its
+  build (strategy key queue_weight_bound, only with queue_weight_limit).
+
+  The bound sums the weights of the parent literals that stay in the
+  derived clause, as wr_calc_lits_weight sums the literals of a clause,
+  with every variable at its smaller weight. A substitution replaces a
+  variable by a term that weighs at least as much, so the bound is not
+  above the weight of the derived clause, unless a merge or a cut removes
+  a literal. The literal weights of a parent clause are kept in a cache
+  (g->qwb_cache), keyed by the clause; the given clause in given_termbuf
+  is computed again for each pick.
+
+================================================ */
+
+typedef struct { gptr p; gint gen; gint off; gint n; } wr_qwb_ent;
+typedef struct { wr_qwb_ent* tab; gint cap, cnt; gint* data; gint dcap, dlen; } wr_qwb_cache_t;
+
+#define QWB_LITINFO 4 // per literal: weight, weight with penalty, depth, flags
+#define QWB_ANSWER 1
+#define QWB_POSITIVE 2
+#define QWB_EQUALITY 4
+
+void wr_qwb_free(glb* g) {
+  wr_qwb_cache_t* c=(wr_qwb_cache_t*)(g->qwb_cache);
+  if (!c) return;
+  if (c->tab) sys_free(c->tab);
+  if (c->data) sys_free(c->data);
+  sys_free(c);
+  (g->qwb_cache)=NULL;
+}
+
+static wr_qwb_cache_t* wr_qwb_get(glb* g) {
+  wr_qwb_cache_t* c=(wr_qwb_cache_t*)(g->qwb_cache);
+  if (c) return c;
+  c=sys_malloc(sizeof(wr_qwb_cache_t));
+  if (!c) return NULL;
+  c->cap=1<<14; c->cnt=0;
+  c->tab=sys_malloc(sizeof(wr_qwb_ent)*c->cap);
+  c->dcap=1<<16; c->dlen=0;
+  c->data=sys_malloc(sizeof(gint)*c->dcap);
+  if (!c->tab || !c->data) {
+    if (c->tab) sys_free(c->tab);
+    if (c->data) sys_free(c->data);
+    sys_free(c);
+    return NULL;
+  }
+  memset(c->tab,0,sizeof(wr_qwb_ent)*c->cap);
+  (g->qwb_cache)=c;
+  return c;
+}
+
+static gint wr_qwb_slot(wr_qwb_cache_t* c, gptr p) {
+  uint64_t x=(uint64_t)(uintptr_t)p;
+  x^=x>>33; x*=UINT64_C(0xff51afd7ed558ccd); x^=x>>29;
+  return (gint)(x&(uint64_t)(c->cap-1));
+}
+
+/* the literal information of cl: QWB_LITINFO gints per literal, or NULL */
+
+static gint* wr_qwb_litinfo(glb* g, gptr cl, gint* n) {
+  void* db=g->db;
+  wr_qwb_cache_t* c=wr_qwb_get(g);
+  gint gen, k, i, len, atom, meta, *d;
+  int size, depth, hasvars, w, ingiven;
+
+  if (!c) return NULL;
+  ingiven=((g->given_termbuf) && cl>=(g->given_termbuf) &&
+           cl<(g->given_termbuf)+CVEC_LEN(g->given_termbuf));
+  gen=ingiven ? (gint)(g->stat_given_candidates)+1 : 0;
+  k=wr_qwb_slot(c,cl);
+  while(c->tab[k].p) {
+    if (c->tab[k].p==cl) {
+      if (c->tab[k].gen==gen) { *n=c->tab[k].n; return c->data+c->tab[k].off; }
+      break;
+    }
+    k=(k+1)&(c->cap-1);
+  }
+  if (wg_rec_is_rule_clause(db,cl)) len=wg_count_clause_atoms(db,cl);
+  else len=1;
+  if (c->dlen+QWB_LITINFO*len>c->dcap) {
+    gint ncap=c->dcap; gint* nd;
+    while(c->dlen+QWB_LITINFO*len>ncap) ncap*=2;
+    nd=sys_malloc(sizeof(gint)*ncap);
+    if (!nd) return NULL;
+    memcpy(nd,c->data,sizeof(gint)*c->dlen);
+    sys_free(c->data);
+    c->data=nd; c->dcap=ncap;
+  }
+  if (!(c->tab[k].p)) {
+    if (2*(c->cnt+1)>c->cap) {
+      // grow the table and find the slot again
+      wr_qwb_ent* ot=c->tab; gint oc=c->cap, j, m;
+      wr_qwb_ent* nt=sys_malloc(sizeof(wr_qwb_ent)*oc*2);
+      if (!nt) return NULL;
+      memset(nt,0,sizeof(wr_qwb_ent)*oc*2);
+      c->tab=nt; c->cap=oc*2;
+      for(j=0;j<oc;j++) if (ot[j].p) {
+        m=wr_qwb_slot(c,ot[j].p);
+        while(nt[m].p) m=(m+1)&(c->cap-1);
+        nt[m]=ot[j];
+      }
+      sys_free(ot);
+      k=wr_qwb_slot(c,cl);
+      while(c->tab[k].p) k=(k+1)&(c->cap-1);
+    }
+    c->tab[k].p=cl;
+    (c->cnt)++;
+  }
+  c->tab[k].gen=gen;
+  c->tab[k].off=c->dlen;
+  c->tab[k].n=len;
+  d=c->data+c->dlen;
+  for(i=0;i<len;i++) {
+    if (wg_rec_is_rule_clause(db,cl)) {
+      atom=wg_get_rule_clause_atom(db,cl,i);
+      meta=wg_get_rule_clause_atom_meta(db,cl,i);
+    } else {
+      atom=encode_datarec_offset(pto(db,cl));
+      meta=0;
+    }
+    d[i*QWB_LITINFO+3]=0;
+    if (!wg_atom_meta_is_neg(db,meta)) d[i*QWB_LITINFO+3]|=QWB_POSITIVE;
+    if (wr_answer_lit(g,atom)) {
+      d[i*QWB_LITINFO+0]=1;
+      d[i*QWB_LITINFO+1]=1;
+      d[i*QWB_LITINFO+2]=0;
+      d[i*QWB_LITINFO+3]|=QWB_ANSWER;
+      continue;
+    }
+    size=0; depth=0; hasvars=0;
+    w=wr_calc_term_weight_novars(g,atom,0,&size,&depth,0,&hasvars);
+    d[i*QWB_LITINFO+0]=w;
+    if (wr_equality_atom(g,atom)) d[i*QWB_LITINFO+3]|=QWB_EQUALITY;
+    if ((g->atom_poseq_penalty) && (d[i*QWB_LITINFO+3]&QWB_EQUALITY) &&
+        (d[i*QWB_LITINFO+3]&QWB_POSITIVE))
+      w+=(g->atom_poseq_penalty);
+    d[i*QWB_LITINFO+1]=w;
+    d[i*QWB_LITINFO+2]=depth;
+  }
+  c->dlen+=QWB_LITINFO*len;
+  *n=len;
+  return d;
+}
+
+/* sums over the literals of cl without one literal: the first with the atom
+   skipatom (if not 0) or the one at index skipidx (if not -1) */
+
+static int wr_qwb_part(glb* g, gptr cl, gint skipatom, int skipidx,
+                       int* sum, int* maxw, int* maxdepth, int* nlen, int* nlits, int* flags) {
+  void* db=g->db;
+  gint* d; gint n, i;
+  int skipped=0;
+
+  if (!cl) return 1;
+  d=wr_qwb_litinfo(g,cl,&n);
+  if (!d) return 0;
+  for(i=0;i<n;i++) {
+    if (!skipped) {
+      if (skipatom) {
+        gint a=wg_rec_is_rule_clause(db,cl) ? wg_get_rule_clause_atom(db,cl,i) : encode_datarec_offset(pto(db,cl));
+        if (a==skipatom) { skipped=1; continue; }
+      } else if (i==skipidx) { skipped=1; continue; }
+    }
+    (*nlits)++;
+    *flags|=(int)d[i*QWB_LITINFO+3];
+    if (d[i*QWB_LITINFO+3]&QWB_ANSWER) continue;
+    (*nlen)++;
+    *sum+=(int)d[i*QWB_LITINFO+1];
+    if (d[i*QWB_LITINFO+0]>*maxw) *maxw=(int)d[i*QWB_LITINFO+0];
+    if (d[i*QWB_LITINFO+2]>*maxdepth) *maxdepth=(int)d[i*QWB_LITINFO+2];
+  }
+  return 1;
+}
+
+/*
+  1 if the derived clause of the parent literals that stay (cl1 without one
+  literal, cl2 without one literal) would be dropped by the queue limit
+  already by its lower bound. h1, h2: the parents whose history records
+  give the queue block, as wr_calc_history_priority2 combines them.
+*/
+
+int wr_qwb_drop(glb* g, gptr cl1, gint skipatom1, int skipidx1,
+                gptr cl2, gint skipatom2, int skipidx2, gptr h1, gptr h2) {
+  int sum=0, maxw=0, maxdepth=0, nlen=0, nlits=0, flags=0, bound, b, qstart, rewrite;
+  int minvarw;
+  gint decprior;
+  gptr queues, simplequeue;
+
+  if (!(g->qwl_active) || (g->use_hornpref) || (g->hyperres_strat) ||
+      (g->print_derived_cl) || (g->print_derived)) return 0;
+  if ((g->cl_pick_queue_strategy)==2 || (g->cl_pick_queue_strategy)==3) return 0;
+  minvarw=((g->var_weight)<(g->repeat_var_weight)) ? (g->var_weight) : (g->repeat_var_weight);
+  if (minvarw>10) return 0; // a substitution could lower the weight
+  if (!wr_qwb_part(g,cl1,skipatom1,skipidx1,&sum,&maxw,&maxdepth,&nlen,&nlits,&flags)) return 0;
+  if (!wr_qwb_part(g,cl2,skipatom2,skipidx2,&sum,&maxw,&maxdepth,&nlen,&nlits,&flags)) return 0;
+  if (flags&QWB_ANSWER) return 0; // the final steps may register an answer
+  if (nlen<=0) return 0;
+  if ((g->queue_weight_limit)>=3 && nlen<=1) return 0;
+  if ((g->queue_weight_limit)==4 && nlen<=2) return 0;
+  // a positive unit equation can become a rewrite rule: wr_calc_lits_weight
+  // then halves the sum, and halves the result with the penalties again
+  rewrite=(nlits==1 && (flags&QWB_EQUALITY) && (flags&QWB_POSITIVE) &&
+           (g->use_equality) && (g->use_rewrite_terms_strat));
+  if (rewrite) sum=(int)((float)sum/2.0);
+  if (((g->use_max_ground_weight) && maxw) || (g->use_max_weight))
+    bound=maxw+((nlen-1)*(g->cl_length_penalty))+((maxdepth-1)*(g->cl_depth_penalty));
+  else
+    bound=sum+((nlen-1)*(g->cl_length_penalty))+((maxdepth-1)*(g->cl_depth_penalty));
+  if (rewrite) bound=(int)((float)bound/2.0);
+  // the queue block, as wr_clpick_queue_start for the strategies 0, 1 and 4
+  if (!(g->cl_pick_queue_strategy) || (g->cl_pick_queue_strategy)==4) {
+    qstart=AXIOMS_QUEUE_POS;
+  } else {
+    decprior=wg_decode_int(g->db,wr_calc_history_priority2(g,h1,h2));
+    if (decprior==WR_HISTORY_GOAL_ROLENR) qstart=GOAL_QUEUE_POS;
+    else if (decprior==WR_HISTORY_ASSUMPTION_ROLENR) qstart=ASSUMPTIONS_QUEUE_POS;
+    else if (decprior==WR_HISTORY_FROMGOAL_ROLENR) qstart=GOAL_QUEUE_POS;
+    else if (decprior==WR_HISTORY_FROMGOALASSUMPTION_ROLENR) qstart=GOAL_ASSUMPTIONS_QUEUE_POS;
+    else if (decprior==WR_HISTORY_FROMASSUMPTION_ROLENR) qstart=ASSUMPTIONS_QUEUE_POS;
+    else qstart=AXIOMS_QUEUE_POS;
+  }
+  b=(qstart-1)/CLPICK_QUEUE_BLOCKGINTS;
+  if ((g->qwl_weight)[b]<0) return 0;
+  if (bound>MAX_CLPRIOR) bound=MAX_CLPRIOR;
+  if (bound<=(g->qwl_weight)[b]) return 0;
   queues=rotp(g,g->clpick_queues);
   if (!queues[qstart+CLPICK_QUEUE_POS]) return 0;
   simplequeue=rotp(g,queues[qstart+CLPICK_QUEUE_POS]);

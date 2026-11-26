@@ -132,6 +132,9 @@ void wr_push_cl_clpick_queues(glb* g, gint queues_offset, gptr cl, int weight);
 int wr_clpick_queue_start(glb* g, gptr cl);
 void wr_qwl_compute(glb* g, gptr queues, double budget);
 int wr_qwl_drop(glb* g, gptr cl, int weight);
+void wr_qwb_free(glb* g);
+int wr_qwb_drop(glb* g, gptr cl1, gint skipatom1, int skipidx1,
+                gptr cl2, gint skipatom2, int skipidx2, gptr h1, gptr h2);
 int wr_is_positive_unit_cl(glb* g, gptr cl);
 int wr_is_negative_cl(glb* g, gptr cl);
 

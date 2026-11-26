@@ -378,6 +378,17 @@ the final kept clause is built in:   g->queue_termbuf
 */
 
 
+/*
+  Experimental: a derived clause dropped before its build by the lower
+  bound of queue_weight_bound. It takes the clause id of the history
+  record that it skips, as the early weight drop does.
+*/
+
+static void wr_qwb_dropped(glb* g) {
+  (g->stat_queue_bound_dropped)++;
+  if (g->store_history) (g->local_clid_next)++;
+}
+
 void wr_process_resolve_result
       (glb* g, gint xatom, gptr xcl, gint yatom, gptr ycl, gptr xcl_as_active) {
   int xisrule,yisrule,xatomnr,yatomnr;
@@ -417,6 +428,12 @@ void wr_process_resolve_result
     wr_register_answer(g,NULL,g->proof_history);
     return;
   }  
+  // experimental: a lower bound of the weight above the queue limit
+  if ((g->queue_weight_bound) && (g->qwl_active) &&
+      wr_qwb_drop(g,xcl,xatom,-1,ycl,yatom,-1,xcl_as_active,ycl)) {
+    wr_qwb_dropped(g);
+    return;
+  }
   (g->derived_termbuf)[1]=2; // init termbuf
   rptr=wr_alloc_from_cvec(g,g->derived_termbuf,rlen); 
   if (rptr==NULL) {
@@ -741,6 +758,12 @@ void wr_process_factor_result
     wr_register_answer(g,NULL,g->proof_history);
     return;
   }  
+  // experimental: a lower bound of the weight above the queue limit
+  if ((g->queue_weight_bound) && (g->qwl_active) &&
+      wr_qwb_drop(g,xcl,0,y,NULL,0,-1,xcl_as_active,NULL)) {
+    wr_qwb_dropped(g);
+    return;
+  }
   (g->derived_termbuf)[1]=2; // init termbuf
   rptr=wr_alloc_from_cvec(g,g->derived_termbuf,rlen); 
   if (rptr==NULL) {
@@ -936,6 +959,13 @@ void wr_process_paramodulate_result
     //g->proof_history=wr_build_para_history(g,xcl_as_active,ycl,0,0,NULL,path,leftflag,fromflag);
     return;
   }  
+  // experimental: a lower bound of the weight above the queue limit
+  if ((g->queue_weight_bound) && (g->qwl_active) &&
+      wr_qwb_drop(g,xcl,xatom,-1,ycl,0,wr_decode_para_termpath_litnr(g,path),
+                                (fromflag ? xcl_as_active : xcl),(fromflag ? ycl : xcl_as_active))) {
+    wr_qwb_dropped(g);
+    return;
+  }
   (g->derived_termbuf)[1]=2; // init termbuf
   rptr=wr_alloc_from_cvec(g,g->derived_termbuf,rlen); 
   if (rptr==NULL) {

@@ -211,6 +211,27 @@ two-literal clauses and the mean weight.
 A run with a time limit and this key depends on the CPU time, so two runs
 can differ.
 
+### `queue_weight_bound` (experimental)
+
+With `queue_weight_limit` on, `1` drops a derived clause of resolution,
+factoring or paramodulation before gkc builds it, when a lower bound of
+its weight is already above the limit of its queue block and its
+first-in list would not reach it. `0` or a missing key means off; this
+is the default. Without `queue_weight_limit` the key has no effect.
+
+The bound sums the weights of the parent literals that stay in the
+derived clause (for paramodulation without the literal that the
+replacement changes), with every variable at the smaller of
+`var_weight` and `repeat_var_weight`, and adds the length and depth
+penalties as the clause weight does. A merge of equal literals or a cut
+can remove a literal later, so the bound can drop a clause that the late
+check would keep. With `queue_weight_limit` 3 or 4 the bound skips
+results of at most 1 or 2 literals. The bound is not used with
+`use_hornpref`, with `query_preference` 2 or 3, with hyperresolution,
+when derived clauses are printed, for results with answer literals, and
+when a variable weighs more than a constant. The statistic
+`stat_queue_bound_dropped` counts these drops.
+
 The key changes the search. It is experimental and off by default.
 ## Answer Limit
 
@@ -567,6 +588,7 @@ max_dseconds
 total_dseconds
 max_given
 queue_weight_limit
+queue_weight_bound
 given_queue_ratio
 weight_select_ratio
 sine
