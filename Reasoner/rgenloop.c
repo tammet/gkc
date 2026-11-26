@@ -81,6 +81,39 @@ extern "C" {
 
 
 
+/*
+  Experimental weight limit per queue block (strategy key
+  queue_weight_limit): the budget of the coming picks, and a new
+  computation of the limits every QWL_UPDATE_PICKS picks.
+
+  Budget with max_given: (max_given - given clauses so far) x picks per
+  given clause so far, from counters only. Without max_given: no limit.
+  No limit before 10 picks.
+*/
+
+#define QWL_UPDATE_PICKS 32
+
+static void wr_qwl_reset(glb* g) {
+  (g->qwl_active)=0;
+  (g->qwl_next_update)=0;
+}
+
+static void wr_qwl_update(glb* g, float run_seconds, float total_seconds) {
+  gint picks=(g->stat_given_candidates);
+  double budget=-1;
+
+  UNUSED(run_seconds);
+  UNUSED(total_seconds);
+  if (picks<10 || picks<(g->qwl_next_update)) return;
+  (g->qwl_next_update)=picks+QWL_UPDATE_PICKS;
+  if ((g->max_given)>0 && (g->stat_given_used)>0) {
+    budget=(double)((g->max_given)-(g->stat_given_used))*(double)picks/(double)(g->stat_given_used);
+    if (budget<0) budget=0;
+  }
+  if (budget<0) { (g->qwl_active)=0; return; }
+  wr_qwl_compute(g,rotp(g,g->clpick_queues),budget);
+}
+
 int wr_genloop(glb* g) {
   void* db=g->db;
   gptr picked_given_cl_cand;
@@ -137,6 +170,7 @@ int wr_genloop(glb* g) {
     }  
   }  
 
+  if (g->queue_weight_limit) wr_qwl_reset(g);
   for(;;) {     
     /*
     if (g->hardnesspref_strat) {
@@ -181,6 +215,7 @@ int wr_genloop(glb* g) {
       (g->print_level_flag)=50;
     }
     */
+    if (g->queue_weight_limit) wr_qwl_update(g,run_seconds,total_seconds);
     float endgcoeff=1.0;
     if ((g->instgen_strat) &&  (int)((g->queue_termbuf)[0])<(int)((g->queue_termbuf)[1]+1000000)) {
        return 1;

@@ -1004,14 +1004,78 @@ int wr_push_cl_hyper_queue(glb* g, cvec queue, gptr cl, int weight) {
 */
 
 
+/*
+  The start position of the queue block of a clause in the clpick queues
+  (GOAL_ASSUMPTIONS_QUEUE_POS, ...): the block that wr_push_cl_clpick_queues
+  puts the clause into.
+*/
+
+int wr_clpick_queue_start(glb* g, gptr cl) {
+  void *db=g->db;
+  int qstart;
+  gint history;
+  gptr historyptr=NULL;
+  gint decprior, priority=0;
+
+  if (!(g->cl_pick_queue_strategy)) return AXIOMS_QUEUE_POS;
+  // query strat: push to a selected queue depending on priority
+  history=wr_get_history(g,cl); 
+  historyptr=otp(db,history);
+  priority=wr_get_history_record_field(db,historyptr,HISTORY_PRIORITY_POS);
+  decprior=wg_decode_int(db,priority);
+   
+  // modify decpriors according to strat
+
+#ifdef QADDDEBUG
+   wr_printf("\ndecprior originally %d\n",decprior);
+#endif
+
+  if ((g->cl_pick_queue_strategy)==2) {
+    // make non-included axioms assumptions and positive conjecture part assumptions
+    if (decprior==WR_HISTORY_GOAL_ROLENR && wr_is_positive_unit_cl(g,cl)) 
+      decprior=WR_HISTORY_ASSUMPTION_ROLENR;        
+    else if (decprior==WR_HISTORY_AXIOM_ROLENR) // && (g->parse_is_included_file))
+      decprior=WR_HISTORY_ASSUMPTION_ROLENR;       
+  } else if ((g->cl_pick_queue_strategy)==3) {
+    // only fully negative clauses of goal made goal and no assumptions (ie made axioms)
+    if (decprior==WR_HISTORY_GOAL_ROLENR && !wr_is_negative_cl(g,cl))
+      decprior=WR_HISTORY_AXIOM_ROLENR;  
+    else if (decprior==WR_HISTORY_ASSUMPTION_ROLENR)  
+      decprior=WR_HISTORY_AXIOM_ROLENR; // !! had no effect before
+  } else if ((g->cl_pick_queue_strategy)==4) {
+    // everything in one, axiom queue, regardless of polarity or role
+    decprior=WR_HISTORY_AXIOM_ROLENR;   
+  }   
+
+#ifdef QADDDEBUG
+   wr_printf("\ndecprior changed to %d\n",decprior);
+#endif
+
+  // select queue
+  
+  if (decprior==WR_HISTORY_GOAL_ROLENR) qstart=GOAL_QUEUE_POS;
+  else if (decprior==WR_HISTORY_ASSUMPTION_ROLENR) qstart=ASSUMPTIONS_QUEUE_POS;
+  else if (decprior==WR_HISTORY_FROMGOAL_ROLENR) qstart=GOAL_QUEUE_POS;
+  else if (decprior==WR_HISTORY_FROMGOALASSUMPTION_ROLENR) qstart=GOAL_ASSUMPTIONS_QUEUE_POS;
+  else if (decprior==WR_HISTORY_FROMASSUMPTION_ROLENR) qstart=ASSUMPTIONS_QUEUE_POS;
+  else if (decprior==WR_HISTORY_AXIOM_ROLENR) qstart=AXIOMS_QUEUE_POS;
+  else if (decprior==WR_HISTORY_EXTAXIOM_ROLENR) qstart=AXIOMS_QUEUE_POS;
+  else if (decprior==WR_HISTORY_FROMAXIOM_ROLENR) qstart=AXIOMS_QUEUE_POS;
+  else qstart=AXIOMS_QUEUE_POS;   
+
+#ifdef QADDDEBUG
+   wr_printf("\nqstart %d\n",qstart);
+#endif
+
+  return qstart;
+}
+
 void wr_push_cl_clpick_queues(glb* g, gint queues_offset, gptr cl, int weight) {
   void *db=g->db;
+  UNUSED(db);
   int qstart; //,i;
   gint simplequeue_offset, priorqueue_offset;
   gptr queues, simplequeue, priorqueue;
-  gint history;
-  gptr historyptr=NULL;
-  gint decprior, priority=0;   
 
 
 #ifdef QADDDEBUG
@@ -1024,55 +1088,7 @@ void wr_push_cl_clpick_queues(glb* g, gint queues_offset, gptr cl, int weight) {
 
   queues=rotp(g,queues_offset);
   if (g->cl_pick_queue_strategy) { // any strategy value not zero
-    // query strat: push to a selected queue depending on priority
-    history=wr_get_history(g,cl); 
-    historyptr=otp(db,history);
-    priority=wr_get_history_record_field(db,historyptr,HISTORY_PRIORITY_POS);
-    decprior=wg_decode_int(db,priority);
-   
-    // modify decpriors according to strat
-
-#ifdef QADDDEBUG
-     wr_printf("\ndecprior originally %d\n",decprior);
-#endif
-
-    if ((g->cl_pick_queue_strategy)==2) {
-      // make non-included axioms assumptions and positive conjecture part assumptions
-      if (decprior==WR_HISTORY_GOAL_ROLENR && wr_is_positive_unit_cl(g,cl)) 
-        decprior=WR_HISTORY_ASSUMPTION_ROLENR;        
-      else if (decprior==WR_HISTORY_AXIOM_ROLENR) // && (g->parse_is_included_file))
-        decprior=WR_HISTORY_ASSUMPTION_ROLENR;       
-    } else if ((g->cl_pick_queue_strategy)==3) {
-      // only fully negative clauses of goal made goal and no assumptions (ie made axioms)
-      if (decprior==WR_HISTORY_GOAL_ROLENR && !wr_is_negative_cl(g,cl))
-        decprior=WR_HISTORY_AXIOM_ROLENR;  
-      else if (decprior==WR_HISTORY_ASSUMPTION_ROLENR)  
-        decprior=WR_HISTORY_AXIOM_ROLENR; // !! had no effect before
-    } else if ((g->cl_pick_queue_strategy)==4) {
-      // everything in one, axiom queue, regardless of polarity or role
-      decprior=WR_HISTORY_AXIOM_ROLENR;   
-    }   
-
-#ifdef QADDDEBUG
-     wr_printf("\ndecprior changed to %d\n",decprior);
-#endif
-
-    // select queue
-  
-    if (decprior==WR_HISTORY_GOAL_ROLENR) qstart=GOAL_QUEUE_POS;
-    else if (decprior==WR_HISTORY_ASSUMPTION_ROLENR) qstart=ASSUMPTIONS_QUEUE_POS;
-    else if (decprior==WR_HISTORY_FROMGOAL_ROLENR) qstart=GOAL_QUEUE_POS;
-    else if (decprior==WR_HISTORY_FROMGOALASSUMPTION_ROLENR) qstart=GOAL_ASSUMPTIONS_QUEUE_POS;
-    else if (decprior==WR_HISTORY_FROMASSUMPTION_ROLENR) qstart=ASSUMPTIONS_QUEUE_POS;
-    else if (decprior==WR_HISTORY_AXIOM_ROLENR) qstart=AXIOMS_QUEUE_POS;
-    else if (decprior==WR_HISTORY_EXTAXIOM_ROLENR) qstart=AXIOMS_QUEUE_POS;
-    else if (decprior==WR_HISTORY_FROMAXIOM_ROLENR) qstart=AXIOMS_QUEUE_POS;
-    else qstart=AXIOMS_QUEUE_POS;   
-
-#ifdef QADDDEBUG
-     wr_printf("\nqstart %d\n",qstart);
-#endif
-
+    qstart=wr_clpick_queue_start(g,cl);
     // push to simple queue  
     simplequeue_offset=queues[qstart+CLPICK_QUEUE_POS];
     simplequeue=rotp(g,simplequeue_offset);
@@ -1098,6 +1114,155 @@ void wr_push_cl_clpick_queues(glb* g, gint queues_offset, gptr cl, int weight) {
     } 
   }
   //wr_print_clpick_queues(g,queues);
+}
+
+
+/* =============================================
+
+  Experimental weight limit per queue block (strategy key
+  queue_weight_limit).
+
+  wr_qwl_compute estimates how far the coming picks reach in each queue
+  block and sets g->qwl_weight and g->qwl_fifo_reach. It reads the queues
+  and copies of their counters; it changes nothing in them. wr_qwl_drop
+  tells the late weight check whether a new clause lies beyond both.
+
+  The pick rule of wr_pick_from_clpick_queues: the blocks take turns; a
+  block with the ratio R gives ceil((R+1)/2) picks per turn (the pick and
+  the block loop both increase its counter); inside a block, P picks from
+  the priority queue (P: CLPICK_PRIORQUEUE_RATIO) and then one from the
+  first-in list. The given marks are not used, so the two streams of a
+  block are independent.
+
+================================================ */
+
+/*
+  budget: the estimated number of picks that remain in this run.
+*/
+
+void wr_qwl_compute(glb* g, gptr queues, double budget) {
+  int b, k, qs, active[NROF_CLPICK_QUEUES], nactive, changed;
+  double turn[NROF_CLPICK_QUEUES], cap[NROF_CLPICK_QUEUES], n[NROF_CLPICK_QUEUES];
+  double total=0, remaining, sumturn, share;
+  gint np[NROF_CLPICK_QUEUES], nf[NROF_CLPICK_QUEUES], fpos[NROF_CLPICK_QUEUES];
+  gint nprior, nfifo, ratio, counter, cum, max_used;
+  gptr simplequeue, priorqueue;
+  int elstart, prior;
+
+  (g->qwl_active)=0;
+  for(b=0;b<NROF_CLPICK_QUEUES;b++) {
+    qs=1+(b*CLPICK_QUEUE_BLOCKGINTS);
+    np[b]=0; nf[b]=0; fpos[b]=0;
+    if (queues[qs+CLPICK_PRIORQUEUE_POS]) {
+      priorqueue=rotp(g,queues[qs+CLPICK_PRIORQUEUE_POS]);
+      max_used=priorqueue[PRIORQUEUE_MAX_USED_PRIOR_POS];
+      for(prior=0;prior<=max_used;prior++) {
+        elstart=(prior+1)*PRIORQUEUE_NODE_GINT_NR;
+        if (priorqueue[elstart+PRIORQUEUE_ARR_LEN_POS])
+          np[b]+=priorqueue[elstart+PRIORQUEUE_NEXT_FREE_INDEX_POS]-
+                 priorqueue[elstart+PRIORQUEUE_NEXT_PICK_INDEX_POS];
+      }
+    }
+    if (queues[qs+CLPICK_QUEUE_POS]) {
+      simplequeue=rotp(g,queues[qs+CLPICK_QUEUE_POS]);
+      fpos[b]=queues[qs+CLPICK_QUEUE_GIVEN_POS];
+      nf[b]=CVEC_NEXT(simplequeue)-fpos[b];
+      if (nf[b]<0) nf[b]=0;
+    }
+    cap[b]=(double)(np[b]+nf[b]);
+    total+=cap[b];
+    turn[b]=(double)((queues[qs+CLPICK_THIS_QUEUE_RATIO]+2)/2);
+    if (turn[b]<1) turn[b]=1;
+    n[b]=0;
+    active[b]=(cap[b]>0);
+  }
+  if (budget>=total) return; // every clause in the queues is reached: no limit
+  // share the budget by the turn lengths; a block that runs empty passes
+  // its share on to the others
+  remaining=budget;
+  for(;;) {
+    sumturn=0; nactive=0;
+    for(b=0;b<NROF_CLPICK_QUEUES;b++) if (active[b]) { sumturn+=turn[b]; nactive++; }
+    if (!nactive || remaining<=0) break;
+    changed=0;
+    for(b=0;b<NROF_CLPICK_QUEUES;b++) {
+      if (!active[b]) continue;
+      share=remaining*turn[b]/sumturn;
+      if (n[b]+share>=cap[b]) {
+        remaining-=cap[b]-n[b];
+        n[b]=cap[b];
+        active[b]=0;
+        changed=1;
+      }
+    }
+    if (changed) continue;
+    for(b=0;b<NROF_CLPICK_QUEUES;b++) if (active[b]) n[b]+=remaining*turn[b]/sumturn;
+    break;
+  }
+  // the limits of each block
+  for(b=0;b<NROF_CLPICK_QUEUES;b++) {
+    qs=1+(b*CLPICK_QUEUE_BLOCKGINTS);
+    (g->qwl_weight)[b]=-1;
+    (g->qwl_fifo_reach)[b]=fpos[b]+nf[b]+1; // no limit
+    if (cap[b]<=0) continue;
+    ratio=queues[qs+CLPICK_PRIORQUEUE_RATIO];
+    counter=queues[qs+CLPICK_PRIORQUEUE_RATIO_COUNTER];
+    if (counter>ratio) counter=ratio;
+    // position j of the coming picks of the block is a first-in pick when
+    // (counter+j) mod (ratio+1) == ratio
+    nfifo=(gint)(((gint)n[b]+counter)/(ratio+1));
+    if (nfifo>nf[b]) nfifo=nf[b];
+    nprior=(gint)n[b]-nfifo;
+    if (nprior>np[b]) {
+      nprior=np[b];
+      nfifo=(gint)n[b]-np[b];
+      if (nfifo>nf[b]) nfifo=nf[b];
+    }
+    (g->qwl_fifo_reach)[b]=fpos[b]+nfifo;
+    // the weight of the first priority-queue clause that is not reached
+    if (queues[qs+CLPICK_PRIORQUEUE_POS]) {
+      priorqueue=rotp(g,queues[qs+CLPICK_PRIORQUEUE_POS]);
+      max_used=priorqueue[PRIORQUEUE_MAX_USED_PRIOR_POS];
+      cum=0;
+      for(prior=0;prior<=max_used;prior++) {
+        elstart=(prior+1)*PRIORQUEUE_NODE_GINT_NR;
+        if (!priorqueue[elstart+PRIORQUEUE_ARR_LEN_POS]) continue;
+        k=priorqueue[elstart+PRIORQUEUE_NEXT_FREE_INDEX_POS]-
+          priorqueue[elstart+PRIORQUEUE_NEXT_PICK_INDEX_POS];
+        if (k<=0) continue;
+        cum+=k;
+        if (cum>nprior) { (g->qwl_weight)[b]=prior; break; }
+      }
+    }
+  }
+  (g->qwl_active)=1;
+}
+
+/*
+  1 if the new clause cl of the given weight lies beyond the limits of its
+  queue block: its weight is above the weight limit, and the first-in list
+  does not reach its position. A clause at the limit is kept.
+*/
+
+int wr_qwl_drop(glb* g, gptr cl, int weight) {
+  void *db=g->db;
+  UNUSED(db);
+  int qstart, b;
+  gptr queues, simplequeue;
+
+  if (!(g->qwl_active) || weight<0) return 0;
+  if ((g->queue_weight_limit)==3 &&
+      (!wg_rec_is_rule_clause(db,cl) || wg_count_clause_atoms(db,cl)==1)) return 0;
+  qstart=wr_clpick_queue_start(g,cl);
+  b=(qstart-1)/CLPICK_QUEUE_BLOCKGINTS;
+  if (b<0 || b>=NROF_CLPICK_QUEUES || (g->qwl_weight)[b]<0) return 0;
+  if (weight>MAX_CLPRIOR) weight=MAX_CLPRIOR; // as wr_push_priorqueue
+  if (weight<=(g->qwl_weight)[b]) return 0;
+  queues=rotp(g,g->clpick_queues);
+  if (!queues[qstart+CLPICK_QUEUE_POS]) return 0;
+  simplequeue=rotp(g,queues[qstart+CLPICK_QUEUE_POS]);
+  if (CVEC_NEXT(simplequeue)<(g->qwl_fifo_reach)[b]) return 0;
+  return 1;
 }
 
 

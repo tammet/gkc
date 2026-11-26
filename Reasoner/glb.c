@@ -207,6 +207,7 @@ int wr_glb_init_simple(glb* g) {
   (g->max_run_dseconds)=0; // one run max deciseconds
   (g->max_dseconds)=0;     // total max deciseconds
   (g->max_given)=0;        // max given clauses of one run, 0: no limit
+  (g->queue_weight_limit)=0; // experimental, off
   (g->cl_maxkeep_weightlimit)=0;
   (g->cl_maxkeep_sizelimit)=0;
   (g->cl_maxkeep_depthlimit)=0; // !! EXPERIMENT
@@ -393,6 +394,7 @@ int wr_glb_init_simple(glb* g) {
   (g->stat_weight_discarded_cl)=0;
   (g->stat_internlimit_discarded_cl)=0;
   (g->stat_derived_overflow_dropped)=0;
+  (g->stat_queue_limit_dropped)=0;
   (g->derived_build_active)=0;
   (g->derived_build_overflow)=0;
   (g->derived_overflow_timeout)=0;
@@ -540,6 +542,8 @@ int wr_glb_init_simple(glb* g) {
   (g->current_fork_nr)=0;
   (g->avg_kept_weight)=0;
   (g->passed_ratio)=0;
+  (g->qwl_active)=0;
+  (g->qwl_next_update)=0;
 
   (g->allruns_start_clock)=(clock_t)0;
   (g->run_start_clock)=(clock_t)0;

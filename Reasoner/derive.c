@@ -296,6 +296,13 @@ static void wr_process_derived_final(glb* g, gptr res, gint* lithash, gint histo
       if (g->print_derived_cl) wr_printf("\nw discarded overweight");
       return;
     }
+    // experimental: the clause lies beyond the reach of its queue block
+    if ((g->queue_weight_limit) && weightcheckflag && wr_qwl_drop(g,res,weight)) {
+      (g->stat_queue_limit_dropped)++;
+      CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
+      if (g->print_derived_cl) wr_printf("\nw discarded beyond the queue limit");
+      return;
+    }
     ++(g->stat_kept_cl);
     avg+=(weight-avg)/((g->stat_kept_cl)+1);
     (g->avg_kept_weight)=avg;

@@ -342,6 +342,7 @@ typedef struct glb {
   int max_run_dseconds;
   int max_dseconds;
   int max_given; // stop a run after this many given clauses, 0: no limit
+  int queue_weight_limit; // experimental weight limit per queue block: 0 off, 1 estimate from all picks, 2 from the recent picks, 3 as 2 but no unit is dropped
   int cl_keep_weightlimit;
   int cl_keep_sizelimit;
   int cl_keep_depthlimit;
@@ -508,6 +509,7 @@ typedef struct glb {
   int stat_weight_discarded_cl;
   int stat_internlimit_discarded_cl;
   int stat_derived_overflow_dropped; // derived clauses dropped: did not fit into derived_termbuf
+  int stat_queue_limit_dropped; // derived clauses dropped by the weight limit of their queue block
   int derived_build_active;  // 1 while a wr_process_*_result builds its half-built clause
   int derived_build_overflow; // 1 when derived_termbuf overflowed during that build
   int derived_overflow_timeout; // 1 when the time limit passed at a drop: derivation stops
@@ -658,6 +660,10 @@ typedef struct glb {
   int current_fork_nr;
   double avg_kept_weight;
   float passed_ratio;
+  int qwl_active;          // 1 when qwl_weight and qwl_fifo_reach hold limits
+  int qwl_weight[4];       // weight limit of each queue block, -1: none
+  gint qwl_fifo_reach[4];  // first-in positions below this are reached
+  gint qwl_next_update;    // pick count of the next computation of the limits
   clock_t allruns_start_clock;
   //clock_t allruns_end_clock;
   clock_t run_start_clock;

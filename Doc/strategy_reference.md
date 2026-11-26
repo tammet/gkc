@@ -171,6 +171,28 @@ comparisons, because those keys make the search time dependent.
 ```sh
 ./gkc problem.p -parallel 0 -strategytext '{"strategy":["unit"],"query_preference":0,"max_given":5000}'
 ```
+
+### `queue_weight_limit` (experimental)
+
+Drops a new clause that the coming picks of its queue block would not
+reach. `0` or a missing key means off; this is the default.
+
+gkc estimates the budget of picks that remain in the run. With `max_given`
+the budget is (`max_given` minus the given clauses so far) times the picks
+per given clause so far; without `max_given` there is no limit. Every 32
+picks, after the first 10, gkc plays its pick rule (the turns of the four
+queue blocks and the ratio of priority-queue picks to first-in picks) on
+copies of the queue counters for this budget. For each block this gives a
+weight limit (the weight of the first priority-queue clause that the
+picks do not reach) and a first-in reach.
+
+At the late weight check of a derived clause, after the present rules,
+gkc drops the clause when its weight is above the weight limit of its
+block and its position in the first-in list is beyond the reach. The
+statistic `stat_queue_limit_dropped` counts these drops. The values `1`,
+`2` and `3` switch the limit on.
+
+The key changes the search. It is experimental and off by default.
 ## Answer Limit
 
 ### `max_answers`
@@ -525,6 +547,7 @@ total_seconds
 max_dseconds
 total_dseconds
 max_given
+queue_weight_limit
 given_queue_ratio
 weight_select_ratio
 sine
