@@ -385,8 +385,11 @@ int wr_genloop(glb* g) {
       //printf("\n given is blocked\n");
       continue;      
     } else if ((g->up_index) && wr_up_unusable(g,picked_given_cl_cand)) {
-      // made unusable by unit propagation
-      continue;
+      // made unusable by unit propagation: its shorter clause takes its place
+      gptr r=picked_given_cl_cand; int steps=0;
+      while(r && wr_up_unusable(g,r) && steps<64) { r=wr_up_get_repl(g,r); steps++; }
+      if (!r || wr_up_unusable(g,r)) continue;
+      picked_given_cl_cand=r;
     }
     origlen=wg_count_clause_atoms(db,picked_given_cl_cand);
     //if ((g->print_level_flag)==50) CP4;

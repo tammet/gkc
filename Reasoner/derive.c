@@ -1955,8 +1955,12 @@ void wr_up_derive_shorter(glb* g, gptr ucl, gptr ycl, int k) {
   res=wr_derived_build_cl_from_initial_cl(g,rptr,rpos,ruleflag,history);
   if (!history || !res) return;
   (g->stat_up_derived)++;
+  { int kept0=(g->stat_kept_cl);
+  // no weight check: the longer clause passed it, it is unusable now, and
+  // the shorter clause is not heavier
   wr_process_derived_final(g,res,wr_lithash_final(g,rptr,rpos),history,initial_queue_termbuf_next,ucl,
-    0,1,0, 1,1,ylen, 1,0,0,0, "\n+ unit by propagation: ","\n+ derived by propagation: ",NULL);
+    0,1,0, 0,1,ylen, 1,0,0,0, "\n+ unit by propagation: ","\n+ derived by propagation: ",NULL);
+  if ((g->stat_kept_cl)>kept0) wr_up_set_repl(g,ycl,res); }
 }
 
 gint wr_add_cl_to_unithash(glb* g, gptr cl, gint clmeta) {

@@ -426,6 +426,7 @@ typedef struct {
   wr_up_ent* ents; int32_t ecnt, ecap;
   gint* uset; gint ucap, ucnt;         // the unusable clauses (record offsets)
   gint* pend; int32_t pcnt, pcap;      // the pending units (record offsets)
+  gint* rkey; gint* rval; gint rcap, rcnt; // a cut clause -> its shorter clause
 } wr_up_t;
 
 static uint64_t wr_up_mixkey(gint k) {
@@ -460,6 +461,8 @@ static wr_up_t* wr_up_get(glb* g) {
 void wr_up_free(glb* g) {
   wr_up_t* x=(wr_up_t*)(g->up_index);
   if (!x) return;
+  if (x->rkey) sys_free(x->rkey);
+  if (x->rval) sys_free(x->rval);
   sys_free(x->tab); sys_free(x->ents); sys_free(x->uset); sys_free(x->pend);
   sys_free(x);
   (g->up_index)=NULL;
@@ -495,6 +498,48 @@ static wr_up_slot* wr_up_slot_of(wr_up_t* x, gint key, int ins) {
 
 static gint wr_up_litkey(glb* g, gint atom) {
   return wr_lit_hash_unit(g,atom,wr_lit_hash(g,atom));
+}
+
+/* the shorter clause of a cut clause: it takes the place of the longer
+   clause in the pick order */
+
+void wr_up_set_repl(glb* g, gptr longer, gptr shorter) {
+  wr_up_t* x=(wr_up_t*)(g->up_index);
+  gint p, i, j;
+  if (!x) return;
+  if (2*(x->rcnt+1)>x->rcap) {
+    gint* ok=x->rkey; gint* ov=x->rval; gint oc=x->rcap;
+    gint nc=oc ? 2*oc : 1024;
+    gint* nk=sys_malloc(sizeof(gint)*nc); gint* nv=sys_malloc(sizeof(gint)*nc);
+    if (!nk || !nv) { if (nk) sys_free(nk); if (nv) sys_free(nv); return; }
+    memset(nk,0,sizeof(gint)*nc);
+    x->rkey=nk; x->rval=nv; x->rcap=nc;
+    for(j=0;j<oc;j++) if (ok[j]) {
+      i=(gint)(wr_up_mixkey(ok[j])&(uint64_t)(nc-1));
+      while(nk[i]) i=(i+1)&(nc-1);
+      nk[i]=ok[j]; nv[i]=ov[j];
+    }
+    if (ok) sys_free(ok);
+    if (ov) sys_free(ov);
+  }
+  p=pto(g->db,longer);
+  i=(gint)(wr_up_mixkey(p)&(uint64_t)(x->rcap-1));
+  while(x->rkey[i] && x->rkey[i]!=p) i=(i+1)&(x->rcap-1);
+  if (!x->rkey[i]) (x->rcnt)++;
+  x->rkey[i]=p; x->rval[i]=pto(g->db,shorter);
+}
+
+gptr wr_up_get_repl(glb* g, gptr longer) {
+  wr_up_t* x=(wr_up_t*)(g->up_index);
+  gint p, i;
+  if (!x || !(x->rcnt)) return NULL;
+  p=pto(g->db,longer);
+  i=(gint)(wr_up_mixkey(p)&(uint64_t)(x->rcap-1));
+  while(x->rkey[i]) {
+    if (x->rkey[i]==p) return otp(g->db,x->rval[i]);
+    i=(i+1)&(x->rcap-1);
+  }
+  return NULL;
 }
 
 /* is the clause cl unusable */
