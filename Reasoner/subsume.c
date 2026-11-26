@@ -733,7 +733,14 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
     } 
     if (clhashptr!=NULL && (oldcuts==cuts)) {
       // no cut during this iteration
+#ifdef USE_LIT_HASH64
+      // the clause hash keeps the old literal hash: the duplicate check of
+      // instgen (wr_find_prop_clausehash) compares clauses modulo variables,
+      // so its result depends on which clause hashes collide
+      clhash+=(r_kb_g(g) ? kbhash : wr_lit_hash_kb(g,xatom));
+#else
       clhash+=hash;
+#endif
       if (wg_atom_meta_is_neg(db,xatommeta)) clhash+=10;      
       //if (wg_atom_meta_is_neg(db,xatommeta)) hash+=10;
       //clhash = hash + (clhash << 6) + (clhash << 16) - clhash;
