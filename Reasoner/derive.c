@@ -110,6 +110,62 @@ static gint* wr_lithash_final(glb* g, gptr rptr, int rpos) {
   the old way: copy, history record, late check. Returns 1 if dropped.
 */
 
+/*
+  GKC_WEIGHT_DROP_PLACE (compile time, plan item W7): where the weight
+  rules drop a derived clause.
+  0 (default): after the cuts, the duplicate removal and (for resolution)
+    the double cut, at the late check in wr_process_derived_final, and in
+    the early drop of factoring and paramodulation.
+  1: in addition, right after the build of the half-built clause (with its
+    merge of equal literals and its tautology test), before the unit cut,
+    the unit subsumption and the strong cut: the present weight rules and,
+    with queue_weight_limit, the queue limit. The later checks stay.
+*/
+
+#ifndef GKC_WEIGHT_DROP_PLACE
+#define GKC_WEIGHT_DROP_PLACE 0
+#endif
+
+#if GKC_WEIGHT_DROP_PLACE==1
+/*
+  The weight rules on the half-built clause before the cuts. h1, h2: the
+  parents that give the queue block. Returns 1 if dropped.
+*/
+
+static int wr_derived_weight_drop_precut(glb* g, gptr rptr, int rpos,
+                                         int wxatomnr, int wyatomnr, gptr h1, gptr h2) {
+  int i, ansnr=0, weight, size, depth, length, ruleflag;
+  double avg;
+
+  if ((g->hyperres_strat) || (g->print_derived_cl) || (g->print_derived)) return 0;
+  for(i=0;i<rpos;i++) {
+    if (wr_answer_lit(g,rptr[(i*LIT_WIDTH)+LIT_ATOM_POS])) ansnr++;
+  }
+  if (ansnr) return 0; // the final steps may register an answer
+  ruleflag=wr_process_resolve_result_isrulecl(g,rptr,rpos);
+  weight=wr_calc_lits_weight(g,ruleflag,rptr[LIT_ATOM_POS],rptr,rpos,&size,&depth,&length);
+  if (!wr_derived_weight_check(g,g->avg_kept_weight,weight,size,depth,length,
+                               wxatomnr,wyatomnr)) {
+    (g->stat_weight_discarded_cl)++;
+  } else if ((g->queue_weight_limit) && (g->qwl_active) &&
+             wr_qwl_drop_weight(g,wr_qwl_block_from_parents(g,h1,h2),weight,length)) {
+    (g->stat_queue_limit_dropped)++;
+    if ((g->queue_weight_limit)==4) {
+      avg=(g->avg_kept_weight);
+      avg+=(weight-avg)/((g->stat_kept_cl)+(g->stat_queue_limit_dropped)+1);
+      (g->avg_kept_weight)=avg;
+    }
+  } else {
+    return 0;
+  }
+  // as the early drop: stat_built_cl and the clause id of the skipped
+  // history record
+  ++(g->stat_built_cl);
+  if (g->store_history) (g->local_clid_next)++;
+  return 1;
+}
+#endif
+
 static int wr_derived_weight_drop_early(glb* g, gptr rptr, int rpos, int ruleflag,
                                         int wxatomnr, int wyatomnr) {
   int i, ansnr=0, weight, size, depth, length;
@@ -479,6 +535,9 @@ void wr_process_resolve_result
     wr_printf("\nc pre-cut derived by mp: ");
     wr_print_halfbuilt_clause(g,rptr,rpos);
   }
+#if GKC_WEIGHT_DROP_PLACE==1
+  if (wr_derived_weight_drop_precut(g,rptr,rpos,xatomnr,yatomnr,xcl_as_active,ycl)) return;
+#endif
   tmp=wr_derived_cl_cut_and_subsume(g,rptr,rpos,NULL);
   if (tmp<0) {
     // clause was subsumed
@@ -827,6 +886,9 @@ void wr_process_factor_result
   }
   */
 
+#if GKC_WEIGHT_DROP_PLACE==1
+  if (wr_derived_weight_drop_precut(g,rptr,rpos,0,0,xcl_as_active,NULL)) return;
+#endif
   tmp=wr_derived_cl_cut_and_subsume(g,rptr,rpos,NULL);
   if (tmp<0) {
     // clause was subsumed
@@ -1042,6 +1104,10 @@ void wr_process_paramodulate_result
   }
 
   // --
+#if GKC_WEIGHT_DROP_PLACE==1
+  if (wr_derived_weight_drop_precut(g,rptr,rpos,xatomnr,yatomnr,
+                                    (fromflag ? xcl_as_active : xcl),(fromflag ? ycl : xcl_as_active))) return;
+#endif
   tmp=wr_derived_cl_cut_and_subsume(g,rptr,rpos,NULL);
   if (tmp<0) {
     // clause was subsumed

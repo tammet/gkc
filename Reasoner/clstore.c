@@ -1454,16 +1454,56 @@ static int wr_qwb_part(glb* g, gptr cl, gint skipatom, int skipidx,
   give the queue block, as wr_calc_history_priority2 combines them.
 */
 
+/*
+  The queue block start of a new clause from its two parents h1 and h2, as
+  wr_clpick_queue_start finds it for the strategies 0, 1 and 4; -1 for the
+  strategies 2 and 3, where the form of the new clause counts too.
+*/
+
+int wr_qwl_block_from_parents(glb* g, gptr h1, gptr h2) {
+  gint decprior;
+
+  if (!(g->cl_pick_queue_strategy) || (g->cl_pick_queue_strategy)==4) return AXIOMS_QUEUE_POS;
+  if ((g->cl_pick_queue_strategy)==2 || (g->cl_pick_queue_strategy)==3) return -1;
+  decprior=wg_decode_int(g->db,wr_calc_history_priority2(g,h1,h2));
+  if (decprior==WR_HISTORY_GOAL_ROLENR) return GOAL_QUEUE_POS;
+  if (decprior==WR_HISTORY_ASSUMPTION_ROLENR) return ASSUMPTIONS_QUEUE_POS;
+  if (decprior==WR_HISTORY_FROMGOAL_ROLENR) return GOAL_QUEUE_POS;
+  if (decprior==WR_HISTORY_FROMGOALASSUMPTION_ROLENR) return GOAL_ASSUMPTIONS_QUEUE_POS;
+  if (decprior==WR_HISTORY_FROMASSUMPTION_ROLENR) return ASSUMPTIONS_QUEUE_POS;
+  return AXIOMS_QUEUE_POS;
+}
+
+/*
+  1 if a clause of nlits literals and the given weight in the block that
+  starts at qstart lies beyond the queue limit, as wr_qwl_drop decides it.
+*/
+
+int wr_qwl_drop_weight(glb* g, int qstart, int weight, int nlits) {
+  int b;
+  gptr queues, simplequeue;
+
+  if (!(g->qwl_active) || weight<0 || qstart<0) return 0;
+  if ((g->queue_weight_limit)>=3 && nlits<=1) return 0;
+  if ((g->queue_weight_limit)==4 && nlits<=2) return 0;
+  b=(qstart-1)/CLPICK_QUEUE_BLOCKGINTS;
+  if ((g->qwl_weight)[b]<0) return 0;
+  if (weight>MAX_CLPRIOR) weight=MAX_CLPRIOR;
+  if (weight<=(g->qwl_weight)[b]) return 0;
+  queues=rotp(g,g->clpick_queues);
+  if (!queues[qstart+CLPICK_QUEUE_POS]) return 0;
+  simplequeue=rotp(g,queues[qstart+CLPICK_QUEUE_POS]);
+  if (CVEC_NEXT(simplequeue)<(g->qwl_fifo_reach)[b]) return 0;
+  return 1;
+}
+
 int wr_qwb_drop(glb* g, gptr cl1, gint skipatom1, int skipidx1,
                 gptr cl2, gint skipatom2, int skipidx2, gptr h1, gptr h2) {
-  int sum=0, maxw=0, maxdepth=0, nlen=0, nlits=0, flags=0, bound, b, qstart, rewrite;
+  int sum=0, maxw=0, maxdepth=0, nlen=0, nlits=0, flags=0, bound, qstart, rewrite;
   int minvarw;
-  gint decprior;
-  gptr queues, simplequeue;
 
   if (!(g->qwl_active) || (g->use_hornpref) || (g->hyperres_strat) ||
       (g->print_derived_cl) || (g->print_derived)) return 0;
-  if ((g->cl_pick_queue_strategy)==2 || (g->cl_pick_queue_strategy)==3) return 0;
   minvarw=((g->var_weight)<(g->repeat_var_weight)) ? (g->var_weight) : (g->repeat_var_weight);
   if (minvarw>10) return 0; // a substitution could lower the weight
   if (!wr_qwb_part(g,cl1,skipatom1,skipidx1,&sum,&maxw,&maxdepth,&nlen,&nlits,&flags)) return 0;
@@ -1482,27 +1522,9 @@ int wr_qwb_drop(glb* g, gptr cl1, gint skipatom1, int skipidx1,
   else
     bound=sum+((nlen-1)*(g->cl_length_penalty))+((maxdepth-1)*(g->cl_depth_penalty));
   if (rewrite) bound=(int)((float)bound/2.0);
-  // the queue block, as wr_clpick_queue_start for the strategies 0, 1 and 4
-  if (!(g->cl_pick_queue_strategy) || (g->cl_pick_queue_strategy)==4) {
-    qstart=AXIOMS_QUEUE_POS;
-  } else {
-    decprior=wg_decode_int(g->db,wr_calc_history_priority2(g,h1,h2));
-    if (decprior==WR_HISTORY_GOAL_ROLENR) qstart=GOAL_QUEUE_POS;
-    else if (decprior==WR_HISTORY_ASSUMPTION_ROLENR) qstart=ASSUMPTIONS_QUEUE_POS;
-    else if (decprior==WR_HISTORY_FROMGOAL_ROLENR) qstart=GOAL_QUEUE_POS;
-    else if (decprior==WR_HISTORY_FROMGOALASSUMPTION_ROLENR) qstart=GOAL_ASSUMPTIONS_QUEUE_POS;
-    else if (decprior==WR_HISTORY_FROMASSUMPTION_ROLENR) qstart=ASSUMPTIONS_QUEUE_POS;
-    else qstart=AXIOMS_QUEUE_POS;
-  }
-  b=(qstart-1)/CLPICK_QUEUE_BLOCKGINTS;
-  if ((g->qwl_weight)[b]<0) return 0;
-  if (bound>MAX_CLPRIOR) bound=MAX_CLPRIOR;
-  if (bound<=(g->qwl_weight)[b]) return 0;
-  queues=rotp(g,g->clpick_queues);
-  if (!queues[qstart+CLPICK_QUEUE_POS]) return 0;
-  simplequeue=rotp(g,queues[qstart+CLPICK_QUEUE_POS]);
-  if (CVEC_NEXT(simplequeue)<(g->qwl_fifo_reach)[b]) return 0;
-  return 1;
+  // the queue block from the parents, and the queue limit
+  qstart=wr_qwl_block_from_parents(g,h1,h2);
+  return wr_qwl_drop_weight(g,qstart,bound,nlen);
 }
 
 
