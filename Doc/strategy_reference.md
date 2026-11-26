@@ -179,7 +179,10 @@ cut removes a literal of a derived clause when a stored unit clause of the
 opposite sign matches it (or unifies with it, when the clause has at most
 one literal with variables). A missing key means the rule of gkc: the cut
 is on when `max_seconds` is under 2 or `max_dseconds` is under 20, as in
-the first two iterations of the automatic mode.
+the first two iterations of the automatic mode. With `1` the lookup of
+the cutting unit uses an index of the stored unit clauses (a tree of their
+atoms); otherwise it walks the lists of the hashes of the first symbols, as
+before. Both give the same cuts.
 
 ### `queue_weight_limit` (experimental)
 

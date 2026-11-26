@@ -1881,6 +1881,7 @@ void wr_sci_insert(glb* g, gint atom, gptr cl, int neg, int preflen) {
   wr_sci_t* x=(wr_sci_t*)(g->sci_index);
   int32_t n, i, cur, nx, slot, e;
   if (x==(void*)1) return;
+  if ((g->strong_cut_strat)!=1) return; // the index only with the key strong_cut at 1
   if (preflen<1) return; // the lists do not file it either
   if (!(g->unify_samelen) || (g->unify_maxuseterms)) { wr_sci_fail(g); return; }
   if (!x) {
@@ -2073,12 +2074,14 @@ void wr_sci_free(glb* g) { UNUSED(g); }
 
 
 /* the cutter of xatom among the stored units of hashvec: the index when
-   it can answer, otherwise the lists */
+   the key strong_cut is 1 and the index can answer, otherwise the lists */
 
 gptr strongly_cut_atom(glb* g, gint xatom, vec hashvec, int usematch) {
 #ifdef USE_SCUT_INDEX
   int used;
   gptr r;
+  // the index only with the key strong_cut at 1; the rule of today uses the lists
+  if ((g->strong_cut_strat)!=1) return strongly_cut_atom_lists(g,xatom,hashvec,usematch);
 #ifdef GKC_SCUT_CHECK
   // both lookups start from the same variable stack: save it, run the
   // lists, restore it, run the index
