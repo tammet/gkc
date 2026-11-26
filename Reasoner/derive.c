@@ -1940,6 +1940,7 @@ gint wr_add_cl_to_unithash_h(glb* g, gptr cl, gint clmeta, gint* lithash) {
     }  
     if (lithash) hash=lithash[0];
     else hash=wr_lit_hash(g,rpto(g,xatom));
+    hash=wr_lit_hash_unit(g,rpto(g,xatom),hash); // the hash of the unit tables
     //printf("\nhash for storing is %d\n",(int)hash);
     if (wg_atom_meta_is_neg(db,clmeta)) {
       //printf("\nneg\n");

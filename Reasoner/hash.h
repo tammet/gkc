@@ -101,6 +101,9 @@ void wr_clterm_hashlist_print_para(glb* g, vec hashvec);
 gint* wr_push_termhash(glb* g, gint* hasharr, int hash, gptr term, gptr cl);
 gint* wr_push_offset_termhash(glb* g, gint* hasharr, int hash, gptr term, gptr cl);
 gint* wr_find_termhash(glb* g, gint* hasharr, gptr term, int hash);
+gint wr_lit_hash_unit(glb* g, gint x, gint hash);
+int wr_variant_term(glb* g, gint x, gint y);
+gint* wr_find_termhash_unit(glb* g, gint* hasharr, gptr term, int hash);
 gint* wr_find_offset_termhash(glb* g, gint* hasharr, gptr term, int hash);
 gint wr_find_offset_termbucket(glb* g, gint* hasharr, gptr term, int hash);
 

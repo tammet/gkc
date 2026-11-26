@@ -780,7 +780,7 @@ int wr_clmetablock_can_subsume(glb* g, gptr genblock, gptr specblock) {
 */
 
 int wr_active_subsumed_lit(glb* g, gint atom, int negflag) {
-  gint kbhash, hash;
+  gint kbhash, hash, uhash;
   cvec bucket;
   gptr atomptr;
 
@@ -790,11 +790,11 @@ int wr_active_subsumed_lit(glb* g, gint atom, int negflag) {
   wr_printf("\n and negflag %d\n",negflag);
 #endif
 
-  hash=wr_lit_hash(g,atom); 
+  hash=wr_lit_hash(g,atom); uhash=wr_lit_hash_unit(g,atom,hash); // the unit tables 
   kbhash=(r_kb_g(g) ? wr_lit_hash_kb(g,atom) : hash); // a shared KB keeps the old hash
   atomptr=rotp(g,atom);
   if (negflag) {
-    bucket=wr_find_termhash(g,rotp(g,g->hash_neg_active_groundunits),atomptr,hash);      
+    bucket=wr_find_termhash_unit(g,rotp(g,g->hash_neg_active_groundunits),atomptr,uhash);      
     if (bucket!=NULL) {
       return 1;
     } else if (r_kb_g(g)) {
@@ -805,7 +805,7 @@ int wr_active_subsumed_lit(glb* g, gint atom, int negflag) {
       return 0;
     }   
   } else {
-    bucket=wr_find_termhash(g,rotp(g,g->hash_pos_active_groundunits),atomptr,hash);
+    bucket=wr_find_termhash_unit(g,rotp(g,g->hash_pos_active_groundunits),atomptr,uhash);
     if (bucket!=NULL) {
       return 1;
     } else if (r_kb_g(g)) {
@@ -832,7 +832,7 @@ int wr_active_subsumed_lit(glb* g, gint atom, int negflag) {
 int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
 
   int i,tmp;
-  gint kbhash, hash,xatom,xatommeta;
+  gint kbhash, hash, uhash, xatom,xatommeta;
   gptr xatomptr;
   cvec bucket;
   int cuts=0, oldcuts;
@@ -856,7 +856,7 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
     wr_print_term(g,xatom);    
 #endif    
     xatomptr=rotp(g,xatom);
-    hash=wr_lit_hash(g,xatom);    
+    hash=wr_lit_hash(g,xatom); uhash=wr_lit_hash_unit(g,xatom,hash); // the unit tables    
     kbhash=(r_kb_g(g) ? wr_lit_hash_kb(g,xatom) : hash); // a shared KB keeps the old hash
     if ((g->lithash_size)>i) {
       (g->lithash_atoms)[i]=xatom;
@@ -871,7 +871,7 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
       wr_printf("\nneg\n");
 #endif 
       if (g->forward_subsume_derived)      
-        bucket=wr_find_termhash(g,rotp(g,g->hash_neg_groundunits),xatomptr,hash);      
+        bucket=wr_find_termhash_unit(g,rotp(g,g->hash_neg_groundunits),xatomptr,uhash);      
       else
         bucket=NULL;       
       //printf("\ncpneg\n");
@@ -907,7 +907,7 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
         }
       }  
 
-      bucket=wr_find_termhash(g,rotp(g,g->hash_pos_groundunits),xatomptr,hash);      
+      bucket=wr_find_termhash_unit(g,rotp(g,g->hash_pos_groundunits),xatomptr,uhash);      
       if (bucket!=NULL) {         
 #ifdef DEBUG        
         wr_printf("\ncutoff by ground hash as neg!\n"); 
@@ -952,7 +952,7 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
       wr_printf("\npos\n");
 #endif
       if (g->forward_subsume_derived)   
-        bucket=wr_find_termhash(g,rotp(g,g->hash_pos_groundunits),xatomptr,hash);
+        bucket=wr_find_termhash_unit(g,rotp(g,g->hash_pos_groundunits),xatomptr,uhash);
       else
         bucket=NULL;  
       //printf("\ncppos\n");
@@ -987,7 +987,7 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
           return -1;
         }
       }  
-      bucket=wr_find_termhash(g,rotp(g,g->hash_neg_groundunits),xatomptr,hash);      
+      bucket=wr_find_termhash_unit(g,rotp(g,g->hash_neg_groundunits),xatomptr,uhash);      
       if (bucket!=NULL) {            
 #ifdef DEBUG        
         wr_printf("\ncutoff by ground hash as pos!\n"); 
@@ -1088,7 +1088,7 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
 int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucket, int subsflag) {
   gptr xatomptr;
   cvec bucket;
-  gint kbhash, hash;
+  gint kbhash, hash, uhash;
 
 #ifdef DEBUG
   wr_printf("\n!!!!! wr_atom_cut_and_subsume is called \n");    
@@ -1096,12 +1096,12 @@ int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucke
   wr_print_term(g,xatom);  
 #endif     
   xatomptr=rotp(g,xatom);
-  hash=wr_lit_hash(g,xatom); 
+  hash=wr_lit_hash(g,xatom); uhash=wr_lit_hash_unit(g,xatom,hash); // the unit tables 
   kbhash=(r_kb_g(g) ? wr_lit_hash_kb(g,xatom) : hash); // a shared KB keeps the old hash
   if (wg_atom_meta_is_neg(db,xatommeta)) {
     //printf("\nneg\n");
     if (subsflag) {
-      bucket=wr_find_termhash(g,rotp(g,g->hash_neg_groundunits),xatomptr,hash);      
+      bucket=wr_find_termhash_unit(g,rotp(g,g->hash_neg_groundunits),xatomptr,uhash);      
       //printf("\ncpneg\n");
       if (bucket!=NULL) {
   #ifdef DEBUG
@@ -1125,7 +1125,7 @@ int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucke
         }
       }                   
     }  
-    bucket=wr_find_termhash(g,rotp(g,g->hash_pos_groundunits),xatomptr,hash);      
+    bucket=wr_find_termhash_unit(g,rotp(g,g->hash_pos_groundunits),xatomptr,uhash);      
     if (bucket!=NULL) {         
 #ifdef DEBUG            
       wr_printf("\ncutoff by ground hash as neg!\n"); 
@@ -1153,7 +1153,7 @@ int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucke
   } else {
     //printf("\npos\n");
     if (subsflag) {
-      bucket=wr_find_termhash(g,rotp(g,g->hash_pos_groundunits),xatomptr,hash);
+      bucket=wr_find_termhash_unit(g,rotp(g,g->hash_pos_groundunits),xatomptr,uhash);
       //printf("\ncppos\n");
       if (bucket!=NULL) {
   #ifdef DEBUG
@@ -1177,7 +1177,7 @@ int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucke
         }
       }       
     }  
-    bucket=wr_find_termhash(g,rotp(g,g->hash_neg_groundunits),xatomptr,hash);      
+    bucket=wr_find_termhash_unit(g,rotp(g,g->hash_neg_groundunits),xatomptr,uhash);      
     if (bucket!=NULL) {            
 #ifdef DEBUG       
       wr_printf("\ncutoff by ground hash as pos!\n"); 

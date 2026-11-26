@@ -268,6 +268,9 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr, int s
     } else if (!strcmp(key,"queue_weight_bound")) {
       // experimental: with queue_weight_limit, a lower bound before the build
       (g->queue_weight_bound)=json_valueint(elem);
+    } else if (!strcmp(key,"unit_variant_hash")) {
+      // 1: the unit tables hash a literal with per-literal variable numbers and test a variant
+      (g->unit_variant_hash)=(json_valueint(elem) ? 1 : 0);
     } else if (!strcmp(key,"strong_cut")) {
       // 0: no strong cut, 1: strong cut; absent: the rule of max_seconds and max_dseconds
       (g->strong_cut_strat)=(json_valueint(elem) ? 1 : 0);

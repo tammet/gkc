@@ -994,6 +994,125 @@ gint* wr_push_offset_termhash(glb* g, gint* hasharr, int hash, gptr term, gptr c
 }
 
 
+/* ---- the hash of the unit tables with per-literal variable numbering ----
+
+   With the strategy key unit_variant_hash at 1, the unit tables
+   (hash_pos_groundunits, hash_neg_groundunits and their active forms) use
+   a hash in which the first variable of the literal counts as variable 1,
+   the second as variable 2, in the order of occurrence, and a hit is
+   tested as a variant (equality under a renaming of the variables). Then a
+   unit cuts or subsumes a variant of itself, also when the variables have
+   other numbers (an input clause keeps its own numbers, a derived clause
+   is renamed into bank 3). A literal with more than WR_VHASH_MAXVARS
+   different variables keeps the hash of wr_lit_hash. The tables of an
+   attached KB keep the hash and the test of today. */
+
+#define WR_VHASH_MAXVARS 64
+
+static uint64_t wr_vhash_mix(uint64_t a, uint64_t b) {
+  uint64_t k=(a^(b+UINT64_C(0x9E3779B97F4A7C15)+(a<<6)+(a>>2)))*UINT64_C(0xBF58476D1CE4E5B9);
+  return k^(k>>31);
+}
+
+static int wr_vhash_aux(glb* g, gint x, gint* vs, int* nv, uint64_t* h) {
+  int i, start, end, k;
+  gptr xp;
+  if (isvar(x)) {
+    for(k=0;k<*nv;k++) if (vs[k]==x) break;
+    if (k==*nv) {
+      if (*nv>=WR_VHASH_MAXVARS) return 0;
+      vs[k]=x; (*nv)++;
+    }
+    *h=wr_vhash_mix(*h,((uint64_t)(k+1)<<2)|UINT64_C(1));
+    return 1;
+  }
+  if (!isdatarec(x)) {
+    *h=wr_vhash_mix(*h,((uint64_t)wr_term_basehash(g,x))<<2);
+    return 1;
+  }
+  xp=decode_record(g->db,x);
+  start=wr_term_unify_startpos(g);
+  end=wr_term_unify_endpos(g,xp);
+  *h=wr_vhash_mix(*h,((uint64_t)(end-start)<<2)|UINT64_C(3));
+  for(i=start;i<end;i++) if (!wr_vhash_aux(g,xp[i],vs,nv,h)) return 0;
+  return 1;
+}
+
+/* the hash of x for the unit tables: hash (the value of wr_lit_hash) when
+   the key is off */
+
+gint wr_lit_hash_unit(glb* g, gint x, gint hash) {
+  gint vs[WR_VHASH_MAXVARS];
+  int nv=0;
+  uint64_t h=UINT64_C(0x51ED270B27A1C5D3);
+  if (!(g->unit_variant_hash)) return hash;
+  if (!wr_vhash_aux(g,x,vs,&nv,&h)) return wr_lit_hash(g,x);
+  return (gint)(h&((((uint64_t)1)<<(sizeof(gint)*8-2))-1));
+}
+
+static int wr_variant_term_aux(glb* g, gint x, gint y, gint* mx, gint* my, int* n) {
+  int i, start, end, k;
+  gptr xp, yp;
+  gint eqencx; // used by WR_EQUAL_TERM
+  UNUSED(eqencx);
+  if (isvar(x) || isvar(y)) {
+    if (!isvar(x) || !isvar(y)) return 0;
+    for(k=0;k<*n;k++) {
+      if (mx[k]==x) return my[k]==y;
+      if (my[k]==y) return 0;
+    }
+    if (*n>=WR_VHASH_MAXVARS) return 0;
+    mx[*n]=x; my[*n]=y; (*n)++;
+    return 1;
+  }
+  if (!isdatarec(x) || !isdatarec(y)) {
+    if (isdatarec(x) || isdatarec(y)) return 0;
+    return WR_EQUAL_TERM(g,x,y,1);
+  }
+  xp=decode_record(g->db,x);
+  yp=decode_record(g->db,y);
+  if (get_record_len(xp)!=get_record_len(yp)) return 0;
+  start=wr_term_unify_startpos(g);
+  end=wr_term_unify_endpos(g,xp);
+  for(i=start;i<end;i++) if (!wr_variant_term_aux(g,xp[i],yp[i],mx,my,n)) return 0;
+  return 1;
+}
+
+/* 1 if x and y are equal under a renaming of their variables */
+
+int wr_variant_term(glb* g, gint x, gint y) {
+  gint mx[WR_VHASH_MAXVARS], my[WR_VHASH_MAXVARS];
+  int n=0;
+  return wr_variant_term_aux(g,x,y,mx,my,&n);
+}
+
+/* the lookup in a unit table: wr_find_termhash when the key is off,
+   otherwise a hit is tested as a variant */
+
+gint* wr_find_termhash_unit(glb* g, gint* hasharr, gptr term, int hash) {
+  int j;
+  cvec bucket_asp;
+  gint bucket, oterm;
+  if (!(g->unit_variant_hash)) return wr_find_termhash(g,hasharr,term,hash);
+  if (hash<0) hash=0-hash;
+  if (hash+1 >= hasharr[0]) hash=hash % (hasharr[0]-1);
+  bucket=hasharr[hash+1];
+  if (!bucket) {
+    (g->stat_lit_hash_match_miss)++;
+    return NULL;
+  }
+  oterm=rpto(g,term);
+  bucket_asp=rotp(g,bucket);
+  for(j=2;j<bucket_asp[0] && j<bucket_asp[1]; j=j+2) {
+    if (wr_variant_term(g,oterm,bucket_asp[j])) {
+      (g->stat_lit_hash_match_found)++;
+      return rotp(g,bucket_asp[j+1]);
+    }
+  }
+  (g->stat_lit_hash_match_miss)++;
+  return NULL;
+}
+
 gint* wr_find_termhash(glb* g, gint* hasharr, gptr term, int hash) {
 
   return wr_find_offset_termhash(g,hasharr,term,hash);

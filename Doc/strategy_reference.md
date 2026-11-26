@@ -184,6 +184,16 @@ the cutting unit uses an index of the stored unit clauses (a tree of their
 atoms); otherwise it walks the lists of the hashes of the first symbols, as
 before. Both give the same cuts.
 
+### `unit_variant_hash` (experimental)
+
+`1` lets a stored unit clause cut or subsume a literal that is a variant of
+it, also when the variables have other numbers. The tables of the unit
+cut and the unit subsumption then hash a literal with its own variable
+numbering (the first variable of the literal is 1, the second 2) and test a
+hit as equality under a renaming. `0` or a missing key keeps exact term
+equality; this is the default. The double cut and the tables of an
+attached KB keep the hash of today.
+
 ### `queue_weight_limit` (experimental)
 
 Drops a new clause that the coming picks of its queue block would not
