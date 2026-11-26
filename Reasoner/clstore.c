@@ -677,6 +677,10 @@ int wr_cl_store_term_rewriter(glb* g, gptr cl, gint term, int termtype, int litn
   hashvec=rotp(g,g->hash_rewrite_terms);  
   path=wr_encode_para_termpath(g,litnr,leftflag);
   tmp=wr_clterm_add_hashlist_withpath(g,hashvec,hash,term,cl,path);
+#ifdef USE_DEMOD_INDEX
+  // the new node is the first one of its list
+  if (!tmp) wr_dmi_insert(g,term,wr_clterm_hashlist_start(g,hashvec,hash));
+#endif
 #ifdef XDEBUG 
   wr_printf("\nadding to rewrite_hash ended with %d\n",tmp);
 #endif       
