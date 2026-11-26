@@ -179,7 +179,17 @@ reach. `0` or a missing key means off; this is the default.
 
 gkc estimates the budget of picks that remain in the run. With `max_given`
 the budget is (`max_given` minus the given clauses so far) times the picks
-per given clause so far; without `max_given` there is no limit. Every 32
+per given clause so far. With a time limit (`max_seconds`, `max_dseconds`,
+`total_seconds` or `total_dseconds`) it is the time left of the limit that
+ends first times a pick rate:
+
+* `1`: the picks so far divided by the time since the first pick;
+* `2` and `3`: the picks of the last tenth of the time limit divided by
+  the length of that stretch (since the first pick, when the run is
+  shorter).
+
+No time budget is made before 5% of the time. With both kinds of limits
+the smaller budget counts; with neither there is no limit. Every 32
 picks, after the first 10, gkc plays its pick rule (the turns of the four
 queue blocks and the ratio of priority-queue picks to first-in picks) on
 copies of the queue counters for this budget. For each block this gives a
@@ -189,8 +199,12 @@ picks do not reach) and a first-in reach.
 At the late weight check of a derived clause, after the present rules,
 gkc drops the clause when its weight is above the weight limit of its
 block and its position in the first-in list is beyond the reach. The
-statistic `stat_queue_limit_dropped` counts these drops. The values `1`,
-`2` and `3` switch the limit on.
+statistic `stat_queue_limit_dropped` counts these drops. With `3` a unit
+clause is never dropped by this limit. With `max_given` alone the values
+`1` and `2` give the same search.
+
+A run with a time limit and this key depends on the CPU time, so two runs
+can differ.
 
 The key changes the search. It is experimental and off by default.
 ## Answer Limit

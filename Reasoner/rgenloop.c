@@ -86,29 +86,79 @@ extern "C" {
   queue_weight_limit): the budget of the coming picks, and a new
   computation of the limits every QWL_UPDATE_PICKS picks.
 
-  Budget with max_given: (max_given - given clauses so far) x picks per
-  given clause so far, from counters only. Without max_given: no limit.
-  No limit before 10 picks.
+  Budgets: with max_given, (max_given - given clauses so far) x picks per
+  given clause so far, from counters only. With a time limit, from the
+  time left of the limit that ends first: value 1, picks so far x time
+  left / time spent since the first pick; values 2 and 3, the picks of
+  the last tenth of the time limit x time left / the length of that
+  stretch. The smaller budget counts. No limit before 10 picks, and no
+  time budget before 5% of the time.
 */
 
 #define QWL_UPDATE_PICKS 32
+#define QWL_SAMPLES 2048
+
+static float qwl_sample_time[QWL_SAMPLES];
+static gint qwl_sample_picks[QWL_SAMPLES];
+static int qwl_nsamples=0, qwl_sample_next=0;
+static float qwl_first_pick_time=-1;
 
 static void wr_qwl_reset(glb* g) {
+  qwl_nsamples=0;
+  qwl_sample_next=0;
+  qwl_first_pick_time=-1;
   (g->qwl_active)=0;
   (g->qwl_next_update)=0;
 }
 
 static void wr_qwl_update(glb* g, float run_seconds, float total_seconds) {
   gint picks=(g->stat_given_candidates);
-  double budget=-1;
+  double budget=-1, b, limit=0, elapsed=0, left=-1, spent, window, t0;
+  gint p0;
+  int i, k;
 
-  UNUSED(run_seconds);
-  UNUSED(total_seconds);
+  if (qwl_first_pick_time<0 && picks>0) qwl_first_pick_time=run_seconds;
   if (picks<10 || picks<(g->qwl_next_update)) return;
   (g->qwl_next_update)=picks+QWL_UPDATE_PICKS;
+  qwl_sample_time[qwl_sample_next]=run_seconds;
+  qwl_sample_picks[qwl_sample_next]=picks;
+  qwl_sample_next=(qwl_sample_next+1)%QWL_SAMPLES;
+  if (qwl_nsamples<QWL_SAMPLES) qwl_nsamples++;
+  // the budget from max_given: counters only
   if ((g->max_given)>0 && (g->stat_given_used)>0) {
-    budget=(double)((g->max_given)-(g->stat_given_used))*(double)picks/(double)(g->stat_given_used);
-    if (budget<0) budget=0;
+    b=(double)((g->max_given)-(g->stat_given_used))*(double)picks/(double)(g->stat_given_used);
+    if (b<0) b=0;
+    budget=b;
+  }
+  // the time limit that ends first
+  if (g->max_run_seconds) {
+    limit=(double)(g->max_run_seconds); elapsed=run_seconds; left=limit-elapsed;
+  }
+  if ((g->max_run_dseconds) && (left<0 || (g->max_run_dseconds)/10.0-run_seconds<left)) {
+    limit=(g->max_run_dseconds)/10.0; elapsed=run_seconds; left=limit-elapsed;
+  }
+  if ((g->max_seconds) && (left<0 || (double)(g->max_seconds)-total_seconds<left)) {
+    limit=(double)(g->max_seconds); elapsed=total_seconds; left=limit-elapsed;
+  }
+  if (limit>0 && elapsed>=0.05*limit && qwl_first_pick_time>=0) {
+    if (left<0) left=0;
+    b=-1;
+    if ((g->queue_weight_limit)==1) {
+      spent=run_seconds-qwl_first_pick_time;
+      if (spent>0) b=(double)picks*left/spent;
+    } else {
+      // the oldest sample inside the window of a tenth of the limit
+      window=0.1*limit;
+      t0=qwl_first_pick_time; p0=0;
+      for(i=1;i<=qwl_nsamples;i++) {
+        k=(qwl_sample_next-i+QWL_SAMPLES)%QWL_SAMPLES;
+        if (qwl_sample_time[k]<run_seconds-window) break;
+        t0=qwl_sample_time[k]; p0=qwl_sample_picks[k];
+        if (i==qwl_nsamples && qwl_nsamples<QWL_SAMPLES) { t0=qwl_first_pick_time; p0=0; }
+      }
+      if (run_seconds-t0>0 && picks>p0) b=(double)(picks-p0)*left/(run_seconds-t0);
+    }
+    if (b>=0 && (budget<0 || b<budget)) budget=b;
   }
   if (budget<0) { (g->qwl_active)=0; return; }
   wr_qwl_compute(g,rotp(g,g->clpick_queues),budget);
