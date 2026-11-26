@@ -1976,10 +1976,24 @@ static int wr_sci_walk(wr_sci_t* x, int32_t node, int32_t i, int32_t n, int unif
   return 1;
 }
 
+static int wr_sci_cmp(const void* a, const void* b) {
+  uint64_t x=*(const uint64_t*)a, y=*(const uint64_t*)b;
+  return (x<y) ? -1 : ((x>y) ? 1 : 0);
+}
+
+/* sort the candidates by their order key: an insertion sort for a few,
+   qsort for more (a unification walk can give thousands). The keys are
+   unique, and the entry of a key is its insert number minus 1. */
+
 static void wr_sci_sort(wr_sci_t* x) {
-  // insertion sort: the candidate lists are short
   int32_t i, j, e;
   uint64_t o;
+  if (x->ccnt>16) {
+    qsort(x->cand,(size_t)(x->ccnt),sizeof(uint64_t),wr_sci_cmp);
+    for(i=0;i<x->ccnt;i++)
+      x->candent[i]=(int32_t)((SCI_SEQMAX-((x->cand[i])&SCI_SEQMAX))-1);
+    return;
+  }
   for(i=1;i<x->ccnt;i++) {
     o=x->cand[i]; e=x->candent[i];
     for(j=i-1; j>=0 && x->cand[j]>o; j--) { x->cand[j+1]=x->cand[j]; x->candent[j+1]=x->candent[j]; }
