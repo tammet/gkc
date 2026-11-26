@@ -319,6 +319,12 @@ int wr_genloop(glb* g) {
     }         
     //wr_show_clactive(g);
     //picked_given_cl_cand=wr_pick_given_cl(g,given_cl_metablock); 
+    if ((g->unit_propagate) || (g->unit_backsubsume)) {
+      // unit propagation of the units kept since the last pick
+      wr_up_run(g);
+      if (g->alloc_err) return -1;
+      if ((g->proof_found) && wr_enough_answers(g)) return 0;
+    }
     given_from_hyperqueue_flag=0;  
 
     //if ((g->print_level_flag)==50) CP0;
@@ -378,6 +384,9 @@ int wr_genloop(glb* g) {
     } else if ((g->propagate) && wg_rec_is_blocked_clause(db,picked_given_cl_cand)) {     
       //printf("\n given is blocked\n");
       continue;      
+    } else if ((g->up_index) && wr_up_unusable(g,picked_given_cl_cand)) {
+      // made unusable by unit propagation
+      continue;
     }
     origlen=wg_count_clause_atoms(db,picked_given_cl_cand);
     //if ((g->print_level_flag)==50) CP4;
@@ -541,6 +550,11 @@ int wr_genloop(glb* g) {
       if (g->alloc_err) return -1;
       continue; 
     }    
+    if ((g->unit_propagate) || (g->unit_backsubsume)) {
+      // the picked clause leaves the queues; its active copy can be cut
+      if (!wr_up_mark(g,picked_given_cl_cand)) { wr_alloc_err(g,"could not mark a picked clause for unit propagation"); return -1; }
+      wr_up_register(g,given_cl_as_active);
+    }
     if (simplen!=origlen && simplen==2) {
       // insert the active copy: given_cl lies in given_termbuf, which is
       // reused for the next given clause

@@ -260,6 +260,11 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active, cvec resol
             wr_printf("xatom: \n");
             wr_print_clause(g,xatom);
             */
+            if ((g->up_index) && wr_up_unusable(g,ycl)) {
+              // made unusable by unit propagation
+              node=wr_clterm_hashlist_next(g,hashvec,node);
+              continue;
+            }
             if ((g->back_subsume) && wr_get_cl_backsubsumed(g,ycl)) {
               /*
               wr_printf("\nCP1 blocked clause: \n");          
@@ -707,6 +712,11 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active, cvec re
                 node=wr_clterm_hashlist_next(g,hashvec,node);
                 continue;
               }       
+              if ((g->up_index) && wr_up_unusable(g,ycl)) {
+                // made unusable by unit propagation
+                node=wr_clterm_hashlist_next(g,hashvec,node);
+                continue;
+              }
               /*
               wr_printf("after while(node!=0): \n");
               wr_printf("ycl: \n");
@@ -1099,6 +1109,11 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
       yterm=(otp(db,node))[CLTERM_HASHNODE_TERM_POS];     //nodeptr[CLTERM_HASHNODE_TERM_POS];
       ycl=otp(db,(otp(db,node))[CLTERM_HASHNODE_CL_POS]); //(otp(db,nodeptr)[CLTERM_HASHNODE_CL_POS]);
       if ((g->prohibit_nested_para) && (wr_get_cl_history_tag(g,ycl)==WR_HISTORY_TAG_PARA)) {
+        node=wr_clterm_hashlist_next(g,hashvec,node);
+        continue;
+      }
+      if ((g->up_index) && wr_up_unusable(g,ycl)) {
+        // made unusable by unit propagation
         node=wr_clterm_hashlist_next(g,hashvec,node);
         continue;
       }

@@ -261,6 +261,8 @@ int wr_glb_init_simple(glb* g) {
   (g->use_strong_unit_cutoff)=0; // if 1, then cut off also with unification, not just with hash equality
   (g->strong_cut_strat)=-1; // strategy key strong_cut: -1 absent, 0 off, 1 on
   (g->unit_variant_hash)=0; // strategy key unit_variant_hash: 1 the unit tables use per-literal variable numbers
+  (g->unit_propagate)=0; // strategy key unit_propagate: 0 off, 1 two-literal clauses, 2 all clauses
+  (g->unit_backsubsume)=0; // strategy key unit_backsubsume: 1 backward subsumption by a kept unit
   (g->use_strong_duplicates)=0; // iff 1, then additional unique var based duplicate removal used
   (g->prohibit_nested_para)=0; // iff 1, paramodulation derivations cannot be directly nested
   (g->prohibit_unordered_para)=0; // iff 1, paramodulate only from ordered equalities
@@ -452,6 +454,9 @@ int wr_glb_init_simple(glb* g) {
   (g->stat_prop_hash_match_miss)=0;
   (g->stat_lit_hash_cut_ok)=0;    
   (g->stat_lit_strong_cut_ok)=0;
+  (g->stat_up_cut)=0;
+  (g->stat_up_derived)=0;
+  (g->stat_up_backsubsumed)=0;
   (g->stat_lit_hash_subsume_ok)=0;  
 
   (g->stat_atom_hash_added)=0;
@@ -576,6 +581,7 @@ int wr_glb_init_shared_complex(glb* g) {
   (g->clactivesubsume)=(gint)NULL;
   (g->fsi_index)=NULL;
   (g->sci_index)=NULL;
+  (g->up_index)=NULL;
   (g->clpickpriorqueue)=(gint)NULL;
   (g->clpick_queues)=(gint)NULL;
 
@@ -715,6 +721,7 @@ int wr_glb_init_seq_shared_complex(glb* g) {
   (g->clactivesubsume)=(gint)NULL;
   (g->fsi_index)=NULL;
   (g->sci_index)=NULL;
+  (g->up_index)=NULL;
   (g->clpickpriorqueue)=(gint)NULL;
   (g->clpick_queues)=(gint)NULL;
 
@@ -1189,6 +1196,7 @@ int wr_glb_free_shared_complex(glb* g) {
   wr_vec_free(g,rotp(g,g->clactivesubsume));  
   wr_fsi_free(g);
   wr_sci_free(g);
+  wr_up_free(g);
   wr_vec_free(g,rotp(g,g->clpickstack));  
   wr_vec_free(g,rotp(g,g->clqueue));     
   //wr_vec_free(g,rotp(g,g->clweightqueue)); 

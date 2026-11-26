@@ -268,6 +268,13 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr, int s
     } else if (!strcmp(key,"queue_weight_bound")) {
       // experimental: with queue_weight_limit, a lower bound before the build
       (g->queue_weight_bound)=json_valueint(elem);
+    } else if (!strcmp(key,"unit_propagate")) {
+      // unit propagation: 0 off, 1 cut two-literal clauses, 2 cut all clauses
+      (g->unit_propagate)=json_valueint(elem);
+      if ((g->unit_propagate)<0 || (g->unit_propagate)>2) (g->unit_propagate)=0;
+    } else if (!strcmp(key,"unit_backsubsume")) {
+      // 1: a kept unit makes the clauses with an equal literal of the same sign unusable
+      (g->unit_backsubsume)=(json_valueint(elem) ? 1 : 0);
     } else if (!strcmp(key,"unit_variant_hash")) {
       // 1: the unit tables hash a literal with per-literal variable numbers and test a variant
       (g->unit_variant_hash)=(json_valueint(elem) ? 1 : 0);

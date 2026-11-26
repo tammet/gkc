@@ -2148,6 +2148,11 @@ void wr_show_stats(glb* g, int show_local_complex) {
   wr_printf("stat_lit_hash_match_miss:   %15d\n",g->stat_lit_hash_match_miss); 
   wr_printf("stat_lit_hash_cut_ok:       %15d\n",g->stat_lit_hash_cut_ok); 
   wr_printf("stat_lit_strong_cut_ok:     %15d\n",g->stat_lit_strong_cut_ok); 
+  if ((g->unit_propagate) || (g->unit_backsubsume)) {
+    wr_printf("stat_up_cut:                %15d\n",g->stat_up_cut);
+    wr_printf("stat_up_derived:            %15d\n",g->stat_up_derived);
+    wr_printf("stat_up_backsubsumed:       %15d\n",g->stat_up_backsubsumed);
+  }
   wr_printf("stat_lit_hash_subsume_ok:   %15d\n",g->stat_lit_hash_subsume_ok); 
 #endif
 #ifdef SHOW_MEM_STATS

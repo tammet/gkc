@@ -34,6 +34,12 @@
 #include "glb.h" 
 
 void wr_propagate_unit(glb* g, gptr cl, gint clmeta, gint hash, gptr cl_as_active);
+void wr_up_free(glb* g);
+int wr_up_unusable(glb* g, gptr cl);
+int wr_up_mark(glb* g, gptr cl);
+void wr_up_register(glb* g, gptr cl);
+void wr_up_unit(glb* g, gptr cl);
+void wr_up_run(glb* g);
 void wr_resolve_propagated_clause(glb* g, gint atom, gptr cl, gptr cutcl, int negflag, gptr cl_as_active);  
 void wr_process_propagated_result
       (glb* g, gint xatom, gptr xcl, gint yatom, gptr ycl, gptr xcl_as_active, int cutpos2);        

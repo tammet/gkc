@@ -194,6 +194,27 @@ hit as equality under a renaming. `0` or a missing key keeps exact term
 equality; this is the default. The double cut and the tables of an
 attached KB keep the hash of today.
 
+### `unit_propagate` (experimental)
+
+Unit propagation: when gkc keeps a unit clause, it cuts the stored clauses
+that have the opposite literal. `1` cuts only clauses of two literals, `2`
+clauses of any length; `0` or a missing key means off, the default. The
+cut looks for an equal literal (a variant with `unit_variant_hash` at 1),
+over the passive clauses and the active copies of the picked clauses.
+gkc builds the clause without the literal (a unit resolution, printed as a
+resolution step) and makes the longer clause unusable: the pick skips it,
+and resolution and paramodulation do not use it as a partner. A shorter
+clause that is a unit is propagated in turn. gkc propagates the units kept
+since the last pick before it picks the next given clause. Clauses of an
+attached KB are not cut and never changed.
+
+### `unit_backsubsume` (experimental)
+
+`1`: when gkc keeps a unit clause, the stored clauses with an equal
+literal of the same sign (a variant with `unit_variant_hash` at 1) become
+unusable, as for `unit_propagate`. `0` or a missing key means off, the
+default. It works with or without `unit_propagate`.
+
 ### `queue_weight_limit` (experimental)
 
 Drops a new clause that the coming picks of its queue block would not

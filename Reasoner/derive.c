@@ -1911,6 +1911,54 @@ int wr_derived_weight_check(glb* g, double avg, int weight,  int size, int depth
 }  
 
 
+/* unit propagation: the clause ycl without its literal k, which the unit
+   ucl cuts (equal or a variant, so no substitution is needed); it goes
+   through the forward checks and the final steps of a derived clause, with
+   the history of a resolution of ucl and ycl */
+
+void wr_up_derive_shorter(glb* g, gptr ucl, gptr ycl, int k) {
+  void* db=g->db;
+  UNUSED(db);
+  int ylen, i, rpos, tmp, ruleflag;
+  gptr rptr, res;
+  gint history, initial_queue_termbuf_next;
+  ylen=wg_count_clause_atoms(db,ycl);
+  (g->derived_termbuf)[1]=2; // init termbuf
+  rptr=wr_alloc_from_cvec(g,g->derived_termbuf,(ylen-1)*LIT_WIDTH);
+  if (rptr==NULL) {
+    ++(g->stat_internlimit_discarded_cl);
+    wr_alloc_err(g,"could not alloc first buffer in wr_up_derive_shorter ");
+    return;
+  }
+  rpos=0;
+  for(i=0;i<ylen;i++) {
+    if (i==k) continue;
+    rptr[rpos*LIT_WIDTH+LIT_META_POS]=wg_get_rule_clause_atom_meta(db,ycl,i);
+    rptr[rpos*LIT_WIDTH+LIT_ATOM_POS]=wg_get_rule_clause_atom(db,ycl,i);
+    rpos++;
+  }
+  tmp=wr_derived_cl_cut_and_subsume(g,rptr,rpos,NULL);
+  if (tmp<0) return; // subsumed
+  if (tmp>0) {
+    wr_process_resolve_result_remove_cuts(g,rptr,&rpos,tmp);
+    if (rpos==0) {
+      g->proof_found=1;
+      g->proof_history=wr_build_resolve_history(g,ucl,ycl,0,k,g->cut_clvec);
+      wr_register_answer(g,NULL,g->proof_history);
+      return;
+    }
+  }
+  ruleflag=wr_process_resolve_result_isrulecl(g,rptr,rpos);
+  wr_process_resolve_result_setupquecopy(g); // use g->queue_termbuf as g->build_buffer
+  initial_queue_termbuf_next=CVEC_NEXT(g->build_buffer); // to be restored if not actually used
+  history=wr_build_resolve_history(g,ucl,ycl,0,k,g->cut_clvec);
+  res=wr_derived_build_cl_from_initial_cl(g,rptr,rpos,ruleflag,history);
+  if (!history || !res) return;
+  (g->stat_up_derived)++;
+  wr_process_derived_final(g,res,wr_lithash_final(g,rptr,rpos),history,initial_queue_termbuf_next,ucl,
+    0,1,0, 1,1,ylen, 1,0,0,0, "\n+ unit by propagation: ","\n+ derived by propagation: ",NULL);
+}
+
 gint wr_add_cl_to_unithash(glb* g, gptr cl, gint clmeta) {
   return wr_add_cl_to_unithash_h(g,cl,clmeta,NULL);
 }
@@ -1941,6 +1989,7 @@ gint wr_add_cl_to_unithash_h(glb* g, gptr cl, gint clmeta, gint* lithash) {
     if (lithash) hash=lithash[0];
     else hash=wr_lit_hash(g,rpto(g,xatom));
     hash=wr_lit_hash_unit(g,rpto(g,xatom),hash); // the hash of the unit tables
+    if ((g->unit_propagate) || (g->unit_backsubsume)) wr_up_unit(g,cl);
     //printf("\nhash for storing is %d\n",(int)hash);
     if (wg_atom_meta_is_neg(db,clmeta)) {
       //printf("\nneg\n");

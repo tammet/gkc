@@ -1082,6 +1082,8 @@ void wr_push_cl_clpick_queues(glb* g, gint queues_offset, gptr cl, int weight) {
   gint simplequeue_offset, priorqueue_offset;
   gptr queues, simplequeue, priorqueue;
 
+  if ((g->unit_propagate) || (g->unit_backsubsume)) wr_up_register(g,cl); // unit propagation
+
 
 #ifdef QADDDEBUG
   wr_printf("\nwr_push_cl_clpick_queues called with queryfocus_strat %d (g->cl_pick_queue_strategy) %d weight %d and cl: ",

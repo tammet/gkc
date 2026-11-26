@@ -65,6 +65,7 @@ gptr wr_derived_build_cl_from_initial_cl(glb* g, gptr rptr, int rpos, int rulefl
 int wr_derived_weight_check(glb* g, double avg, int weight,  int size, int depth, int length, int xatomnr, int yatomnr);
 
 gint wr_add_cl_to_unithash(glb* g, gptr cl, gint clmeta);
+void wr_up_derive_shorter(glb* g, gptr ucl, gptr ycl, int k);
 gint wr_add_cl_to_doublehash(glb* g, gptr cl);
 gint wr_add_cl_to_unithash_h(glb* g, gptr cl, gint clmeta, gint* lithash);
 gint wr_add_cl_to_doublehash_h(glb* g, gptr cl, gint* lithash);

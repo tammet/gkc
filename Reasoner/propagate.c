@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -390,6 +391,258 @@ int wr_store_atom_occurrences(glb* g, gptr cl) {
 
 
 
+
+
+/* ====================================================
+
+  eager unit propagation (strategy keys unit_propagate, unit_backsubsume)
+
+  A table files the literals of the clauses of 2 or more literals that
+  enter the queues (unit_propagate 1: two-literal clauses only) and of the
+  active copies of the picked clauses, under the hash of the unit tables
+  (wr_lit_hash_unit). When gkc keeps a unit, the unit goes into a pending
+  list. Before each pick, wr_up_run takes the pending units one by one and
+  walks the filed literals with the same hash:
+
+  * a literal of the opposite sign that is equal to the unit (a variant
+    with unit_variant_hash) is cut: gkc derives the clause without it
+    (wr_up_derive_shorter, a unit resolution with the history of a
+    resolution step) and makes the longer clause unusable;
+  * with unit_backsubsume, a literal of the same sign that is equal to the
+    unit makes its clause unusable (the unit subsumes it).
+
+  An unusable clause is in a local set: the pick skips it, and the loops
+  of resolution and paramodulation over the active clauses skip it. No
+  record is written, so a clause of an attached KB is never changed; KB
+  clauses are not filed. A new unit made by the propagation is filed in
+  the unit tables as any kept unit and goes into the pending list too.
+
+================================================ */
+
+typedef struct { gint cl; int32_t idx; int32_t len; int32_t next; } wr_up_ent;
+typedef struct { gint key; int32_t first; } wr_up_slot;
+typedef struct {
+  wr_up_slot* tab; gint cap, cnt;      // hash of a literal -> first entry
+  wr_up_ent* ents; int32_t ecnt, ecap;
+  gint* uset; gint ucap, ucnt;         // the unusable clauses (record offsets)
+  gint* pend; int32_t pcnt, pcap;      // the pending units (record offsets)
+} wr_up_t;
+
+static uint64_t wr_up_mixkey(gint k) {
+  uint64_t x=(uint64_t)k; x^=x>>33; x*=UINT64_C(0xff51afd7ed558ccd); x^=x>>29; return x;
+}
+
+static wr_up_t* wr_up_get(glb* g) {
+  wr_up_t* x=(wr_up_t*)(g->up_index);
+  if (x) return x;
+  x=sys_malloc(sizeof(wr_up_t));
+  if (!x) return NULL;
+  memset(x,0,sizeof(wr_up_t));
+  x->cap=1<<12; x->ecap=1<<12; x->ucap=1<<10; x->pcap=1<<8;
+  x->tab=sys_malloc(sizeof(wr_up_slot)*x->cap);
+  x->ents=sys_malloc(sizeof(wr_up_ent)*x->ecap);
+  x->uset=sys_malloc(sizeof(gint)*x->ucap);
+  x->pend=sys_malloc(sizeof(gint)*x->pcap);
+  if (!x->tab || !x->ents || !x->uset || !x->pend) {
+    if (x->tab) sys_free(x->tab);
+    if (x->ents) sys_free(x->ents);
+    if (x->uset) sys_free(x->uset);
+    if (x->pend) sys_free(x->pend);
+    sys_free(x);
+    return NULL;
+  }
+  memset(x->tab,0,sizeof(wr_up_slot)*x->cap);
+  memset(x->uset,0,sizeof(gint)*x->ucap);
+  (g->up_index)=x;
+  return x;
+}
+
+void wr_up_free(glb* g) {
+  wr_up_t* x=(wr_up_t*)(g->up_index);
+  if (!x) return;
+  sys_free(x->tab); sys_free(x->ents); sys_free(x->uset); sys_free(x->pend);
+  sys_free(x);
+  (g->up_index)=NULL;
+}
+
+/* the slot of key in the literal table; the key 0 is stored as 1 */
+
+static wr_up_slot* wr_up_slot_of(wr_up_t* x, gint key, int ins) {
+  gint i;
+  if (!key) key=1;
+  if (ins && 2*(x->cnt+1)>x->cap) {
+    wr_up_slot* ot=x->tab; gint oc=x->cap, j;
+    wr_up_slot* nt=sys_malloc(sizeof(wr_up_slot)*oc*2);
+    if (!nt) return NULL;
+    memset(nt,0,sizeof(wr_up_slot)*oc*2);
+    x->tab=nt; x->cap=oc*2;
+    for(j=0;j<oc;j++) if (ot[j].key) {
+      i=(gint)(wr_up_mixkey(ot[j].key)&(uint64_t)(x->cap-1));
+      while(nt[i].key) i=(i+1)&(x->cap-1);
+      nt[i]=ot[j];
+    }
+    sys_free(ot);
+  }
+  i=(gint)(wr_up_mixkey(key)&(uint64_t)(x->cap-1));
+  while(x->tab[i].key) {
+    if (x->tab[i].key==key) return &(x->tab[i]);
+    i=(i+1)&(x->cap-1);
+  }
+  if (!ins) return NULL;
+  x->tab[i].key=key; x->tab[i].first=-1; (x->cnt)++;
+  return &(x->tab[i]);
+}
+
+static gint wr_up_litkey(glb* g, gint atom) {
+  return wr_lit_hash_unit(g,atom,wr_lit_hash(g,atom));
+}
+
+/* is the clause cl unusable */
+
+int wr_up_unusable(glb* g, gptr cl) {
+  wr_up_t* x=(wr_up_t*)(g->up_index);
+  gint p, i;
+  if (!x || !(x->ucnt)) return 0;
+  p=pto(g->db,cl);
+  i=(gint)(wr_up_mixkey(p)&(uint64_t)(x->ucap-1));
+  while(x->uset[i]) {
+    if (x->uset[i]==p) return 1;
+    i=(i+1)&(x->ucap-1);
+  }
+  return 0;
+}
+
+/* make the clause cl unusable; returns 0 on a failed allocation */
+
+int wr_up_mark(glb* g, gptr cl) {
+  wr_up_t* x=wr_up_get(g);
+  gint p, i;
+  if (!x) return 0;
+  p=pto(g->db,cl);
+  if (2*(x->ucnt+1)>x->ucap) {
+    gint* ou=x->uset; gint oc=x->ucap, j;
+    gint* nu=sys_malloc(sizeof(gint)*oc*2);
+    if (!nu) return 0;
+    memset(nu,0,sizeof(gint)*oc*2);
+    x->uset=nu; x->ucap=oc*2;
+    for(j=0;j<oc;j++) if (ou[j]) {
+      i=(gint)(wr_up_mixkey(ou[j])&(uint64_t)(x->ucap-1));
+      while(nu[i]) i=(i+1)&(x->ucap-1);
+      nu[i]=ou[j];
+    }
+    sys_free(ou);
+  }
+  i=(gint)(wr_up_mixkey(p)&(uint64_t)(x->ucap-1));
+  while(x->uset[i]) {
+    if (x->uset[i]==p) return 1;
+    i=(i+1)&(x->ucap-1);
+  }
+  x->uset[i]=p; (x->ucnt)++;
+  return 1;
+}
+
+/* file the literals of cl (a clause that enters the queues, or the active
+   copy of a picked clause) */
+
+void wr_up_register(glb* g, gptr cl) {
+  void* db=g->db;
+  wr_up_t* x;
+  wr_up_slot* s;
+  int i, len;
+  gint atom;
+  if (!(g->unit_propagate) && !(g->unit_backsubsume)) return;
+  if (!wg_rec_is_rule_clause(db,cl) || wg_in_attached_kb(cl)) return;
+  len=wg_count_clause_atoms(db,cl);
+  if (len<2) return;
+  if ((g->unit_propagate)==1 && !(g->unit_backsubsume) && len!=2) return;
+  x=wr_up_get(g);
+  if (!x) { wr_alloc_err(g,"could not allocate the table of unit propagation"); return; }
+  for(i=0;i<len;i++) {
+    atom=wg_get_rule_clause_atom(db,cl,i);
+    if (!isdatarec(atom) || wr_answer_lit(g,atom)) continue;
+    s=wr_up_slot_of(x,wr_up_litkey(g,atom),1);
+    if (!s) { wr_alloc_err(g,"could not grow the table of unit propagation"); return; }
+    if (x->ecnt>=x->ecap) {
+      wr_up_ent* ne=sys_realloc(x->ents,sizeof(wr_up_ent)*(x->ecap)*2);
+      if (!ne) { wr_alloc_err(g,"could not grow the table of unit propagation"); return; }
+      x->ents=ne; x->ecap*=2;
+    }
+    x->ents[x->ecnt].cl=pto(db,cl);
+    x->ents[x->ecnt].idx=i;
+    x->ents[x->ecnt].len=len;
+    x->ents[x->ecnt].next=s->first;
+    s->first=x->ecnt;
+    (x->ecnt)++;
+  }
+}
+
+/* a unit was kept: put it into the pending list */
+
+void wr_up_unit(glb* g, gptr cl) {
+  wr_up_t* x;
+  if (!(g->unit_propagate) && !(g->unit_backsubsume)) return;
+  x=wr_up_get(g);
+  if (!x) { wr_alloc_err(g,"could not allocate the table of unit propagation"); return; }
+  if (x->pcnt>=x->pcap) {
+    gint* np=sys_realloc(x->pend,sizeof(gint)*(x->pcap)*2);
+    if (!np) { wr_alloc_err(g,"could not grow the pending units of unit propagation"); return; }
+    x->pend=np; x->pcap*=2;
+  }
+  x->pend[(x->pcnt)++]=pto(g->db,cl);
+}
+
+/* propagate the pending units; called before a pick, with no bindings
+   of a caller on the variable stack */
+
+void wr_up_run(glb* g) {
+  void* db=g->db;
+  wr_up_t* x=(wr_up_t*)(g->up_index);
+  wr_up_slot* s;
+  gptr ucl, ycl;
+  gint uatom, umeta, yatom, ymeta, ypos;
+  int uneg, yneg, same, k;
+  int32_t e;
+  if (!x) return;
+  while(x->pcnt>0 && !(g->proof_found) && !(g->alloc_err)) {
+    ucl=otp(db,x->pend[--(x->pcnt)]);
+    if (wr_up_unusable(g,ucl)) continue;
+    if (wg_rec_is_rule_clause(db,ucl)) {
+      uatom=wg_get_rule_clause_atom(db,ucl,0);
+      umeta=wg_get_rule_clause_atom_meta(db,ucl,0);
+      uneg=wg_atom_meta_is_neg(db,umeta) ? 1 : 0;
+    } else {
+      uatom=encode_record(db,ucl);
+      uneg=0;
+    }
+    if (!isdatarec(uatom) || wr_answer_lit(g,uatom)) continue;
+    s=wr_up_slot_of(x,wr_up_litkey(g,uatom),0);
+    if (!s) continue;
+    for(e=s->first; e>=0 && !(g->proof_found) && !(g->alloc_err); e=x->ents[e].next) {
+      ypos=x->ents[e].cl;
+      ycl=otp(db,ypos);
+      if (wr_up_unusable(g,ycl)) continue;
+      k=x->ents[e].idx;
+      yatom=wg_get_rule_clause_atom(db,ycl,k);
+      ymeta=wg_get_rule_clause_atom_meta(db,ycl,k);
+      yneg=wg_atom_meta_is_neg(db,ymeta) ? 1 : 0;
+      if ((g->unit_variant_hash) ? !wr_variant_term(g,uatom,yatom) : !wr_equal_term(g,uatom,yatom,1)) continue;
+      same=(uneg==yneg);
+      if (same) {
+        if (!(g->unit_backsubsume)) continue;
+        if (!wr_up_mark(g,ycl)) { wr_alloc_err(g,"could not grow the unusable clauses of unit propagation"); return; }
+        (g->stat_up_backsubsumed)++;
+      } else {
+        if (!(g->unit_propagate)) continue;
+        if ((g->unit_propagate)==1 && x->ents[e].len!=2) continue;
+        if (!wr_up_mark(g,ycl)) { wr_alloc_err(g,"could not grow the unusable clauses of unit propagation"); return; }
+        (g->stat_up_cut)++;
+        wr_up_derive_shorter(g,ucl,ycl,k);
+        // wr_up_derive_shorter can grow x->ents through wr_up_register
+        x=(wr_up_t*)(g->up_index);
+      }
+    }
+  }
+}
 
 #ifdef __cplusplus
 }
