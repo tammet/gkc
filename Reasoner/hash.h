@@ -73,7 +73,16 @@ gint wr_term_funhash(glb* g, gint term);
 int wr_atom_calc_prefhashes(glb* g, gint x, gint* prefhashes);
 int wr_atom_calc_prefhashes_aux(glb* g, gint x, int* preflen, gint* prefhashes);
 
+/* The literal hash of a run is a 64-bit hash (one walk, unsigned
+   arithmetic, no modulo per node) on 64-bit builds. A 32-bit build (wasm)
+   and a build with -DGKC_OLD_LIT_HASH keep the old hash. The tables of a
+   shared KB always use the old hash: wr_lit_hash returns it while the KB
+   is built (g->inkb), and wr_lit_hash_kb gives it for a lookup into them. */
+#if defined(__SIZEOF_POINTER__) && (__SIZEOF_POINTER__ == 8) && !defined(GKC_OLD_LIT_HASH)
+#define USE_LIT_HASH64
+#endif
 gint wr_lit_hash(glb* g, gint x);
+gint wr_lit_hash_kb(glb* g, gint x);
 gint wr_term_hash(glb* g, gint x);
 gint wr_term_basehash(glb* g, gint enc);
 

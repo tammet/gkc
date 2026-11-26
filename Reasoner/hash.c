@@ -319,8 +319,45 @@ int wr_atom_calc_prefhashes_aux(glb* g, gint x, int* preflen, gint* prefhashes) 
 
 ====================================================== */
 
+#ifdef USE_LIT_HASH64
+
+/* 64-bit term hash: leaves as wr_term_basehash, nodes combined by
+   exclusive or and multiplication with the 64-bit FNV prime; unsigned */
+
+static uint64_t wr_term_hash64(glb* g, gint x) {
+  gptr xptr;
+  int i, start, end;
+  uint64_t hash=UINT64_C(14695981039346656037);
+
+  if (!isdatarec(x)) return (uint64_t)wr_term_basehash(g,x);
+  xptr=decode_record(g->db,x);
+  start=wr_term_unify_startpos(g);
+  end=wr_term_unify_endpos(g,xptr);
+  for(i=start;i<end;i++) {
+    hash=(hash^wr_term_hash64(g,xptr[i]))*UINT64_C(1099511628211);
+  }
+  return hash;
+}
+
 gint wr_lit_hash(glb* g, gint x) {
   (g->stat_lit_hash_computed)++;
+  if (g->inkb) return wr_term_hash(g,x); // a shared KB keeps the old hash
+  // a bucket number in the range of the old hash
+  return (gint)(wr_term_hash64(g,x)%(uint64_t)(NROF_CLTERM_HASHVEC_ELS-2));
+}
+
+#else
+
+gint wr_lit_hash(glb* g, gint x) {
+  (g->stat_lit_hash_computed)++;
+  return wr_term_hash(g,x);
+}
+
+#endif
+
+/* the hash for a lookup into the tables of a shared KB */
+
+gint wr_lit_hash_kb(glb* g, gint x) {
   return wr_term_hash(g,x);
 }  
 
