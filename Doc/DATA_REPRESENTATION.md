@@ -20,6 +20,27 @@ are usually represented as `gptr`, which is `gint *` (`Reasoner/types.h`). The
 low bits of encoded values are type tags; `Db/dbdata.h` is the authoritative
 source for the masks and shifts.
 
+### Everything Is a `gint`: Use It Directly
+
+Every constant, function symbol, predicate symbol and variable is one `gint`.
+A large object (a long string, a URI, a record) is an offset to the object,
+and that offset is also a `gint`. So every value has the same size, and code
+can treat it as an integer:
+
+* Use the `gint` itself as a key of a table, as a token of a tree index, and
+  as an operand of `==`.
+* Do not decode a symbol to its string to compare it. Do not compute a hash
+  of a constant where its `gint` serves. `wg_decode_uri()` and `strcmp()` are
+  for printing and parsing only.
+* A compound term is the exception: it is a record, and records are not
+  shared (section 8). Walk a record; never use its offset as a key.
+
+Read this section, the next three subsections and `Doc/TERM_MATCHING.md`
+sections 3 and 4 before writing any code that compares, hashes or indexes
+terms.
+
+### Type Tags in the Low Bits
+
 Common predicates and decoders:
 
 | Predicate | Meaning | Decode or access |
@@ -30,26 +51,116 @@ Common predicates and decoders:
 | `islongstr(x)` | Offset to a long string or URI object | `wg_decode_str()`, `wg_decode_uri()` |
 | `isfulldouble(x)` | Offset to a double object | `wg_decode_double()` |
 
-Reasoner code normally assumes unique/interned URI and string values. For
-ordinary in-database comparisons, pass `uniquestrflag == 1` to equality,
-matching, and unification helpers.
+All encodings from `Db/dbdata.h` (lines 305-460), with the answer to the
+question "does one value have exactly one encoding?":
 
-Important low-bit encodings from `Db/dbdata.h`:
+| Encoding | Low bits | Test | One encoding per value | Notes |
+| --- | --- | --- | --- | --- |
+| null | the value `0` | `x == 0` | yes | Unassigned field. |
+| data record offset | `000` | `isdatarec(x)` | no | Clauses, atoms, compound terms. Records are not shared: compare by walking. |
+| full integer offset | low two bits `01` (so `001` or `101`) | `isfullint(x)` | no | Word storage for an integer that does not fit a small integer. The third bit is an address bit. |
+| full double offset | `010` | `isfulldouble(x)` | no | Doubleword storage. |
+| small integer | `011` | `issmallint(x)` | yes | Immediate, `(value << 3) \| 3`; 61 bits on a 64-bit build. |
+| long string / URI offset | `100` | `islongstr(x)` | yes | Interned object: long strings, URIs, XML literals, blobs. All symbols are here. |
+| short string offset | `110` | `isshortstr(x)` | no | Fixed 32-byte object for a string of type `WG_STRTYPE` without a language tag. |
+| variable | low four bits `0111` | `isvar(x)` | yes | Immediate, `(n << 4) \| 7`. |
+| fixpoint | low byte `0000 1111` | `isfixpoint(x)` | yes | Immediate. |
+| char | low byte `0001 1111` | `ischar(x)` | yes | Immediate. |
+| date | low byte `0010 1111` | `isdate(x)` | yes | Immediate. |
+| time | low byte `0011 1111` | `istime(x)` | yes | Immediate. |
+| tiny string | low byte `0100 1111` | `istinystr(x)` | yes | Defined, not in use (`USETINYSTR` is off). |
+| anonymous constant | low byte `0101 1111` | `isanonconst(x)` | yes | Immediate, `(n << 8) \| 0x5f`. |
 
-| Encoding | Low bits | Notes |
+* `isptr(x)` is `x && (x & 3) != 3`: low two bits `11` mean an immediate
+  value.
+* Test a full integer with the two-bit mask (`isfullint`, `FULLINTMASK`,
+  `NONPTRBITS`), never with three bits: both `001` and `101` are full
+  integers.
+* One `==` on two `gint` values compares kind and value at once for every
+  encoding marked "yes".
+* `isimmediatedata(x)` is true for `0` and non-pointer immediate values, but
+  not for full integers stored in the word area. Do not use pointer tests as
+  a proxy for term kind; records still need their meta bits checked.
+
+The comment table at `Db/dbdata.h:307-327` marks each kind with "= eq" or
+"= not eq". "= eq" means: two values are equal if and only if their `gint`
+values are equal. "= not eq" means: two different `gint` values can still
+denote equal values.
+
+### Uniqueness of Encoded Values
+
+**Unique (one `gint` per value).** Every immediate kind, and every object
+that `find_create_longstr()` creates (`Db/dbdata.c`): it looks the value up
+in the string hash (`wg_find_strhash_bucket()`, `Db/dbhash.c`), first in an
+attached shared KB and then in the local database, and returns the existing
+object when there is one. `wg_encode_uri()` calls it directly;
+`wg_encode_unistr()` calls it for every string that is not a short string.
+A long-string object has a reference count and is freed only when the count
+reaches zero (`free_field_encoffset()`).
+
+Reasoner code relies on this: pass `uniquestrflag == 1` to equality,
+matching and unification helpers. A symbol of an attached KB keeps its KB
+encoding in a query, so `gint` equality also holds across the KB and the
+local database (compare through `g->db`).
+
+**Not unique today (a new object per encoder call).** `wg_encode_double()`
+allocates a doubleword for every call. `wg_encode_int()` allocates a word
+for every integer that does not fit a small integer. `wg_encode_unistr()`
+allocates a short-string object for every string of type `WG_STRTYPE` that
+has no language tag and is shorter than `SHORTSTR_SIZE`. None of the three
+looks for an existing equal object, and `free_field_encoffset()` frees such
+an object directly, without a count. So three occurrences of `2.5` in an
+input have three different `gint` values.
+
+The existing equality, matching and unification code handles these three
+kinds: `wr_equal_ptr_primitives()` (`Reasoner/unify.c`) compares a full
+integer by its word, a double by its value and a short string by its bytes.
+
+**Rule for new code.** The missing uniqueness of doubles, full integers and
+short strings is a known defect of the encoders; the fix is to make these
+values unique at encoding. Until then, new index code assumes one encoding
+per constant and compares the `gint` only (as `Reasoner/termindex.c` does).
+For two equal doubles with different encodings such code sees two different
+constants and can miss a match. That loses a simplification and is sound.
+Do not add a compare by value or a hash to work around it, and do not write
+tests that depend on floats or on integers above 61 bits until the encoders
+are fixed.
+
+### What the Parsers Produce
+
+Checked by a run (a breakpoint at the return of `wr_parse_primitive()`,
+`Builtparser/dbparse.c`), for TPTP and for JSON input:
+
+| Input | Encoded as | One encoding per value |
 | --- | --- | --- |
-| small integer | `...011` | Immediate value, shifted by `SMALLINTSHFT == 3`. |
-| data record offset | `...000` | Used for clauses, atoms, terms, and ordinary records. |
-| full integer offset | low two bits `01` | Points to word storage for integers that do not fit as smallints. |
-| full double offset | `...010` | Points to doubleword storage. |
-| long string / URI offset | `...100` | Interned string-like object. |
-| short string offset | `...110` | Fixed-size short string object. |
-| variable | low four bits `0111` | Immediate reasoner variable. |
-| char/date/time/fixpoint/anonconst | low byte tags | Immediate non-pointer values. |
+| Predicate, function or constant symbol: `p`, `f`, `a` | URI object, low bits `100` | yes |
+| Single-quoted symbol: `'quoted sym'` | URI object | yes |
+| Double-quoted string (TPTP distinct object): `"abc"` | URI object | yes |
+| JSON string in a term position: `"abc"` | URI object | yes |
+| Integer: `7` | immediate small integer | yes |
+| Decimal number: `2.5` | double object, low bits `010` | no: a new object per occurrence |
 
-`isimmediatedata(x)` is true for `0` and non-pointer immediate values, but not
-for full integers stored in the word area. Do not use pointer tests as a proxy
-for term kind; records still need their meta bits checked.
+* No input syntax produces a short string or a full integer. A computed
+  value (`Reasoner/build.c`, `Reasoner/arithinst.c`) can be a full integer
+  or a double.
+* The built-in symbols (`ACONST_EQUAL`, `ACONST_PLUS` and the others, below)
+  are immediate anonymous constants.
+
+### Check an Encoding Claim by a Run
+
+Reading one encoder is not enough to know what a value looks like at run
+time: the parser decides the type first. Before you state or rely on a fact
+about an encoding, print the `gint`:
+
+```sh
+gcc -O0 -g -w -I. -o /tmp/gkc-dbg <the source list of compile.sh> -lm
+gdb -q -batch -ex 'break wr_equal_ptr_primitives' -ex 'run problem.p -parallel 0' \
+    -ex 'printf "a=0x%lx b=0x%lx\n", a, b' /tmp/gkc-dbg
+```
+
+The low three bits of the printed value give the kind (table above).
+
+### Anonymous Constants
 
 Reasoner anonymous constants are immediate values created with
 `encode_anonconst(n)`. `Db/dballoc.h` reserves ids for boolean/connective and
@@ -466,6 +577,9 @@ global hash-consing of compound terms. Therefore:
 * Interned URI/symbol strings (under the standard `uniquestrflag == 1` setting)
   and immediate scalars (smallints, encoded variables, `ACONST_*`) *are* unique
   by value and can be compared directly via `gint` equality.
+* Section 1 lists every kind with the answer to "one encoding per value?",
+  and says which kinds the encoders do not make unique today (doubles, full
+  integers, short strings).
 
 ## 9. Variables, Varbanks, and Varstack
 
@@ -679,6 +793,31 @@ mechanisms. Do not mix accessors across families:
    guarded by `wg_in_attached_kb()` so `-usekb` queries never write into
    read-only shared KB URI records.
 
+### When Not to Hash: Tree Indexes
+
+The hash tables above hash a whole atom or term. Their purpose is to find or
+compare a term without walking it. A hash match is a candidate only; confirm
+it with `wr_equal_term()`.
+
+A discrimination tree is the opposite case: its lookup walks the term token
+by token, so a hash has no use there. `Reasoner/termindex.c` is the tree
+module (a perfect discrimination tree; first user: the demodulators of
+`Reasoner/rewrite.c`). Its rules, which any new tree index should follow:
+
+* A token is the encoded `gint` of a symbol or constant, the arity of a
+  record, or a variable slot of the stored term. Nothing else.
+* A node finds its child by comparing `gint` values (a small array in the
+  node, then a skip list ordered by token). No hash of a token, no hash table
+  of edges.
+* A variable of a stored term is a slot, numbered by first occurrence in that
+  term, so variants share one path. The walk binds a slot at its first
+  occurrence, compares the bound term at a later occurrence, and clears the
+  binding when it backtracks. The bindings of the leaf are the substitution;
+  the caller builds the result from them without a second match.
+* A variable of the query term is a constant for the walk.
+* The compare order is the one of `wr_equal_term()`
+  (`Doc/TERM_MATCHING.md`, section 4).
+
 ### Pointer-vs-Offset Storage in Clause Containers
 
 Not every clause container in `Reasoner/clstore.c` stores clauses in the same
@@ -866,3 +1005,9 @@ indexes:
 15. Treat URI/string reasoner metadata fields as shared-KB writes when the
     object lives in the attached KB.
 16. Keep `glb` build flags scoped to the established setup/cleanup phase.
+17. Compare a symbol or constant by its `gint`. Do not decode it, and do not
+    hash it where the `gint` serves (section 1).
+18. Do not use a record offset as a key: records are not shared (section 8).
+19. Test a full integer with the two-bit mask, not with three low bits.
+20. Before relying on a fact about an encoding (which kind the parser makes,
+    whether a kind is unique), check it by a run (section 1).

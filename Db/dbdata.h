@@ -305,6 +305,16 @@ wg_int wg_decode_var(void* db, wg_int data);
 // recognising gint types as gb types: bits, shifts, masks
 
 /*
+Legend of the marks in this table:
+  "= eq"      two values of this kind are equal iff their gints are equal:
+              one value has exactly one encoding (immediate values, and long
+              string records, which find_create_longstr interns)
+  "= not eq"  two different gints can denote equal values: compare the
+              pointed objects (records by a walk; word-len ints, doubles and
+              32byte strings by value, as wr_equal_ptr_primitives does).
+              The encoders allocate a new object per call for these kinds.
+See Doc/DATA_REPRESENTATION.md, section 1.
+
 special value null (unassigned)         integer 0
 
 Pointers to word-len ints end with            ?01  = not eq

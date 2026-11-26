@@ -267,6 +267,12 @@ if (wg_get_encoded_type(g->db, fun) == WG_URITYPE) {
 }
 ```
 
+Decode a symbol to its name only to print it or to recognize a built-in name
+once. To compare two symbols or constants, compare their `gint` values: every
+symbol is an interned URI object or an immediate anonymous constant, so equal
+symbols have equal `gint` values
+(`Doc/DATA_REPRESENTATION.md`, section 1).
+
 Functor equality is only a prefilter. After selecting candidates by functor or
 hash, still call `wr_equal_term()`, `wr_match_term()`, or `wr_unify_term()`.
 
@@ -463,6 +469,22 @@ When adding an index:
 6. Keep container element formats consistent: `clqueue`/`clactive`/`clpickstack`
    store raw `(gint)cl` pointers, whereas `clactivesubsume` and
    `CLTERM_HASHNODE` store `db`-relative offsets (see `Doc/DATA_REPRESENTATION.md`).
+
+7. Choose the key by the kind of index:
+   * A hash table hashes a whole atom or term, to find it without a walk. A
+     hash match is a candidate; confirm it with `wr_equal_term()`.
+   * A tree index is walked token by token and uses no hash. Its tokens are
+     the encoded `gint` of a symbol or constant, the arity of a record, and a
+     variable slot. Use `Reasoner/termindex.c` (a perfect discrimination
+     tree) instead of writing another tree; its rules are in
+     `Doc/DATA_REPRESENTATION.md`, "When Not to Hash: Tree Indexes".
+8. Before the design, read `Doc/DATA_REPRESENTATION.md` section 1 and
+   `Doc/TERM_MATCHING.md` sections 3, 4 and 11, and follow the compare and
+   walk code of `Reasoner/unify.c` (`wr_equal_term()`, `wr_match_term_aux()`).
+9. Test a tree index against a plain `wr_match_term()` over all stored terms
+   (`Test/termindex/`, strategy key `ti_selftest`), with cases for
+   backtracking over a bound variable, repeated variables, nodes with many
+   children, and variables in the query term.
 
 If an index stores terms or clauses from both local and KB segments, remember
 that `g->db` is the offset base. Local encodings produced through `local_db`
@@ -699,6 +721,39 @@ if (wr_atom_funhash(g, a) == wr_atom_funhash(g, b) &&
 wr_clear_varstack(g, g->varstack);
 ```
 
+### Hashing or Decoding a Constant Instead of Using Its `gint`
+
+A symbol or constant is one `gint`, and for every kind that the parsers
+produce except decimal numbers, equal values have equal `gint` values.
+
+Bad:
+
+```c
+/* a hash of the constant as the key of a tree edge */
+key = wr_term_basehash(g, x);
+/* or a string compare */
+if (!strcmp(wg_decode_uri(g->db, x), wg_decode_uri(g->db, y))) { ... }
+```
+
+Good:
+
+```c
+if (!isdatarec(x) && !isvar(x)) key = x;   /* the gint is the token */
+if (x == y) { /* the same symbol or constant */ }
+```
+
+A hash of a constant then needs a second compare and a rule for collisions;
+the `gint` needs neither. Hash a whole atom or term only when the purpose is
+to avoid a walk (the hash tables of `Reasoner/hash.c`).
+
+### Assuming an Encoding Without a Run
+
+Reading `wg_encode_unistr()` suggests that a quoted string becomes a short
+string object with a new offset per occurrence. It does not: the parser gives
+a quoted string the URI type, and a URI is interned. Before a design relies
+on what a value looks like at run time, print the `gint` under `gdb`
+(`Doc/DATA_REPRESENTATION.md`, "Check an Encoding Claim by a Run").
+
 ### Reading Atom Field 0 or Ignoring `unify_maxuseterms`
 
 Bad:
@@ -828,6 +883,11 @@ Before finishing a change:
 * Container element formats (`(gint)cl` vs. `rpto` offset) match the container.
 * Hot paths avoid `malloc()`/`free()`, full-array `memset`, and
   `wg_decode_uri()`/`strcmp()`.
+* Symbols and constants are compared by their `gint`; no hash of a constant
+  and no decoding where the `gint` serves; no record offset used as a key.
+* A tree index uses no hash and clears a variable binding when its walk
+  backtracks.
+* Facts about encodings that the change relies on were checked by a run.
 * New records and computed values allocate through `g->local_db`.
 * Shared-KB records are not mutated.
 * `vec`/`cvec` helper return values are reassigned.

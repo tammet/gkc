@@ -167,6 +167,16 @@ Important behavior from `unify.c`:
 8. Data records compare field-by-field from `g->unify_firstuseterm` to the
    configured end position.
 
+Which kinds have one encoding per value, and which do not, is listed in
+`Doc/DATA_REPRESENTATION.md` section 1. Items 4 to 6 exist because the
+encoders do not make full integers, doubles and short strings unique today.
+
+New index code copies the order of items 1 to 3 and item 8: a `gint` compare
+first, an immediate "unequal" for the kinds with one encoding, a walk for two
+records. It does not copy items 4 to 6: new code assumes one encoding per
+constant and compares the `gint` only (the rule and its reason are in
+`Doc/DATA_REPRESENTATION.md`, "Uniqueness of Encoded Values").
+
 `WR_EQUAL_TERM` is the fast macro version. It requires a local variable named
 `eqencx` and falls through to `wr_equal_term_macroaux()` for complex cases.
 Use it only in code that follows that convention.
@@ -376,7 +386,8 @@ static void walk_term(glb *g, gint x, gptr vb, int depth) {
 
   /* 3. Non-record atoms/constants: URI, smallint, fullint, fulldouble, str, ACONST_*. */
   if (!isdatarec(x)) {
-    /* Compare interned URIs & immediates directly by gint when uniquestrflag == 1. */
+    /* The gint x is the value: use it directly as a key, a token or an
+       operand of ==. Do not decode it and do not hash it. */
     return;
   }
 
@@ -429,3 +440,13 @@ Key details of this pattern:
     renaming one to a disjoint bank first.
 14. Calling `wr_build_calc_term()` with `g->build_rename == 1` and forgetting
     to clear `g->varstack` afterward (leaving Bank-4 rename sentinels live).
+15. Decoding or hashing a symbol or constant where its `gint` could be
+    compared directly; using a record offset as a key.
+16. Testing a full integer with three low bits (`001` and `101` are both full
+    integers; use `isfullint()` or the two-bit mask).
+17. A new index that binds variables during its walk and does not clear a
+    binding when the walk backtracks. Example: stored patterns `g(X,c)` and
+    `g(d,X)`, query `g(d,e)`. The walk binds `X := d` on the first path,
+    fails at `c`, and must clear `X` before it tries the second path.
+18. Stating which kind of value the parser makes without a run (a quoted
+    string is a URI object, not a short string).
