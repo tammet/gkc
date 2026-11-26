@@ -594,7 +594,9 @@ int wr_cl_store_para_terms(glb* g, gptr cl, cvec resolvability) {
         }   
       }    
       // store equality as demodulator if everything ok
-      if (len==1 && eqtermorder==1 && (g->use_rewrite_terms_strat) && atype!=WG_VARTYPE) {
+      if (g->demod_skip_active) {
+        // demod_source 2: the picked clause was filed when it was kept
+      } else if (len==1 && eqtermorder==1 && (g->use_rewrite_terms_strat) && atype!=WG_VARTYPE) {
         // a will rewrite to b
         wr_cl_store_term_rewriter(g,cl,a,atype,i,1);
         (g->have_rewrite_terms)=1;
@@ -608,6 +610,49 @@ int wr_cl_store_para_terms(glb* g, gptr cl, cvec resolvability) {
   return 0;
 }
 
+
+/* demod_source 2: file a kept clause as a demodulator when it is a positive
+   unit equation that the ordering orients, with the tests of the
+   activation in wr_cl_store_para_terms (no demodulators with query_focus;
+   a clause of a partial hyperresolution is not filed). The clause record
+   stays in queue_termbuf (or in the database for an input clause) for the
+   whole run: no rollback of the buffer happens after a clause is pushed to
+   the queues. */
+
+void wr_demod_file_kept(glb* g, gptr cl) {
+  void* db=g->db;
+  gint atom, a, b, meta;
+  gptr tptr;
+  int atype, btype, eqtermorder;
+  if ((g->queryfocus_strat) || !(g->use_rewrite_terms_strat) || (g->inkb)) return;
+  if (wg_in_attached_kb(cl)) return; // a KB clause: the KB keeps its own demodulators
+  if ((g->hyperres_strat) && !(g->relaxed_hyperres_strat) && !wr_hyperres_satellite_cl(g,cl)) return;
+  if (wg_rec_is_rule_clause(db,cl)) {
+    if (wg_count_clause_atoms(db,cl)!=1) return;
+    meta=wg_get_rule_clause_atom_meta(db,cl,0);
+    if (wg_atom_meta_is_neg(db,meta)) return;
+    atom=wg_get_rule_clause_atom(db,cl,0);
+  } else {
+    atom=encode_record(db,cl);
+  }
+  if (!atom || !wr_equality_atom(g,atom)) return;
+  tptr=rotp(g,atom);
+  if (get_record_len(tptr)<(g->unify_firstuseterm)+3) return;
+  a=tptr[RECORD_HEADER_GINTS+(g->unify_funarg1pos)];
+  b=tptr[RECORD_HEADER_GINTS+(g->unify_funarg2pos)];
+  atype=wg_get_encoded_type(db,a);
+  btype=wg_get_encoded_type(db,b);
+  eqtermorder=wr_order_eqterms(g,a,b,NULL);
+  if (eqtermorder==1 && atype!=WG_VARTYPE) {
+    wr_cl_store_term_rewriter(g,cl,a,atype,0,1);
+  } else if (eqtermorder==2 && btype!=WG_VARTYPE) {
+    wr_cl_store_term_rewriter(g,cl,b,btype,0,0);
+  } else {
+    return;
+  }
+  (g->have_rewrite_terms)=1;
+  (g->stat_demod_filed_kept)++;
+}
 
 int wr_cl_store_eq_arg(glb* g, gptr cl, gint term, int termtype, int litnr, int leftflag) {    
   gint fun, hash;

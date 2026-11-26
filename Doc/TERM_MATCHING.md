@@ -59,15 +59,16 @@ of `NROF_VARBANKS * NROF_VARSINBANK` cells. `wr_clear_all_varbanks(g)` writes
 header. A newly allocated varbank is therefore not ready for matching until it
 has been cleared.
 
-The five banks are:
+The six banks are:
 
 | Bank | Purpose |
 | --- | --- |
-| 0 | Input/passive clauses. |
+| 0 | Input clauses as parsed. |
 | 1 | Given-clause renamed variables. |
 | 2 | Active-clause renamed variables. |
-| 3 | Derived-clause renamed variables. |
-| 4 | Temporary rename area; should remain unassigned. |
+| 3 | Derived-clause renamed variables; a kept derived clause keeps them. |
+| 4 | Temporary rename area (`RENAME_VARBANK`); should remain unassigned. |
+| 5 | Variables of the discrimination tree (`TREE_VARBANK`, `Reasoner/termindex.c`). |
 
 `g->varstack` is a `cvec` of addresses of assigned varbank cells. Its layout is:
 
@@ -93,7 +94,7 @@ Input / Passive (queue_termbuf):   Bank 0  (var numbers    0 ..  999)
 
 Binary inference (Bank 1 given + Bank 2 active):
   -> Half-built derived (derived_termbuf): Bank 3  (var numbers 3000 .. 3999)
-  -> Kept queued copy (queue_termbuf):     Bank 0  (var numbers    0 ..  999)
+  -> Kept queued copy (queue_termbuf):     Bank 3  (copied without renaming)
 ```
 
 Renaming is performed inside `wr_build_calc_term()` (`Reasoner/build.c`) using

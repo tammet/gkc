@@ -127,3 +127,4 @@ ti_repeated	Test/termindex/t2_repeated.p -strategytext '{"strategy":["unit"],"ti
 ti_children	Test/termindex/t3_children.p -strategytext '{"strategy":["unit"],"ti_selftest":1}'	output:TI_TEST result: queries 16 wrong 0 plain_matches;;differences 0	10
 ti_query_vars	Test/termindex/t4_query_vars.p -strategytext '{"strategy":["unit"],"ti_selftest":1}'	output:TI_TEST result: queries 7 wrong 0 plain_matches;;differences 0	10
 ti_mixed	Test/termindex/t5_mixed.p -strategytext '{"strategy":["unit"],"ti_selftest":1}'	output:TI_TEST result: queries 14 wrong 0 plain_matches;;differences 0	10
+ti_same_cells	Test/termindex/t6_same_cells.p -strategytext '{"strategy":["unit"],"ti_selftest":1}'	output:TI_TEST result: queries 4 wrong 0 plain_matches;;differences 0	10

@@ -181,6 +181,7 @@ int wr_genloop(glb* g) {
   clock_t curclock;
   float run_seconds,run_dseconds,total_seconds,fullness; // passed_ratio
   int given_from_hyperqueue_flag,tmp,origlen,simplen;
+  int demod_same=0; // demod_source 2: the pick did not change the picked clause
 
 #ifndef USE_RES_TERMS  
   gint ipassive;
@@ -414,7 +415,12 @@ int wr_genloop(glb* g) {
     printf("\n");
     */
     //if ((g->print_level_flag)==50) CP5;
+    // demod_source 2: the picked clause is a filed demodulator itself; it
+    // must not rewrite itself (into s=s) at the pick
+    if ((g->demod_source)==2) (g->rewrite_self)=picked_given_cl_cand;
     given_cl_cand=wr_simplify_cl(g, picked_given_cl_cand, given_cl_metablock);
+    (g->rewrite_self)=NULL;
+    demod_same=(given_cl_cand==picked_given_cl_cand);
     //if ((g->print_level_flag)==50) CP6;
     //wr_print_cl_literals_meta(g, picked_given_cl_cand);
     //wg_print_record(db,picked_given_cl_cand);
@@ -550,8 +556,12 @@ int wr_genloop(glb* g) {
     } else { //if (!(g->endgame_mode)) {
       // add to active list
       //printf("\n from normal queue\n");
+      // demod_source 2: the picked clause was filed when it was kept; a
+      // clause that the pick changed is a new clause and is filed now
+      (g->demod_skip_active)=((g->demod_source)==2 && demod_same);
       given_cl_as_active=wr_add_given_cl_active_list(g,given_cl,given_cl_metablock,1,
                                     g->active_termbuf,(g->tmp_resolvability_vec));                                      
+      (g->demod_skip_active)=0;
     //printf("\nmetablock3 %d %d %d %d \n",*given_cl_metablock,*(given_cl_metablock+1),*(given_cl_metablock+2),*(given_cl_metablock+3));
     }
     if (given_cl_as_active==NULL) {

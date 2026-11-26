@@ -587,15 +587,16 @@ Variables are immediate encoded `gint` values. `decode_var(x)` is the full
 index into `g->varbanks`, including the bank offset. It is not just a local
 variable number.
 
-`Reasoner/glb.h` defines five banks of 1000 variables:
+`Reasoner/glb.h` defines six banks of 1000 variables:
 
 | Bank | Purpose |
 | --- | --- |
-| 0 | Input/passive clauses |
+| 0 | Input clauses as parsed |
 | 1 | Given-clause renamed variables |
 | 2 | Active-clause renamed variables |
-| 3 | Derived-clause renamed variables |
-| 4 | Temporary rename area; values should remain `UNASSIGNED` |
+| 3 | Derived-clause renamed variables; a kept derived clause keeps them |
+| 4 | Temporary rename area (`RENAME_VARBANK`); values should remain `UNASSIGNED` |
+| 5 | Variables of the discrimination tree (`TREE_VARBANK`) |
 
 `varbanks` is allocated as a `vec`, but unification treats it as a raw array of
 `NROF_VARBANKS * NROF_VARSINBANK` slots. `wr_clear_all_varbanks(g)`
@@ -810,10 +811,14 @@ module (a perfect discrimination tree; first user: the demodulators of
   node, then a skip list ordered by token). No hash of a token, no hash table
   of edges.
 * A variable of a stored term is a slot, numbered by first occurrence in that
-  term, so variants share one path. The walk binds a slot at its first
-  occurrence, compares the bound term at a later occurrence, and clears the
-  binding when it backtracks. The bindings of the leaf are the substitution;
-  the caller builds the result from them without a second match.
+  term, so variants share one path. Slot k is variable k of the tree bank
+  (bank 5), which no term given to the tree uses. The walk binds the cell of
+  a slot at its first occurrence, compares the bound term at a later
+  occurrence, and clears the cell when it backtracks. The bindings of the
+  leaf are the substitution. The demodulators store their right side renamed
+  to the tree bank by slot number; the caller sets the bindings on the
+  variable stack and builds the right side with the ordinary build
+  (`build_subst` 1), without a second match.
 * A variable of the query term is a constant for the walk.
 * The compare order is the one of `wr_equal_term()`
   (`Doc/TERM_MATCHING.md`, section 4).

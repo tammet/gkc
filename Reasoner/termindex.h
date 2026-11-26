@@ -43,16 +43,24 @@
 
 #ifdef USE_TERM_INDEX
 typedef struct ti_index_s ti_index;
-/* called by ti_match_all for each match: the payload, the number of slots,
-   the slot values and the variables of the stored term in slot order */
-typedef void (*ti_visit_fn)(glb* g, void* ctx, gint payload, int32_t nv, gint* vals, gint* vars);
+/* called by ti_match_all for each match: the payload, the number of slots
+   and the slot values */
+typedef void (*ti_visit_fn)(glb* g, void* ctx, gint payload, int32_t nv, gint* vals);
 typedef struct {
   long nodes, entries, bytes, steps;
   long maxchildren, maxvchildren, nodes_vchildren_gt1, skiplists;
 } ti_stat;
-ti_index* ti_new(void);
+ti_index* ti_new(gptr cells);
 void ti_free(ti_index* x);
-int ti_insert(glb* g, ti_index* x, gint term, gint payload);
+int ti_insert(glb* g, ti_index* x, gint term, gint payload, gint aux);
+int32_t ti_last_vars(ti_index* x, gint** vars);
+int32_t ti_term_vars(glb* g, ti_index* x, gint term, gint** vars);
+void ti_token_arrays(ti_index* x, uint64_t** toks, int32_t** skip, gint** terms);
+int ti_match_best_ext(glb* g, ti_index* x, uint64_t* toks, int32_t* skip, gint* terms,
+                      int32_t start, int32_t end, int (*accept)(glb*, gint), int norenaming,
+                      gint* payload, gint* aux, int32_t* nv, gint** vals);
+long ti_query_tree_vars(ti_index* x);
+gint ti_rename_copy(glb* g, gint t, gint* vars, int32_t nv, gint first, gptr buf);
 int ti_failed(ti_index* x);
 int32_t ti_tokens(glb* g, ti_index* x, gint term);
 int32_t ti_token_end(ti_index* x, int32_t i);
@@ -61,7 +69,7 @@ int ti_token_is_var(ti_index* x, int32_t i);
 gint ti_token_term(ti_index* x, int32_t i);
 int ti_match_best(glb* g, ti_index* x, int32_t start, int32_t end,
                   int (*accept)(glb*, gint), int norenaming,
-                  gint* payload, int32_t* nv, gint** vars, gint** vals);
+                  gint* payload, gint* aux, int32_t* nv, gint** vals);
 void ti_match_all(glb* g, ti_index* x, int32_t start, int32_t end, ti_visit_fn visit, void* ctx);
 void ti_stats(ti_index* x, ti_stat* s);
 #endif

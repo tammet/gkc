@@ -394,6 +394,7 @@ static void wr_process_derived_final(glb* g, gptr res, gint* lithash, gint histo
     }
     if (g->use_strong_unit_cutoff) wr_cl_store_res_units(g,res);
     wr_push_cl_clpick_queues(g,(g->clpick_queues),res,weight);
+    if ((g->demod_source)==2) wr_demod_file_kept(g,res); // the kept clause is a demodulator now
     tmp=wr_cl_create_propinst(g,res);
     if (tmp==2) {  return;  }
   }
@@ -535,6 +536,11 @@ void wr_process_resolve_result
     wr_printf("\nc pre-cut derived by mp: ");
     wr_print_halfbuilt_clause(g,rptr,rpos);
   }
+  // demod_derived: rewrite the half-built clause before the cuts; a partial
+  // hyperresolution result is not rewritten
+  (g->demod_this_clause)=0;
+  if ((g->demod_derived) && !((g->hyperres_strat) && !wr_hyperres_satellite_tmpres(g,rptr,rpos)) &&
+      wr_demod_derived(g,rptr,rpos)<0) return;
 #if GKC_WEIGHT_DROP_PLACE==1
   if (wr_derived_weight_drop_precut(g,rptr,rpos,xatomnr,yatomnr,xcl_as_active,ycl)) return;
 #endif
@@ -554,6 +560,7 @@ void wr_process_resolve_result
     if ((g->use_strong_unit_cutoff) && rpos) {
       tmp2=wr_derived_cl_strong_cut(g,rptr,rpos,tmp);
     }
+    if (g->demod_this_clause) wr_demod_add_rewriters(g,tmp+tmp2); // the demodulators as parents
     if (tmp>0 || tmp2>0) {
       // there were cuts
       if (g->print_derived_precut_cl) {
@@ -886,6 +893,11 @@ void wr_process_factor_result
   }
   */
 
+  // demod_derived: rewrite the half-built clause before the cuts; a partial
+  // hyperresolution result is not rewritten
+  (g->demod_this_clause)=0;
+  if ((g->demod_derived) && !((g->hyperres_strat) && !wr_hyperres_satellite_tmpres(g,rptr,rpos)) &&
+      wr_demod_derived(g,rptr,rpos)<0) return;
 #if GKC_WEIGHT_DROP_PLACE==1
   if (wr_derived_weight_drop_precut(g,rptr,rpos,0,0,xcl_as_active,NULL)) return;
 #endif
@@ -905,6 +917,7 @@ void wr_process_factor_result
     if ((g->use_strong_unit_cutoff) && rpos) {
       tmp2=wr_derived_cl_strong_cut(g,rptr,rpos,tmp);
     }
+    if (g->demod_this_clause) wr_demod_add_rewriters(g,tmp+tmp2); // the demodulators as parents
     if (tmp>0 || tmp2>0) {
       // there were cuts
       if (g->print_derived_precut_cl) {
@@ -1104,6 +1117,11 @@ void wr_process_paramodulate_result
   }
 
   // --
+  // demod_derived: rewrite the half-built clause before the cuts; a partial
+  // hyperresolution result is not rewritten
+  (g->demod_this_clause)=0;
+  if ((g->demod_derived) && !((g->hyperres_strat) && !wr_hyperres_satellite_tmpres(g,rptr,rpos)) &&
+      wr_demod_derived(g,rptr,rpos)<0) return;
 #if GKC_WEIGHT_DROP_PLACE==1
   if (wr_derived_weight_drop_precut(g,rptr,rpos,xatomnr,yatomnr,
                                     (fromflag ? xcl_as_active : xcl),(fromflag ? ycl : xcl_as_active))) return;
@@ -1128,6 +1146,7 @@ void wr_process_paramodulate_result
     if ((g->use_strong_unit_cutoff) && rpos) {
       tmp2=wr_derived_cl_strong_cut(g,rptr,rpos,tmp);
     }
+    if (g->demod_this_clause) wr_demod_add_rewriters(g,tmp+tmp2); // the demodulators as parents
     if (tmp>0 || tmp2>0) {
       // there were cuts
       if (g->print_derived_precut_cl) {

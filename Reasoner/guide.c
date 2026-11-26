@@ -268,6 +268,12 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr, int s
     } else if (!strcmp(key,"queue_weight_bound")) {
       // experimental: with queue_weight_limit, a lower bound before the build
       (g->queue_weight_bound)=json_valueint(elem);
+    } else if (!strcmp(key,"demod_derived")) {
+      // 1: a derived clause is rewritten with the demodulators before the cuts
+      (g->demod_derived)=(json_valueint(elem) ? 1 : 0);
+    } else if (!strcmp(key,"demod_source")) {
+      // 1: an equation becomes a demodulator when picked (as today); 2: when kept
+      (g->demod_source)=(json_valueint(elem)==2 ? 2 : 1);
     } else if (!strcmp(key,"ti_selftest")) {
       // 1: the self test of the term index on the input clauses, then stop
       (g->ti_selftest)=(json_valueint(elem) ? 1 : 0);

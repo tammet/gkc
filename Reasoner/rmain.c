@@ -1473,6 +1473,7 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
 #endif
         if (g->use_strong_unit_cutoff) wr_cl_store_res_units(g,rec);
         wr_push_cl_clpick_queues(g,(g->clpick_queues),rec,weight); // -1 means we do not know weight
+        if ((g->demod_source)==2) wr_demod_file_kept(g,rec); // an input equation is a demodulator now
         tmp=wr_cl_create_propinst(g,rec);
         if (tmp==2) {
           return rules_found+facts_found;   
@@ -1541,6 +1542,7 @@ int wr_init_active_passive_lists_from_one(glb* g, void* db, void* child_db) {
 #endif        
         if (g->use_strong_unit_cutoff) wr_cl_store_res_units(g,rec);
         wr_push_cl_clpick_queues(g,(g->clpick_queues),rec,weight); // -1 means we do not know weight
+        if ((g->demod_source)==2) wr_demod_file_kept(g,rec); // an input equation is a demodulator now
         tmp=wr_cl_create_propinst(g,rec);
         if (tmp==2) {
           return rules_found+facts_found;   
@@ -1612,6 +1614,7 @@ void wr_activate_from_termhash(glb* g, gint* hasharr) {
           //wr_add_cl_to_unithash(g,clause,resmeta);
           if (g->use_strong_unit_cutoff) wr_cl_store_res_units(g,clause);
           wr_push_cl_clpick_queues(g,(g->clpick_queues),clause,weight); 
+          if ((g->demod_source)==2) wr_demod_file_kept(g,clause); // an input equation is a demodulator now
         }
       }  
     }
@@ -1634,6 +1637,7 @@ void wr_activate_from_termhash(glb* g, gint* hasharr) {
     wr_add_cl_to_unithash(g,res,resmeta);
     if (g->use_strong_unit_cutoff) wr_cl_store_res_units(g,res);
     wr_push_cl_clpick_queues(g,(g->clpick_queues),res,weight);   
+    if ((g->demod_source)==2) wr_demod_file_kept(g,res); // an input equation is a demodulator now
     tmp=wr_cl_create_propinst(g,res);    
     if (tmp==2) {  return;  }
 */
@@ -2148,6 +2152,26 @@ void wr_show_stats(glb* g, int show_local_complex) {
   wr_printf("stat_lit_hash_match_miss:   %15d\n",g->stat_lit_hash_match_miss); 
   wr_printf("stat_lit_hash_cut_ok:       %15d\n",g->stat_lit_hash_cut_ok); 
   wr_printf("stat_dmi_tree_stopped:      %15d\n",g->stat_dmi_tree_stopped);
+  if ((g->demod_derived) || (g->demod_source)==2) {
+    wr_printf("stat_demod_derived_checked:   %13ld\n",g->stat_demod_derived_checked);
+    wr_printf("stat_demod_derived_rewritten: %13ld\n",g->stat_demod_derived_rewritten);
+    wr_printf("stat_demod_derived_dropped:   %13ld\n",g->stat_demod_derived_dropped);
+    wr_printf("stat_demod_filed_kept:        %13ld\n",g->stat_demod_filed_kept);
+    wr_printf("stat_demod_rw_limit:          %13ld\n",g->stat_demod_rw_limit);
+#ifdef USE_TERM_INDEX
+    if ((g->dmi_index) && (g->dmi_index)!=(void*)1) {
+      ti_stat st;
+      ti_stats((ti_index*)(g->dmi_index),&st);
+      wr_printf("stat_dmi_nodes:               %13ld\n",st.nodes);
+      wr_printf("stat_dmi_entries:             %13ld\n",st.entries);
+      wr_printf("stat_dmi_bytes:               %13ld\n",st.bytes);
+      wr_printf("stat_dmi_walk_steps:          %13ld\n",st.steps);
+      wr_printf("stat_dmi_rhs_bytes:           %13ld\n",g->stat_dmi_rhs_bytes);
+      wr_printf("stat_dmi_rhs_not_filed:       %13ld\n",g->stat_dmi_rhs_not_filed);
+      wr_printf("stat_dmi_query_tree_vars:     %13ld\n",ti_query_tree_vars((ti_index*)(g->dmi_index)));
+    }
+#endif
+  }
   wr_printf("stat_lit_strong_cut_ok:     %15d\n",g->stat_lit_strong_cut_ok); 
   if ((g->unit_propagate) || (g->unit_backsubsume)) {
     wr_printf("stat_up_cut:                %15d\n",g->stat_up_cut);

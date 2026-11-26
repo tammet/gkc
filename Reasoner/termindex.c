@@ -50,9 +50,10 @@
   * a variable gives the token "slot k": the variables of a stored term
     are numbered 0,1,2.. in the order of their first occurrence (as E's
     variables after ClauseNormalizeVars), so variants of a term share one
-    path. The entry keeps the variables of the stored term in slot order,
-    so the value of slot k is the value of the k-th variable of the
-    stored term, from which the caller builds the right side.
+    path. Slot k is variable k of the variable bank of the tree (cells
+    given to ti_new), a bank that no term given to the tree uses; the
+    caller renames the other terms of an entry (a right side) to that bank
+    by slot number (ti_last_vars, ti_rename_copy).
 
   The tree is a full tree (every token is a node, no cut at a depth). As in
   E's perfect discrimination tree (CLAUSES/ccl_pdtrees.c), the walk over a
@@ -61,11 +62,17 @@
   subterm; at a later occurrence it compares the bound term with the query
   subterm (wr_equal_term) and goes on only if they are equal; on
   backtracking the binding is cleared. A leaf reached by the walk is a
-  match, and the slot values are its substitution. The slots are an array
-  of the walk: the walk writes no variable cell of gkc and does not use
-  the variable stack, so a variable of the query term (a constant for the
-  walk) and a variable of a stored term never mix, also while a unifier is
-  on the variable stack.
+  match, and the slot values are its substitution. The walk binds the cell
+  of a slot with SETVAR, so the variable stack registers it, and on
+  backtracking clears the top slice of the stack back to the position noted
+  at that node (wr_clear_varstack_topslice), as the subsumption matching of
+  wr_subsume_cl_aux (subsume.c) does; the bindings below, such as the
+  unifier of the parent clauses, stay untouched. The walk for the newest
+  match goes on after a match: it keeps a copy of the slot values of the
+  best match, and after the walk, when all its own bindings are cleared,
+  the caller sets them again with SETVAR and clears them the same way after
+  the build. A variable of the query term (a constant for the walk) and a
+  variable of the tree are always two different cells.
 
   The children of a node: up to TI_INLINE children with a record token or
   a constant token in an array in the node, then a skip list sorted by
@@ -104,7 +111,7 @@
    (isvar), so the tokens of the three kinds need no tag bits. */
 #define TI_REC(n) (((uint64_t)(n))<<3)
 #define TI_SL_LEVELS 12
-#define TI_MAXSLOTS 4096
+#define TI_MAXSLOTS NROF_VARSINBANK // a slot is a variable of the tree bank
 
 typedef struct {
   uint64_t tok;
@@ -126,20 +133,19 @@ typedef struct {
 typedef struct {
   gint payload;
   int32_t next;             // the next (older) entry of the same leaf, or -1
-  int32_t vars;             // the variables of the stored term in slot order: index into vmap
-  int32_t nv;               // their number
+  gint aux;                 // a second payload of the caller (the demodulators: the right side)
 } ti_entry;
 
 struct ti_index_s {
   ti_node* nodes; int32_t ncnt, ncap;
   ti_slnode* sln; int32_t slcnt, slcap;
   ti_entry* ents; int32_t ecnt, ecap;
-  gint* vmap; int32_t vmcnt, vmcap;
   // the tokens of the last tokenised term
   uint64_t* toks; int32_t* skip; gint* terms; int32_t tcap, tn;
   gint* tvars; int32_t tnv;  // the variables of the last stored term, in slot order
+  long qtreevars;            // variables of the tree bank found in a query term (a defect: expected 0)
   // the walk
-  gint* vals; int32_t nb;    // the slot values on the path
+  gptr vals; int32_t nb;     // the cells of the tree bank: slot k is variable k of the bank
   gint* bestvals; int32_t bestnb, best;
   int (*accept)(glb*, gint);
   int norenaming;
@@ -164,23 +170,25 @@ static int32_t ti_new_node(ti_index* x, uint64_t tok) {
   return n;
 }
 
-ti_index* ti_new(void) {
+/* cells: the first cell of the variable bank of the tree (its cells are
+   UNASSIGNED between walks) */
+
+ti_index* ti_new(gptr cells) {
   ti_index* x=sys_malloc(sizeof(ti_index));
   if (!x) return NULL;
   memset(x,0,sizeof(ti_index));
-  x->ncap=1<<10; x->slcap=1<<6; x->ecap=1<<9; x->vmcap=1<<9; x->tcap=1<<8;
+  x->ncap=1<<10; x->slcap=1<<6; x->ecap=1<<9; x->tcap=1<<8;
   x->nodes=sys_malloc(sizeof(ti_node)*x->ncap);
   x->sln=sys_malloc(sizeof(ti_slnode)*x->slcap);
   x->ents=sys_malloc(sizeof(ti_entry)*x->ecap);
-  x->vmap=sys_malloc(sizeof(gint)*x->vmcap);
   x->toks=sys_malloc(sizeof(uint64_t)*x->tcap);
   x->skip=sys_malloc(sizeof(int32_t)*x->tcap);
   x->terms=sys_malloc(sizeof(gint)*x->tcap);
   x->tvars=sys_malloc(sizeof(gint)*TI_MAXSLOTS);
-  x->vals=sys_malloc(sizeof(gint)*TI_MAXSLOTS);
+  x->vals=cells;
   x->bestvals=sys_malloc(sizeof(gint)*TI_MAXSLOTS);
   x->rnd=UINT64_C(0x2545F4914F6CDD1D);
-  if (!x->nodes || !x->sln || !x->ents || !x->vmap || !x->toks || !x->skip || !x->terms ||
+  if (!x->nodes || !x->sln || !x->ents || !x->toks || !x->skip || !x->terms ||
       !x->tvars || !x->vals || !x->bestvals || ti_new_node(x,0)!=0) {
     ti_free(x);
     return NULL;
@@ -193,12 +201,10 @@ void ti_free(ti_index* x) {
   if (x->nodes) sys_free(x->nodes);
   if (x->sln) sys_free(x->sln);
   if (x->ents) sys_free(x->ents);
-  if (x->vmap) sys_free(x->vmap);
   if (x->toks) sys_free(x->toks);
   if (x->skip) sys_free(x->skip);
   if (x->terms) sys_free(x->terms);
   if (x->tvars) sys_free(x->tvars);
-  if (x->vals) sys_free(x->vals);
   if (x->bestvals) sys_free(x->bestvals);
   sys_free(x);
 }
@@ -322,7 +328,10 @@ static int32_t ti_tokens_aux(glb* g, ti_index* x, gint t, int32_t n, int stored)
   me=n;
   x->terms[n]=t;
   if (isvar(t)) {
-    if (!stored) { x->toks[n]=(uint64_t)t; x->skip[n]=n+1; return n+1; }
+    if (!stored) {
+      if ((g->varbanks)+decode_var(t)>=x->vals && (g->varbanks)+decode_var(t)<x->vals+TI_MAXSLOTS) (x->qtreevars)++;
+      x->toks[n]=(uint64_t)t; x->skip[n]=n+1; return n+1;
+    }
     for(k=0;k<x->tnv;k++) if (x->tvars[k]==t) break;
     if (k==x->tnv) {
       if (k>=TI_MAXSLOTS) return -1;
@@ -369,7 +378,7 @@ gint ti_token_term(ti_index* x, int32_t i) { return x->terms[i]; }
 
 /* ---- insert ---- */
 
-int ti_insert(glb* g, ti_index* x, gint term, gint payload) {
+int ti_insert(glb* g, ti_index* x, gint term, gint payload, gint aux) {
   int32_t n, i, cur, nx, e;
   uint64_t t;
   int slot;
@@ -393,16 +402,9 @@ int ti_insert(glb* g, ti_index* x, gint term, gint payload) {
     if (!ne) { x->failed=1; return 0; }
     x->ents=ne; x->ecap*=2;
   }
-  while (x->vmcnt+x->tnv>x->vmcap) {
-    gint* nv=sys_realloc(x->vmap,sizeof(gint)*(x->vmcap)*2);
-    if (!nv) { x->failed=1; return 0; }
-    x->vmap=nv; x->vmcap*=2;
-  }
   e=x->ecnt++;
   x->ents[e].payload=payload;
-  x->ents[e].vars=x->vmcnt;
-  x->ents[e].nv=x->tnv;
-  for(i=0;i<x->tnv;i++) x->vmap[(x->vmcnt)++]=x->tvars[i];
+  x->ents[e].aux=aux;
   x->ents[e].next=x->nodes[cur].entries;
   x->nodes[cur].entries=e;
   // the greatest entry number below each node of the path
@@ -433,7 +435,7 @@ static void ti_leaf(glb* g, ti_index* x, int32_t node) {
   int32_t e;
   for(e=x->nodes[node].entries; e>=0; e=x->ents[e].next) {
     if (x->visit) {
-      (x->visit)(g,x->visitctx,x->ents[e].payload,x->nb,x->vals,x->vmap+x->ents[e].vars);
+      (x->visit)(g,x->visitctx,x->ents[e].payload,x->nb,x->vals);
       continue;
     }
     if (e<=x->best) return; // the entries of a leaf are newest first
@@ -463,11 +465,17 @@ static void ti_walk(glb* g, ti_index* x, int32_t node, int32_t i, int32_t end) {
   for(c=x->nodes[node].vchild; c>=0; c=x->nodes[c].vsib) {
     k=(int32_t)(x->nodes[c].tok);
     if (k==x->nb) {
-      // the first occurrence of slot k on the path: bind it
-      x->vals[k]=q;
+      // the first occurrence of slot k on the path: bind its cell with
+      // SETVAR, so the variable stack registers it, and on backtracking
+      // clear the top slice back to the position noted here (the pattern
+      // of wr_subsume_cl_aux in subsume.c)
+      gint vc_tmp=(g->varstack)[1];
+      gptr vc=((gptr)(g->varstack))+1;
+      SETVAR(encode_var((x->vals)-(g->varbanks)+k),q,g->varbanks,g->varstack,vc);
       (x->nb)++;
       ti_walk(g,x,c,x->skip[i],end);
-      (x->nb)--; // clear the binding
+      (x->nb)--;
+      if (vc_tmp!=(g->varstack)[1]) wr_clear_varstack_topslice(g,g->varstack,vc_tmp);
     } else if (k<x->nb && ti_eq(g,x->vals[k],q)) {
       // a later occurrence: the bound term must be equal
       ti_walk(g,x,c,x->skip[i],end);
@@ -478,28 +486,97 @@ static void ti_walk(glb* g, ti_index* x, int32_t node, int32_t i, int32_t end) {
 /* the newest stored term that matches the query subterm at tokens
    [start,end) of the last ti_tokens and passes the tests: accept (when not
    NULL) and, with norenaming, a substitution that is not a renaming.
-   Returns 1 and sets *payload, *nv, *vars (the variables of the stored
-   term in slot order) and *vals (their values), valid until the next
-   call; 0 when there is none. */
+   Returns 1 and sets *payload, *aux, *nv (the number of slots) and *vals
+   (the values of the slots 0..nv-1, valid until the next call); 0 when
+   there is none. The cells of the tree bank are UNASSIGNED after the walk;
+   the caller binds them from *vals. */
 
 int ti_match_best(glb* g, ti_index* x, int32_t start, int32_t end,
                   int (*accept)(glb*, gint), int norenaming,
-                  gint* payload, int32_t* nv, gint** vars, gint** vals) {
+                  gint* payload, gint* aux, int32_t* nv, gint** vals) {
   if (x->ecnt==0) return 0;
   x->nb=0; x->best=-1; x->bestnb=0;
   x->accept=accept; x->norenaming=norenaming; x->visit=NULL;
   ti_walk(g,x,0,start,end);
   if (x->best<0) return 0;
   *payload=x->ents[x->best].payload;
-  *nv=x->ents[x->best].nv;
-  *vars=x->vmap+x->ents[x->best].vars;
+  *aux=x->ents[x->best].aux;
+  *nv=x->bestnb;
   *vals=x->bestvals;
   return 1;
 }
 
+/* the token arrays of the last ti_tokens */
+
+void ti_token_arrays(ti_index* x, uint64_t** toks, int32_t** skip, gint** terms) {
+  *toks=x->toks; *skip=x->skip; *terms=x->terms;
+}
+
+/* ti_match_best on token arrays of the caller (a copy of the arrays of an
+   earlier ti_tokens), so the caller keeps the tokens of a term while other
+   lookups tokenise other terms */
+
+int ti_match_best_ext(glb* g, ti_index* x, uint64_t* toks, int32_t* skip, gint* terms,
+                      int32_t start, int32_t end, int (*accept)(glb*, gint), int norenaming,
+                      gint* payload, gint* aux, int32_t* nv, gint** vals) {
+  uint64_t* st=x->toks; int32_t* ss=x->skip; gint* sm=x->terms;
+  int r;
+  x->toks=toks; x->skip=skip; x->terms=terms;
+  r=ti_match_best(g,x,start,end,accept,norenaming,payload,aux,nv,vals);
+  x->toks=st; x->skip=ss; x->terms=sm;
+  return r;
+}
+
+/* the variables of term in slot order, as ti_insert numbers them; valid
+   until the next call of the module; -1 on a failed allocation */
+
+int32_t ti_term_vars(glb* g, ti_index* x, gint term, gint** vars) {
+  x->tnv=0;
+  if (ti_tokens_aux(g,x,term,0,1)<0) return -1;
+  *vars=x->tvars;
+  return x->tnv;
+}
+
+/* the variables of the last stored term (ti_insert) in slot order */
+
+int32_t ti_last_vars(ti_index* x, gint** vars) {
+  *vars=x->tvars;
+  return x->tnv;
+}
+
+long ti_query_tree_vars(ti_index* x) { return x->qtreevars; }
+
+/* a copy of the term t into buf (a cvec of the reasoner) with the variable
+   vars[k] renamed to the variable first+k (first: the number of the first
+   variable of the tree bank); returns WG_ILLEGAL when t has a variable
+   that is not in vars (or when buf is full) */
+
+gint ti_rename_copy(glb* g, gint t, gint* vars, int32_t nv, gint first, gptr buf) {
+  gptr xptr, yptr;
+  gint xlen, tmp;
+  int i;
+  int32_t k;
+  if (isvar(t)) {
+    for(k=0;k<nv;k++) if (vars[k]==t) return encode_var(first+k);
+    return WG_ILLEGAL;
+  }
+  if (!isdatarec(t)) return t;
+  xptr=decode_record(g->db,t);
+  xlen=get_record_len(xptr);
+  yptr=wr_alloc_from_cvec(g,buf,(RECORD_HEADER_GINTS+xlen));
+  if (yptr==NULL) return WG_ILLEGAL;
+  for(i=0;i<RECORD_HEADER_GINTS+(g->unify_firstuseterm);i++) yptr[i]=xptr[i];
+  for(;i<RECORD_HEADER_GINTS+xlen;i++) {
+    tmp=ti_rename_copy(g,xptr[i],vars,nv,first,buf);
+    if (tmp==WG_ILLEGAL) return WG_ILLEGAL;
+    yptr[i]=tmp;
+  }
+  return encode_record(g->db,yptr);
+}
+
 /* every stored term that matches the query subterm at tokens [start,end):
-   visit is called with each payload, the number of slots, their values
-   and the variables of the stored term in slot order */
+   visit is called with each payload, the number of slots and their values
+   (the cells of the tree bank, bound at that moment) */
 
 void ti_match_all(glb* g, ti_index* x, int32_t start, int32_t end, ti_visit_fn visit, void* ctx) {
   x->nb=0; x->best=-1;
@@ -526,7 +603,7 @@ int ti_failed(ti_index* x) { return x->failed; }
   one line per query and a final line "TI_TEST result: ...". */
 
 typedef struct {
-  gint* lhs; gint* rhs; int n, cap;
+  gint* lhs; gint* rhs; gint* rhsc; int n, cap; // rhsc: the right side renamed to the tree bank
   int* found; gint** fvals; int nfound, fcap; // the matches of ti_match_all: index, a copy of the values per variable
   long brute, diffs;
 } ti_test;
@@ -538,10 +615,10 @@ static int ti_test_accept(glb* g, gint payload) {
   return (payload%3)!=2;
 }
 
-static void ti_test_visit(glb* g, void* ctx, gint payload, int32_t nv, gint* vals, gint* vars) {
+static void ti_test_visit(glb* g, void* ctx, gint payload, int32_t nv, gint* vals) {
   ti_test* t=(ti_test*)ctx;
   int32_t k;
-  UNUSED(g); UNUSED(vars);
+  UNUSED(g);
   if (t->nfound>=t->fcap) {
     t->fcap=(t->fcap)*2+16;
     t->found=sys_realloc(t->found,sizeof(int)*t->fcap);
@@ -570,22 +647,24 @@ static int ti_test_vars(glb* g, gint t, gint* vars, int n) {
   return n;
 }
 
-/* is the right side r with the slot values equal to e */
+/* the right side rc (renamed to the tree bank) built with the slot values
+   as the rewriting builds it: the bindings set on the cells of the tree
+   bank with SETVAR, wr_build_calc_term with build_subst 1, then the stack
+   cleared */
 
-static int ti_test_inst_eq(glb* g, gint r, gint e, int32_t nv, gint* vars, gint* vals) {
-  gptr rp, ep; int i, start, rend, eend; int32_t k;
-  if (isvar(r)) {
-    for(k=0;k<nv;k++) if (vars[k]==r) return ti_eq(g,vals[k],e);
-    return r==e;
-  }
-  if (!isdatarec(r)) return ti_eq(g,r,e);
-  if (!isdatarec(e)) return 0;
-  rp=decode_record(g->db,r); ep=decode_record(g->db,e);
-  start=wr_term_unify_startpos(g);
-  rend=wr_term_unify_endpos(g,rp); eend=wr_term_unify_endpos(g,ep);
-  if (rend!=eend) return 0;
-  for(i=start;i<rend;i++) if (!ti_test_inst_eq(g,rp[i],ep[i],nv,vars,vals)) return 0;
-  return 1;
+static gint ti_test_build_rhs(glb* g, gint rc, int32_t nv, gint* vals) {
+  gptr vc=((gptr)(g->varstack))+1;
+  gint res;
+  int32_t k;
+  int s_subst=(g->build_subst), s_rename=(g->build_rename), s_rewrite=(g->build_rewrite);
+  gptr s_buffer=(g->build_buffer);
+  wr_clear_varstack(g,g->varstack);
+  for(k=0;k<nv;k++) SETVAR(encode_var(TREE_VARBANK*NROF_VARSINBANK+k),vals[k],g->varbanks,g->varstack,vc);
+  (g->build_subst)=1; (g->build_rename)=0; (g->build_rewrite)=0; (g->build_buffer)=(g->queue_termbuf);
+  res=wr_build_calc_term(g,rc);
+  (g->build_subst)=s_subst; (g->build_rename)=s_rename; (g->build_rewrite)=s_rewrite; (g->build_buffer)=s_buffer;
+  wr_clear_varstack(g,g->varstack);
+  return res;
 }
 
 /* compare the tree and the plain match on the query subterm q at the
@@ -594,7 +673,7 @@ static int ti_test_inst_eq(glb* g, gint r, gint e, int32_t nv, gint* vars, gint*
 static void ti_test_compare(glb* g, ti_index* x, ti_test* t, gint q, int32_t i, int32_t end) {
   gint vars[TI_MAXSLOTS], bvals[TI_MAXSLOTS];
   int j, f, k, nv, ok, mode, bf;
-  gint payload, *tvars, *tvals;
+  gint payload, aux, *tvals;
   int32_t tnv;
   // all matches
   t->nfound=0;
@@ -647,14 +726,14 @@ static void ti_test_compare(glb* g, ti_index* x, ti_test* t, gint q, int32_t i, 
     }
     wr_clear_varstack(g,g->varstack);
     (t->brute)++;
-    if (!ti_match_best(g,x,i,end,ti_test_accept,mode,&payload,&tnv,&tvars,&tvals)) payload=-1;
+    if (!ti_match_best(g,x,i,end,ti_test_accept,mode,&payload,&aux,&tnv,&tvals)) payload=-1;
     if ((int)payload!=bf) {
       TI_TEST_DIFF(t);
       wr_printf("newest match (renaming condition %d) tree %d plain %d on ",mode,(int)payload,bf);
       wr_print_term(g,q); wr_printf("\n");
     } else if (bf>=0) {
       for(k=0;k<tnv;k++) {
-        if (tvars[k]!=vars[k] || !ti_eq(g,tvals[k],bvals[k])) {
+        if (tnv!=nv || !ti_eq(g,tvals[k],bvals[k])) {
           TI_TEST_DIFF(t);
           wr_printf("newest match substitution, variable %d, on ",k);
           wr_print_term(g,q); wr_printf("\n");
@@ -683,7 +762,9 @@ void wr_ti_selftest(glb* g) {
   void* db=g->db;
   ti_index* x;
   ti_test t;
-  gint cell, atom, meta, q, e, payload, *tvars, *tvals;
+  gint cell, atom, meta, q, e, payload, aux, *tvals, lvars[TI_MAXSLOTS];
+  int lnv;
+  long notfiled=0;
   gcell* cellptr;
   gptr rec, ap;
   int pass, i, nat, queries=0, wrong=0, inserted=0, ncl=0, cli;
@@ -693,9 +774,9 @@ void wr_ti_selftest(glb* g) {
   ti_stat st;
   memset(&t,0,sizeof(t));
   t.cap=1024;
-  t.lhs=sys_malloc(sizeof(gint)*t.cap); t.rhs=sys_malloc(sizeof(gint)*t.cap);
-  x=ti_new();
-  if (!x || !t.lhs || !t.rhs) { wr_printf("TI_TEST result: no memory\n"); return; }
+  t.lhs=sys_malloc(sizeof(gint)*t.cap); t.rhs=sys_malloc(sizeof(gint)*t.cap); t.rhsc=sys_malloc(sizeof(gint)*t.cap);
+  x=ti_new((g->varbanks)+TREE_VARBANK*NROF_VARSINBANK);
+  if (!x || !t.lhs || !t.rhs || !t.rhsc) { wr_printf("TI_TEST result: no memory\n"); return; }
   // the clause list holds the newest clause first: take the clauses in input order
   for(cell=(dbmemsegh(db)->clauselist); cell; cell=cellptr->cdr) { cellptr=(gcell*)offsettoptr(db,cell); ncl++; }
   cls=sys_malloc(sizeof(gptr)*(ncl+1));
@@ -725,10 +806,17 @@ void wr_ti_selftest(glb* g) {
           if (t.n>=t.cap) {
             t.cap*=2;
             t.lhs=sys_realloc(t.lhs,sizeof(gint)*t.cap); t.rhs=sys_realloc(t.rhs,sizeof(gint)*t.cap);
+            t.rhsc=sys_realloc(t.rhsc,sizeof(gint)*t.cap);
           }
           t.lhs[t.n]=ap[RECORD_HEADER_GINTS+(g->unify_funarg1pos)];
           t.rhs[t.n]=ap[RECORD_HEADER_GINTS+(g->unify_funarg2pos)];
-          if (!ti_insert(g,x,t.lhs[t.n],t.n)) {
+          // the right side renamed to the tree bank by the slot order of the left side
+          lnv=ti_test_vars(g,t.lhs[t.n],lvars,0);
+          t.rhsc[t.n]=ti_rename_copy(g,t.rhs[t.n],lvars,lnv,TREE_VARBANK*NROF_VARSINBANK,g->queue_termbuf);
+          if (t.rhsc[t.n]==WG_ILLEGAL) {
+            notfiled++; // a variable of the right side is not in the left side
+            wr_printf("TI_TEST stored term %d not filed: a variable of the right side is not in the left side\n",t.n);
+          } else if (!ti_insert(g,x,t.lhs[t.n],t.n,t.rhsc[t.n])) {
             wr_printf("TI_TEST insert failed for stored term %d\n",t.n);
           } else {
             inserted++;
@@ -745,10 +833,10 @@ void wr_ti_selftest(glb* g) {
           n=ti_tokens(g,x,q);
           wr_printf("TI_TEST query %d: ",queries);
           wr_print_term(g,q);
-          if (n>0 && ti_match_best(g,x,0,n,NULL,0,&payload,&tnv,&tvars,&tvals)) {
+          if (n>0 && ti_match_best(g,x,0,n,NULL,0,&payload,&aux,&tnv,&tvals)) {
             wr_printf(" -> stored term %d: ",(int)payload);
             wr_print_term(g,t.rhs[payload]);
-            if (ti_test_inst_eq(g,t.rhs[payload],e,tnv,tvars,tvals)) {
+            if (wr_equal_term(g,ti_test_build_rhs(g,aux,tnv,tvals),e,1)) {
               wr_printf(" ok\n");
             } else {
               wr_printf(" WRONG, expected ");
@@ -774,11 +862,11 @@ void wr_ti_selftest(glb* g) {
   ti_stats(x,&st);
   wr_printf("TI_TEST tree: stored %d nodes %ld skip_lists %ld max_children %ld max_slot_children %ld\n",
     inserted,st.nodes,st.skiplists,st.maxchildren,st.maxvchildren);
-  wr_printf("TI_TEST result: queries %d wrong %d plain_matches %ld differences %ld\n",
-    queries,wrong,t.brute,t.diffs);
+  wr_printf("TI_TEST result: queries %d wrong %d plain_matches %ld differences %ld not_filed %ld tree_bank_vars_in_queries %ld\n",
+    queries,wrong,t.brute,t.diffs,notfiled,ti_query_tree_vars(x));
   ti_free(x);
   sys_free(cls);
-  sys_free(t.lhs); sys_free(t.rhs);
+  sys_free(t.lhs); sys_free(t.rhs); sys_free(t.rhsc);
   if (t.found) sys_free(t.found);
   if (t.fvals) sys_free(t.fvals);
 }
@@ -797,8 +885,7 @@ void ti_stats(ti_index* x, ti_stat* s) {
     if (x->nodes[i].sl>=0) (s->skiplists)++;
   }
   s->nodes=x->ncnt; s->entries=x->ecnt; s->steps=x->steps;
-  s->bytes=(long)(sizeof(ti_node)*x->ncap+sizeof(ti_slnode)*x->slcap+sizeof(ti_entry)*x->ecap+
-                  sizeof(gint)*x->vmcap);
+  s->bytes=(long)(sizeof(ti_node)*x->ncap+sizeof(ti_slnode)*x->slcap+sizeof(ti_entry)*x->ecap);
 }
 
 #else

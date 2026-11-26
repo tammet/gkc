@@ -120,6 +120,7 @@ int wr_cl_store_res_terms(glb* g, gptr cl, cvec resolvability);
 int wr_cl_store_res_units(glb* g, gptr cl);
 int wr_cl_store_para_terms(glb* g, gptr cl, cvec resolvability); 
 int wr_cl_store_eq_arg(glb* g, gptr cl, gint term, int termtype, int litnr, int leftflag);
+void wr_demod_file_kept(glb* g, gptr cl);
 int wr_cl_store_term_rewriter(glb* g, gptr cl, gint term, int termtype, int litnr, int leftflag);
 int wr_cl_store_para_subterms(glb* g, gptr cl, gint term, int depth, int litnr, int* termpath);
 int wr_encode_para_termpath(glb* g, int litnr, int pos);

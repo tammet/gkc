@@ -82,9 +82,14 @@
 #define NROF_REWRITE_CLVEC_ELS  10000
 #define NROF_HYPER_QUEUE_ELS 100000
 
-#define NROF_VARBANKS   5 
+#define NROF_VARBANKS   6 
 #define NROF_VARSINBANK 1000
-#define FIRST_UNREAL_VAR_NR ((NROF_VARBANKS-1)*NROF_VARSINBANK)
+// bank 4: the rename area of the build (unreal variables)
+#define RENAME_VARBANK 4
+#define FIRST_UNREAL_VAR_NR (RENAME_VARBANK*NROF_VARSINBANK)
+// bank 5: the variables of the discrimination tree (termindex.c); no term
+// that the tree is asked about has a variable of this bank
+#define TREE_VARBANK 5
 
 #define NROF_WEIGHTQUEUE_ELS 200
 #define NROF_CLTERM_HASHVEC_ELS       1000000 // was 1000000
@@ -695,6 +700,22 @@ typedef struct glb {
   gptr rewrite_self;       // a clause that wr_rewrite_term does not use as a demodulator, or NULL
   int ti_selftest;          // strategy key ti_selftest: 1 the self test of the term index on the input, then stop
   int stat_dmi_tree_stopped; // the tree of the demodulators stopped: 1 no memory or too many variables in an insert, 2 no memory in a lookup, 3 unify settings
+  int demod_derived;       // strategy key demod_derived: 1 a derived clause is rewritten with the demodulators before the cuts
+  int demod_source;        // strategy key demod_source: 1 (absent) an equation becomes a demodulator when picked, 2 when kept
+  int demod_skip_active;   // 1: the activation of the picked clause does not file it as a demodulator again (demod_source 2)
+  int demod_this_clause;   // 1: the derived clause in work was rewritten; its demodulators are in rewrite_clvec
+  long stat_demod_derived_checked;   // demod_derived: derived clauses tested
+  long stat_demod_derived_rewritten; // demod_derived: derived clauses with a literal rewritten
+  long stat_demod_derived_dropped;   // demod_derived: rewritten clauses dropped (s=s, or the buffer full)
+  long stat_demod_filed_kept;        // demod_source 2: demodulators filed when kept
+  gint demod_rw_stop;      // demod_derived: wr_rewrite_term stops at this count of tmp_rewrites, 0: no limit
+  int demod_rw_hit;        // 1: the limit of rewrites stopped the rewriting of the clause in work
+  long stat_demod_rw_limit; // demod_derived: clauses that reached the limit of rewrites (a defect: expected 0)
+  int rw_base;             // 0, or the stack position above which wr_rewrite_term binds and clears (the rewriting of a derived clause)
+  int demod_oldform;       // the check build of the one-pass normalisation: 1 the full rebuild
+  gptr dmi_rhsbuf;         // the chunks of the right-side copies of the demodulator tree, or NULL
+  long stat_dmi_rhs_not_filed; // demodulators not filed in the tree: a variable of the right side not in the left side
+  long stat_dmi_rhs_bytes; // the bytes of the right-side copies in the tree bank
 } glb;
 
 

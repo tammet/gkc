@@ -203,6 +203,28 @@ clause does today. `0` or a missing key keeps today's behaviour, where
 this direction tests the ordering only before the unification. The key
 has no effect with `query_focus`, where the ordering is off.
 
+### `demod_derived` (experimental)
+
+`1`: every derived clause (resolution, factoring, paramodulation) is
+rewritten with the demodulators right after it is built, before the unit
+cuts, the subsumption and the weight check. Rewriting is innermost first
+and goes on until no demodulator applies. In a positive unit equation the
+top of a side is not rewritten by a demodulator that matches it by a
+renaming. A rewritten clause lists its demodulators as extra parents of its
+derivation step. Partial results of hyperresolution, instance generation
+and unit propagation are not rewritten. `0` or a missing key: only the
+picked clause is rewritten, as before. No effect with `query_focus`, which
+has no demodulators.
+
+### `demod_source` (experimental)
+
+When a positive unit equation that the term ordering orients becomes a
+demodulator. `1` or a missing key: when it is picked (activated), as
+before. `2`: when it is kept, and an input equation when it enters the
+queues; the picked clause is then not rewritten with its own entry and is
+not filed a second time at its activation. The key is independent of
+`demod_derived`. No effect with `query_focus`.
+
 ### `ti_selftest` (test only)
 
 `1`: gkc tests its term index (the perfect discrimination tree of
