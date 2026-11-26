@@ -76,7 +76,8 @@ extern "C" {
 
 
 
-void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active, cvec resolvability) { 
+void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active, cvec resolvability) {
+  int upon; // unit propagation is on and its table exists 
   void* db=g->db;
   int i;
   int len;      
@@ -248,6 +249,7 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active, cvec resol
             wr_sys_exiterr(g,"apparently wrong hash given to wr_clterm_hashlist_start");
             return;
           }      
+          upon=((g->up_index)!=NULL); // unit propagation: a clause becomes unusable only before a pick
           while(node!=0) {    
             yatom=(otp(db,node))[CLTERM_HASHNODE_TERM_POS];
             ycl=otp(db,(otp(db,node))[CLTERM_HASHNODE_CL_POS]);
@@ -260,7 +262,7 @@ void wr_resolve_binary_all_active(glb* g, gptr cl, gptr cl_as_active, cvec resol
             wr_printf("xatom: \n");
             wr_print_clause(g,xatom);
             */
-            if ((g->up_index) && wr_up_unusable(g,ycl)) {
+            if (upon && wr_up_unusable(g,ycl)) {
               // made unusable by unit propagation
               node=wr_clterm_hashlist_next(g,hashvec,node);
               continue;
@@ -477,7 +479,8 @@ void wr_factor(glb* g, gptr cl, gptr cl_as_active) {
 */
 
 
-void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active, cvec resolvability) { 
+void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active, cvec resolvability) {
+  int upon; // unit propagation is on and its table exists 
   void* db=g->db;
   int i;
   int len;      
@@ -704,6 +707,7 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active, cvec re
               wr_sys_exiterr(g,"apparently wrong hash given to wr_clterm_hashlist_start");
               return;
             }      
+            upon=((g->up_index)!=NULL); // unit propagation: a clause becomes unusable only before a pick
             while(node!=0) {  
               nodeptr=otp(db,node);  
               yterm=nodeptr[CLTERM_HASHNODE_TERM_POS];
@@ -712,7 +716,7 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active, cvec re
                 node=wr_clterm_hashlist_next(g,hashvec,node);
                 continue;
               }       
-              if ((g->up_index) && wr_up_unusable(g,ycl)) {
+              if (upon && wr_up_unusable(g,ycl)) {
                 // made unusable by unit propagation
                 node=wr_clterm_hashlist_next(g,hashvec,node);
                 continue;
@@ -950,7 +954,8 @@ void wr_paramodulate_into_all_active(glb* g, gptr cl, gptr cl_as_active, cvec re
 */
 
 int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active, gint atom, gint term, 
-      int depth, int litnr, int* termpath, int nonanslen) {          
+      int depth, int litnr, int* termpath, int nonanslen) {
+  int upon; // unit propagation is on and its table exists          
   void* db=g->db;
   gptr ptr;
   gint fun, yi, hash;
@@ -1104,6 +1109,7 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
       wr_sys_exiterr(g,"apparently wrong hash given to wr_clterm_hashlist_start");
       return -1;
     }      
+    upon=((g->up_index)!=NULL); // unit propagation: a clause becomes unusable only before a pick
     while(node!=0) {    
       //nodeptr=otp(db,node);
       yterm=(otp(db,node))[CLTERM_HASHNODE_TERM_POS];     //nodeptr[CLTERM_HASHNODE_TERM_POS];
@@ -1112,7 +1118,7 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
         node=wr_clterm_hashlist_next(g,hashvec,node);
         continue;
       }
-      if ((g->up_index) && wr_up_unusable(g,ycl)) {
+      if (upon && wr_up_unusable(g,ycl)) {
         // made unusable by unit propagation
         node=wr_clterm_hashlist_next(g,hashvec,node);
         continue;

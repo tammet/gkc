@@ -390,8 +390,6 @@ typedef struct glb {
   int use_strong_unit_cutoff; 
   int strong_cut_strat; // strategy key strong_cut: -1 absent (the rule of max_seconds and max_dseconds), 0 off, 1 on
   int unit_variant_hash; // strategy key unit_variant_hash: 1 the unit tables hash with per-literal variable numbers and test a variant
-  int unit_propagate; // strategy key unit_propagate: 0 off, 1 cut two-literal clauses, 2 cut all clauses
-  int unit_backsubsume; // strategy key unit_backsubsume: 1 a kept unit makes clauses with an equal literal of the same sign unusable
   int use_strong_duplicates; // iff 1, then unique var based duplicate removal
   int prohibit_nested_para;  
   int prohibit_unordered_para;
@@ -565,9 +563,6 @@ typedef struct glb {
   int stat_prop_hash_match_miss;
   int stat_lit_hash_cut_ok;  
   int stat_lit_strong_cut_ok;
-  int stat_up_cut; // unit propagation: clauses cut
-  int stat_up_derived; // unit propagation: shorter clauses built
-  int stat_up_backsubsumed; // unit propagation: clauses made unusable by backward subsumption
   int stat_lit_hash_subsume_ok;
   int stat_atom_hash_added;
   int stat_atom_hash_computed;
@@ -680,13 +675,20 @@ typedef struct glb {
   void* qwb_cache;         // literal weights of the parent clauses for queue_weight_bound, or NULL
   void* fsi_index;         // index of clactivesubsume for the forward subsumption of the picked clause, or NULL
   void* sci_index;         // index of the stored units for the strong cut, NULL, or 1 after a failed allocation
-  void* up_index;          // tables of unit propagation, or NULL
   clock_t allruns_start_clock;
   //clock_t allruns_end_clock;
   clock_t run_start_clock;
   //clock_t run_end_clock;  
   char guidetext[MAX_GUIDETEXT_LEN];
 
+  /* unit propagation (Task 20); at the end of the struct, so that the
+     offsets of the fields above stay as before */
+  int unit_propagate; // strategy key unit_propagate: 0 off, 1 cut two-literal clauses, 2 cut all clauses
+  int unit_backsubsume; // strategy key unit_backsubsume: 1 a kept unit makes clauses with an equal literal of the same sign unusable
+  int stat_up_cut; // unit propagation: clauses cut
+  int stat_up_derived; // unit propagation: shorter clauses built
+  int stat_up_backsubsumed; // unit propagation: clauses made unusable by backward subsumption
+  void* up_index;          // tables of unit propagation, or NULL
 } glb;
 
 
