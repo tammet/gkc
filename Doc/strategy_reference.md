@@ -184,8 +184,8 @@ per given clause so far. With a time limit (`max_seconds`, `max_dseconds`,
 ends first times a pick rate:
 
 * `1`: the picks so far divided by the time since the first pick;
-* `2` and `3`: the picks of the last tenth of the time limit divided by
-  the length of that stretch (since the first pick, when the run is
+* `2`, `3` and `4`: the picks of the last tenth of the time limit divided
+  by the length of that stretch (since the first pick, when the run is
   shorter).
 
 No time budget is made before 5% of the time. With both kinds of limits
@@ -200,8 +200,13 @@ At the late weight check of a derived clause, after the present rules,
 gkc drops the clause when its weight is above the weight limit of its
 block and its position in the first-in list is beyond the reach. The
 statistic `stat_queue_limit_dropped` counts these drops. With `3` a unit
-clause is never dropped by this limit. With `max_given` alone the values
-`1` and `2` give the same search.
+clause is never dropped by this limit. With `4` neither a unit clause nor
+a two-literal clause is dropped by it (the double cut reads the stored
+two-literal clauses), and a clause that it drops still counts in the
+mean kept weight that the fill-level rule of `wr_derived_weight_check`
+compares with. With `max_given` alone the values
+`1` and `2` give the same search, and so do `3` and `4` apart from the
+two-literal clauses and the mean weight.
 
 A run with a time limit and this key depends on the CPU time, so two runs
 can differ.

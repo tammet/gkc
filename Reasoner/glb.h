@@ -342,7 +342,7 @@ typedef struct glb {
   int max_run_dseconds;
   int max_dseconds;
   int max_given; // stop a run after this many given clauses, 0: no limit
-  int queue_weight_limit; // experimental weight limit per queue block: 0 off, 1 estimate from all picks, 2 from the recent picks, 3 as 2 but no unit is dropped
+  int queue_weight_limit; // experimental weight limit per queue block: 0 off, 1 estimate from all picks, 2 from the recent picks, 3 as 2 but no unit is dropped, 4 as 3 and no two-literal clause, limit drops count in avg_kept_weight
   int cl_keep_weightlimit;
   int cl_keep_sizelimit;
   int cl_keep_depthlimit;
@@ -664,6 +664,10 @@ typedef struct glb {
   int qwl_weight[4];       // weight limit of each queue block, -1: none
   gint qwl_fifo_reach[4];  // first-in positions below this are reached
   gint qwl_next_update;    // pick count of the next computation of the limits
+  double* qwl_samples;     // ring of (run seconds, picks) pairs for the recent pick rate, or NULL
+  int qwl_nsamples;        // pairs in qwl_samples
+  int qwl_sample_next;     // next pair to write in qwl_samples
+  double qwl_first_pick_time; // run seconds at the first pick, -1 before it
   clock_t allruns_start_clock;
   //clock_t allruns_end_clock;
   clock_t run_start_clock;

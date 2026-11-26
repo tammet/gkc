@@ -269,6 +269,7 @@ int wr_glb_init_simple(glb* g) {
   //(g->cl_maxdepth)=1000000;
   //(g->cl_limitkept)=1;
   (g->sine_k_values)=NULL;
+  (g->qwl_samples)=NULL;
   (g->sine_uri_k_values)=NULL;
   (g->sine_k_bytes)=SINE_K_VALUES_SIZE;
   (g->backsubsume_bytes)=SINE_K_VALUES_SIZE;
@@ -856,6 +857,7 @@ int wr_glb_init_local_complex(glb* g) {
   (g->tmp_clinfo)=NULL;
   (g->tmp_varinfo)=NULL;
   (g->sine_k_values)=NULL;
+  (g->qwl_samples)=NULL;
   (g->backsubsume_values)=NULL;
   (g->sine_uri_k_values)=NULL;
   
@@ -1253,6 +1255,8 @@ int wr_glb_free_local_complex(glb* g) {
   wr_vec_free(g,g->hyper_queue);
   wr_vec_free(g,g->answers);
   if (g->sine_k_values) sys_free(g->sine_k_values); // bytestring
+  if (g->qwl_samples) sys_free(g->qwl_samples);
+  (g->qwl_samples)=NULL;
   if (g->lithash_atoms) sys_free(g->lithash_atoms);
   if (g->lithash_vals) sys_free(g->lithash_vals);
   if (g->lithash_final) sys_free(g->lithash_final);

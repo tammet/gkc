@@ -1251,8 +1251,11 @@ int wr_qwl_drop(glb* g, gptr cl, int weight) {
   gptr queues, simplequeue;
 
   if (!(g->qwl_active) || weight<0) return 0;
-  if ((g->queue_weight_limit)==3 &&
+  // value 3 keeps unit clauses; value 4 also keeps two-literal clauses,
+  // which the double cut reads
+  if ((g->queue_weight_limit)>=3 &&
       (!wg_rec_is_rule_clause(db,cl) || wg_count_clause_atoms(db,cl)==1)) return 0;
+  if ((g->queue_weight_limit)==4 && wg_count_clause_atoms(db,cl)==2) return 0;
   qstart=wr_clpick_queue_start(g,cl);
   b=(qstart-1)/CLPICK_QUEUE_BLOCKGINTS;
   if (b<0 || b>=NROF_CLPICK_QUEUES || (g->qwl_weight)[b]<0) return 0;

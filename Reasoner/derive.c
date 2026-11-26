@@ -299,12 +299,18 @@ static void wr_process_derived_final(glb* g, gptr res, gint* lithash, gint histo
     // experimental: the clause lies beyond the reach of its queue block
     if ((g->queue_weight_limit) && weightcheckflag && wr_qwl_drop(g,res,weight)) {
       (g->stat_queue_limit_dropped)++;
+      if ((g->queue_weight_limit)==4) {
+        // the mean weight of the fill-level rule counts this clause as kept
+        avg+=(weight-avg)/((g->stat_kept_cl)+(g->stat_queue_limit_dropped)+1);
+        (g->avg_kept_weight)=avg;
+      }
       CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
       if (g->print_derived_cl) wr_printf("\nw discarded beyond the queue limit");
       return;
     }
     ++(g->stat_kept_cl);
-    avg+=(weight-avg)/((g->stat_kept_cl)+1);
+    if ((g->queue_weight_limit)==4) avg+=(weight-avg)/((g->stat_kept_cl)+(g->stat_queue_limit_dropped)+1);
+    else avg+=(weight-avg)/((g->stat_kept_cl)+1);
     (g->avg_kept_weight)=avg;
     resmeta=wr_calc_clause_meta(g,res,cl_metablock);
     hash=wr_add_cl_to_unithash_h(g,res,resmeta,lithash);
