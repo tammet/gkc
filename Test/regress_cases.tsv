@@ -9,6 +9,7 @@
 #            the -usekb query (shared KB check)
 #            kbdump: the same arguments; dump round trip with -writekb and
 #            -loadkb (see Test/regress.py)
+#            output:T1;;T2: every Ti must occur in the output
 #   timeout  wall-clock seconds for the case
 # Expected outcomes come from the binary of commit 8de75e0.
 #
@@ -119,3 +120,10 @@ e1_deep_proof	Test/defects/e1_deep_proof.p -strategytext '{"strategy":["negative
 e3_kb_sine_order	Test/defects/e3_kb.p Test/defects/e3_query.p -strategytext '{"strategy":["unit"],"query_preference":0,"max_seconds":10}'	kbcheck	30
 e5_oversized_clause	Test/defects/e5_oversized.p -strategytext '{"strategy":["negative_pref"],"query_preference":0,"max_seconds":10}'	noproof	20
 long_quoted_constant	Test/defects/long_quoted_constant.p	proof	10
+#
+# Test/termindex/, the self test of the perfect discrimination tree (strategy key ti_selftest)
+ti_backtrack	Test/termindex/t1_backtrack.p -strategytext '{"strategy":["unit"],"ti_selftest":1}'	output:TI_TEST result: queries 7 wrong 0 plain_matches;;differences 0	10
+ti_repeated	Test/termindex/t2_repeated.p -strategytext '{"strategy":["unit"],"ti_selftest":1}'	output:TI_TEST result: queries 9 wrong 0 plain_matches;;differences 0	10
+ti_children	Test/termindex/t3_children.p -strategytext '{"strategy":["unit"],"ti_selftest":1}'	output:TI_TEST result: queries 16 wrong 0 plain_matches;;differences 0	10
+ti_query_vars	Test/termindex/t4_query_vars.p -strategytext '{"strategy":["unit"],"ti_selftest":1}'	output:TI_TEST result: queries 7 wrong 0 plain_matches;;differences 0	10
+ti_mixed	Test/termindex/t5_mixed.p -strategytext '{"strategy":["unit"],"ti_selftest":1}'	output:TI_TEST result: queries 14 wrong 0 plain_matches;;differences 0	10

@@ -2147,6 +2147,7 @@ void wr_show_stats(glb* g, int show_local_complex) {
   wr_printf("stat_lit_hash_match_found:  %15d\n",g->stat_lit_hash_match_found);
   wr_printf("stat_lit_hash_match_miss:   %15d\n",g->stat_lit_hash_match_miss); 
   wr_printf("stat_lit_hash_cut_ok:       %15d\n",g->stat_lit_hash_cut_ok); 
+  wr_printf("stat_dmi_tree_stopped:      %15d\n",g->stat_dmi_tree_stopped);
   wr_printf("stat_lit_strong_cut_ok:     %15d\n",g->stat_lit_strong_cut_ok); 
   if ((g->unit_propagate) || (g->unit_backsubsume)) {
     wr_printf("stat_up_cut:                %15d\n",g->stat_up_cut);

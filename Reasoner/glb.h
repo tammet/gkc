@@ -691,6 +691,10 @@ typedef struct glb {
   void* up_index;          // tables of unit propagation, or NULL
   int para_into_ordered;   // strategy key para_into_ordered: 1 the ordering test after the substitution also for paramodulation into the given clause
   void* dmi_index;         // index of the demodulators of hash_rewrite_terms, NULL, or 1 after a failed allocation
+  int rewrite_guard;       // 1: wr_rewrite_term does not use a demodulator that matches by a renaming
+  gptr rewrite_self;       // a clause that wr_rewrite_term does not use as a demodulator, or NULL
+  int ti_selftest;          // strategy key ti_selftest: 1 the self test of the term index on the input, then stop
+  int stat_dmi_tree_stopped; // the tree of the demodulators stopped: 1 no memory or too many variables in an insert, 2 no memory in a lookup, 3 unify settings
 } glb;
 
 

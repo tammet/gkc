@@ -34,7 +34,7 @@ ${CC} -Wall -Wmissing-field-initializers -Wno-unused-variable -O2 \
   cjson/cjson.c \
   Reasoner/build.c Reasoner/arithinst.c Reasoner/clstore.c Reasoner/clterm.c Reasoner/derive.c  \
   Reasoner/glb.c  Reasoner/mem.c  \
-  Reasoner/printerrutils.c  Reasoner/rgenloop.c  Reasoner/rmain.c  Reasoner/subsume.c  Reasoner/unify.c \
+  Reasoner/printerrutils.c  Reasoner/rgenloop.c  Reasoner/rmain.c  Reasoner/subsume.c  Reasoner/termindex.c  Reasoner/unify.c \
   Reasoner/resolve.c Reasoner/simp.c Reasoner/strat.c Reasoner/rewrite.c Reasoner/history.c \
   Reasoner/prob.c Reasoner/hash.c \
   Reasoner/clmeta.c Reasoner/guide.c  Reasoner/propagate.c Reasoner/init.c \

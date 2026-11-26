@@ -203,6 +203,20 @@ clause does today. `0` or a missing key keeps today's behaviour, where
 this direction tests the ordering only before the unification. The key
 has no effect with `query_focus`, where the ordering is off.
 
+### `ti_selftest` (test only)
+
+`1`: gkc tests its term index (the perfect discrimination tree of
+Reasoner/termindex.c) on the input clauses and stops before the search.
+Every positive unit equation `l = r` of the input stores `l`; every unit
+clause `ti_query(T,E)` asks for the rewrite of `T` by the last stored
+equation whose left side matches `T`, and `E` is the expected result (the
+constant `none`: no match). For every subterm of the input, the test also
+compares the matches of the tree with a plain match against every stored
+left side. The last line of the output is `TI_TEST result: queries N
+wrong W plain_matches P differences D`. The test files are in
+Test/termindex/; `Test/termindex/selftest.sh` runs the test on any input
+files. `0` or a missing key: no test.
+
 ### `unit_propagate` (experimental)
 
 Unit propagation: when gkc keeps a unit clause, it cuts the stored clauses

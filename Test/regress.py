@@ -19,6 +19,10 @@ For every proof the script checks that the proof output is complete:
   least one clause between them;
 * JSON output (-json): valid JSON with a non-empty proof for each answer.
 
+The case kind "output:T1;;T2" needs every text Ti in the output and no
+error text; the self tests of the term index (Test/termindex/, strategy
+key ti_selftest) use it.
+
 The case kind "kbcheck" builds a shared KB with -readkb, computes a sha256
 checksum of the shared memory segment, runs the query with -usekb, computes
 the checksum again and deletes the segment. The two checksums must be equal.
@@ -257,6 +261,11 @@ def run_case(binary, case):
     m = pat.search(out)
     if m:
       return False, f"error text in output: {m.group(0)!r} (class {got})", secs
+  if exp.startswith("output:"):
+    for text in exp[len("output:"):].split(";;"):
+      if text not in out:
+        return False, f"text {text!r} not in output", secs
+    return True, "", secs
   if exp == "noproof":
     if got != "noproof":
       return False, f"expected noproof, got {got} (rc {rc})", secs

@@ -59,6 +59,7 @@
 #include "derive.h"
 #include "simp.h"
 #include "strat.h"
+#include "termindex.h"
 #include "rewrite.h"
 #include "resolve.h"
 #include "rgenloop.h"
