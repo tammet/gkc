@@ -229,11 +229,14 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr, int s
       (g->max_run_seconds)=json_valueint(elem);
 
       // TESTING: commented out. NORMALLY: active
-      if ((g->max_run_seconds) && (g->max_run_seconds)<2) {
-        (g->use_strong_unit_cutoff)=1;
-      } else {
-        (g->use_strong_unit_cutoff)=0;
-      }      
+      if ((g->strong_cut_strat)<0) {
+        // the rule of the strong cut when the key strong_cut is absent
+        if ((g->max_run_seconds) && (g->max_run_seconds)<2) {
+          (g->use_strong_unit_cutoff)=1;
+        } else {
+          (g->use_strong_unit_cutoff)=0;
+        }
+      }
 
       //(g->use_strong_unit_cutoff)=1;
 
@@ -248,11 +251,14 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr, int s
       //(g->max_run_dseconds)=150;
 
       // TESTING: commented out. NORMALLY: active
-      if ((g->max_run_dseconds) && (g->max_run_dseconds)<20) {
-        (g->use_strong_unit_cutoff)=1;
-      } else {
-        (g->use_strong_unit_cutoff)=0;
-      }      
+      if ((g->strong_cut_strat)<0) {
+        // the rule of the strong cut when the key strong_cut is absent
+        if ((g->max_run_dseconds) && (g->max_run_dseconds)<20) {
+          (g->use_strong_unit_cutoff)=1;
+        } else {
+          (g->use_strong_unit_cutoff)=0;
+        }
+      }
 
       //(g->use_strong_unit_cutoff)=1;
 
@@ -262,6 +268,10 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr, int s
     } else if (!strcmp(key,"queue_weight_bound")) {
       // experimental: with queue_weight_limit, a lower bound before the build
       (g->queue_weight_bound)=json_valueint(elem);
+    } else if (!strcmp(key,"strong_cut")) {
+      // 0: no strong cut, 1: strong cut; absent: the rule of max_seconds and max_dseconds
+      (g->strong_cut_strat)=(json_valueint(elem) ? 1 : 0);
+      (g->use_strong_unit_cutoff)=(g->strong_cut_strat);
     } else if (!strcmp(key,"queue_weight_limit")) {
       // experimental: drop a new clause that its queue block would not reach
       (g->queue_weight_limit)=json_valueint(elem);

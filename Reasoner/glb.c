@@ -259,6 +259,7 @@ int wr_glb_init_simple(glb* g) {
   (g->use_rewrite_terms_strat)=1; // general strategy // NORMAL 1
   (g->have_rewrite_terms)=0; // do we actually have rewrite terms
   (g->use_strong_unit_cutoff)=0; // if 1, then cut off also with unification, not just with hash equality
+  (g->strong_cut_strat)=-1; // strategy key strong_cut: -1 absent, 0 off, 1 on
   (g->use_strong_duplicates)=0; // iff 1, then additional unique var based duplicate removal used
   (g->prohibit_nested_para)=0; // iff 1, paramodulation derivations cannot be directly nested
   (g->prohibit_unordered_para)=0; // iff 1, paramodulate only from ordered equalities

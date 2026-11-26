@@ -388,6 +388,7 @@ typedef struct glb {
   int use_rewrite_terms_strat; // general strategy
   int have_rewrite_terms; // observation  
   int use_strong_unit_cutoff; 
+  int strong_cut_strat; // strategy key strong_cut: -1 absent (the rule of max_seconds and max_dseconds), 0 off, 1 on
   int use_strong_duplicates; // iff 1, then unique var based duplicate removal
   int prohibit_nested_para;  
   int prohibit_unordered_para;

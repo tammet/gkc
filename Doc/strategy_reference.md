@@ -172,6 +172,15 @@ comparisons, because those keys make the search time dependent.
 ./gkc problem.p -parallel 0 -strategytext '{"strategy":["unit"],"query_preference":0,"max_given":5000}'
 ```
 
+### `strong_cut`
+
+`1` switches the strong unit cut on and `0` switches it off. The strong
+cut removes a literal of a derived clause when a stored unit clause of the
+opposite sign matches it (or unifies with it, when the clause has at most
+one literal with variables). A missing key means the rule of gkc: the cut
+is on when `max_seconds` is under 2 or `max_dseconds` is under 20, as in
+the first two iterations of the automatic mode.
+
 ### `queue_weight_limit` (experimental)
 
 Drops a new clause that the coming picks of its queue block would not
