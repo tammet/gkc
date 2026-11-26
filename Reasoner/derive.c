@@ -1927,11 +1927,19 @@ gint wr_add_cl_to_doublehash_h(glb* g, gptr cl, gint* lithash) {
   //printf("\nlen %d wg_rec_is_rule_clause %d\n",len,wg_rec_is_rule_clause(db,cl));
 
   if (len==2) { //} && wg_atom_meta_is_ground(db,clmeta)) { //} && wg_rec_is_rule_clause(db,cl)) {
+#ifdef USE_LIT_HASH64
+    gint ph[2];   // literal hashes and signs for the pair table
+    int pneg[2];
+#endif
     for(pos=0; pos<2; pos++) {     
       xatom=rotp(g,wg_get_rule_clause_atom(db,cl,pos));
       litmeta=wg_get_rule_clause_atom_meta(db,cl,pos);
       if (lithash) hash=lithash[pos];
       else hash=wr_lit_hash(g,rpto(g,xatom));
+#ifdef USE_LIT_HASH64
+      ph[pos]=hash;
+      pneg[pos]=wg_atom_meta_is_neg(db,litmeta);
+#endif
       //printf("\nhash for storing is %d\n",(int)hash);
       if (wg_atom_meta_is_neg(db,litmeta)) {
         //printf("\nneg\n");
@@ -1961,6 +1969,9 @@ gint wr_add_cl_to_doublehash_h(glb* g, gptr cl, gint* lithash) {
     wr_print_termhash(g,rotp(g,g->shared_hash_pos_grounddoubles));   
     //wr_clterm_hashlist_print(g,rotp(g,g->hash_pos_grounddoubles));
 #endif    
+#endif
+#ifdef USE_LIT_HASH64
+    wr_push_doublepair(g,cl,ph[0],pneg[0],ph[1],pneg[1]);
 #endif
     // for pushed units return hash of the unit
     return hash;

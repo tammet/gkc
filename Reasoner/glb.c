@@ -622,6 +622,14 @@ int wr_glb_init_shared_complex(glb* g) {
   (g->hash_neg_grounddoubles)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS));
   //wr_vec_zero(rotp(g,g->hash_neg_grounddoubles)); 
   (g->hash_pos_grounddoubles)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS));
+#ifdef USE_LIT_HASH64
+  // not in a KB: the double cut reads only the tables of the run
+  if (g->inkb) (g->hash_doublepairs)=(gint)NULL;
+  else (g->hash_doublepairs)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS));
+#else
+  (g->hash_doublepairs)=(gint)NULL;
+#endif
+  (g->doublepair_seq)=0;
   //wr_vec_zero(rotp(g,g->hash_pos_grounddoubles)); 
   
   (g->hash_neg_active_groundunits)=rpto(g,wr_vec_new_zero(g,NROF_ACTIVE_UNIT_HASHVEC_ELS));
@@ -1171,6 +1179,8 @@ int wr_glb_free_shared_complex(glb* g) {
   wr_free_termhash(g,rotp(g,g->hash_pos_groundunits));
   wr_free_termhash(g,rotp(g,g->hash_neg_groundunits));
   wr_free_termhash(g,rotp(g,g->hash_pos_grounddoubles));
+  if (g->hash_doublepairs) wr_free_termhash(g,rotp(g,g->hash_doublepairs));
+  (g->hash_doublepairs)=(gint)NULL;
   wr_free_termhash(g,rotp(g,g->hash_neg_grounddoubles));
 
   wr_free_termhash(g,rotp(g,g->hash_pos_active_groundunits));

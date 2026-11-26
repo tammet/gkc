@@ -924,6 +924,172 @@ int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucke
 
 */
 
+#ifdef USE_LIT_HASH64
+
+/* the bucket walk of wr_atom_doublecut_h for a bucket that is at hand */
+
+static int wr_atom_doublecut_bucket(glb* g, gint xatom, gint xatommeta, gptr xcl, int pos,
+                                    cvec* foundbucket, gptr bucket_asp) {
+  int j;
+
+  for(j=2;j<bucket_asp[0] && j<bucket_asp[1]; j=j+2) {
+    if (wr_atom_doublecut_aux(g,xatom,xatommeta,xcl,pos,rotp(g,bucket_asp[j+1]))) {
+      *foundbucket=rotp(g,bucket_asp[j+1]);
+      return 1;
+    }
+  }
+  return 0;
+}
+
+/*
+  The pair table of the double cut (hash_doublepairs). A two-literal clause
+  Y = {P, Q} has two keys: (P, Q) and (Q, P), where the first literal is the
+  one complementary to the literal that a double cut removes and the second
+  one must occur in the clause that is cut. An entry holds the key, Y and
+  the insertion number of Y. The full check wr_atom_doublecut_aux confirms
+  each candidate, and the candidates are checked in the order of their
+  insertion, which is the order of the bucket walk of wr_atom_doublecut_h:
+  so the same partner is found.
+*/
+
+#define DOUBLEPAIR_BUCKETSIZE 6
+#define DOUBLEPAIR_MAXCAND 64
+
+static uint64_t wr_doublepair_key(gint hc, int negc, gint hm, int negm) {
+  uint64_t a=(((uint64_t)hc)<<1)|(negc ? 1 : 0);
+  uint64_t b=(((uint64_t)hm)<<1)|(negm ? 1 : 0);
+  uint64_t k=(a*UINT64_C(0x9E3779B97F4A7C15))^(b*UINT64_C(0xC2B2AE3D27D4EB4F)+(a<<6)+(a>>2));
+  k^=k>>31;
+  k*=UINT64_C(0xBF58476D1CE4E5B9);
+  k^=k>>29;
+  return k;
+}
+
+static void wr_push_doublepair_key(glb* g, gint* hasharr, uint64_t key, gptr cl, gint seq) {
+  gint idx, bucket, nbucket;
+  cvec vec;
+
+  idx=1+(gint)(key%(uint64_t)(hasharr[0]-1));
+  bucket=hasharr[idx];
+  if (!bucket) {
+    vec=wr_cvec_new(g,DOUBLEPAIR_BUCKETSIZE);
+    if (vec==NULL) { (g->alloc_err)=1; return; }
+    bucket=rpto(g,vec);
+    hasharr[idx]=bucket;
+  }
+  vec=wr_cvec_push(g,rotp(g,bucket),(gint)key);
+  if (vec!=NULL) vec=wr_cvec_push(g,vec,rpto(g,cl));
+  if (vec!=NULL) vec=wr_cvec_push(g,vec,seq);
+  if (vec==NULL) { (g->alloc_err)=1; return; }
+  nbucket=rpto(g,vec);
+  if (nbucket!=bucket) hasharr[idx]=nbucket;
+}
+
+/* insert the two-literal clause cl with the literal hashes h0, h1 */
+
+void wr_push_doublepair(glb* g, gptr cl, gint h0, int neg0, gint h1, int neg1) {
+  gint* hasharr;
+  gint seq;
+
+  if (!(g->hash_doublepairs) || (g->inkb)) return;
+  hasharr=rotp(g,g->hash_doublepairs);
+  seq=(g->doublepair_seq)++;
+  wr_push_doublepair_key(g,hasharr,wr_doublepair_key(h0,neg0,h1,neg1),cl,seq);
+  wr_push_doublepair_key(g,hasharr,wr_doublepair_key(h1,neg1,h0,neg0),cl,seq);
+}
+
+/*
+  The double cut of the literal at position pos of xcl (len literals,
+  hashes: the literal hashes of xcl by position) through the pair table.
+  Returns 1 with *foundbucket set, 0 when no stored clause cuts it, and -1
+  when the table is missing or there are too many candidates: then the
+  caller walks the bucket of the atom.
+*/
+
+static int wr_atom_doublecut_pairs(glb* g, gint xatom, gint xatommeta, gptr xcl, int len, int pos,
+                                   gint* hashes, cvec* foundbucket) {
+  void* db=g->db;
+  gint* hasharr;
+  UNUSED(db);
+  gint candseq[DOUBLEPAIR_MAXCAND], candcl[DOUBLEPAIR_MAXCAND];
+  gint atom, bucket, ts, tc, lastseq;
+  gptr vec;
+  uint64_t key;
+  int j, k, n=0, negc;
+
+  if (!(g->hash_doublepairs)) return -1;
+  hasharr=rotp(g,g->hash_doublepairs);
+  negc=!wg_atom_meta_is_neg(db,xatommeta); // the stored literal has the other sign
+  for(j=0;j<len;j++) {
+    atom=wg_get_rule_clause_atom(db,xcl,j);
+    if (atom==xatom) continue; // as in the full check: not the cut atom itself
+    key=wr_doublepair_key(hashes[pos],negc,hashes[j],
+                          wg_atom_meta_is_neg(db,wg_get_rule_clause_atom_meta(db,xcl,j)));
+    bucket=hasharr[1+(gint)(key%(uint64_t)(hasharr[0]-1))];
+    if (!bucket) continue;
+    vec=rotp(g,bucket);
+    for(k=2;k<vec[1];k+=3) {
+      if (vec[k]!=(gint)key) continue;
+      if (n>=DOUBLEPAIR_MAXCAND) return -1;
+      candcl[n]=vec[k+1];
+      candseq[n]=vec[k+2];
+      n++;
+    }
+  }
+  // insertion sort by insertion number: the order of the bucket walk
+  for(j=1;j<n;j++) {
+    ts=candseq[j]; tc=candcl[j];
+    for(k=j-1; k>=0 && candseq[k]>ts; k--) { candseq[k+1]=candseq[k]; candcl[k+1]=candcl[k]; }
+    candseq[k+1]=ts; candcl[k+1]=tc;
+  }
+  lastseq=-1;
+  for(j=0;j<n;j++) {
+    if (candseq[j]==lastseq) continue; // the same clause found by two probes
+    lastseq=candseq[j];
+    if (wr_atom_doublecut_aux(g,xatom,xatommeta,xcl,pos,rotp(g,candcl[j]))) {
+      *foundbucket=rotp(g,candcl[j]);
+      return 1;
+    }
+  }
+  return 0;
+}
+
+#endif
+
+/*
+  The double cut of the literal at position pos of xcl (len literals) with
+  the literal hash hash of xatom. hashes: the literal hashes of xcl by
+  position, or NULL. Every stored clause that the full check accepts is in
+  the bucket of xatom, so an empty bucket gives 0. A bucket with more
+  entries than DOUBLEPAIR_MINENTRIES times the number of pair probes is
+  looked up in the pair table; the result is the same as the bucket walk of
+  wr_atom_doublecut_h.
+*/
+
+int wr_atom_doublecut_hp(glb* g, gint xatom, gint xatommeta, gptr xcl, int len, int pos,
+                         cvec* foundbucket, gint hash, gint* hashes) {
+#ifdef USE_LIT_HASH64
+  gint bucket;
+  gptr bucket_asp;
+  int res;
+
+  if (hashes && len<=DOUBLEPAIR_MAXLEN && (g->hash_doublepairs)) {
+    if (wg_atom_meta_is_neg(db,xatommeta))
+      bucket=wr_find_offset_termbucket(g,rotp(g,g->hash_pos_grounddoubles),rotp(g,xatom),hash);
+    else
+      bucket=wr_find_offset_termbucket(g,rotp(g,g->hash_neg_grounddoubles),rotp(g,xatom),hash);
+    if (!bucket) return 0;
+    bucket_asp=rotp(g,bucket);
+    if ((bucket_asp[1]-2)/2 > DOUBLEPAIR_MINENTRIES*(len-1)) {
+      res=wr_atom_doublecut_pairs(g,xatom,xatommeta,xcl,len,pos,hashes,foundbucket);
+      if (res>=0) return res;
+    }
+    return wr_atom_doublecut_bucket(g,xatom,xatommeta,xcl,pos,foundbucket,bucket_asp);
+  }
+#endif
+  return wr_atom_doublecut_h(g,xatom,xatommeta,xcl,pos,foundbucket,hash);
+}
+
 int wr_atom_doublecut(glb* g, gint xatom, gint xatommeta, gptr xcl, int pos, cvec* foundbucket) {
   return wr_atom_doublecut_h(g,xatom,xatommeta,xcl,pos,foundbucket,wr_lit_hash(g,xatom));
 }

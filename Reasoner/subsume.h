@@ -45,6 +45,11 @@ int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucke
 int wr_atom_doublecut(glb* g, gint xatom, gint xatommeta, gptr xcl, int pos, cvec* foundbucket);
 int wr_atom_doublecut_h(glb* g, gint xatom, gint xatommeta, gptr xcl, int pos,
                         cvec* foundbucket, gint hash);
+#define DOUBLEPAIR_MAXLEN 16 // longer clauses use the bucket walk of wr_atom_doublecut_h
+#define DOUBLEPAIR_MINENTRIES 2 // a bucket with more entries per pair probe uses the pair table
+void wr_push_doublepair(glb* g, gptr cl, gint h0, int neg0, gint h1, int neg1);
+int wr_atom_doublecut_hp(glb* g, gint xatom, gint xatommeta, gptr xcl, int len, int pos,
+                         cvec* foundbucket, gint hash, gint* hashes);
 int wr_atom_doublecut_aux(glb* g, gint xatom, gint xatommeta, gptr xcl, int pos, cvec bucket);
 int wr_derived_cl_strong_cut(glb* g, gptr rptr, int rpos, int prevcuts); 
 gptr strongly_cut_atom(glb* g, gint xatom, vec hashvec, int usematch);

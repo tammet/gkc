@@ -185,6 +185,8 @@ typedef struct glb {
 
   gint hash_neg_grounddoubles; /**< hash structure for cutting off with negative ground double clauses */
   gint hash_pos_grounddoubles; /**< hash structure for cutting off with positive ground double clauses */
+  gint hash_doublepairs; /**< two-literal clauses keyed by a pair of literals, for the double cut (64-bit hash builds) */
+  gint doublepair_seq;   /**< insertion number of the next two-literal clause in hash_doublepairs */
 
   gint hash_neg_active_groundunits; /**< hash structure for subsuming with negative ground unit clauses in active */
   gint hash_pos_active_groundunits; /**< hash structure for subsuming with positive ground unit clauses in active */

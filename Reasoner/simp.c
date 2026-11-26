@@ -56,6 +56,10 @@ extern "C" {
 
 
 gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
+#ifdef USE_LIT_HASH64
+  gint pairhashbuf[DOUBLEPAIR_MAXLEN]; // literal hashes of xcl for the pair table
+  int pairhashes_ready=0, k;
+#endif
   
   //void* db=g->db;
   gptr res;
@@ -242,6 +246,22 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
     //printf("\ntmp %d len %d\n",tmp,len);
     if (tmp==0 && !doublecut_found && len>1) {
       // attempt double cut
+#ifdef USE_LIT_HASH64
+      // the literal hashes of xcl for the pair table; the cut position uses
+      // the hash of yatom (it can be rewritten)
+      if (len<=DOUBLEPAIR_MAXLEN && (g->hash_doublepairs)) {
+        gint savedhash, yhash;
+        if (!pairhashes_ready) {
+          for(k=0;k<len;k++) pairhashbuf[k]=wr_lit_hash(g,wg_get_rule_clause_atom(db,xcl,k));
+          pairhashes_ready=1;
+        }
+        savedhash=pairhashbuf[i];
+        if (yatom!=wg_get_rule_clause_atom(db,xcl,i)) pairhashbuf[i]=wr_lit_hash(g,yatom);
+        yhash=pairhashbuf[i];
+        tmp2=wr_atom_doublecut_hp(g,yatom,xmeta,xcl,len,i,&foundbucket2,yhash,pairhashbuf);
+        pairhashbuf[i]=savedhash;
+      } else
+#endif
       tmp2=wr_atom_doublecut(g,yatom,xmeta,xcl,i,&foundbucket2); 
     } else {
       tmp2=2;
@@ -381,6 +401,10 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
 
 
 gptr wr_simplify_doublecut_cl(glb* g, gptr cl, gptr cl_metablock, gint* lithash) {
+#ifdef USE_LIT_HASH64
+  gint pairhashbuf[DOUBLEPAIR_MAXLEN]; // literal hashes of cl for the pair table
+  gint* pairhashes=NULL;
+#endif
   
   //void* db=g->db;
   gptr res;
@@ -431,12 +455,26 @@ gptr wr_simplify_doublecut_cl(glb* g, gptr cl, gptr cl_metablock, gint* lithash)
  
   // loop over literals, storing the results of cuts as we go
   xcl=cl;  
+#ifdef USE_LIT_HASH64
+  // the literal hashes for the pair table of the double cut
+  if (len<=DOUBLEPAIR_MAXLEN && (g->hash_doublepairs)) {
+    if (lithash) pairhashes=lithash;
+    else {
+      for(i=0;i<len;i++) pairhashbuf[i]=wr_lit_hash(g,wg_get_rule_clause_atom(db,xcl,i));
+      pairhashes=pairhashbuf;
+    }
+  }
+#endif
   for(i=0; i<len; i++) {    
     xmeta=wg_get_rule_clause_atom_meta(db,xcl,i);
     xatom=wg_get_rule_clause_atom(db,xcl,i);            
     yatom=xatom;
     if (!doublecut_found) {
       // attempt double cut; lithash: the literal hashes of cl by position, or NULL
+#ifdef USE_LIT_HASH64
+      if (pairhashes) tmp2=wr_atom_doublecut_hp(g,yatom,xmeta,xcl,len,i,&foundbucket2,pairhashes[i],pairhashes);
+      else
+#endif
       if (lithash) tmp2=wr_atom_doublecut_h(g,yatom,xmeta,xcl,i,&foundbucket2,lithash[i]);
       else tmp2=wr_atom_doublecut(g,yatom,xmeta,xcl,i,&foundbucket2); 
     } else {
