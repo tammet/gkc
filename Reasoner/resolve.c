@@ -1237,7 +1237,13 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
         
         //wr_process_paramodulate_result(g,yatom,ycl,xatom,xcl,cl_as_active,yterm,b,eqpath,eqleftflag); 
     
-        wr_process_paramodulate_result(g,yatom,ycl,xatom,xcl,cl_as_active,yterm,b,replpath,eqleftflag,0); // new part: commented out
+        // with the key para_into_ordered, the test after the substitution: no
+        // step when the replaced side is the smaller one (not with query_focus,
+        // where the ordering is off)
+        if (!(g->para_into_ordered) || (g->queryfocus_strat) ||
+            wr_order_eqterms(g,yterm,b,(g->varbanks))!=2) {
+          wr_process_paramodulate_result(g,yatom,ycl,xatom,xcl,cl_as_active,yterm,b,replpath,eqleftflag,0); // new part: commented out
+        }
 
         /*
         wr_process_paramodulate_result(g,xatom,xcl,0,ycl,cl_as_active,a,b,path,leftflag); 

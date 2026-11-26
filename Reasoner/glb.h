@@ -689,6 +689,7 @@ typedef struct glb {
   int stat_up_derived; // unit propagation: shorter clauses built
   int stat_up_backsubsumed; // unit propagation: clauses made unusable by backward subsumption
   void* up_index;          // tables of unit propagation, or NULL
+  int para_into_ordered;   // strategy key para_into_ordered: 1 the ordering test after the substitution also for paramodulation into the given clause
 } glb;
 
 

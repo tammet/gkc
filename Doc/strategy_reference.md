@@ -194,6 +194,15 @@ hit as equality under a renaming. `0` or a missing key keeps exact term
 equality; this is the default. The double cut and the tables of an
 attached KB keep the hash of today.
 
+### `para_into_ordered` (experimental)
+
+`1`: paramodulation with an equation of an active clause into the given
+clause is done only when the replaced side is not the smaller one in the
+term ordering after the unification, as paramodulation from the given
+clause does today. `0` or a missing key keeps today's behaviour, where
+this direction tests the ordering only before the unification. The key
+has no effect with `query_focus`, where the ordering is off.
+
 ### `unit_propagate` (experimental)
 
 Unit propagation: when gkc keeps a unit clause, it cuts the stored clauses

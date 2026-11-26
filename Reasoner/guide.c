@@ -268,6 +268,9 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr, int s
     } else if (!strcmp(key,"queue_weight_bound")) {
       // experimental: with queue_weight_limit, a lower bound before the build
       (g->queue_weight_bound)=json_valueint(elem);
+    } else if (!strcmp(key,"para_into_ordered")) {
+      // 1: paramodulation into the given clause also tests the ordering after the substitution
+      (g->para_into_ordered)=(json_valueint(elem) ? 1 : 0);
     } else if (!strcmp(key,"unit_propagate")) {
       // unit propagation: 0 off, 1 cut two-literal clauses, 2 cut all clauses
       (g->unit_propagate)=json_valueint(elem);

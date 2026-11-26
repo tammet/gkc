@@ -263,6 +263,7 @@ int wr_glb_init_simple(glb* g) {
   (g->unit_variant_hash)=0; // strategy key unit_variant_hash: 1 the unit tables use per-literal variable numbers
   (g->unit_propagate)=0; // strategy key unit_propagate: 0 off, 1 two-literal clauses, 2 all clauses
   (g->unit_backsubsume)=0; // strategy key unit_backsubsume: 1 backward subsumption by a kept unit
+  (g->para_into_ordered)=0; // strategy key para_into_ordered: 1 the ordering test after the substitution also into the given clause
   (g->use_strong_duplicates)=0; // iff 1, then additional unique var based duplicate removal used
   (g->prohibit_nested_para)=0; // iff 1, paramodulation derivations cannot be directly nested
   (g->prohibit_unordered_para)=0; // iff 1, paramodulate only from ordered equalities
