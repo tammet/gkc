@@ -110,6 +110,7 @@
    the slot children for it). Which kind a token is follows from its term
    (isvar), so the tokens of the three kinds need no tag bits. */
 #define TI_REC(n) (((uint64_t)(n))<<3)
+#define TI_TAG_IS_REC(t) (((t)&UINT64_C(7))==UINT64_C(0)) // a record token (a constant gint never has the low bits 000)
 #define TI_SL_LEVELS 12
 #define TI_MAXSLOTS NROF_VARSINBANK // a slot is a variable of the tree bank
 
@@ -143,6 +144,7 @@ typedef struct {
 typedef struct {
   gint payload;
   int32_t next;             // the next (older) entry of the same leaf, or -1
+  int32_t rank;             // the order of the lookups: the higher rank is preferred (default: the insert number)
   gint aux;                 // a second payload of the caller (the demodulators: the right side)
 } ti_entry;
 
@@ -165,7 +167,7 @@ struct ti_index_s {
   long qtreevars;            // variables of the tree bank found in a query term (a defect: expected 0)
   // the walk
   gptr vals; int32_t nb;     // the cells of the tree bank: slot k is variable k of the bank
-  gint* bestvals; int32_t bestnb, best;
+  gint* bestvals; int32_t bestnb, best, bestent; // best: the rank of the best entry so far, bestent: the entry
   int (*accept)(glb*, gint);
   int norenaming;
   int first, stop;           // first: the walk stops at the first accepted entry (stop set)
@@ -495,6 +497,8 @@ static int32_t ti_pool_add(ti_index* x, int32_t i, int32_t n) {
    rest of the prefix and everything below), and the rest of the term
    becomes the prefix of a new leaf. Returns the node of the entry, or -1. */
 
+#define TI_MAXE(a,r) { if ((r)>(a)) (a)=(r); }
+
 static int32_t ti_insert_c(ti_index* x, int32_t n, int32_t e) {
   int32_t cur=0, i=0, j, pl, po, m, nx, st;
   uint64_t t;
@@ -521,7 +525,7 @@ static int32_t ti_insert_c(ti_index* x, int32_t n, int32_t e) {
       if (!ti_add_child(x,cur,m,x->ptok[po+j],x->pslot[po+j])) return -1;
     }
     i+=x->nplen[cur];
-    x->nodes[cur].maxe=e;
+    TI_MAXE(x->nodes[cur].maxe,e);
     if (i>=n) return cur;
     t=x->toks[i];
     slot=isvar(x->terms[i]);
@@ -542,12 +546,18 @@ static int32_t ti_insert_c(ti_index* x, int32_t n, int32_t e) {
 }
 
 int ti_insert(glb* g, ti_index* x, gint term, gint payload, gint aux) {
+  return ti_insert_ranked(g,x,term,payload,aux,-1);
+}
+
+/* ti_insert with a rank for the lookups (rank -1: the insert number) */
+
+int ti_insert_ranked(glb* g, ti_index* x, gint term, gint payload, gint aux, int32_t rank) {
   int32_t n, i, cur, nx, e;
   uint64_t t;
   int slot;
   if (x->failed) return 0;
 #ifdef GKC_TI_TWIN_CHECK
-  if (x->twin) ti_insert(g,x->twin,term,payload,aux);
+  if (x->twin) ti_insert_ranked(g,x->twin,term,payload,aux,rank);
 #endif
   x->tnv=0;
   n=ti_tokens_aux(g,x,term,0,1);
@@ -559,11 +569,12 @@ int ti_insert(glb* g, ti_index* x, gint term, gint payload, gint aux) {
       x->ents=ne; x->ecap*=2;
     }
     e=x->ecnt;
-    cur=ti_insert_c(x,n,e);
+    cur=ti_insert_c(x,n,(rank<0 ? e : rank));
     if (cur<0) { x->failed=1; return 0; }
     x->ecnt++;
     x->ents[e].payload=payload;
     x->ents[e].aux=aux;
+    x->ents[e].rank=(rank<0 ? e : rank);
     x->ents[e].next=x->nodes[cur].entries;
     x->nodes[cur].entries=e;
     return 1;
@@ -585,17 +596,19 @@ int ti_insert(glb* g, ti_index* x, gint term, gint payload, gint aux) {
     x->ents=ne; x->ecap*=2;
   }
   e=x->ecnt++;
+  if (rank<0) rank=e;
   x->ents[e].payload=payload;
   x->ents[e].aux=aux;
+  x->ents[e].rank=rank;
   x->ents[e].next=x->nodes[cur].entries;
   x->nodes[cur].entries=e;
-  // the greatest entry number below each node of the path
+  // the greatest rank below each node of the path
   cur=0;
-  x->nodes[0].maxe=e;
+  TI_MAXE(x->nodes[0].maxe,rank);
   for(i=0;i<n;i++) {
     t=x->toks[i];
     cur=isvar(x->terms[i]) ? ti_vchild(x,cur,t) : ti_child(x,cur,t);
-    x->nodes[cur].maxe=e;
+    TI_MAXE(x->nodes[cur].maxe,rank);
   }
   return 1;
 }
@@ -620,10 +633,11 @@ static void ti_leaf(glb* g, ti_index* x, int32_t node) {
       (x->visit)(g,x->visitctx,x->ents[e].payload,x->nb,x->vals);
       continue;
     }
-    if (!(x->first) && e<=x->best) return; // the entries of a leaf are newest first
+    if (!(x->first) && x->ents[e].rank<=x->best) return; // the entries of a leaf are in falling rank
     if (x->norenaming && ti_is_renaming(x)) continue;
     if (x->accept && !(x->accept)(g,x->ents[e].payload)) continue;
-    x->best=e;
+    x->best=x->ents[e].rank;
+    x->bestent=e;
     memcpy(x->bestvals,x->vals,sizeof(gint)*(x->nb));
     x->bestnb=x->nb;
     if (x->first) x->stop=1;
@@ -719,22 +733,22 @@ int ti_match_best(glb* g, ti_index* x, int32_t start, int32_t end,
                   int (*accept)(glb*, gint), int norenaming,
                   gint* payload, gint* aux, int32_t* nv, gint** vals) {
   if (x->ecnt==0) return 0;
-  x->nb=0; x->best=-1; x->bestnb=0;
+  x->nb=0; x->best=-1; x->bestent=-1; x->bestnb=0;
   x->accept=accept; x->norenaming=norenaming; x->visit=NULL;
   x->first=0; x->stop=0;
   ti_walk(g,x,0,start,end);
 #ifdef GKC_TI_TWIN_CHECK
   if (x->twin) {
-    gint tp=0, ta, *tv; int32_t tn=0, k; int tr, r=(x->best>=0);
+    gint tp=0, ta, *tv; int32_t tn=0, k; int tr, r=(x->bestent>=0);
     tr=ti_match_best_ext(g,x->twin,x->toks,x->skip,x->terms,start,end,accept,norenaming,&tp,&ta,&tn,&tv);
     twin_lookups++;
-    if (tr!=r || (r && (tp!=x->ents[x->best].payload || tn!=x->bestnb))) twin_diff++;
+    if (tr!=r || (r && (tp!=x->ents[x->bestent].payload || tn!=x->bestnb))) twin_diff++;
     else if (r) { for(k=0;k<tn;k++) if (!ti_eq(g,tv[k],x->bestvals[k])) { twin_diff++; break; } }
   }
 #endif
-  if (x->best<0) return 0;
-  *payload=x->ents[x->best].payload;
-  *aux=x->ents[x->best].aux;
+  if (x->bestent<0) return 0;
+  *payload=x->ents[x->bestent].payload;
+  *aux=x->ents[x->bestent].aux;
   *nv=x->bestnb;
   *vals=x->bestvals;
   return 1;
@@ -750,25 +764,25 @@ int ti_match_best(glb* g, ti_index* x, int32_t start, int32_t end,
 int ti_match_first(glb* g, ti_index* x, int32_t start, int32_t end,
                    int (*accept)(glb*, gint), gint* payload) {
   if (x->ecnt==0) return 0;
-  x->nb=0; x->best=-1; x->bestnb=0;
+  x->nb=0; x->best=-1; x->bestent=-1; x->bestnb=0;
   x->accept=accept; x->norenaming=0; x->visit=NULL;
   x->first=1; x->stop=0;
   ti_walk(g,x,0,start,end);
   x->first=0; x->stop=0;
 #ifdef GKC_TI_TWIN_CHECK
   if (x->twin) {
-    gint tp=0; int tr, r=(x->best>=0);
+    gint tp=0; int tr, r=(x->bestent>=0);
     uint64_t* st=x->twin->toks; int32_t* ss=x->twin->skip; gint* sm=x->twin->terms;
     x->twin->toks=x->toks; x->twin->skip=x->skip; x->twin->terms=x->terms;
     tr=ti_match_first(g,x->twin,start,end,accept,&tp);
     x->twin->toks=st; x->twin->skip=ss; x->twin->terms=sm;
     twin_first++;
     if (tr!=r) twin_first_diff++; // a match in one form only
-    else if (r && tp!=x->ents[x->best].payload) twin_first_other++; // another matching entry first
+    else if (r && tp!=x->ents[x->bestent].payload) twin_first_other++; // another matching entry first
   }
 #endif
-  if (x->best<0) return 0;
-  *payload=x->ents[x->best].payload;
+  if (x->bestent<0) return 0;
+  *payload=x->ents[x->bestent].payload;
   return 1;
 }
 
@@ -845,7 +859,7 @@ gint ti_rename_copy(glb* g, gint t, gint* vars, int32_t nv, gint first, gptr buf
    (the cells of the tree bank, bound at that moment) */
 
 void ti_match_all(glb* g, ti_index* x, int32_t start, int32_t end, ti_visit_fn visit, void* ctx) {
-  x->nb=0; x->best=-1; x->first=0; x->stop=0;
+  x->nb=0; x->best=-1; x->bestent=-1; x->first=0; x->stop=0;
   x->visit=visit; x->visitctx=ctx;
   ti_walk(g,x,0,start,end);
   x->visit=NULL;
@@ -854,6 +868,93 @@ void ti_match_all(glb* g, ti_index* x, int32_t start, int32_t end, ti_visit_fn v
 /* 0: the tree works; 1: a failed allocation or too many variables */
 
 int ti_failed(ti_index* x) { return x->failed; }
+
+/* ---- candidates for unification or matching (the uncompressed form) ----
+
+  A walk that binds nothing and visits every stored term that can unify
+  with (unify 1) or match (unify 0) the query subterm, and more: a slot of
+  a stored term takes any query subterm, and with unify a variable of the
+  query takes any one stored term (the walk skips one complete stored term
+  below the node, by the arity tokens). The caller tests each candidate
+  with wr_unify_term or wr_match_term. */
+
+static void ti_cand_walk(glb* g, ti_index* x, int32_t node, int32_t i, int32_t end, int unify);
+
+/* from node, skip rem more complete stored terms, then go on at token i of the query */
+
+static void ti_cand_skip(glb* g, ti_index* x, int32_t node, int32_t rem, int32_t i, int32_t end, int unify) {
+  int32_t c, r, k, m;
+  ti_xnode* e;
+  uint64_t t;
+  // the slot children: one whole term each
+  for(c=x->nodes[node].vchild; c>=0; c=x->nodes[c].vsib) {
+    if (rem==1) ti_cand_walk(g,x,c,i,end,unify);
+    else ti_cand_skip(g,x,c,rem-1,i,end,unify);
+  }
+  // the children with a record or constant token
+  for(k=-1;;k++) {
+    if (k==-1) c=x->nodes[node].child;
+    else {
+      if (x->nodes[node].ext<0) break;
+      e=&(x->xnodes[x->nodes[node].ext]);
+      m=((e->nk<TI_INLINE) ? e->nk : TI_INLINE)-1;
+      if (k>=m) break;
+      c=e->k[k];
+    }
+    if (c<0) break;
+    t=x->nodes[c].tok;
+    r=rem-1+((TI_TAG_IS_REC(t)) ? (int32_t)(t>>3) : 0);
+    if (r==0) ti_cand_walk(g,x,c,i,end,unify);
+    else ti_cand_skip(g,x,c,r,i,end,unify);
+  }
+  if (x->nodes[node].ext>=0 && x->xnodes[x->nodes[node].ext].sl>=0) {
+    int32_t cur=x->sln[x->xnodes[x->nodes[node].ext].sl].next[0];
+    while(cur>=0) {
+      c=x->sln[cur].child;
+      t=x->nodes[c].tok;
+      r=rem-1+((TI_TAG_IS_REC(t)) ? (int32_t)(t>>3) : 0);
+      if (r==0) ti_cand_walk(g,x,c,i,end,unify);
+      else ti_cand_skip(g,x,c,r,i,end,unify);
+      cur=x->sln[cur].next[0];
+    }
+  }
+}
+
+static void ti_cand_walk(glb* g, ti_index* x, int32_t node, int32_t i, int32_t end, int unify) {
+  int32_t c, e;
+  gint q;
+  (x->steps)++;
+  if (i>=end) {
+    for(e=x->nodes[node].entries; e>=0; e=x->ents[e].next)
+      (x->visit)(g,x->visitctx,x->ents[e].payload,0,NULL);
+    return;
+  }
+  q=x->terms[i];
+  if (isvar(q) && unify) {
+    // a variable of the query: any one stored term (the slot children included)
+    ti_cand_skip(g,x,node,1,x->skip[i],end,unify);
+    return;
+  }
+  if (!isvar(q)) {
+    c=ti_child(x,node,x->toks[i]);
+    if (c>=0) ti_cand_walk(g,x,c,i+1,end,unify);
+  }
+  for(c=x->nodes[node].vchild; c>=0; c=x->nodes[c].vsib) ti_cand_walk(g,x,c,x->skip[i],end,unify);
+}
+
+/* visit the candidates of the query at tokens [start,end) of the last ti_tokens */
+
+void ti_candidates(glb* g, ti_index* x, int32_t start, int32_t end, int unify, ti_visit_fn visit, void* ctx) {
+  int32_t e;
+  if (x->compress) {
+    // the walk is written for the uncompressed form: every entry is a candidate
+    for(e=0;e<x->ecnt;e++) visit(g,ctx,x->ents[e].payload,0,NULL);
+    return;
+  }
+  x->visit=visit; x->visitctx=ctx;
+  ti_cand_walk(g,x,0,start,end,unify);
+  x->visit=NULL;
+}
 
 /* ---- the self test (strategy key ti_selftest) ----
 
@@ -1028,6 +1129,71 @@ static void ti_test_store_atom(glb* g, ti_index* x, ti_test* t, gint a, int* ins
   (t->n)++;
 }
 
+/* mode 3: the query q renamed into bank 1, so that its variables are apart
+   from the variables of the stored atoms (in the input both are numbered
+   from 0 in each clause) */
+
+static gint ti_test_renamed(glb* g, gint q) {
+  gint vars[TI_MAXSLOTS];
+  int nv=ti_test_vars(g,q,vars,0);
+  return ti_rename_copy(g,q,vars,nv,1*NROF_VARSINBANK,g->queue_termbuf);
+}
+
+static void ti_test_cand_visit(glb* g, void* ctx, gint payload, int32_t nv, gint* vals) {
+  ti_test* t=(ti_test*)ctx;
+  UNUSED(g); UNUSED(nv); UNUSED(vals);
+  if (t->nfound>=t->fcap) {
+    t->fcap=(t->fcap)*2+16;
+    t->found=sys_realloc(t->found,sizeof(int)*t->fcap);
+    t->fvals=sys_realloc(t->fvals,sizeof(gint*)*t->fcap);
+  }
+  t->found[t->nfound++]=(int)payload;
+}
+
+/* does a stored atom unify with q: the candidates of the filter, each tested with wr_unify_term */
+
+static int ti_test_unify_any(glb* g, ti_index* x, ti_test* t, gint q) {
+  gint r=ti_test_renamed(g,q);
+  int32_t n, f, ok=0;
+  if (r==WG_ILLEGAL) return 0;
+  n=ti_tokens(g,x,r);
+  if (n<=0) return 0;
+  t->nfound=0;
+  ti_candidates(g,x,0,n,1,ti_test_cand_visit,t);
+  for(f=0;f<t->nfound && !ok;f++) {
+    wr_clear_varstack(g,g->varstack);
+    ok=wr_unify_term(g,r,t->lhs[t->found[f]],1);
+  }
+  wr_clear_varstack(g,g->varstack);
+  return ok;
+}
+
+/* mode 3: every stored atom that unifies with q must be a candidate of the filter */
+
+static void ti_test_compare_unify(glb* g, ti_index* x, ti_test* t, gint q) {
+  gint r=ti_test_renamed(g,q);
+  int32_t n, j, f;
+  int ok;
+  if (r==WG_ILLEGAL) return;
+  n=ti_tokens(g,x,r);
+  if (n<=0) return;
+  t->nfound=0;
+  ti_candidates(g,x,0,n,1,ti_test_cand_visit,t);
+  for(j=0;j<t->n;j++) {
+    wr_clear_varstack(g,g->varstack);
+    ok=wr_unify_term(g,r,t->lhs[j],1);
+    wr_clear_varstack(g,g->varstack);
+    (t->brute)++;
+    if (!ok) continue;
+    for(f=0;f<t->nfound;f++) if (t->found[f]==j) break;
+    if (f==t->nfound) {
+      TI_TEST_DIFF(t);
+      wr_printf("stored atom %d unifies with ",j); wr_print_term(g,q);
+      wr_printf(" but is not a candidate\n");
+    }
+  }
+}
+
 /* compare on every subterm of the term a */
 
 static void ti_test_subterms(glb* g, ti_index* x, ti_test* t, gint a) {
@@ -1038,7 +1204,10 @@ static void ti_test_subterms(glb* g, ti_index* x, ti_test* t, gint a) {
   // ti_tokens is overwritten by nothing in the compare, but keep a copy of the slices
   subs=sys_malloc(sizeof(gint)*n); ends=sys_malloc(sizeof(int32_t)*n);
   for(i=0;i<n;i++) { subs[i]=ti_token_term(x,i); ends[i]=ti_token_end(x,i); }
-  for(i=0;i<n;i++) ti_test_compare(g,x,t,subs[i],i,ends[i]);
+  for(i=0;i<n;i++) {
+    if ((g->ti_selftest)==3) ti_test_compare_unify(g,x,t,subs[i]);
+    else ti_test_compare(g,x,t,subs[i],i,ends[i]);
+  }
   sys_free(subs); sys_free(ends);
 }
 
@@ -1081,7 +1250,7 @@ void wr_ti_selftest(glb* g) {
           meta=wg_get_rule_clause_atom_meta(db,rec,i);
           if (wg_atom_meta_is_neg(db,meta)) {
             if (pass==2) ti_test_subterms(g,x,&t,atom);
-            else if (pass==0 && (g->ti_selftest)==2 && nat==1) ti_test_store_atom(g,x,&t,atom,&inserted);
+            else if (pass==0 && (g->ti_selftest)>=2 && nat==1) ti_test_store_atom(g,x,&t,atom,&inserted);
             continue;
           }
         } else {
@@ -1090,7 +1259,7 @@ void wr_ti_selftest(glb* g) {
         if (pass==2) { ti_test_subterms(g,x,&t,atom); continue; }
         if (nat!=1 || !isdatarec(atom)) continue;
         ap=decode_record(db,atom);
-        if (pass==0 && (g->ti_selftest)==2) {
+        if (pass==0 && (g->ti_selftest)>=2) {
           // mode 2: the atoms of the unit clauses (not the queries) are the stored terms
           if (wg_get_encoded_type(db,ap[RECORD_HEADER_GINTS+(g->unify_funpos)])!=WG_URITYPE ||
               strcmp(wg_decode_uri(db,ap[RECORD_HEADER_GINTS+(g->unify_funpos)]),"ti_query"))
@@ -1128,6 +1297,21 @@ void wr_ti_selftest(glb* g) {
           n=ti_tokens(g,x,q);
           wr_printf("TI_TEST query %d: ",queries);
           wr_print_term(g,q);
+          if ((g->ti_selftest)==3) {
+            // mode 3: a stored atom unifies with T (the candidates of the filter, each tested with wr_unify_term)
+            int found=ti_test_unify_any(g,x,&t,q);
+            str=(wg_get_encoded_type(db,e)==WG_URITYPE) ? wg_decode_uri(db,e) : NULL;
+            wr_printf(found ? " -> unifies" : " -> none");
+            if (str && ((found && !strcmp(str,"yes")) || (!found && !strcmp(str,"none")))) {
+              wr_printf(" ok\n");
+            } else {
+              wr_printf(" WRONG, expected ");
+              wr_print_term(g,e);
+              wr_printf("\n");
+              wrong++;
+            }
+            continue;
+          }
           if ((g->ti_selftest)==2) {
             // mode 2: any stored atom that matches (the first in the walk order); e is yes or none
             int found=(n>0 && ti_match_first(g,x,0,n,NULL,&payload));

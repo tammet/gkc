@@ -55,9 +55,9 @@ int wr_derived_cl_strong_cut(glb* g, gptr rptr, int rpos, int prevcuts);
 gptr strongly_cut_atom(glb* g, gint xatom, vec hashvec, int usematch);
 gptr strongly_cut_atom_lists(glb* g, gint xatom, vec hashvec, int usematch);
 
-/* the index of the units for the strong cut: 64-bit builds only; a 32-bit
+/* the strong cut on the trees of termindex.c: 64-bit builds only; a 32-bit
    build (wasm) and a build with -DGKC_NO_SCUT_INDEX use the lists */
-#if defined(__SIZEOF_POINTER__) && (__SIZEOF_POINTER__ == 8) && !defined(GKC_NO_SCUT_INDEX)
+#if defined(USE_TERM_INDEX) && !defined(GKC_NO_SCUT_INDEX)
 #define USE_SCUT_INDEX
 #endif
 #ifdef USE_SCUT_INDEX

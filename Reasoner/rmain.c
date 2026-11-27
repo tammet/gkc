@@ -2152,6 +2152,14 @@ void wr_show_stats(glb* g, int show_local_complex) {
   wr_printf("stat_lit_hash_match_miss:   %15d\n",g->stat_lit_hash_match_miss); 
   wr_printf("stat_lit_hash_cut_ok:       %15d\n",g->stat_lit_hash_cut_ok); 
   wr_printf("stat_dmi_tree_stopped:      %15d\n",g->stat_dmi_tree_stopped);
+  if ((g->stat_sci_match_lookups) || (g->stat_sci_unify_lookups)) {
+    wr_printf("stat_sci_match_lookups:       %13ld\n",g->stat_sci_match_lookups);
+    wr_printf("stat_sci_match_found:         %13ld\n",g->stat_sci_match_found);
+    wr_printf("stat_sci_unify_lookups:       %13ld\n",g->stat_sci_unify_lookups);
+    wr_printf("stat_sci_unify_cands:         %13ld\n",g->stat_sci_unify_cands);
+    wr_printf("stat_sci_unify_tests:         %13ld\n",g->stat_sci_unify_tests);
+    wr_printf("stat_sci_unify_ok:            %13ld\n",g->stat_sci_unify_ok);
+  }
   if ((g->unit_cut_match) || (g->unit_subsume_match)) {
     wr_printf("stat_ucm_cut:                 %13ld\n",g->stat_ucm_cut);
     wr_printf("stat_usm_subsumed:            %13ld\n",g->stat_usm_subsumed);

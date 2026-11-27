@@ -34,8 +34,14 @@ t8_compress.p tests the compressed form of the tree (strategy key
 token, a node split more than once, a repeated variable in a prefix. Every
 file runs on both forms (regress cases `ti_c_*` for the compressed form).
 
+t9_unify.p is the self test with `ti_selftest` 3: the candidates for
+unification that the strong cut uses (a query variable against a stored
+constant and a stored variable, a repeated query variable, an occurs
+check), each tested with `wr_unify_term`; every stored atom that unifies
+with a subterm of the input must be a candidate.
+
 `selftest.sh` runs the self test on any input files:
 
-    Test/termindex/selftest.sh [-b path/gkc] [-c] file...
+    Test/termindex/selftest.sh [-b path/gkc] [-c] [-m 2|3] file...
 
 `-c` tests the compressed form.

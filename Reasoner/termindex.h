@@ -53,6 +53,7 @@ typedef struct {
 ti_index* ti_new(gptr cells, int compress);
 void ti_free(ti_index* x);
 int ti_insert(glb* g, ti_index* x, gint term, gint payload, gint aux);
+int ti_insert_ranked(glb* g, ti_index* x, gint term, gint payload, gint aux, int32_t rank);
 int32_t ti_last_vars(ti_index* x, gint** vars);
 int32_t ti_term_vars(glb* g, ti_index* x, gint term, gint** vars);
 void ti_token_arrays(ti_index* x, uint64_t** toks, int32_t** skip, gint** terms);
@@ -74,6 +75,7 @@ void ti_match_all(glb* g, ti_index* x, int32_t start, int32_t end, ti_visit_fn v
 int ti_match_first(glb* g, ti_index* x, int32_t start, int32_t end,
                    int (*accept)(glb*, gint), gint* payload);
 void ti_stats(ti_index* x, ti_stat* s);
+void ti_candidates(glb* g, ti_index* x, int32_t start, int32_t end, int unify, ti_visit_fn visit, void* ctx);
 #endif
 void wr_ti_selftest(glb* g);
 

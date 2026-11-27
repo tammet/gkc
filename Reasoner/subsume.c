@@ -1862,28 +1862,37 @@ static void sci_check_run_end(void) {
 }
 #endif
 
-typedef struct { uint64_t tok; int32_t parent, child, sibling, entries; } wr_sci_node;
-typedef struct { gint atom, cl; uint64_t order; int32_t next; } wr_sci_entry;
+/* The units of the strong cut in two trees of the module termindex.c (one
+   per sign, the uncompressed form), filled where the lists are filled,
+   only with the key strong_cut at 1 (the rule of the default runs keeps
+   the lists: the cheaper inserts of the lists gave the same time there).
+   Each entry is a unit (its atom and clause) with its place in the order of
+   the lists: the units with a shorter prefix first, the newest first.
+
+   Matching (usematch: the clause has more than one literal with
+   variables): the perfect walk of the module decides. The slots of a
+   stored unit are bound and compared in the walk, and the rank of an entry
+   is its place in the order of the lists, so the walk gives the first unit
+   of the lists that matches (ti_match_best).
+
+   Unification (at most one literal with variables): a filter. The module
+   gives the candidates (a walk that binds nothing: ti_candidates); they are
+   sorted in the order of the lists and get the test of the lists
+   (wr_unify_term with its occurs check), and the first that passes is the
+   cutter. */
+
+typedef struct { gint atom, cl; uint64_t order; } wr_sci_entry;
 typedef struct {
-  wr_sci_node* nodes; int32_t ncnt, ncap;
-  int32_t* edges; int32_t ecap, ecnt;      // open addressing over (parent, tok): node index or -1
+  ti_index* t[2];                          // the trees of the positive and the negative units
   wr_sci_entry* ents; int32_t encnt, encap;
-  uint64_t* toks; int32_t* skip; int32_t tcap; // tokens of one atom and the end of each subterm
   uint64_t* cand; int32_t ccnt, ccap;      // candidates: the order key of each
   int32_t* candent;                        // candidates: the entry of each
   uint64_t seq;
+  gint skipatom, skipcl;                   // a unit that the lookup leaves out (tested before with the bindings)
 } wr_sci_t;
 
-#define SCI_STAR UINT64_C(1)
-#define SCI_REC(n) ((((uint64_t)(n))<<2)|UINT64_C(3))
-#define SCI_ISREC(t) (((t)&UINT64_C(3))==UINT64_C(3))
-#define SCI_RECLEN(t) ((int32_t)((t)>>2))
 #define SCI_SEQMAX ((UINT64_C(1)<<48)-1)
-
-static uint64_t wr_sci_mix(uint64_t a, uint64_t b) {
-  uint64_t k=(a^(b+UINT64_C(0x9E3779B97F4A7C15)+(a<<6)+(a>>2)))*UINT64_C(0xBF58476D1CE4E5B9);
-  return k^(k>>31);
-}
+#define SCI_RANKMAX (1<<28)
 
 void wr_sci_free(glb* g) {
   wr_sci_t* x=(wr_sci_t*)(g->sci_index);
@@ -1892,11 +1901,9 @@ void wr_sci_free(glb* g) {
 #endif
   if (!x) return;
   if (x==(void*)1) { (g->sci_index)=NULL; return; }
-  if (x->nodes) sys_free(x->nodes);
-  if (x->edges) sys_free(x->edges);
+  if (x->t[0]) ti_free(x->t[0]);
+  if (x->t[1]) ti_free(x->t[1]);
   if (x->ents) sys_free(x->ents);
-  if (x->toks) sys_free(x->toks);
-  if (x->skip) sys_free(x->skip);
   if (x->cand) sys_free(x->cand);
   if (x->candent) sys_free(x->candent);
   sys_free(x);
@@ -1908,135 +1915,33 @@ static void wr_sci_fail(glb* g) {
   (g->sci_index)=(void*)1; // the lists answer for the rest of the run
 }
 
-/* the tokens of an atom into x->toks; x->skip[i] is the index after the
-   subterm that starts at i; returns the count of tokens or -1 */
-
-static int32_t wr_sci_tokens_aux(glb* g, wr_sci_t* x, gint t, int32_t n) {
-  gptr tp;
-  int i, start, end;
-  int32_t me;
-  if (n>=x->tcap) {
-    int32_t nc=x->tcap*2;
-    uint64_t* nt=sys_realloc(x->toks,sizeof(uint64_t)*nc);
-    int32_t* ns;
-    if (!nt) return -1;
-    x->toks=nt;
-    ns=sys_realloc(x->skip,sizeof(int32_t)*nc);
-    if (!ns) return -1;
-    x->skip=ns; x->tcap=nc;
-  }
-  me=n;
-  if (isvar(t)) {
-    x->toks[n]=SCI_STAR; x->skip[n]=n+1;
-    return n+1;
-  }
-  if (!isdatarec(t)) {
-    x->toks[n]=(wr_sci_mix((uint64_t)wr_term_basehash(g,t),UINT64_C(7))<<2)|UINT64_C(2);
-    x->skip[n]=n+1;
-    return n+1;
-  }
-  tp=decode_record(g->db,t);
-  start=wr_term_unify_startpos(g);
-  end=wr_term_unify_endpos(g,tp);
-  x->toks[n]=SCI_REC(end-start);
-  n++;
-  for(i=start;i<end;i++) {
-    n=wr_sci_tokens_aux(g,x,tp[i],n);
-    if (n<0) return -1;
-  }
-  x->skip[me]=n;
-  return n;
-}
-
-static int32_t wr_sci_edge_slot(wr_sci_t* x, int32_t parent, uint64_t tok) {
-  uint64_t h=wr_sci_mix((uint64_t)parent,tok);
-  int32_t i=(int32_t)(h&(uint64_t)(x->ecap-1));
-  int32_t e;
-  while((e=x->edges[i])>=0) {
-    if (x->nodes[e].parent==parent && x->nodes[e].tok==tok) return i;
-    i=(i+1)&(x->ecap-1);
-  }
-  return i;
-}
-
-static int32_t wr_sci_child(wr_sci_t* x, int32_t parent, uint64_t tok) {
-  return x->edges[wr_sci_edge_slot(x,parent,tok)];
-}
-
-static int wr_sci_grow_edges(wr_sci_t* x) {
-  int32_t* oe=x->edges; int32_t oc=x->ecap, i, j;
-  int32_t* ne=sys_malloc(sizeof(int32_t)*oc*2);
-  if (!ne) return 0;
-  for(i=0;i<oc*2;i++) ne[i]=-1;
-  x->edges=ne; x->ecap=oc*2;
-  for(i=0;i<oc;i++) if (oe[i]>=0) {
-    j=wr_sci_edge_slot(x,x->nodes[oe[i]].parent,x->nodes[oe[i]].tok);
-    ne[j]=oe[i];
-  }
-  sys_free(oe);
-  return 1;
-}
-
 static wr_sci_t* wr_sci_make(glb* g) {
   wr_sci_t* x=sys_malloc(sizeof(wr_sci_t));
-  int i;
   if (!x) return NULL;
   memset(x,0,sizeof(wr_sci_t));
-  (g->sci_index)=x;
-  x->ncap=1<<12; x->ecap=1<<13; x->encap=1<<11; x->tcap=1<<8; x->ccap=1<<8;
-  x->nodes=sys_malloc(sizeof(wr_sci_node)*x->ncap);
-  x->edges=sys_malloc(sizeof(int32_t)*x->ecap);
+  x->encap=1<<10; x->ccap=1<<8;
   x->ents=sys_malloc(sizeof(wr_sci_entry)*x->encap);
-  x->toks=sys_malloc(sizeof(uint64_t)*x->tcap);
-  x->skip=sys_malloc(sizeof(int32_t)*x->tcap);
   x->cand=sys_malloc(sizeof(uint64_t)*x->ccap);
   x->candent=sys_malloc(sizeof(int32_t)*x->ccap);
-  if (!x->nodes || !x->edges || !x->ents || !x->toks || !x->skip || !x->cand || !x->candent) return NULL;
-  for(i=0;i<x->ecap;i++) x->edges[i]=-1;
-  for(i=0;i<2;i++) { // roots: 0 positive units, 1 negative units
-    x->nodes[i].tok=0; x->nodes[i].parent=-1; x->nodes[i].child=-1;
-    x->nodes[i].sibling=-1; x->nodes[i].entries=-1;
-  }
-  x->ncnt=2;
+  x->t[0]=ti_new((g->varbanks)+TREE_VARBANK*NROF_VARSINBANK,0);
+  x->t[1]=ti_new((g->varbanks)+TREE_VARBANK*NROF_VARSINBANK,0);
+  (g->sci_index)=x;
+  if (!x->ents || !x->cand || !x->candent || !x->t[0] || !x->t[1]) return NULL;
   return x;
 }
 
-/* file the unit atom of cl (neg: a negative unit); preflen is its prefix
-   length from wr_atom_calc_prefhashes, as for the lists */
+/* file a unit of the lists: atom of the clause cl, its sign and its prefix length */
 
 void wr_sci_insert(glb* g, gint atom, gptr cl, int neg, int preflen) {
   wr_sci_t* x=(wr_sci_t*)(g->sci_index);
-  int32_t n, i, cur, nx, slot, e;
-  if (x==(void*)1) return;
+  int32_t e, rank;
   if ((g->strong_cut_strat)!=1) return; // the index only with the key strong_cut at 1
+  if (x==(void*)1 || (g->inkb)) return;
   if (preflen<1) return; // the lists do not file it either
   if (!(g->unify_samelen) || (g->unify_maxuseterms)) { wr_sci_fail(g); return; }
   if (!x) {
     x=wr_sci_make(g);
     if (!x) { wr_sci_fail(g); return; }
-  }
-  n=wr_sci_tokens_aux(g,x,atom,0);
-  if (n<0) { wr_sci_fail(g); return; }
-  cur=(neg ? 1 : 0);
-  for(i=0;i<n;i++) {
-    slot=wr_sci_edge_slot(x,cur,x->toks[i]);
-    nx=x->edges[slot];
-    if (nx<0) {
-      if (x->ncnt>=x->ncap) {
-        wr_sci_node* nn=sys_realloc(x->nodes,sizeof(wr_sci_node)*(x->ncap)*2);
-        if (!nn) { wr_sci_fail(g); return; }
-        x->nodes=nn; x->ncap*=2;
-      }
-      nx=x->ncnt++;
-      x->nodes[nx].tok=x->toks[i]; x->nodes[nx].parent=cur;
-      x->nodes[nx].child=-1; x->nodes[nx].entries=-1;
-      x->nodes[nx].sibling=x->nodes[cur].child;
-      x->nodes[cur].child=nx;
-      x->edges[slot]=nx;
-      (x->ecnt)++;
-      if (2*(x->ecnt)>x->ecap && !wr_sci_grow_edges(x)) { wr_sci_fail(g); return; }
-    }
-    cur=nx;
   }
   if (x->encnt>=x->encap) {
     wr_sci_entry* ne=sys_realloc(x->ents,sizeof(wr_sci_entry)*(x->encap)*2);
@@ -2044,64 +1949,34 @@ void wr_sci_insert(glb* g, gint atom, gptr cl, int neg, int preflen) {
     x->ents=ne; x->encap*=2;
   }
   e=x->encnt++;
+  if (e>=SCI_RANKMAX) { wr_sci_fail(g); return; }
   x->ents[e].atom=atom;
   x->ents[e].cl=pto(g->db,cl);
   (x->seq)++;
   // the lists test the units with a shorter prefix first, the newest first
   x->ents[e].order=(((uint64_t)(preflen-1))<<48)|(SCI_SEQMAX-((x->seq)&SCI_SEQMAX));
-  x->ents[e].next=x->nodes[cur].entries;
-  x->nodes[cur].entries=e;
+  // the same order as a rank of the tree (the higher rank first)
+  rank=((3-preflen)<<28)+e; // preflen 1 to 3, e below 2^28
+  if (!ti_insert_ranked(g,x->t[neg ? 1 : 0],atom,(gint)e,0,rank) || ti_failed(x->t[neg ? 1 : 0])) wr_sci_fail(g);
 }
 
-static int wr_sci_collect(wr_sci_t* x, int32_t node) {
-  int32_t e;
-  for(e=x->nodes[node].entries; e>=0; e=x->ents[e].next) {
-    if (x->ccnt>=x->ccap) {
-      int32_t nc=x->ccap*2;
-      uint64_t* c=sys_realloc(x->cand,sizeof(uint64_t)*nc);
-      int32_t* ce;
-      if (!c) return 0;
-      x->cand=c;
-      ce=sys_realloc(x->candent,sizeof(int32_t)*nc);
-      if (!ce) return 0;
-      x->candent=ce; x->ccap=nc;
-    }
-    x->cand[x->ccnt]=x->ents[e].order;
-    x->candent[x->ccnt]=e;
-    (x->ccnt)++;
+static void wr_sci_collect(glb* g, void* ctx, gint payload, int32_t nv, gint* vals) {
+  wr_sci_t* x=(wr_sci_t*)ctx;
+  int32_t e=(int32_t)payload;
+  UNUSED(g); UNUSED(nv); UNUSED(vals);
+  if (x->ccnt>=x->ccap) {
+    int32_t nc=x->ccap*2;
+    uint64_t* c=sys_realloc(x->cand,sizeof(uint64_t)*nc);
+    int32_t* ce;
+    if (!c) return;
+    x->cand=c;
+    ce=sys_realloc(x->candent,sizeof(int32_t)*nc);
+    if (!ce) return;
+    x->candent=ce; x->ccap=nc;
   }
-  return 1;
-}
-
-static int wr_sci_walk(wr_sci_t* x, int32_t node, int32_t i, int32_t n, int unify);
-
-/* from node, skip need more whole terms of the tree, then go on at i */
-
-static int wr_sci_skip(wr_sci_t* x, int32_t node, int32_t need, int32_t i, int32_t n) {
-  int32_t c, nd;
-  for(c=x->nodes[node].child; c>=0; c=x->nodes[c].sibling) {
-    nd=need-1+(SCI_ISREC(x->nodes[c].tok) ? SCI_RECLEN(x->nodes[c].tok) : 0);
-    if (nd==0) { if (!wr_sci_walk(x,c,i,n,1)) return 0; }
-    else if (!wr_sci_skip(x,c,nd,i,n)) return 0;
-  }
-  return 1;
-}
-
-static int wr_sci_walk(wr_sci_t* x, int32_t node, int32_t i, int32_t n, int unify) {
-  int32_t c;
-  uint64_t t;
-  if (i>=n) return wr_sci_collect(x,node);
-  t=x->toks[i];
-  if (t!=SCI_STAR) {
-    c=wr_sci_child(x,node,t);
-    if (c>=0 && !wr_sci_walk(x,c,i+1,n,unify)) return 0;
-  } else if (unify) {
-    // a variable of the literal: every whole term of the tree, the star included
-    return wr_sci_skip(x,node,1,i+1,n);
-  }
-  c=wr_sci_child(x,node,SCI_STAR);
-  if (c>=0 && !wr_sci_walk(x,c,x->skip[i],n,unify)) return 0;
-  return 1;
+  x->cand[x->ccnt]=x->ents[e].order;
+  x->candent[x->ccnt]=e;
+  (x->ccnt)++;
 }
 
 static int wr_sci_cmp(const void* a, const void* b) {
@@ -2147,49 +2022,80 @@ static gint wr_sci_lists_first(glb* g, gint xatom, vec hashvec) {
   return 0;
 }
 
+/* the perfect walk leaves out the unit that was tested before with the bindings */
+
+static wr_sci_t* sci_current=NULL;
+
+static int wr_sci_accept(glb* g, gint payload) {
+  wr_sci_t* x=sci_current;
+  UNUSED(g);
+  if (x->skipcl && x->ents[payload].atom==x->skipatom && x->ents[payload].cl==x->skipcl) return 0;
+  return 1;
+}
+
 /* the cutter of xatom among the units of one sign (neg: negative units,
    hashvec: their lists), or NULL; *used is 0 when the lists have to answer.
 
    The caller can leave bindings on the variable stack (in resolution the
    unifier of the parents). The lists test their first unit under these
-   bindings and clear the stack after it, so the later tests are without
-   them. The index does the same: with bindings on the stack it tests the
-   first unit of the lists first and leaves it out of the candidates. */
+   bindings and clear the stack after every test, so the later tests are
+   without them. The tree does the same: with bindings on the stack it
+   tests the first unit of the lists first and leaves it out of its walk,
+   and whenever the lists would test a unit it clears the stack at the
+   end. */
 
 gptr wr_sci_cut_atom(glb* g, gint xatom, int neg, int usematch, int* used, vec hashvec) {
   wr_sci_t* x=(wr_sci_t*)(g->sci_index);
   void* db=g->db;
+  ti_index* t;
   int32_t n, i;
-  gint yatom, fnode, skipatom=0, skipcl=0;
-  int ures, skip=0;
+  gint yatom, fnode, payload, aux, *vals;
+  int32_t nv;
+  int ures;
+  gptr res=NULL;
   *used=0;
   if (x==(void*)1) return NULL;
   *used=1;
   if (!x) return NULL; // no unit filed yet
+  t=x->t[neg ? 1 : 0];
+  x->skipatom=0; x->skipcl=0;
+  fnode=wr_sci_lists_first(g,xatom,hashvec);
+  if (!fnode) return NULL; // the lists test nothing; no unit of the tree can pass
   if (CVEC_NEXT(g->varstack)>2) {
-    fnode=wr_sci_lists_first(g,xatom,hashvec);
-    if (fnode) {
-      yatom=(otp(db,fnode))[CLTERM_HASHNODE_TERM_POS];
-      if (usematch) ures=wr_match_term(g,yatom,xatom,1);
-      else ures=wr_unify_term(g,xatom,yatom,1); // uniquestrflag=1
-      wr_clear_varstack(g,g->varstack);
-      if (ures) return otp(db,(otp(db,fnode))[CLTERM_HASHNODE_CL_POS]);
-      skip=1; skipatom=yatom; skipcl=(otp(db,fnode))[CLTERM_HASHNODE_CL_POS];
-    }
-  }
-  n=wr_sci_tokens_aux(g,x,xatom,0);
-  if (n<0) { wr_sci_fail(g); *used=0; return NULL; }
-  x->ccnt=0;
-  if (!wr_sci_walk(x,(neg ? 1 : 0),0,n,!usematch)) { wr_sci_fail(g); *used=0; return NULL; }
-  if (x->ccnt>1) wr_sci_sort(x);
-  for(i=0;i<x->ccnt;i++) {
-    yatom=x->ents[x->candent[i]].atom;
-    if (skip && yatom==skipatom && x->ents[x->candent[i]].cl==skipcl) { skip=0; continue; }
+    yatom=(otp(db,fnode))[CLTERM_HASHNODE_TERM_POS];
     if (usematch) ures=wr_match_term(g,yatom,xatom,1);
     else ures=wr_unify_term(g,xatom,yatom,1); // uniquestrflag=1
     wr_clear_varstack(g,g->varstack);
-    if (ures) return otp(db,x->ents[x->candent[i]].cl);
+    if (ures) return otp(db,(otp(db,fnode))[CLTERM_HASHNODE_CL_POS]);
+    x->skipatom=yatom; x->skipcl=(otp(db,fnode))[CLTERM_HASHNODE_CL_POS];
   }
+  n=ti_tokens(g,t,xatom);
+  if (n<0) { wr_sci_fail(g); *used=0; return NULL; }
+  if (usematch) {
+    sci_current=x;
+    (g->stat_sci_match_lookups)++;
+    if (ti_match_best(g,t,0,n,wr_sci_accept,0,&payload,&aux,&nv,&vals)) {
+      res=otp(db,x->ents[payload].cl);
+      (g->stat_sci_match_found)++;
+    }
+    wr_clear_varstack(g,g->varstack); // as after the tests of the lists
+    return res;
+  }
+  // unification: the candidates of the filter in the order of the lists
+  x->ccnt=0;
+  ti_candidates(g,t,0,n,1,wr_sci_collect,x);
+  (g->stat_sci_unify_lookups)++;
+  (g->stat_sci_unify_cands)+=x->ccnt;
+  if (x->ccnt>1) wr_sci_sort(x);
+  for(i=0;i<x->ccnt;i++) {
+    if (x->skipcl && x->ents[x->candent[i]].atom==x->skipatom && x->ents[x->candent[i]].cl==x->skipcl) continue;
+    yatom=x->ents[x->candent[i]].atom;
+    (g->stat_sci_unify_tests)++;
+    ures=wr_unify_term(g,xatom,yatom,1); // uniquestrflag=1
+    wr_clear_varstack(g,g->varstack);
+    if (ures) { (g->stat_sci_unify_ok)++; return otp(db,x->ents[x->candent[i]].cl); }
+  }
+  wr_clear_varstack(g,g->varstack); // as after the tests of the lists
   return NULL;
 }
 
@@ -2207,7 +2113,6 @@ gptr strongly_cut_atom(glb* g, gint xatom, vec hashvec, int usematch) {
 #ifdef USE_SCUT_INDEX
   int used;
   gptr r;
-  // the index only with the key strong_cut at 1; the rule of today uses the lists
   if ((g->strong_cut_strat)!=1) return strongly_cut_atom_lists(g,xatom,hashvec,usematch);
 #ifdef GKC_SCUT_CHECK
   // both lookups start from the same variable stack: save it, run the
