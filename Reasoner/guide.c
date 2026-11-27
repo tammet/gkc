@@ -274,9 +274,16 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr, int s
     } else if (!strcmp(key,"demod_source")) {
       // 1: an equation becomes a demodulator when picked (as today); 2: when kept
       (g->demod_source)=(json_valueint(elem)==2 ? 2 : 1);
+    } else if (!strcmp(key,"unit_cut_match")) {
+      // 1: a stored unit of the opposite sign that matches a literal cuts it
+      (g->unit_cut_match)=(json_valueint(elem) ? 1 : 0);
+    } else if (!strcmp(key,"unit_subsume_match")) {
+      // 1: a stored unit of the same sign that matches a literal subsumes the clause
+      (g->unit_subsume_match)=(json_valueint(elem) ? 1 : 0);
     } else if (!strcmp(key,"ti_selftest")) {
-      // 1: the self test of the term index on the input clauses, then stop
-      (g->ti_selftest)=(json_valueint(elem) ? 1 : 0);
+      // 1: the self test of the term index on the input clauses, then stop;
+      // 2: the same with the atoms of the unit clauses as stored terms
+      (g->ti_selftest)=json_valueint(elem);
     } else if (!strcmp(key,"para_into_ordered")) {
       // 1: paramodulation into the given clause also tests the ordering after the substitution
       (g->para_into_ordered)=(json_valueint(elem) ? 1 : 0);

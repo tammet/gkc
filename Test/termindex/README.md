@@ -20,7 +20,14 @@ The files t1-t5 are inputs for the self test of the index (strategy key
 
 Each `ti_query(T,E)` clause gives a term and its expected rewrite. The test
 also compares the tree with a plain match on every subterm of the input.
-Test/regress.py runs the six files (cases `ti_*`).
+Test/regress.py runs these files (cases `ti_*` and `ucm_*`).
+
+t7_units.p is the self test with `ti_selftest` 2: the stored terms are the
+atoms of the unit clauses, as the full unit cut and the full unit
+subsumption use them (keys `unit_cut_match`, `unit_subsume_match`).
+u1_cut_two.p and u2_no_cut_repeated.p run the prover with these keys: a
+unit cuts two literals of a derived clause with different bindings; a unit
+with a repeated variable must not cut, so there is no proof.
 
 `selftest.sh` runs the self test on any input files:
 

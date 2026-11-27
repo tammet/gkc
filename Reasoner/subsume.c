@@ -829,6 +829,100 @@ int wr_active_subsumed_lit(glb* g, gint atom, int negflag) {
 */
 
 
+/* ---- the full unit cut and the full unit subsumption (keys unit_cut_match,
+   unit_subsume_match) ----
+
+  Two trees of the module termindex.c, one per sign, over the atoms of the
+  stored units; the payload of an entry is the unit clause. Every unit that
+  enters the unit tables enters the tree of its sign at the same moment
+  (wr_add_cl_to_unithash_h). A lookup finds a stored unit whose atom
+  matches the atom of a literal (the unit is equal or more general); the
+  walk stops at the first accepted unit in the walk order. An equality
+  literal is looked up a second time with its two sides swapped (a scratch
+  record), since the unit s=t also matches the literal t=s. The variables
+  of the trees are the cells of the tree bank, bound with SETVAR and
+  cleared as a top slice of the variable stack, so the unifier of the
+  parents on the stack is not touched, and each literal is a lookup of its
+  own. The tables test nothing on a stored unit but equality (or a variant
+  with unit_variant_hash): the lookup has no accept test either.
+*/
+
+#ifdef USE_TERM_INDEX
+
+void wr_ucm_free(glb* g) {
+  if ((g->ucm_pos) && (g->ucm_pos)!=(void*)1) ti_free((ti_index*)(g->ucm_pos));
+  if ((g->ucm_neg) && (g->ucm_neg)!=(void*)1) ti_free((ti_index*)(g->ucm_neg));
+  (g->ucm_pos)=NULL; (g->ucm_neg)=NULL;
+  if (g->ucm_scratch) sys_free(g->ucm_scratch);
+  (g->ucm_scratch)=NULL; (g->ucm_scratch_cap)=0;
+}
+
+static void wr_ucm_fail(glb* g, int why) {
+  if ((g->ucm_pos) && (g->ucm_pos)!=(void*)1) ti_free((ti_index*)(g->ucm_pos));
+  if ((g->ucm_neg) && (g->ucm_neg)!=(void*)1) ti_free((ti_index*)(g->ucm_neg));
+  (g->ucm_pos)=(void*)1; (g->ucm_neg)=(void*)1;
+  (g->stat_ucm_stopped)=why;
+}
+
+/* file the unit clause cl with the atom xatom in the tree of its sign */
+
+void wr_ucm_insert(glb* g, gptr cl, gptr xatom, int neg) {
+  void** slot=(neg ? &(g->ucm_neg) : &(g->ucm_pos));
+  ti_index* x=(ti_index*)(*slot);
+  if (x==(void*)1 || (g->inkb)) return;
+  if (!(g->unify_samelen) || (g->unify_maxuseterms)) { wr_ucm_fail(g,3); return; }
+  if (!x) {
+    x=ti_new((g->varbanks)+TREE_VARBANK*NROF_VARSINBANK);
+    if (!x) { wr_ucm_fail(g,1); return; }
+    *slot=x;
+  }
+  if (!ti_insert(g,x,rpto(g,xatom),(gint)cl,0) || ti_failed(x)) { wr_ucm_fail(g,1); return; }
+  (g->stat_ucm_inserted)++;
+}
+
+/* a unit of the tree of the sign neg whose atom matches xatom, or NULL */
+
+static gptr wr_ucm_find(glb* g, gint xatom, int neg) {
+  ti_index* x=(ti_index*)(neg ? (g->ucm_neg) : (g->ucm_pos));
+  gint payload;
+  int32_t n;
+  gptr ap, sp;
+  gint len, t;
+  int i, p1, p2;
+  if (!x || x==(void*)1) return NULL;
+  n=ti_tokens(g,x,xatom);
+  if (n<0) { wr_ucm_fail(g,1); return NULL; }
+  (g->stat_ucm_lookups)++;
+  if (ti_match_first(g,x,0,n,NULL,&payload)) return (gptr)payload;
+  if (!wr_equality_atom(g,xatom)) return NULL;
+  // the equality literal with its two sides swapped
+  ap=rotp(g,xatom);
+  len=get_record_len(ap);
+  if (RECORD_HEADER_GINTS+len>(g->ucm_scratch_cap)) {
+    gptr nb=sys_realloc(g->ucm_scratch,sizeof(gint)*(RECORD_HEADER_GINTS+len+8));
+    if (!nb) return NULL;
+    (g->ucm_scratch)=nb; (g->ucm_scratch_cap)=RECORD_HEADER_GINTS+len+8;
+  }
+  sp=(g->ucm_scratch);
+  for(i=0;i<RECORD_HEADER_GINTS+len;i++) sp[i]=ap[i];
+  p1=RECORD_HEADER_GINTS+(g->unify_funarg1pos);
+  p2=RECORD_HEADER_GINTS+(g->unify_funarg2pos);
+  t=sp[p1]; sp[p1]=sp[p2]; sp[p2]=t;
+  n=ti_tokens(g,x,rpto(g,sp));
+  if (n<0) { wr_ucm_fail(g,1); return NULL; }
+  (g->stat_ucm_lookups)++;
+  if (ti_match_first(g,x,0,n,NULL,&payload)) return (gptr)payload;
+  return NULL;
+}
+
+#else
+
+void wr_ucm_free(glb* g) { UNUSED(g); }
+void wr_ucm_insert(glb* g, gptr cl, gptr xatom, int neg) { UNUSED(g); UNUSED(cl); UNUSED(xatom); UNUSED(neg); }
+static gptr wr_ucm_find(glb* g, gint xatom, int neg) { UNUSED(g); UNUSED(xatom); UNUSED(neg); return NULL; }
+
+#endif
+
 int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
 
   int i,tmp;
@@ -907,6 +1001,12 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
         }
       }  
 
+      // unit_subsume_match: a negative unit that matches the literal
+      if ((g->unit_subsume_match) && (g->forward_subsume_derived) && wr_ucm_find(g,xatom,1)) {
+        (g->stat_usm_subsumed)++;
+        (g->stat_forward_subsumed)++;
+        return -1;
+      }
       bucket=wr_find_termhash_unit(g,rotp(g,g->hash_pos_groundunits),xatomptr,uhash);      
       if (bucket!=NULL) {         
 #ifdef DEBUG        
@@ -947,6 +1047,16 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
         }
       }
 
+      // unit_cut_match: a positive unit that matches the literal
+      if ((g->unit_cut_match) && rptr[tmp+LIT_META_POS] && (bucket=wr_ucm_find(g,xatom,0))!=NULL) {
+        cuts++;
+        rptr[tmp+LIT_META_POS]=0; // mark cutoff lit metas as 0
+        if ((g->cut_clvec)[0]>cuts+1) {
+          (g->cut_clvec)[cuts]=(gint)bucket;
+          (g->cut_clvec)[cuts+1]=(gint)NULL;
+        }
+        (g->stat_ucm_cut)++;
+      }
     } else {
 #ifdef DEBUG      
       wr_printf("\npos\n");
@@ -987,6 +1097,12 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
           return -1;
         }
       }  
+      // unit_subsume_match: a positive unit that matches the literal
+      if ((g->unit_subsume_match) && (g->forward_subsume_derived) && wr_ucm_find(g,xatom,0)) {
+        (g->stat_usm_subsumed)++;
+        (g->stat_forward_subsumed)++;
+        return -1;
+      }
       bucket=wr_find_termhash_unit(g,rotp(g,g->hash_neg_groundunits),xatomptr,uhash);      
       if (bucket!=NULL) {            
 #ifdef DEBUG        
@@ -1027,6 +1143,17 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
         }
       }  
     } 
+    if (!wg_atom_meta_is_neg(db,xatommeta) && (g->unit_cut_match) && rptr[tmp+LIT_META_POS] &&
+        (bucket=wr_ucm_find(g,xatom,1))!=NULL) {
+      // unit_cut_match: a negative unit that matches the positive literal
+      cuts++;
+      rptr[tmp+LIT_META_POS]=0; // mark cutoff lit metas as 0
+      if ((g->cut_clvec)[0]>cuts+1) {
+        (g->cut_clvec)[cuts]=(gint)bucket;
+        (g->cut_clvec)[cuts+1]=(gint)NULL;
+      }
+      (g->stat_ucm_cut)++;
+    }
     if (clhashptr!=NULL && (oldcuts==cuts)) {
       // no cut during this iteration
 #ifdef USE_LIT_HASH64

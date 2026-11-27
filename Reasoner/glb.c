@@ -287,6 +287,15 @@ int wr_glb_init_simple(glb* g) {
   (g->stat_demod_parents_lost)=0;
   (g->stat_demod_neg_trivial)=0;
   (g->stat_demod_neg_trivial_unit)=0;
+  (g->unit_cut_match)=0;
+  (g->unit_subsume_match)=0;
+  (g->ucm_scratch)=NULL;
+  (g->ucm_scratch_cap)=0;
+  (g->stat_ucm_cut)=0;
+  (g->stat_usm_subsumed)=0;
+  (g->stat_ucm_inserted)=0;
+  (g->stat_ucm_lookups)=0;
+  (g->stat_ucm_stopped)=0;
   (g->use_strong_duplicates)=0; // iff 1, then additional unique var based duplicate removal used
   (g->prohibit_nested_para)=0; // iff 1, paramodulation derivations cannot be directly nested
   (g->prohibit_unordered_para)=0; // iff 1, paramodulate only from ordered equalities
@@ -606,6 +615,8 @@ int wr_glb_init_shared_complex(glb* g) {
   (g->fsi_index)=NULL;
   (g->sci_index)=NULL;
   (g->dmi_index)=NULL;
+  (g->ucm_pos)=NULL;
+  (g->ucm_neg)=NULL;
   (g->up_index)=NULL;
   (g->clpickpriorqueue)=(gint)NULL;
   (g->clpick_queues)=(gint)NULL;
@@ -747,6 +758,8 @@ int wr_glb_init_seq_shared_complex(glb* g) {
   (g->fsi_index)=NULL;
   (g->sci_index)=NULL;
   (g->dmi_index)=NULL;
+  (g->ucm_pos)=NULL;
+  (g->ucm_neg)=NULL;
   (g->up_index)=NULL;
   (g->clpickpriorqueue)=(gint)NULL;
   (g->clpick_queues)=(gint)NULL;
@@ -1223,6 +1236,7 @@ int wr_glb_free_shared_complex(glb* g) {
   wr_fsi_free(g);
   wr_sci_free(g);
   wr_dmi_free(g);
+  wr_ucm_free(g);
   wr_up_free(g);
   wr_vec_free(g,rotp(g,g->clpickstack));  
   wr_vec_free(g,rotp(g,g->clqueue));     

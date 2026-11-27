@@ -225,6 +225,25 @@ queues; the picked clause is then not rewritten with its own entry and is
 not filed a second time at its activation. The key is independent of
 `demod_derived`. No effect with `query_focus`.
 
+### `unit_cut_match` (experimental)
+
+`1`: a literal of a derived clause is cut when a stored unit of the
+opposite sign matches it, that is, the unit is equal to the literal or more
+general (the unit `p(X,a)` cuts `-p(b,a)`). An equality literal is matched
+in both orders of its sides. The unit tables are asked first; the units are
+also kept in a discrimination tree per sign, which finds what the tables
+miss. The unit is a parent of the derivation step. `0` or a missing key:
+only an equal literal (a variant with `unit_variant_hash`) is cut, as
+before. The picked clause and the units of an attached KB are not searched
+in the tree.
+
+### `unit_subsume_match` (experimental)
+
+`1`: a derived clause is dropped when a stored unit of the same sign matches
+one of its literals (with `forward_subsume_derived`, as for the unit
+tables). Independent of `unit_cut_match`. `0` or a missing key: only an
+equal literal (a variant with `unit_variant_hash`), as before.
+
 ### `ti_selftest` (test only)
 
 `1`: gkc tests its term index (the perfect discrimination tree of
@@ -235,7 +254,10 @@ equation whose left side matches `T`, and `E` is the expected result (the
 constant `none`: no match). For every subterm of the input, the test also
 compares the matches of the tree with a plain match against every stored
 left side. The last line of the output is `TI_TEST result: queries N
-wrong W plain_matches P differences D`. The test files are in
+wrong W plain_matches P differences D`. `2`: the same test with the atoms of the unit clauses
+as the stored terms (as `unit_cut_match` and `unit_subsume_match` store
+them); a clause `ti_query(T,E)` then asks whether a stored atom matches `T`,
+with `E` the constant `yes` or `none`. The test files are in
 Test/termindex/; `Test/termindex/selftest.sh` runs the test on any input
 files. `0` or a missing key: no test.
 

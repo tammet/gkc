@@ -66,6 +66,8 @@ gptr wr_sci_cut_atom(glb* g, gint xatom, int neg, int usematch, int* used, vec h
 #endif
 void wr_sci_free(glb* g);
 int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos,  gptr clhashptr);
+void wr_ucm_free(glb* g);
+void wr_ucm_insert(glb* g, gptr cl, gptr xatom, int neg);
 
 gint wr_subsume_cl(glb* g, gptr cl1, gptr cl2, int uniquestrflag);
 void wr_fsi_insert(glb* g, gptr cl, gint pos);

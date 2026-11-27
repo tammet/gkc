@@ -149,6 +149,7 @@ struct ti_index_s {
   gint* bestvals; int32_t bestnb, best;
   int (*accept)(glb*, gint);
   int norenaming;
+  int first, stop;           // first: the walk stops at the first accepted entry (stop set)
   ti_visit_fn visit; void* visitctx;
   long steps;                // nodes visited by the walks
   uint64_t rnd;
@@ -438,12 +439,13 @@ static void ti_leaf(glb* g, ti_index* x, int32_t node) {
       (x->visit)(g,x->visitctx,x->ents[e].payload,x->nb,x->vals);
       continue;
     }
-    if (e<=x->best) return; // the entries of a leaf are newest first
+    if (!(x->first) && e<=x->best) return; // the entries of a leaf are newest first
     if (x->norenaming && ti_is_renaming(x)) continue;
     if (x->accept && !(x->accept)(g,x->ents[e].payload)) continue;
     x->best=e;
     memcpy(x->bestvals,x->vals,sizeof(gint)*(x->nb));
     x->bestnb=x->nb;
+    if (x->first) x->stop=1;
     return;
   }
 }
@@ -453,7 +455,8 @@ static void ti_walk(glb* g, ti_index* x, int32_t node, int32_t i, int32_t end) {
   uint64_t t;
   gint q;
   (x->steps)++;
-  if (!(x->visit) && x->nodes[node].maxe<=x->best) return;
+  if (x->stop) return;
+  if (!(x->visit) && !(x->first) && x->nodes[node].maxe<=x->best) return;
   if (i>=end) { ti_leaf(g,x,node); return; }
   t=x->toks[i];
   q=x->terms[i];
@@ -476,6 +479,7 @@ static void ti_walk(glb* g, ti_index* x, int32_t node, int32_t i, int32_t end) {
       ti_walk(g,x,c,x->skip[i],end);
       (x->nb)--;
       if (vc_tmp!=(g->varstack)[1]) wr_clear_varstack_topslice(g,g->varstack,vc_tmp);
+      if (x->stop) return;
     } else if (k<x->nb && ti_eq(g,x->vals[k],q)) {
       // a later occurrence: the bound term must be equal
       ti_walk(g,x,c,x->skip[i],end);
@@ -497,12 +501,33 @@ int ti_match_best(glb* g, ti_index* x, int32_t start, int32_t end,
   if (x->ecnt==0) return 0;
   x->nb=0; x->best=-1; x->bestnb=0;
   x->accept=accept; x->norenaming=norenaming; x->visit=NULL;
+  x->first=0; x->stop=0;
   ti_walk(g,x,0,start,end);
   if (x->best<0) return 0;
   *payload=x->ents[x->best].payload;
   *aux=x->ents[x->best].aux;
   *nv=x->bestnb;
   *vals=x->bestvals;
+  return 1;
+}
+
+/* any stored term that matches the query subterm at tokens [start,end)
+   and passes accept (when not NULL): the walk stops at the first leaf with
+   an accepted entry, in the walk order (at a node the child of the query
+   token first, then the slot children from the newest), so the answer is
+   fixed for a given tree. Returns 1 and sets *payload, or 0. The cells of
+   the tree bank are UNASSIGNED after the walk. */
+
+int ti_match_first(glb* g, ti_index* x, int32_t start, int32_t end,
+                   int (*accept)(glb*, gint), gint* payload) {
+  if (x->ecnt==0) return 0;
+  x->nb=0; x->best=-1; x->bestnb=0;
+  x->accept=accept; x->norenaming=0; x->visit=NULL;
+  x->first=1; x->stop=0;
+  ti_walk(g,x,0,start,end);
+  x->first=0; x->stop=0;
+  if (x->best<0) return 0;
+  *payload=x->ents[x->best].payload;
   return 1;
 }
 
@@ -579,7 +604,7 @@ gint ti_rename_copy(glb* g, gint t, gint* vars, int32_t nv, gint first, gptr buf
    (the cells of the tree bank, bound at that moment) */
 
 void ti_match_all(glb* g, ti_index* x, int32_t start, int32_t end, ti_visit_fn visit, void* ctx) {
-  x->nb=0; x->best=-1;
+  x->nb=0; x->best=-1; x->first=0; x->stop=0;
   x->visit=visit; x->visitctx=ctx;
   ti_walk(g,x,0,start,end);
   x->visit=NULL;
@@ -744,6 +769,23 @@ static void ti_test_compare(glb* g, ti_index* x, ti_test* t, gint q, int32_t i, 
   }
 }
 
+/* mode 2: store the atom a (no right side) */
+
+static void ti_test_store_atom(glb* g, ti_index* x, ti_test* t, gint a, int* inserted) {
+  if (t->n>=t->cap) {
+    t->cap*=2;
+    t->lhs=sys_realloc(t->lhs,sizeof(gint)*t->cap); t->rhs=sys_realloc(t->rhs,sizeof(gint)*t->cap);
+    t->rhsc=sys_realloc(t->rhsc,sizeof(gint)*t->cap);
+  }
+  t->lhs[t->n]=a; t->rhs[t->n]=0; t->rhsc[t->n]=0;
+  if (!ti_insert(g,x,a,t->n,0)) {
+    wr_printf("TI_TEST insert failed for stored term %d\n",t->n);
+  } else {
+    (*inserted)++;
+  }
+  (t->n)++;
+}
+
 /* compare on every subterm of the term a */
 
 static void ti_test_subterms(glb* g, ti_index* x, ti_test* t, gint a) {
@@ -795,13 +837,24 @@ void wr_ti_selftest(glb* g) {
         if (wg_rec_is_rule_clause(db,rec)) {
           atom=wg_get_rule_clause_atom(db,rec,i);
           meta=wg_get_rule_clause_atom_meta(db,rec,i);
-          if (wg_atom_meta_is_neg(db,meta)) { if (pass==2) ti_test_subterms(g,x,&t,atom); continue; }
+          if (wg_atom_meta_is_neg(db,meta)) {
+            if (pass==2) ti_test_subterms(g,x,&t,atom);
+            else if (pass==0 && (g->ti_selftest)==2 && nat==1) ti_test_store_atom(g,x,&t,atom,&inserted);
+            continue;
+          }
         } else {
           atom=encode_record(db,rec);
         }
         if (pass==2) { ti_test_subterms(g,x,&t,atom); continue; }
         if (nat!=1 || !isdatarec(atom)) continue;
         ap=decode_record(db,atom);
+        if (pass==0 && (g->ti_selftest)==2) {
+          // mode 2: the atoms of the unit clauses (not the queries) are the stored terms
+          if (wg_get_encoded_type(db,ap[RECORD_HEADER_GINTS+(g->unify_funpos)])!=WG_URITYPE ||
+              strcmp(wg_decode_uri(db,ap[RECORD_HEADER_GINTS+(g->unify_funpos)]),"ti_query"))
+            ti_test_store_atom(g,x,&t,atom,&inserted);
+          continue;
+        }
         if (pass==0 && wr_equality_atom(g,atom)) {
           if (t.n>=t.cap) {
             t.cap*=2;
@@ -833,6 +886,22 @@ void wr_ti_selftest(glb* g) {
           n=ti_tokens(g,x,q);
           wr_printf("TI_TEST query %d: ",queries);
           wr_print_term(g,q);
+          if ((g->ti_selftest)==2) {
+            // mode 2: any stored atom that matches (the first in the walk order); e is yes or none
+            int found=(n>0 && ti_match_first(g,x,0,n,NULL,&payload));
+            str=(wg_get_encoded_type(db,e)==WG_URITYPE) ? wg_decode_uri(db,e) : NULL;
+            if (found) { wr_printf(" -> stored term %d: ",(int)payload); wr_print_term(g,t.lhs[payload]); }
+            else wr_printf(" -> none");
+            if (str && ((found && !strcmp(str,"yes")) || (!found && !strcmp(str,"none")))) {
+              wr_printf(" ok\n");
+            } else {
+              wr_printf(" WRONG, expected ");
+              wr_print_term(g,e);
+              wr_printf("\n");
+              wrong++;
+            }
+            continue;
+          }
           if (n>0 && ti_match_best(g,x,0,n,NULL,0,&payload,&aux,&tnv,&tvals)) {
             wr_printf(" -> stored term %d: ",(int)payload);
             wr_print_term(g,t.rhs[payload]);

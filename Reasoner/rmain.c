@@ -2152,6 +2152,23 @@ void wr_show_stats(glb* g, int show_local_complex) {
   wr_printf("stat_lit_hash_match_miss:   %15d\n",g->stat_lit_hash_match_miss); 
   wr_printf("stat_lit_hash_cut_ok:       %15d\n",g->stat_lit_hash_cut_ok); 
   wr_printf("stat_dmi_tree_stopped:      %15d\n",g->stat_dmi_tree_stopped);
+  if ((g->unit_cut_match) || (g->unit_subsume_match)) {
+    wr_printf("stat_ucm_cut:                 %13ld\n",g->stat_ucm_cut);
+    wr_printf("stat_usm_subsumed:            %13ld\n",g->stat_usm_subsumed);
+    wr_printf("stat_ucm_inserted:            %13ld\n",g->stat_ucm_inserted);
+    wr_printf("stat_ucm_lookups:             %13ld\n",g->stat_ucm_lookups);
+    wr_printf("stat_ucm_stopped:             %13d\n",g->stat_ucm_stopped);
+#ifdef USE_TERM_INDEX
+    {
+      ti_stat sp, sn; long nodes=0, bytes=0, steps=0;
+      if ((g->ucm_pos) && (g->ucm_pos)!=(void*)1) { ti_stats((ti_index*)(g->ucm_pos),&sp); nodes+=sp.nodes; bytes+=sp.bytes; steps+=sp.steps; }
+      if ((g->ucm_neg) && (g->ucm_neg)!=(void*)1) { ti_stats((ti_index*)(g->ucm_neg),&sn); nodes+=sn.nodes; bytes+=sn.bytes; steps+=sn.steps; }
+      wr_printf("stat_ucm_nodes:               %13ld\n",nodes);
+      wr_printf("stat_ucm_bytes:               %13ld\n",bytes);
+      wr_printf("stat_ucm_walk_steps:          %13ld\n",steps);
+    }
+#endif
+  }
   if ((g->demod_derived) || (g->demod_source)==2) {
     wr_printf("stat_demod_derived_checked:   %13ld\n",g->stat_demod_derived_checked);
     wr_printf("stat_demod_derived_rewritten: %13ld\n",g->stat_demod_derived_rewritten);

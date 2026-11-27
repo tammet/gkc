@@ -802,8 +802,9 @@ it with `wr_equal_term()`.
 
 A discrimination tree is the opposite case: its lookup walks the term token
 by token, so a hash has no use there. `Reasoner/termindex.c` is the tree
-module (a perfect discrimination tree; first user: the demodulators of
-`Reasoner/rewrite.c`). Its rules, which any new tree index should follow:
+module (a perfect discrimination tree; its users: the demodulators of
+`Reasoner/rewrite.c` and the stored units of the full unit cut and
+subsumption in `Reasoner/subsume.c`). Its rules, which any new tree index should follow:
 
 * A token is the encoded `gint` of a symbol or constant, the arity of a
   record, or a variable slot of the stored term. Nothing else.
