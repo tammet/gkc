@@ -538,9 +538,11 @@ void wr_process_resolve_result
   }
   // demod_derived: rewrite the half-built clause before the cuts; a partial
   // hyperresolution result is not rewritten
-  (g->demod_this_clause)=0;
-  if ((g->demod_derived) && !((g->hyperres_strat) && !wr_hyperres_satellite_tmpres(g,rptr,rpos)) &&
-      wr_demod_derived(g,rptr,rpos)<0) return;
+  if (g->demod_derived) {
+    (g->demod_this_clause)=0;
+    if (!((g->hyperres_strat) && !wr_hyperres_satellite_tmpres(g,rptr,rpos)) &&
+        wr_demod_derived(g,rptr,rpos)<0) return;
+  }
 #if GKC_WEIGHT_DROP_PLACE==1
   if (wr_derived_weight_drop_precut(g,rptr,rpos,xatomnr,yatomnr,xcl_as_active,ycl)) return;
 #endif
@@ -895,9 +897,11 @@ void wr_process_factor_result
 
   // demod_derived: rewrite the half-built clause before the cuts; a partial
   // hyperresolution result is not rewritten
-  (g->demod_this_clause)=0;
-  if ((g->demod_derived) && !((g->hyperres_strat) && !wr_hyperres_satellite_tmpres(g,rptr,rpos)) &&
-      wr_demod_derived(g,rptr,rpos)<0) return;
+  if (g->demod_derived) {
+    (g->demod_this_clause)=0;
+    if (!((g->hyperres_strat) && !wr_hyperres_satellite_tmpres(g,rptr,rpos)) &&
+        wr_demod_derived(g,rptr,rpos)<0) return;
+  }
 #if GKC_WEIGHT_DROP_PLACE==1
   if (wr_derived_weight_drop_precut(g,rptr,rpos,0,0,xcl_as_active,NULL)) return;
 #endif
@@ -1119,9 +1123,11 @@ void wr_process_paramodulate_result
   // --
   // demod_derived: rewrite the half-built clause before the cuts; a partial
   // hyperresolution result is not rewritten
-  (g->demod_this_clause)=0;
-  if ((g->demod_derived) && !((g->hyperres_strat) && !wr_hyperres_satellite_tmpres(g,rptr,rpos)) &&
-      wr_demod_derived(g,rptr,rpos)<0) return;
+  if (g->demod_derived) {
+    (g->demod_this_clause)=0;
+    if (!((g->hyperres_strat) && !wr_hyperres_satellite_tmpres(g,rptr,rpos)) &&
+        wr_demod_derived(g,rptr,rpos)<0) return;
+  }
 #if GKC_WEIGHT_DROP_PLACE==1
   if (wr_derived_weight_drop_precut(g,rptr,rpos,xatomnr,yatomnr,
                                     (fromflag ? xcl_as_active : xcl),(fromflag ? ycl : xcl_as_active))) return;
