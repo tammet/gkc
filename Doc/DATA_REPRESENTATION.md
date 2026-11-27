@@ -49,7 +49,8 @@ Common predicates and decoders:
 | `issmallint(x)` | Immediate small integer | `decode_smallint(x)` |
 | `isdatarec(x)` | Offset to a data record | `decode_record(db, x)` |
 | `islongstr(x)` | Offset to a long string or URI object | `wg_decode_str()`, `wg_decode_uri()` |
-| `isfulldouble(x)` | Offset to a double object | `wg_decode_double()` |
+| `isfloat(x)` | Immediate 4-byte float (64-bit builds) | `wg_decode_double()` |
+| `isfulldouble(x)` | Offset to a double object (no build creates it) | `wg_decode_double()` |
 
 All encodings from `Db/dbdata.h` (lines 305-460), with the answer to the
 question "does one value have exactly one encoding?":
@@ -58,9 +59,9 @@ question "does one value have exactly one encoding?":
 | --- | --- | --- | --- | --- |
 | null | the value `0` | `x == 0` | yes | Unassigned field. |
 | data record offset | `000` | `isdatarec(x)` | no | Clauses, atoms, compound terms. Records are not shared: compare by walking. |
-| full integer offset | low two bits `01` (so `001` or `101`) | `isfullint(x)` | no | Word storage for an integer that does not fit a small integer. The third bit is an address bit. |
-| full double offset | `010` | `isfulldouble(x)` | no | Doubleword storage. |
-| small integer | `011` | `issmallint(x)` | yes | Immediate, `(value << 3) \| 3`; 61 bits on a 64-bit build. |
+| full integer offset | low two bits `01` (so `001` or `101`) | `isfullint(x)` | no | Word storage for an integer that does not fit a small integer: 32-bit builds only. A 64-bit build does not create it. The third bit is an address bit. |
+| full double offset | `010` | `isfulldouble(x)` | no | Doubleword storage. No build creates it. |
+| small integer | `011` | `issmallint(x)` | yes | Immediate, `(value << 3) \| 3`; 61 bits on a 64-bit build, the only integer encoding there. |
 | long string / URI offset | `100` | `islongstr(x)` | yes | Interned object: long strings, URIs, XML literals, blobs. All symbols are here. |
 | short string offset | `110` | `isshortstr(x)` | no | Fixed 32-byte object for a string of type `WG_STRTYPE` without a language tag. |
 | variable | low four bits `0111` | `isvar(x)` | yes | Immediate, `(n << 4) \| 7`. |
@@ -70,6 +71,7 @@ question "does one value have exactly one encoding?":
 | time | low byte `0011 1111` | `istime(x)` | yes | Immediate. |
 | tiny string | low byte `0100 1111` | `istinystr(x)` | yes | Defined, not in use (`USETINYSTR` is off). |
 | anonymous constant | low byte `0101 1111` | `isanonconst(x)` | yes | Immediate, `(n << 8) \| 0x5f`. |
+| 4-byte float | low byte `0110 1111` | `isfloat(x)` | yes | Immediate, the 32 bits of the float above the low byte; 64-bit builds only. Only finite values; `-0.0` is stored as `0.0`. |
 
 * `isptr(x)` is `x && (x & 3) != 3`: low two bits `11` mean an immediate
   value.
@@ -103,28 +105,35 @@ matching and unification helpers. A symbol of an attached KB keeps its KB
 encoding in a query, so `gint` equality also holds across the KB and the
 local database (compare through `g->db`).
 
-**Not unique today (a new object per encoder call).** `wg_encode_double()`
-allocates a doubleword for every call. `wg_encode_int()` allocates a word
-for every integer that does not fit a small integer. `wg_encode_unistr()`
+**Numbers in a 64-bit build.** Every number is an immediate value, so
+three occurrences of `2.5` or of `5000000000` in an input have one `gint`
+each. `wg_encode_int()` gives a small integer of 61 bits (from `-2^60` to
+`2^60-1`); a larger value is a parse error in the input and leaves an
+arithmetic term unevaluated. `wg_encode_double()` gives a 4-byte float,
+about 7 decimal digits: two reals of the input that round to the same
+float are one constant (`16777217.0` and `16777216.0`). A real that is not
+a finite float is a parse error in the input and leaves an arithmetic term
+unevaluated. `wg_fits_int()` and `wg_fits_double()` (`Db/dbdata.c`) test
+whether a value has an encoding. A shared KB is always built by the same
+version of gkc that uses it.
+
+**Numbers in a 32-bit build.** A real number of the input is a parse
+error, and arithmetic with reals leaves the term unevaluated. Integers are
+as before: a small integer of 29 bits, and a full integer (a new word for
+every encoder call, not unique) for the rest of the 32-bit range.
+
+**Not unique (a new object per encoder call).** `wg_encode_unistr()`
 allocates a short-string object for every string of type `WG_STRTYPE` that
-has no language tag and is shorter than `SHORTSTR_SIZE`. None of the three
-looks for an existing equal object, and `free_field_encoffset()` frees such
-an object directly, without a count. So three occurrences of `2.5` in an
-input have three different `gint` values.
+has no language tag and is shorter than `SHORTSTR_SIZE`, and a 32-bit
+build allocates a full integer. Neither looks for an existing equal
+object, and `free_field_encoffset()` frees such an object directly,
+without a count. No input syntax produces a short string.
+`wr_equal_ptr_primitives()` (`Reasoner/unify.c`) compares a full integer
+by its word, a double by its value and a short string by its bytes.
 
-The existing equality, matching and unification code handles these three
-kinds: `wr_equal_ptr_primitives()` (`Reasoner/unify.c`) compares a full
-integer by its word, a double by its value and a short string by its bytes.
-
-**Rule for new code.** The missing uniqueness of doubles, full integers and
-short strings is a known defect of the encoders; the fix is to make these
-values unique at encoding. Until then, new index code assumes one encoding
-per constant and compares the `gint` only (as `Reasoner/termindex.c` does).
-For two equal doubles with different encodings such code sees two different
-constants and can miss a match. That loses a simplification and is sound.
-Do not add a compare by value or a hash to work around it, and do not write
-tests that depend on floats or on integers above 61 bits until the encoders
-are fixed.
+**Rule for new code.** New index code assumes one encoding per constant
+and compares the `gint` only (as `Reasoner/termindex.c` does). Do not add
+a compare by value or a hash.
 
 ### What the Parsers Produce
 
@@ -137,12 +146,14 @@ Checked by a run (a breakpoint at the return of `wr_parse_primitive()`,
 | Single-quoted symbol: `'quoted sym'` | URI object | yes |
 | Double-quoted string (TPTP distinct object): `"abc"` | URI object | yes |
 | JSON string in a term position: `"abc"` | URI object | yes |
-| Integer: `7` | immediate small integer | yes |
-| Decimal number: `2.5` | double object, low bits `010` | no: a new object per occurrence |
+| Integer: `7`, `5000000000` | immediate small integer (61 bits) | yes |
+| Decimal number: `2.5` | immediate 4-byte float, low byte `0110 1111` | yes |
 
 * No input syntax produces a short string or a full integer. A computed
-  value (`Reasoner/build.c`, `Reasoner/arithinst.c`) can be a full integer
-  or a double.
+  value (`Reasoner/build.c`, `Reasoner/arithinst.c`) is a small integer or
+  a float, or the term stays unevaluated (`WR_ARITH_INT`,
+  `WR_ARITH_DOUBLE` in `Reasoner/build.c`). The table holds for a 64-bit
+  build.
 * The built-in symbols (`ACONST_EQUAL`, `ACONST_PLUS` and the others, below)
   are immediate anonymous constants.
 
@@ -578,8 +589,8 @@ global hash-consing of compound terms. Therefore:
   and immediate scalars (smallints, encoded variables, `ACONST_*`) *are* unique
   by value and can be compared directly via `gint` equality.
 * Section 1 lists every kind with the answer to "one encoding per value?",
-  and says which kinds the encoders do not make unique today (doubles, full
-  integers, short strings).
+  and says which kinds the encoders do not make unique (short strings, and
+  full integers of a 32-bit build).
 
 ## 9. Variables, Varbanks, and Varstack
 

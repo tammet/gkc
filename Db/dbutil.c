@@ -249,8 +249,7 @@ void wg_snprint_value(void *db, gint enc, char *buf, int buflen) {
         snprint_record(db, (wg_int*)ptrdata, buf+len, buflen-len);
       break;
     case WG_INTTYPE:
-      intdata = wg_decode_int(db, enc);
-      snprintf(buf, buflen, "%d", intdata);
+      snprintf(buf, buflen, "%lld", (long long)wg_decode_int(db, enc));
       break;
     case WG_DOUBLETYPE:
       doubledata = wg_decode_double(db, enc);
@@ -357,8 +356,7 @@ static void snprint_value_csv(void *db, gint enc, char *buf, int buflen) {
       snprintf(buf, buflen, "\"<record offset %d>\"", intdata);
       break;
     case WG_INTTYPE:
-      intdata = wg_decode_int(db, enc);
-      snprintf(buf, buflen, "%d", intdata);
+      snprintf(buf, buflen, "%lld", (long long)wg_decode_int(db, enc));
       break;
     case WG_DOUBLETYPE:
       doubledata = wg_decode_double(db, enc);

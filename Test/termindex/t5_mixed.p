@@ -2,15 +2,17 @@
 % same name; variants of one left side share one path (the newest wins).
 % Every constant is its own token, its encoded gint. The TPTP parser makes
 % a quoted string a URI, interned, so str("abc") is one gint everywhere.
-% No doubles and no large integers: their encodings are not unique today
-% (Doc/DATA_REPRESENTATION.md, section 1), and they are tested after the
-% encoders are fixed. The older num(X) = anynum matches the small
-% integers with no equation of their own.
+% A real number and a large integer are one gint each (a 4-byte float and
+% an integer of 61 bits in the gint), so num(2.5) of a query is the
+% num(2.5) of the equation. The older num(X) = anynum matches the numbers
+% with no equation of their own.
 cnf(r0,axiom, num(X) = anynum).
 cnf(r1,axiom, f(a) = r1).
 cnf(r2,axiom, f(a,b) = r2).
 cnf(r3,axiom, f(f(f(X))) = r3(X)).
 cnf(r4,axiom, num(1) = one).
+cnf(r5,axiom, num(2.5) = half).
+cnf(r5b,axiom, num(5000000000) = big).
 cnf(r6,axiom, str("abc") = s3).
 cnf(r6b,axiom, str("a long string of more than eight bytes") = slong).
 cnf(r7,axiom, a(b) = ab).
@@ -30,3 +32,7 @@ cnf(q12,axiom, ti_query(a(a), none)).
 cnf(q13,axiom, ti_query(d(c,g(e)), r9(c,e))).
 cnf(q14,axiom, ti_query(str("a long string of more than eight bytes"), slong)).
 cnf(q18,axiom, ti_query(num(7), anynum)).
+cnf(q19,axiom, ti_query(num(2.5), half)).
+cnf(q20,axiom, ti_query(num(2.6), anynum)).
+cnf(q21,axiom, ti_query(num(5000000000), big)).
+cnf(q22,axiom, ti_query(num(5000000001), anynum)).

@@ -126,7 +126,7 @@ ti_backtrack	Test/termindex/t1_backtrack.p -strategytext '{"strategy":["unit"],"
 ti_repeated	Test/termindex/t2_repeated.p -strategytext '{"strategy":["unit"],"ti_selftest":1}'	output:TI_TEST result: queries 9 wrong 0 plain_matches;;differences 0	10
 ti_children	Test/termindex/t3_children.p -strategytext '{"strategy":["unit"],"ti_selftest":1}'	output:TI_TEST result: queries 16 wrong 0 plain_matches;;differences 0	10
 ti_query_vars	Test/termindex/t4_query_vars.p -strategytext '{"strategy":["unit"],"ti_selftest":1}'	output:TI_TEST result: queries 7 wrong 0 plain_matches;;differences 0	10
-ti_mixed	Test/termindex/t5_mixed.p -strategytext '{"strategy":["unit"],"ti_selftest":1}'	output:TI_TEST result: queries 14 wrong 0 plain_matches;;differences 0	10
+ti_mixed	Test/termindex/t5_mixed.p -strategytext '{"strategy":["unit"],"ti_selftest":1}'	output:TI_TEST result: queries 18 wrong 0 plain_matches;;differences 0	10
 ti_same_cells	Test/termindex/t6_same_cells.p -strategytext '{"strategy":["unit"],"ti_selftest":1}'	output:TI_TEST result: queries 4 wrong 0 plain_matches;;differences 0	10
 ti_units	Test/termindex/t7_units.p -strategytext '{"strategy":["unit"],"ti_selftest":2}'	output:TI_TEST result: queries 11 wrong 0 plain_matches;;differences 0	10
 ucm_cut_two	Test/termindex/u1_cut_two.p -strategytext '{"strategy":["unit"],"max_seconds":5,"unit_cut_match":1,"unit_subsume_match":1}'	proof	10
@@ -136,10 +136,21 @@ ti_c_t1_backtrack	Test/termindex/t1_backtrack.p -strategytext '{"strategy":["uni
 ti_c_t2_repeated	Test/termindex/t2_repeated.p -strategytext '{"strategy":["unit"],"ti_selftest":1,"tree_compress":1}'	output:TI_TEST result: queries 9 wrong 0 plain_matches;;differences 0	10
 ti_c_t3_children	Test/termindex/t3_children.p -strategytext '{"strategy":["unit"],"ti_selftest":1,"tree_compress":1}'	output:TI_TEST result: queries 16 wrong 0 plain_matches;;differences 0	10
 ti_c_t4_query_vars	Test/termindex/t4_query_vars.p -strategytext '{"strategy":["unit"],"ti_selftest":1,"tree_compress":1}'	output:TI_TEST result: queries 7 wrong 0 plain_matches;;differences 0	10
-ti_c_t5_mixed	Test/termindex/t5_mixed.p -strategytext '{"strategy":["unit"],"ti_selftest":1,"tree_compress":1}'	output:TI_TEST result: queries 14 wrong 0 plain_matches;;differences 0	10
+ti_c_t5_mixed	Test/termindex/t5_mixed.p -strategytext '{"strategy":["unit"],"ti_selftest":1,"tree_compress":1}'	output:TI_TEST result: queries 18 wrong 0 plain_matches;;differences 0	10
 ti_c_t6_same_cells	Test/termindex/t6_same_cells.p -strategytext '{"strategy":["unit"],"ti_selftest":1,"tree_compress":1}'	output:TI_TEST result: queries 4 wrong 0 plain_matches;;differences 0	10
 ti_c_t7_units	Test/termindex/t7_units.p -strategytext '{"strategy":["unit"],"ti_selftest":2,"tree_compress":1}'	output:TI_TEST result: queries 11 wrong 0 plain_matches;;differences 0	10
 ti_c_t8_compress	Test/termindex/t8_compress.p -strategytext '{"strategy":["unit"],"ti_selftest":1,"tree_compress":1}'	output:TI_TEST result: queries 15 wrong 0 plain_matches;;differences 0	10
 ucm_c_cut_two	Test/termindex/u1_cut_two.p -strategytext '{"strategy":["unit"],"max_seconds":5,"unit_cut_match":1,"unit_subsume_match":1,"tree_compress":1}'	proof	10
 ucm_c_no_cut_repeated	Test/termindex/u2_no_cut_repeated.p -strategytext '{"strategy":["unit"],"max_seconds":5,"unit_cut_match":1,"unit_subsume_match":1,"tree_compress":1}'	noproof	10
 ti_unify	Test/termindex/t9_unify.p -strategytext '{"strategy":["unit"],"ti_selftest":3}'	output:TI_TEST result: queries 12 wrong 0 plain_matches;;differences 0	10
+#
+# Test/numbers/: integers of 61 bits and 4-byte floats in the gint
+num_int_no_cut	Test/numbers/int_no_cut_to_32_bits.p	noproof	10
+num_int_above	Test/numbers/int_above_range.p	error:integer constant out of the representable range	10
+num_int_largest	Test/numbers/int_largest.p	proof	10
+num_int_one_above	Test/numbers/int_one_above.p	error:integer constant out of the representable range	10
+num_one_encoding	Test/numbers/one_encoding.p	proof	10
+num_real_different	Test/numbers/real_different.p	noproof	10
+num_real_above	Test/numbers/real_above_range.p	error:out of the range of a 4-byte float	10
+num_arith_int_above	Test/numbers/arith_int_above_range.txt	noproof	10
+num_arith_int_in	Test/numbers/arith_int_in_range.txt	proof	10

@@ -37,16 +37,15 @@
     and is its own token: the encoded gint, compared as an integer
     (new index code compares the gint only). For the symbols
     (interned URIs and long strings; find_create_longstr looks first into
-    an attached KB), the small integers and the immediate kinds this is
+    an attached KB), the numbers (a 64-bit build keeps every integer and
+    every 4-byte float in the gint) and the other immediate kinds this is
     the rule of wr_equal_term (unify.c:777) and WR_EQUAL_TERM (unify.h:46)
-    with uniquestrflag 1, which wr_match_term_aux uses. For a full
-    integer, a full double and a short string, wr_equal_term compares by
-    value (wr_equal_ptr_primitives, unify.c:983), and their encoders
-    allocate a new object per value, a known defect of the encoders
-    (Doc/DATA_REPRESENTATION.md, section 1, "Uniqueness of Encoded
-    Values"). New index code assumes one encoding per constant, so the
-    tree compares their gints too, and two encodings of one value do not
-    match: a missed rewrite, never a wrong one. No hash is computed;
+    with uniquestrflag 1, which wr_match_term_aux uses. For a short string
+    and a full integer of a 32-bit build, wr_equal_term compares by value
+    (wr_equal_ptr_primitives, unify.c:983), and their encoders allocate a
+    new object per value (Doc/DATA_REPRESENTATION.md, section 1). The tree
+    is built only in 64-bit builds, and no input syntax gives a short
+    string, so the tree compares the gints. No hash is computed;
   * a variable gives the token "slot k": the variables of a stored term
     are numbered 0,1,2.. in the order of their first occurrence (as E's
     variables after ClauseNormalizeVars), so variants of a term share one
@@ -430,9 +429,8 @@ static int32_t ti_tokens_aux(glb* g, ti_index* x, gint t, int32_t n, int stored)
     return n+1;
   }
   if (!isdatarec(t)) {
-    // a constant: its encoded gint is the token (the encodings of doubles,
-    // full integers and short strings are taken as unique; see the comment
-    // at the top of this file)
+    // a constant: its encoded gint is the token (one encoding per value;
+    // see the comment at the top of this file)
     x->toks[n]=(uint64_t)t;
     x->skip[n]=n+1;
     return n+1;

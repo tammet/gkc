@@ -317,14 +317,14 @@ See Doc/DATA_REPRESENTATION.md, section 1.
 
 special value null (unassigned)         integer 0
 
-Pointers to word-len ints end with            ?01  = not eq
+Pointers to word-len ints end with            ?01  = not eq (32-bit builds only)
 Pointers to data records end with             000  = not eq
 Pointers to long string records end with      100  = eq
-Pointers to doubleword-len doubles end with   010  = not eq
+Pointers to doubleword-len doubles end with   010  = not eq (no build creates them)
 Pointers to 32byte string records end with    110  = not eq
 
 
-Immediate integers end with                   011  = is eq
+Immediate integers end with                   011  = is eq (every integer of a 64-bit build)
 
 (Other immediates                             111 (continued below))
 Immediate vars end with                      0111  // not implemented yet
@@ -334,6 +334,7 @@ Immediate dates                         0010 1111  = is eq
 Immediate times                         0011 1111  = is eq
 // Immediate tiny strings                  0100 1111  = is eq  // not used yet
 Immediate anon constants                0101 1111  = is eq  // not implemented yet
+Immediate 4-byte floats                 0110 1111  = is eq  // 64-bit builds only
 */
 
 
@@ -440,6 +441,25 @@ Immediate anon constants                0101 1111  = is eq  // not implemented y
 
 #define encode_anonconst(i) (((i)<<ANONCONSTSHFT)|ANONCONSTBITS)
 #define decode_anonconst(i) ((i)>>ANONCONSTSHFT)
+
+/* A 4-byte float as an immediate value (64-bit builds only): the bits of
+   the float above the low byte 0110 1111. Only finite floats are stored,
+   and -0.0 is stored as 0.0, so one value has one encoding: two floats are
+   equal when their gints are equal. A 32-bit build has no floats. */
+
+#if defined(__SIZEOF_POINTER__) && (__SIZEOF_POINTER__ == 8)
+#define USE_IMMEDIATE_FLOAT
+#endif
+#define FLOATMASK  0xff
+#define FLOATSHFT  8
+#define FLOATBITS  0x6f       ///< 4-byte float ends with 0110 1111
+#define isfloat(i)   (((i)&FLOATMASK)==FLOATBITS)
+
+/* Can a number of the input be encoded: an integer is a small int (61
+   bits in a 64-bit build, 29 bits in a 32-bit build); a real number is a
+   finite 4-byte float in a 64-bit build, and a 32-bit build has none. */
+int wg_fits_int(gint i);
+int wg_fits_double(double d);
 
 /* --- recognizing data ---- */
 

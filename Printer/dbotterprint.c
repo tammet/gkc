@@ -328,8 +328,7 @@ void wr_print_simpleterm_otter(glb* g, gint enc,int printlevel) {
     //  wg_print_subrecord_otter(db,(gint*)ptrdata);
     //  break;    
     case WG_INTTYPE:
-      intdata = wg_decode_int(db, enc);
-      printf("%d", intdata);
+      printf("%lld", (long long)wg_decode_int(db, enc));
       break;
     case WG_DOUBLETYPE:
       doubledata = wg_decode_double(db, enc);
@@ -848,8 +847,7 @@ int wr_strprint_simpleterm_otter(glb* g, gint enc,int printlevel, char** buf, in
     //  wg_print_subrecord_otter(db,(gint*)ptrdata);
     //  break;    
     case WG_INTTYPE:            
-      intdata = wg_decode_int(db, enc);     
-      return pos+snprintf((*buf)+pos,(*len)-pos,"%d", intdata);
+      return pos+snprintf((*buf)+pos,(*len)-pos,"%lld", (long long)wg_decode_int(db, enc));
     case WG_DOUBLETYPE:     
       doubledata = wg_decode_double(db, enc);
       return pos+snprintf((*buf)+pos,(*len)-pos,"%f", doubledata);

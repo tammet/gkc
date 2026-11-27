@@ -14,9 +14,9 @@ The files t1-t5 are inputs for the self test of the index (strategy key
 * t6_same_cells.p: a variable of a rule and a variable of a query with
   the same name, so the same variable cell; the right side is built from
   the values of the walk;
-* t5_mixed.p: arity, nesting, small integers, quoted strings (interned
-  URIs), variants. No floats and no large integers until their encoders
-  give one encoding per value (Doc/DATA_REPRESENTATION.md, section 1).
+* t5_mixed.p: arity, nesting, integers (small and large), reals,
+  quoted strings (interned URIs), variants. Every number is one gint
+  (Doc/DATA_REPRESENTATION.md, section 1).
 
 Each `ti_query(T,E)` clause gives a term and its expected rewrite. The test
 also compares the tree with a plain match on every subterm of the input.

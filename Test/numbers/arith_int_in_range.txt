@@ -1,0 +1,2 @@
+% The product 1000000000000000000 is in the range: evaluated, refuted.
+-$greater($product(1000000000,1000000000),0).

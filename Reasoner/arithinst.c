@@ -641,10 +641,17 @@ static int wr_arith_ancestry_depth(glb* g,gptr cl) {
 
 static gint wr_arith_encode_candidate(glb* g,const wr_arith_value* value) {
   if (!g->local_db) return WG_ILLEGAL;
+#ifdef USE_IMMEDIATE_FLOAT
+  if (value->kind==WR_ARITH_VALUE_INT && wg_fits_int(value->integer_value))
+    return wg_encode_int(g->local_db,value->integer_value);
+  if (value->kind==WR_ARITH_VALUE_REAL && wg_fits_double(value->real_value))
+    return wg_encode_double(g->local_db,value->real_value);
+#else
   if (value->kind==WR_ARITH_VALUE_INT)
     return wg_encode_int(g->local_db,value->integer_value);
   if (value->kind==WR_ARITH_VALUE_REAL && isfinite(value->real_value))
     return wg_encode_double(g->local_db,value->real_value);
+#endif
   return WG_ILLEGAL;
 }
 

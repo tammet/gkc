@@ -1683,7 +1683,7 @@ gint wr_parse_primitive(glb* g,void* mpool,void* atomptr, char** vardata, int po
   int type;
   char* str1;
   char* str2;
-  int intdata;
+  long long intdata;
   double doubledata;
   int i; 
 
@@ -1720,9 +1720,10 @@ gint wr_parse_primitive(glb* g,void* mpool,void* atomptr, char** vardata, int po
            that a number was out of range (/opt/gk/Doc/MEMO_input_robustness.md
            M3). */
         errno=0;
-        intdata = strtol(str1,NULL,10);
-        if(errno!=ERANGE && errno!=EINVAL) {
-          ret = wg_encode_int(db, intdata);
+        intdata = strtoll(str1,NULL,10);
+        if(errno!=ERANGE && errno!=EINVAL &&
+           (long long)(gint)intdata==intdata && wg_fits_int((gint)intdata)) {
+          ret = wg_encode_int(db, (gint)intdata);
         } else {
           errno=0;
           wr_show_parse_error(g,"integer constant out of the representable range: %s",str1);
@@ -1732,13 +1733,19 @@ gint wr_parse_primitive(glb* g,void* mpool,void* atomptr, char** vardata, int po
       case WG_DOUBLETYPE:
         errno=0;
         doubledata = strtod(str1,NULL);
-        if(errno!=ERANGE && errno!=EINVAL) {
+#ifdef USE_IMMEDIATE_FLOAT
+        if(errno!=ERANGE && errno!=EINVAL && wg_fits_double(doubledata)) {
           ret = wg_encode_double(db, doubledata);
         } else {
           errno=0;
-          wr_show_parse_error(g,"number out of the representable range: %s",str1);
+          wr_show_parse_error(g,"number out of the range of a 4-byte float: %s",str1);
           ret=WG_ILLEGAL;
         }
+#else
+        errno=0;
+        wr_show_parse_error(g,"a 32-bit build has no real numbers: %s",str1);
+        ret=WG_ILLEGAL;
+#endif
         break; 
       case WG_STRTYPE: 
         ret=wg_encode_str(db,str1,str2); 

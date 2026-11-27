@@ -1,0 +1,3 @@
+% The product 4000000000000000000 is above the range of an integer (61
+% bits): the term stays unevaluated, so the clause is not refuted.
+-$greater($product(2000000000,2000000000),0).

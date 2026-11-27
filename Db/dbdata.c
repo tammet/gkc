@@ -116,7 +116,9 @@ static void recptr_clearbit(void *db,void *ptr);
 static int wg_str_dual_hash(char* x, char* y);
 static gint show_data_error(void* db, char* errmsg);
 static gint show_data_error_nr(void* db, char* errmsg, gint nr);
+#ifndef USE_IMMEDIATE_FLOAT
 static gint show_data_error_double(void* db, char* errmsg, double nr);
+#endif
 static gint show_data_error_str(void* db, char* errmsg, char* str);
 
 
@@ -1426,6 +1428,9 @@ wg_int wg_get_encoded_type(void* db, wg_int data) {
       case TINYSTRBITS: return WG_STRTYPE;
       case VARBITS: return WG_VARTYPE;
       case ANONCONSTBITS: return WG_ANONCONSTTYPE;
+#ifdef USE_IMMEDIATE_FLOAT
+      case FLOATBITS: return WG_DOUBLETYPE;
+#endif
       default: return -1;
     }
   }
@@ -1519,7 +1524,13 @@ wg_int wg_encode_int(void* db, wg_int data) {
 #endif
   if (fits_smallint(data)) {
     return encode_smallint(data);
-  } else {
+  }
+#ifdef USE_IMMEDIATE_FLOAT
+  /* a 64-bit build keeps every integer in the gint: 61 bits */
+  show_data_error_nr(db,"an integer does not fit 61 bits: ",data);
+  return WG_ILLEGAL;
+#endif
+  {
 #ifdef USE_DBLOG
     /* Log before allocating. Note this call is skipped when
      * we have a small int.
@@ -1596,6 +1607,50 @@ char wg_decode_char(void* db, wg_int data) {
 }
 
 
+int wg_fits_int(gint i) {
+  // the range of fits_smallint, without its shift of a value that may overflow
+  gint lim=((gint)1)<<(sizeof(gint)*8-SMALLINTSHFT-1);
+  return (i>=-lim && i<lim) ? 1 : 0;
+}
+
+int wg_fits_double(double d) {
+#ifdef USE_IMMEDIATE_FLOAT
+  float f;
+  if (d!=d) return 0;
+  f=(float)d;
+  return (f-f==0.0f) ? 1 : 0; // finite, not rounded to an infinity
+#else
+  (void)d;
+  return 0;
+#endif
+}
+
+#ifdef USE_IMMEDIATE_FLOAT
+
+/* a 64-bit build: the immediate 4-byte float; -0.0 as 0.0 */
+
+wg_int wg_encode_double(void* db, double data) {
+  float f=(float)data;
+  uint32_t u;
+#ifdef CHECK
+  if (!dbcheck(db)) {
+    show_data_error(db,"wrong database pointer given to wg_encode_double");
+    return WG_ILLEGAL;
+  }
+#endif
+  if (!wg_fits_double(data)) {
+    show_data_error(db,"a real number is not a finite 4-byte float");
+    return WG_ILLEGAL;
+  }
+  if (f==0.0f) f=0.0f;
+  memcpy(&u,&f,sizeof(u));
+  return (wg_int)((((uint64_t)u)<<FLOATSHFT)|FLOATBITS);
+}
+
+#else
+
+/* a 32-bit build: the double object, as before (the parser gives no reals) */
+
 wg_int wg_encode_double(void* db, double data) {
   gint offset;
 
@@ -1637,12 +1692,22 @@ wg_int wg_encode_double(void* db, double data) {
   }
 }
 
+#endif
+
 double wg_decode_double(void* db, wg_int data) {
 
 #ifdef CHECK
   if (!dbcheck(db)) {
     show_data_error(db,"wrong database pointer given to wg_decode_double");
     return 0;
+  }
+#endif
+#ifdef USE_IMMEDIATE_FLOAT
+  if (isfloat(data)) {
+    uint32_t u=(uint32_t)(((uint64_t)data)>>FLOATSHFT);
+    float f;
+    memcpy(&f,&u,sizeof(f));
+    return (double)f;
   }
 #endif
   if (isfulldouble(data)) return *((double*)(offsettoptr(db,decode_fulldouble_offset(data))));
@@ -3829,6 +3894,7 @@ static gint show_data_error_nr(void* db, char* errmsg, gint nr) {
 
 }
 
+#ifndef USE_IMMEDIATE_FLOAT
 static gint show_data_error_double(void* db, char* errmsg, double nr) {
 #ifdef WG_NO_ERRPRINT
 #else
@@ -3839,6 +3905,7 @@ static gint show_data_error_double(void* db, char* errmsg, double nr) {
   return -1;
 
 }
+#endif
 
 static gint show_data_error_str(void* db, char* errmsg, char* str) {
 #ifdef WG_NO_ERRPRINT

@@ -157,11 +157,12 @@ consulting or changing variable bindings.
 Important behavior from `unify.c`:
 
 1. If `x == y`, equality succeeds immediately.
-2. For small integers, interned long strings with `uniquestrflag == 1`, and
-   several immediate values, different encoded values are immediately unequal.
+2. For small integers, 4-byte floats, interned long strings with
+   `uniquestrflag == 1`, and the other immediate values, different encoded
+   values are immediately unequal.
 3. Pointer-like values must have compatible low-bit pointer type tags.
-4. Full integers compare by fetched word value.
-5. Full doubles compare by decoded double value.
+4. Full integers compare by fetched word value (32-bit builds only).
+5. Full doubles compare by decoded double value (no build creates them).
 6. Short strings compare by their fixed `SHORTSTR_SIZE` bytes.
 7. Long strings compare by encoded value when `uniquestrflag == 1`; otherwise
    they compare type, language/prefix, length, and bytes.
@@ -170,7 +171,8 @@ Important behavior from `unify.c`:
 
 Which kinds have one encoding per value, and which do not, is listed in
 `Doc/DATA_REPRESENTATION.md` section 1. Items 4 to 6 exist because the
-encoders do not make full integers, doubles and short strings unique today.
+encoders do not make full integers of a 32-bit build and short strings
+unique; a 64-bit build keeps every number in the `gint`.
 
 New index code copies the order of items 1 to 3 and item 8: a `gint` compare
 first, an immediate "unequal" for the kinds with one encoding, a walk for two

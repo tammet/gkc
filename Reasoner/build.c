@@ -1302,6 +1302,19 @@ gint wr_compute_fun_lesseq_core(glb* g, gptr tptr, gint ifequal, int isless) {
   }  
 }
 
+/* An arithmetic result as a constant. A 64-bit build leaves the term
+   unevaluated when the result has no encoding: an integer above 61 bits,
+   a real number that is not a finite 4-byte float. */
+
+#ifdef USE_IMMEDIATE_FLOAT
+#define WR_ARITH_INT(ri) (wg_fits_int(ri) ? wg_encode_int(g->local_db,(ri)) : encode_record(db,tptr))
+#define WR_ARITH_DOUBLE(rd) (wg_fits_double(rd) ? wg_encode_double(g->local_db,(rd)) : encode_record(db,tptr))
+#else
+// a 32-bit build: the encoders as before
+#define WR_ARITH_INT(ri) wg_encode_int(g->local_db,(ri))
+#define WR_ARITH_DOUBLE(rd) wg_encode_double(g->local_db,(rd))
+#endif
+
 gint wr_compute_fun_arith2(glb* g, gptr tptr, int comp) {
   void* db=g->db; // decode/offset base only: allocating encodes must use g->local_db (g->db may be a read-only shared kb)
   gint len;
@@ -1369,7 +1382,7 @@ gint wr_compute_fun_arith2(glb* g, gptr tptr, int comp) {
       default:
         return encode_record(db,tptr);
     }
-    return wg_encode_int(g->local_db,ri);    
+    return WR_ARITH_INT(ri);    
   } else { 
     // double res case
     if (atype==WG_INTTYPE) ad=(double)(wg_decode_int(db,a));
@@ -1396,46 +1409,46 @@ gint wr_compute_fun_arith2(glb* g, gptr tptr, int comp) {
         if (bd<0) rd=floor(ad/bd);
         else rd=ceil(ad/bd);
         if (!wr_double_to_gint_checked(rd,&ri)) return encode_record(db,tptr);
-        return wg_encode_int(g->local_db,ri);        
+        return WR_ARITH_INT(ri);        
         break;  
       case COMP_FUN_QUOTIENT_T:        
         if (bd==0.0) return encode_record(db,tptr);
         rd=trunc(ad/bd);
         if (!wr_double_to_gint_checked(rd,&ri)) return encode_record(db,tptr);
-        return wg_encode_int(g->local_db,ri);
+        return WR_ARITH_INT(ri);
         break;   
       case COMP_FUN_QUOTIENT_F:
         if (bd==0.0) return encode_record(db,tptr);       
         rd=floor(ad/bd);
         if (!wr_double_to_gint_checked(rd,&ri)) return encode_record(db,tptr);
-        return wg_encode_int(g->local_db,ri);
+        return WR_ARITH_INT(ri);
         break;  
       case COMP_FUN_REMAINDER_E:       
         if (!wr_double_to_gint_checked(ad,&ai) ||
             !wr_double_to_gint_checked(bd,&bi) || !bi)
           return encode_record(db,tptr);
         ri=(ai==(gint)INTPTR_MIN && bi==-1) ? 0 : (gint)(ai % bi);
-        return wg_encode_int(g->local_db,ri);        
+        return WR_ARITH_INT(ri);        
         break;  
       case COMP_FUN_REMAINDER_T:        
         if (!wr_double_to_gint_checked(ad,&ai) ||
             !wr_double_to_gint_checked(bd,&bi) || !bi)
           return encode_record(db,tptr);
         ri=(ai==(gint)INTPTR_MIN && bi==-1) ? 0 : (gint)(ai % bi);
-        return wg_encode_int(g->local_db,ri);
+        return WR_ARITH_INT(ri);
         break;   
       case COMP_FUN_REMAINDER_F:
         if (!wr_double_to_gint_checked(ad,&ai) ||
             !wr_double_to_gint_checked(bd,&bi) || !bi)
           return encode_record(db,tptr);
         ri=(ai==(gint)INTPTR_MIN && bi==-1) ? 0 : (gint)(ai % bi);
-        return wg_encode_int(g->local_db,ri);
+        return WR_ARITH_INT(ri);
         break;      
       default: 
         return encode_record(db,tptr);
     }
     if (!isfinite(rd)) return encode_record(db,tptr);
-    return wg_encode_double(g->local_db,rd);        
+    return WR_ARITH_DOUBLE(rd);        
   }  
 } 
 
@@ -1535,7 +1548,7 @@ gint wr_compute_fun_arith1(glb* g, gptr tptr, int comp) {
         break;
       case COMP_FUN_TO_REAL: 
         ri=wg_decode_int(db,a); 
-        return wg_encode_double(g->local_db,(double)ri);
+        return WR_ARITH_DOUBLE((double)ri);
         break;
       case COMP_FUN_FLOOR: 
         return a;
@@ -1560,7 +1573,7 @@ gint wr_compute_fun_arith1(glb* g, gptr tptr, int comp) {
       case COMP_FUN_UMINUS: 
         ri=wg_decode_int(db,a); 
         if (ri==(gint)INTPTR_MIN) return encode_record(db,tptr);
-        return wg_encode_int(g->local_db,0-ri);
+        return WR_ARITH_INT(0-ri);
         break;   
       default:
         return encode_record(db,tptr);
@@ -1594,7 +1607,7 @@ gint wr_compute_fun_arith1(glb* g, gptr tptr, int comp) {
         rd=wg_decode_double(db,a); 
         rd=floor(rd);
         if (!wr_double_to_gint_checked(rd,&ri)) return encode_record(db,tptr);
-        return wg_encode_int(g->local_db,ri);
+        return WR_ARITH_INT(ri);
         break;
       case COMP_FUN_TO_REAL:
         return a; 
@@ -1605,13 +1618,13 @@ gint wr_compute_fun_arith1(glb* g, gptr tptr, int comp) {
         rd=wg_decode_double(db,a); 
         rd=floor(rd);
         if (!wr_double_to_gint_checked(rd,&ri)) return encode_record(db,tptr);
-        return wg_encode_int(g->local_db,ri);
+        return WR_ARITH_INT(ri);
         break;
       case COMP_FUN_CEILING: 
         rd=wg_decode_double(db,a); 
         rd=ceil(rd);
         if (!wr_double_to_gint_checked(rd,&ri)) return encode_record(db,tptr);
-        return wg_encode_int(g->local_db,ri);
+        return WR_ARITH_INT(ri);
         //ri=wg_decode_int(db,a); 
         //return wg_encode_int(db,ri);
         break;
@@ -1619,7 +1632,7 @@ gint wr_compute_fun_arith1(glb* g, gptr tptr, int comp) {
         rd=wg_decode_double(db,a); 
         rd=trunc(rd);
         if (!wr_double_to_gint_checked(rd,&ri)) return encode_record(db,tptr);
-        return wg_encode_int(g->local_db,ri);
+        return WR_ARITH_INT(ri);
         //ri=wg_decode_int(db,a); 
         //return wg_encode_int(db,ri);
         break;
@@ -1627,14 +1640,14 @@ gint wr_compute_fun_arith1(glb* g, gptr tptr, int comp) {
         rd=wg_decode_double(db,a); 
         rd=round(rd);
         if (!wr_double_to_gint_checked(rd,&ri)) return encode_record(db,tptr);
-        return wg_encode_int(g->local_db,ri);
+        return WR_ARITH_INT(ri);
         //ri=wg_decode_int(db,a); 
         //return wg_encode_int(db,ri);
         break;          
       case COMP_FUN_UMINUS: 
         rd=wg_decode_double(db,a);
         if (!isfinite(rd)) return encode_record(db,tptr);
-        return wg_encode_double(g->local_db,0-rd);
+        return WR_ARITH_DOUBLE(0-rd);
         break;   
       default:
         return encode_record(db,tptr);
@@ -1688,7 +1701,7 @@ gint wr_compute_fun_arith1(glb* g, gptr tptr, int comp) {
         case COMP_FUN_STRLEN:
           str=wg_decode_uri(db,a);
           if (str) {
-            return wg_encode_int(g->local_db,(gint)(strlen(str)));
+            return WR_ARITH_INT((gint)(strlen(str)));
             break; 
           } else {
             break;  
