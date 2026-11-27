@@ -2167,6 +2167,10 @@ void wr_show_stats(glb* g, int show_local_complex) {
     wr_printf("stat_usm_pick_subsumed:       %13ld\n",g->stat_usm_pick_subsumed);
     wr_printf("stat_ucm_inserted:            %13ld\n",g->stat_ucm_inserted);
     wr_printf("stat_ucm_lookups:             %13ld\n",g->stat_ucm_lookups);
+#ifdef GKC_UCM_WALK_CHECK
+    { extern long ucm_walk_check_lookups, ucm_walk_check_diff;
+      wr_printf("UCM_WALK_CHECK lookups %ld differences %ld\n",ucm_walk_check_lookups,ucm_walk_check_diff); }
+#endif
 #ifdef GKC_UCM_CHECK
     { extern long ucm_check_lookups, ucm_check_miss;
       wr_printf("UCM_CHECK lookups %ld missed_by_tree %ld\n",ucm_check_lookups,ucm_check_miss); }

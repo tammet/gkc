@@ -172,6 +172,10 @@ struct ti_index_s {
   int first, stop;           // first: the walk stops at the first accepted entry (stop set)
   ti_visit_fn visit; void* visitctx;
   long steps;                // nodes visited by the walks
+  // the walk that reads the query term (ti_match_first_term): the frames of
+  // the records it has entered, append-only during one walk
+  struct ti_frame_s* fr; int32_t frn, frcap;
+  gptr swaprec; int32_t swp1, swp2; // the equation read with its two sides swapped, or NULL
   uint64_t rnd;
   int failed;
 };
@@ -252,6 +256,7 @@ ti_index* ti_new(gptr cells, int compress) {
 }
 
 void ti_free(ti_index* x) {
+  if (x->fr) sys_free(x->fr);
   if (!x) return;
   if (x->nodes) sys_free(x->nodes);
   if (x->xnodes) sys_free(x->xnodes);
@@ -613,6 +618,14 @@ int ti_insert_ranked(glb* g, ti_index* x, gint term, gint payload, gint aux, int
 
 /* ---- the walk ---- */
 
+/* the walk that reads the query term: a cursor is a record of the query,
+   a field in it, the end of its fields, and the frame of the record that
+   holds it (-1 at the top); a frame keeps the cursor to go back to after
+   the record (the next field of the parent) */
+
+typedef struct ti_frame_s { gptr rec; int32_t pos, end, up; } ti_frame;
+typedef struct { gptr rec; int32_t pos, end, up; } ti_cur;
+
 /* are the slot values a renaming: all variables, no two equal */
 
 static int ti_is_renaming(ti_index* x) {
@@ -718,6 +731,181 @@ static void ti_walk_node(glb* g, ti_index* x, int32_t node, int32_t i, int32_t e
   }
 }
 
+
+/* ---- the walk that reads the query term as it goes ----
+
+   The same tree walk as ti_walk, without a token array: the token at the
+   cursor is read from the query record when the walk needs it (a record
+   gives its arity, a constant its gint, a variable of the query is a
+   constant of the walk). A slot at its first occurrence binds the whole
+   subterm at the cursor and the cursor moves on to the next field, so a
+   skip costs nothing. A walk that fails early costs only the nodes it
+   visits. With swaprec set, the two sides of that equation are read in
+   the other order (no copy of the record). The order of the children is
+   the order of ti_walk, so ti_match_first_term finds the entry that
+   ti_match_first finds on the tokens of the same term. */
+
+static void ti_twalk(glb* g, ti_index* x, int32_t node, ti_cur c);
+
+static gint ti_cur_term(ti_index* x, ti_cur c) {
+  int32_t p=c.pos;
+  if (c.rec==x->swaprec) { if (p==x->swp1) p=x->swp2; else if (p==x->swp2) p=x->swp1; }
+  return c.rec[p];
+}
+
+/* the cursor after the field at c: the next field, or the parent's cursor */
+
+static ti_cur ti_cur_next(ti_index* x, ti_cur c) {
+  c.pos++;
+  while (c.pos>=c.end && c.up>=0) {
+    ti_frame* f=x->fr+c.up;
+    c.rec=f->rec; c.pos=f->pos; c.end=f->end; c.up=f->up;
+  }
+  return c;
+}
+
+/* the cursor into the record q at the field c (its first element), or a
+   cursor with rec NULL when the frames cannot grow */
+
+static ti_cur ti_cur_enter(glb* g, ti_index* x, ti_cur c, gint q) {
+  ti_cur r;
+  ti_frame* f;
+  if (x->frn>=x->frcap) {
+    int32_t nc=x->frcap*2+64;
+    ti_frame* nf=sys_realloc(x->fr,sizeof(ti_frame)*nc);
+    if (!nf) { r.rec=NULL; r.pos=0; r.end=0; r.up=-1; return r; }
+    x->fr=nf; x->frcap=nc;
+  }
+  f=x->fr+(x->frn);
+  f->rec=c.rec; f->pos=c.pos+1; f->end=c.end; f->up=c.up;
+  // the frame resumes at the next field of c; if that is past the end, the
+  // first ti_cur_next in the child moves on through the frames above
+  r.rec=decode_record(g->db,q);
+  r.pos=wr_term_unify_startpos(g);
+  r.end=wr_term_unify_endpos(g,r.rec);
+  r.up=(x->frn)++;
+  return r;
+}
+
+/* the token of the query term q, as ti_tokens gives it (q not a variable) */
+
+static uint64_t ti_qtok(glb* g, gint q) {
+  gptr qp;
+  if (!isdatarec(q)) return (uint64_t)q;
+  qp=decode_record(g->db,q);
+  return TI_REC(wr_term_unify_endpos(g,qp)-wr_term_unify_startpos(g));
+}
+
+/* the cursor after the token q at c: into q for a record, else the next field */
+
+static ti_cur ti_cur_step(glb* g, ti_index* x, ti_cur c, gint q) {
+  if (isdatarec(q)) {
+    ti_cur r=ti_cur_enter(g,x,c,q);
+    if (r.rec==NULL) { x->failed=1; x->stop=1; return r; }
+    if (r.pos>=r.end) return ti_cur_next(x,r);
+    return r;
+  }
+  return ti_cur_next(x,c);
+}
+
+static void ti_twalk_node(glb* g, ti_index* x, int32_t node, ti_cur c) {
+  int32_t ch, k, fr0=x->frn;
+  gint q;
+  if (c.pos>=c.end) { ti_leaf(g,x,node); return; } // the end of the query (the top cursor)
+  q=ti_cur_term(x,c);
+  if (!isvar(q)) {
+    ch=ti_child(x,node,ti_qtok(g,q));
+    if (ch>=0) {
+      ti_cur n=ti_cur_step(g,x,c,q);
+      if (!(x->stop)) ti_twalk(g,x,ch,n);
+      x->frn=fr0;
+      if (x->stop) return;
+    }
+  }
+  for(ch=x->nodes[node].vchild; ch>=0; ch=x->nodes[ch].vsib) {
+    k=(int32_t)(x->nodes[ch].tok);
+    if (k==x->nb) {
+      gint vc_tmp=(g->varstack)[1];
+      gptr vc=((gptr)(g->varstack))+1;
+      SETVAR(encode_var((x->vals)-(g->varbanks)+k),q,g->varbanks,g->varstack,vc);
+      (x->nb)++;
+      ti_twalk(g,x,ch,ti_cur_next(x,c));
+      (x->nb)--;
+      if (vc_tmp!=(g->varstack)[1]) wr_clear_varstack_topslice(g,g->varstack,vc_tmp);
+      x->frn=fr0;
+      if (x->stop) return;
+    } else if (k<x->nb && ti_eq(g,x->vals[k],q)) {
+      ti_twalk(g,x,ch,ti_cur_next(x,c));
+      x->frn=fr0;
+      if (x->stop) return;
+    }
+  }
+}
+
+static void ti_twalk(glb* g, ti_index* x, int32_t node, ti_cur c) {
+  (x->steps)++;
+  if (x->stop) return;
+  if (!(x->visit) && !(x->first) && x->nodes[node].maxe<=x->best) return;
+  if (x->compress && x->nplen[node]) {
+    // the prefix of the node, token by token against the same reader
+    int32_t po=x->npfx[node], pl=x->nplen[node], j, k, nb0=x->nb, fr0=x->frn;
+    gint vc0=(g->varstack)[1], q;
+    gptr vc=((gptr)(g->varstack))+1;
+    int ok=1;
+    for(j=0;j<pl;j++) {
+      if (c.pos>=c.end) { ok=0; break; }
+      q=ti_cur_term(x,c);
+      if (x->pslot[po+j]) {
+        k=(int32_t)(x->ptok[po+j]);
+        if (k==x->nb) {
+          SETVAR(encode_var((x->vals)-(g->varbanks)+k),q,g->varbanks,g->varstack,vc);
+          (x->nb)++;
+        } else if (!(k<x->nb && ti_eq(g,x->vals[k],q))) { ok=0; break; }
+        c=ti_cur_next(x,c);
+      } else {
+        if (isvar(q) || ti_qtok(g,q)!=x->ptok[po+j]) { ok=0; break; }
+        c=ti_cur_step(g,x,c,q);
+        if (x->stop) { ok=0; break; }
+      }
+    }
+    if (ok) ti_twalk_node(g,x,node,c);
+    x->nb=nb0;
+    x->frn=fr0;
+    if (vc0!=(g->varstack)[1]) wr_clear_varstack_topslice(g,g->varstack,vc0);
+    return;
+  }
+  ti_twalk_node(g,x,node,c);
+}
+
+/* ti_match_first on the query term itself, read as the walk goes (no token
+   array); swapped: an equation read with its two sides in the other order.
+   The same answer as ti_tokens and ti_match_first on the same term (on the
+   copy with the sides swapped). Returns 1 and sets *payload, or 0. */
+
+int ti_match_first_term(glb* g, ti_index* x, gint term, int swapped,
+                        int (*accept)(glb*, gint), gint* payload) {
+  ti_cur c;
+  gint top[1];
+  if (x->ecnt==0) return 0;
+  x->nb=0; x->best=-1; x->bestent=-1; x->bestnb=0;
+  x->accept=accept; x->norenaming=0; x->visit=NULL;
+  x->first=1; x->stop=0; x->frn=0;
+  x->swaprec=NULL;
+  if (swapped && isdatarec(term)) {
+    x->swaprec=decode_record(g->db,term);
+    x->swp1=RECORD_HEADER_GINTS+(g->unify_funarg1pos);
+    x->swp2=RECORD_HEADER_GINTS+(g->unify_funarg2pos);
+  }
+  // the top cursor: a one-field "record" that holds the query term
+  top[0]=term;
+  c.rec=top; c.pos=0; c.end=1; c.up=-1;
+  ti_twalk(g,x,0,c);
+  x->first=0; x->stop=0; x->swaprec=NULL;
+  if (x->failed) return 0;
+  if (x->bestent<0) return 0;
+  *payload=x->ents[x->bestent].payload;
+  return 1;
+}
 
 /* the newest stored term that matches the query subterm at tokens
    [start,end) of the last ti_tokens and passes the tests: accept (when not
@@ -1040,6 +1228,18 @@ static void ti_test_compare(glb* g, ti_index* x, ti_test* t, gint q, int32_t i, 
   int j, f, k, nv, ok, mode, bf;
   gint payload, aux, *tvals;
   int32_t tnv;
+  {
+    // the walk that reads the term (ti_match_first_term) against the token
+    // walk on the same subterm: the same first entry
+    gint p1=0, p2=0;
+    int r1=ti_match_first(g,x,i,end,NULL,&p1);
+    int r2=ti_match_first_term(g,x,q,0,NULL,&p2);
+    if (r1!=r2 || (r1 && p1!=p2)) {
+      TI_TEST_DIFF(t);
+      wr_printf("the walk that reads the term finds another first entry than the token walk on ");
+      wr_print_term(g,q); wr_printf("\n");
+    }
+  }
   // all matches
   t->nfound=0;
   ti_match_all(g,x,i,end,ti_test_visit,t);

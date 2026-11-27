@@ -956,7 +956,11 @@ static int wr_ucm_after(glb* g, int key) {
 
 /* a unit of the tree of the sign neg whose atom matches xatom, or NULL */
 
-static gptr wr_ucm_find(glb* g, gint xatom, int neg) {
+#ifdef GKC_UCM_WALK_CHECK
+/* the check build: the lookup by the token walk (ti_tokens, ti_match_first),
+   compared with the walk that reads the term on every lookup */
+long ucm_walk_check_lookups=0, ucm_walk_check_diff=0;
+static gptr wr_ucm_find_tok(glb* g, gint xatom, int neg) {
   ti_index* x=(ti_index*)(neg ? (g->ucm_neg) : (g->ucm_pos));
   gint payload;
   int32_t n;
@@ -988,6 +992,36 @@ static gptr wr_ucm_find(glb* g, gint xatom, int neg) {
   (g->stat_ucm_lookups)++;
   if (ti_match_first(g,x,0,n,ucm_self ? wr_ucm_accept : NULL,&payload)) return (gptr)payload;
   return NULL;
+}
+#endif
+
+/* a unit of the tree of the sign neg whose atom matches xatom, or NULL: the
+   walk reads the literal as it goes (ti_match_first_term), and an equation
+   is looked up a second time with its two sides read the other way round */
+
+static gptr wr_ucm_find(glb* g, gint xatom, int neg) {
+  ti_index* x=(ti_index*)(neg ? (g->ucm_neg) : (g->ucm_pos));
+  gint payload;
+  int r;
+  if (!x || x==(void*)1) return NULL;
+  (g->stat_ucm_lookups)++;
+  ucm_eq_query=xatom;
+  r=ti_match_first_term(g,x,xatom,0,(ucm_self || (g->unit_match_equal)) ? wr_ucm_accept : NULL,&payload);
+  if (ti_failed(x)) { wr_ucm_fail(g,1); return NULL; }
+  if (!r && !(g->unit_match_equal) && wr_equality_atom(g,xatom)) {
+    // the equality literal with its two sides swapped (the tables do not swap)
+    (g->stat_ucm_lookups)++;
+    r=ti_match_first_term(g,x,xatom,1,ucm_self ? wr_ucm_accept : NULL,&payload);
+    if (ti_failed(x)) { wr_ucm_fail(g,1); return NULL; }
+  }
+#ifdef GKC_UCM_WALK_CHECK
+  {
+    gptr o=wr_ucm_find_tok(g,xatom,neg);
+    ucm_walk_check_lookups++;
+    if ((o==NULL)!=(r==0) || (r && o!=(gptr)payload)) ucm_walk_check_diff++;
+  }
+#endif
+  return r ? (gptr)payload : NULL;
 }
 
 /* the lookup at the pick (wr_atom_cut_and_subsume): the tree of the sign

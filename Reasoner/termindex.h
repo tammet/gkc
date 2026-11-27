@@ -72,6 +72,8 @@ int ti_match_best(glb* g, ti_index* x, int32_t start, int32_t end,
                   int (*accept)(glb*, gint), int norenaming,
                   gint* payload, gint* aux, int32_t* nv, gint** vals);
 void ti_match_all(glb* g, ti_index* x, int32_t start, int32_t end, ti_visit_fn visit, void* ctx);
+int ti_match_first_term(glb* g, ti_index* x, gint term, int swapped,
+                        int (*accept)(glb*, gint), gint* payload);
 int ti_match_first(glb* g, ti_index* x, int32_t start, int32_t end,
                    int (*accept)(glb*, gint), gint* payload);
 void ti_stats(ti_index* x, ti_stat* s);
