@@ -85,6 +85,7 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
 #endif
 
   (g->tmp_rewrites)=0;
+  (g->ucm_pick_self)=cl; // the unit trees leave the picked clause out
   // do not process non-rule clauses for now
   if (! wg_rec_is_rule_clause(db,cl)) {
 

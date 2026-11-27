@@ -728,6 +728,9 @@ typedef struct glb {
   int ucm_scratch_cap;     // its size in gints
   long stat_ucm_cut;       // unit_cut_match: literals cut by a unit that the tables did not find
   long stat_usm_subsumed;  // unit_subsume_match: clauses subsumed by a unit that the tables did not find
+  long stat_ucm_pick_cut;      // unit_cut_match 2: literals of picked clauses cut by the tree
+  long stat_usm_pick_subsumed; // unit_subsume_match 2: picked clauses subsumed by the tree
+  gptr ucm_pick_self;         // the picked clause during its simplification (the trees leave it out)
   long stat_ucm_inserted;  // units filed in the two trees
   long stat_ucm_lookups;   // walks of the unit trees (two for an equality literal without a match)
   int stat_ucm_stopped;    // the unit trees stopped: 1 no memory, 3 unify settings

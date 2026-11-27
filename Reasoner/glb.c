@@ -294,6 +294,9 @@ int wr_glb_init_simple(glb* g) {
   (g->ucm_scratch_cap)=0;
   (g->stat_ucm_cut)=0;
   (g->stat_usm_subsumed)=0;
+  (g->stat_ucm_pick_cut)=0;
+  (g->stat_usm_pick_subsumed)=0;
+  (g->ucm_pick_self)=NULL;
   (g->stat_ucm_inserted)=0;
   (g->stat_ucm_lookups)=0;
   (g->stat_ucm_stopped)=0;

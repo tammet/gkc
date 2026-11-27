@@ -2163,6 +2163,8 @@ void wr_show_stats(glb* g, int show_local_complex) {
   if ((g->unit_cut_match) || (g->unit_subsume_match)) {
     wr_printf("stat_ucm_cut:                 %13ld\n",g->stat_ucm_cut);
     wr_printf("stat_usm_subsumed:            %13ld\n",g->stat_usm_subsumed);
+    wr_printf("stat_ucm_pick_cut:            %13ld\n",g->stat_ucm_pick_cut);
+    wr_printf("stat_usm_pick_subsumed:       %13ld\n",g->stat_usm_pick_subsumed);
     wr_printf("stat_ucm_inserted:            %13ld\n",g->stat_ucm_inserted);
     wr_printf("stat_ucm_lookups:             %13ld\n",g->stat_ucm_lookups);
 #ifdef GKC_UCM_CHECK
