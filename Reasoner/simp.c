@@ -55,6 +55,23 @@ extern "C" {
 /* ====== Functions ============== */
 
 
+/* pick_full_simplify: a picked fact clause (one positive literal) whose
+   atom a stored negative unit covers (equal or more general) is cut to the
+   empty clause: a proof, with the cutter and the demodulators as parents */
+
+static int wr_pick_fact_cut(glb* g, gptr cl, gint atom) {
+  cvec fb=NULL;
+  if (!(g->pick_full_simplify)) return 0;
+  if ((int)((g->cut_clvec)[0])<=2) return 0; // no room for the cut, as in the rule branch
+  if (wr_atom_cut_and_subsume(g,atom,0,&fb,0)!=1) return 0; // a positive literal, no subsumption
+  (g->cut_clvec)[1]=(gint)fb;
+  (g->cut_clvec)[2]=(gint)NULL;
+  g->proof_found=1;
+  g->proof_history=wr_build_simplify_history(g,cl,g->cut_clvec,g->rewrite_clvec);
+  wr_register_answer(g,NULL,g->proof_history);
+  return 1;
+}
+
 gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
 #ifdef USE_LIT_HASH64
   gint pairhashbuf[DOUBLEPAIR_MAXLEN]; // literal hashes of xcl for the pair table
@@ -95,6 +112,7 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
     // here we could only find a contradiction or calc tautology
     // first try to compute
     (g->cut_clvec)[1]=(gint)NULL;    
+    (g->rewrite_clvec)[1]=2; // no demodulator of an earlier clause in a history
     (g->build_buffer)=g->queue_termbuf;
 
     //meta=RECORD_META_FACT_CLAUSE;
@@ -134,9 +152,11 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
       if (prev_rewrites==(g->tmp_rewrites)) {
         // no rewrites done
         CVEC_NEXT(g->build_buffer)=initial_queue_termbuf_next; // initial next-to-take restored
+        if (wr_pick_fact_cut(g,cl,rpto(g,cl))) return NULL;
         return cl;
       } else {
         // rewrites done
+        if (wr_pick_fact_cut(g,cl,yatom)) return NULL;
         res=rotp(g,yatom);        
         history=wr_build_simplify_history(g,cl,g->cut_clvec,g->rewrite_clvec);
         wr_set_history(g,res,history); 
@@ -146,6 +166,7 @@ gptr wr_simplify_cl(glb* g, gptr cl, gptr cl_metablock) {
       } 
     } else {
       // no rewrites possible
+      if (wr_pick_fact_cut(g,cl,rpto(g,cl))) return NULL;
       return cl; 
     }    
   } else {

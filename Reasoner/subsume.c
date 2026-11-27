@@ -707,6 +707,14 @@ int wr_clmetablock_can_subsume(glb* g, gptr genblock, gptr specblock) {
   gel=genblock[CLMETABLOCK_LENGTHS_POS];
   sel=specblock[CLMETABLOCK_LENGTHS_POS];
   (g->stat_clsubs_top_meta_nonpref_attempted)++;
+  if ((g->subsume_prefilter_fix) || (g->pick_full_simplify)) {
+    // subsume_prefilter_fix: the ground flag is the highest field of the
+    // word, and a ground clause can subsume a clause that is not ground, so
+    // the flag is left out of the comparison of the whole word (the other
+    // fields grow under subsumption)
+    gel&=~((gint)255<<CLMETABLOCK_ISGROUND_SHIFT);
+    sel&=~((gint)255<<CLMETABLOCK_ISGROUND_SHIFT);
+  }
   /*
   wr_printf("\ngel %d sel %d",gel,sel);
   wr_printf("\n gel bits:\n");
@@ -1352,7 +1360,7 @@ int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucke
   // the key value 2: the unit trees in place of the local unit tables, also at the pick
   int cutrep=wr_ucm_replaces(g,g->unit_cut_match), subrep=wr_ucm_replaces(g,g->unit_subsume_match);
   // the key value 1: the tree after the local tables, also at the pick
-  int cutaft=wr_ucm_after(g,g->unit_cut_match), subaft=wr_ucm_after(g,g->unit_subsume_match);
+  int cutaft=wr_ucm_after(g,(g->pick_full_simplify) && !cutrep ? 1 : g->unit_cut_match), subaft=wr_ucm_after(g,g->unit_subsume_match);
 
 #ifdef DEBUG
   wr_printf("\n!!!!! wr_atom_cut_and_subsume is called \n");    

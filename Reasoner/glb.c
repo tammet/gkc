@@ -291,12 +291,16 @@ int wr_glb_init_simple(glb* g) {
   (g->unit_subsume_match)=0;
   (g->unit_match_equal)=0;
   (g->unit_tree_units)=1;
+  (g->pick_full_simplify)=0;
+  (g->subsume_prefilter_fix)=0;
+  (g->stat_given_subsumed)=0;
   (g->ucm_scratch)=NULL;
   (g->ucm_scratch_cap)=0;
   (g->stat_ucm_cut)=0;
   (g->stat_usm_subsumed)=0;
   (g->stat_ucm_pick_cut)=0;
   (g->stat_usm_pick_subsumed)=0;
+  (g->stat_pick_rounds)=0;
   (g->ucm_pick_self)=NULL;
   (g->stat_ucm_inserted)=0;
   (g->stat_ucm_lookups)=0;

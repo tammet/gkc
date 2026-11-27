@@ -2118,9 +2118,14 @@ void wr_show_stats(glb* g, int show_local_complex) {
          g->stat_simplified, g->stat_simplified_derived, g->stat_simplified_given);  
   wr_printf("stat_kept_cl: %d\n",g->stat_kept_cl);       
   wr_printf("stat_built_cl: %d\n",g->stat_built_cl); 
+  if (g->pick_full_simplify) {
+    wr_printf("stat_ucm_pick_cut: %ld\n",g->stat_ucm_pick_cut);
+    wr_printf("stat_pick_rounds: %ld\n",g->stat_pick_rounds);
+  }
   wr_printf("stat_hyperres_partial_cl: %d\n",g->stat_hyperres_partial_cl);
   wr_printf("stat_made_rewriters: %d\n", g->stat_made_rewriters);
-  wr_printf("stat_backward_subsumed: %d\n",g->stat_backward_subsumed);  
+  wr_printf("stat_backward_subsumed: %d\n",g->stat_backward_subsumed);
+  wr_printf("stat_given_subsumed: %ld\n",g->stat_given_subsumed);  
   wr_printf("stat_propagated_subsumed: %d\n",g->stat_propagated_subsumed);
   
 #ifdef SHOW_SUBSUME_STATS  

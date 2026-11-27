@@ -541,6 +541,7 @@ typedef struct glb {
   int stat_backward_subsumed;
   int stat_propagated_subsumed;
   int stat_forward_subsumed;
+  long stat_given_subsumed;     // picked clauses dropped as subsumed by an active clause
   int stat_derived_cut;
   int stat_derived_rewritten;
   int stat_clsubs_attempted;
@@ -723,6 +724,8 @@ typedef struct glb {
   int unit_subsume_match;  // strategy key unit_subsume_match: 1 a stored unit of the same sign that matches a literal subsumes the clause
   int unit_match_equal;    // strategy key unit_match_equal: 1 the unit trees accept only what the unit tables accept
   int unit_tree_units;     // strategy key unit_tree_units: 1 the unit trees hold every kept unit, 2 the active units only
+  int pick_full_simplify;  // strategy key pick_full_simplify: 1 the picked clause is cut by a more general unit too, repeated
+  int subsume_prefilter_fix; // strategy key subsume_prefilter_fix: 1 the meta of fact clauses and the ground flag test repaired
   void* ucm_pos;           // the tree of the positive stored units, NULL, or 1 after a failure
   void* ucm_neg;           // the tree of the negative stored units, NULL, or 1 after a failure
   gptr ucm_scratch;        // a record for the swapped sides of an equality literal
@@ -731,6 +734,7 @@ typedef struct glb {
   long stat_usm_subsumed;  // unit_subsume_match: clauses subsumed by a unit that the tables did not find
   long stat_ucm_pick_cut;      // unit_cut_match 2: literals of picked clauses cut by the tree
   long stat_usm_pick_subsumed; // unit_subsume_match 2: picked clauses subsumed by the tree
+  long stat_pick_rounds;        // pick_full_simplify: repeated simplifications of a picked clause that changed it again
   gptr ucm_pick_self;         // the picked clause during its simplification (the trees leave it out)
   long stat_ucm_inserted;  // units filed in the two trees
   long stat_ucm_lookups;   // walks of the unit trees (two for an equality literal without a match)

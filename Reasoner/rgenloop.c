@@ -425,6 +425,20 @@ int wr_genloop(glb* g) {
     } else {
       given_cl_cand=wr_simplify_cl(g, picked_given_cl_cand, given_cl_metablock);
     }
+    if (g->pick_full_simplify) {
+      // the simplification repeated until nothing changes (at most 8 rounds)
+      gptr prevcl=picked_given_cl_cand;
+      int rounds=0;
+      while (given_cl_cand!=NULL && given_cl_cand!=prevcl && rounds<8 &&
+             !(g->proof_found) && !(g->alloc_err)) {
+        prevcl=given_cl_cand;
+        if ((g->demod_source)==2) (g->rewrite_self)=picked_given_cl_cand;
+        given_cl_cand=wr_simplify_cl(g, prevcl, given_cl_metablock);
+        (g->rewrite_self)=NULL;
+        rounds++;
+        if (given_cl_cand!=prevcl) (g->stat_pick_rounds)++;
+      }
+    }
     //if ((g->print_level_flag)==50) CP6;
     //wr_print_cl_literals_meta(g, picked_given_cl_cand);
     //wg_print_record(db,picked_given_cl_cand);
@@ -475,6 +489,7 @@ int wr_genloop(glb* g) {
 #ifdef DEBUG
       wr_printf("\ngiven cl is subsumed\n");
 #endif    
+      (g->stat_given_subsumed)++;
       continue;
     }
     if (g->arith_instantiation && g->use_comp_funs_strat &&
@@ -868,7 +883,7 @@ int wr_add_cl_to_active_unithash(glb* g, gptr cl) {
       xatom=rotp(g,wg_get_rule_clause_atom(db,cl,0));        
       clmeta=wg_get_rule_clause_atom_meta(db,cl,0);
       // unit_tree_units 2: every active unit enters its unit tree (ground or not)
-      if ((g->unit_tree_units)==2 && ((g->unit_cut_match) || (g->unit_subsume_match)))
+      if ((g->unit_tree_units)==2 && ((g->unit_cut_match) || (g->unit_subsume_match) || (g->pick_full_simplify)))
         wr_ucm_insert(g,cl,xatom,wg_atom_meta_is_neg(db,clmeta) ? 1 : 0);
 /* 
 #ifdef DEBUGHASH
@@ -880,7 +895,7 @@ int wr_add_cl_to_active_unithash(glb* g, gptr cl) {
     } else {
       // not a rule clause
       xatom=cl; 
-      if ((g->unit_tree_units)==2 && ((g->unit_cut_match) || (g->unit_subsume_match)))
+      if ((g->unit_tree_units)==2 && ((g->unit_cut_match) || (g->unit_subsume_match) || (g->pick_full_simplify)))
         wr_ucm_insert(g,cl,xatom,0);
       //xatom=encode_record(db,cl);           
     }   

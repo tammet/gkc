@@ -285,6 +285,16 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr, int s
       // 1: a stored unit of the same sign that matches a literal subsumes the
       // clause, after the unit tables; 2: the tree in place of the local unit tables
       (g->unit_subsume_match)=(json_valueint(elem)==2 ? 2 : (json_valueint(elem) ? 1 : 0));
+    } else if (!strcmp(key,"pick_full_simplify")) {
+      // 1: the picked clause is cut also by a more general stored unit (the
+      // unit tree after the tables), a picked fact clause too, and the
+      // simplification of the pick is repeated until nothing changes
+      (g->pick_full_simplify)=(json_valueint(elem) ? 1 : 0);
+    } else if (!strcmp(key,"subsume_prefilter_fix")) {
+      // 1: the meta block of a fact clause is computed from its atom, and the
+      // ground flag is left out of the length test of the subsumption prefilter
+      // (pick_full_simplify 1 turns this on too)
+      (g->subsume_prefilter_fix)=(json_valueint(elem) ? 1 : 0);
     } else if (!strcmp(key,"unit_tree_units")) {
       // the units of the unit trees: 1 every kept unit (at keep time), 2 the
       // active units only (filed when the clause becomes active)

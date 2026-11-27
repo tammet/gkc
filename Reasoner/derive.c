@@ -2031,7 +2031,7 @@ gint wr_add_cl_to_unithash_h(glb* g, gptr cl, gint clmeta, gint* lithash) {
     else hash=wr_lit_hash(g,rpto(g,xatom));
     hash=wr_lit_hash_unit(g,rpto(g,xatom),hash); // the hash of the unit tables
     if ((g->unit_propagate) || (g->unit_backsubsume)) wr_up_unit(g,cl);
-    if (((g->unit_cut_match) || (g->unit_subsume_match)) && (g->unit_tree_units)!=2)
+    if (((g->unit_cut_match) || (g->unit_subsume_match) || (g->pick_full_simplify)) && (g->unit_tree_units)!=2)
       wr_ucm_insert(g,cl,xatom,wg_atom_meta_is_neg(db,clmeta) ? 1 : 0);
     //printf("\nhash for storing is %d\n",(int)hash);
     if (wg_atom_meta_is_neg(db,clmeta)) {
