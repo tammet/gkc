@@ -845,9 +845,26 @@ int wr_active_subsumed_lit(glb* g, gint atom, int negflag) {
   parents on the stack is not touched, and each literal is a lookup of its
   own. The tables test nothing on a stored unit but equality (or a variant
   with unit_variant_hash): the lookup has no accept test either.
+
+  The key value 1 looks into the tree after the local tables; the value 2
+  looks into the tree in place of them (the tables of an attached KB stay,
+  and the tables answer when the trees are stopped). With unit_match_equal
+  1 the tree accepts only what the tables accept (an equal atom, a variant
+  with unit_variant_hash) and does not swap an equation, so the search is
+  the search of the tables. The tables are still filled: the simplification
+  of the picked clause (wr_atom_cut_and_subsume) and the later runs of a
+  process (wr_activate_from_termhash) read them.
 */
 
 #ifdef USE_TERM_INDEX
+
+#ifdef GKC_UCM_CHECK
+/* the check build: on every literal of a derived clause, a unit that the
+   local unit tables find must be found by the tree of its sign too */
+long ucm_check_lookups=0, ucm_check_miss=0; // printed with the statistics (rmain.c)
+static void wr_ucm_check_lit(glb* g, gint xatom, gint hash);
+static gptr wr_ucm_find(glb* g, gint xatom, int neg);
+#endif
 
 void wr_ucm_free(glb* g) {
   if ((g->ucm_pos) && (g->ucm_pos)!=(void*)1) ti_free((ti_index*)(g->ucm_pos));
@@ -880,6 +897,46 @@ void wr_ucm_insert(glb* g, gptr cl, gptr xatom, int neg) {
   (g->stat_ucm_inserted)++;
 }
 
+/* unit_match_equal: the test of the unit tables on a unit that the walk
+   found (wr_find_termhash_unit): its atom equal to the literal, or a variant
+   with unit_variant_hash. Both tests only compare. */
+
+static gint ucm_eq_query=0;
+
+static int wr_ucm_accept_equal(glb* g, gint payload) {
+  void* db=g->db;
+  gptr cl=(gptr)payload;
+  gint atom;
+  UNUSED(db);
+  if (wg_rec_is_rule_clause(db,cl)) atom=wg_get_rule_clause_atom(db,cl,0);
+  else atom=rpto(g,cl);
+  if (g->unit_variant_hash) return wr_variant_term(g,ucm_eq_query,atom);
+  return wr_equal_term(g,ucm_eq_query,atom,1);
+}
+
+#ifdef GKC_UCM_CHECK
+static void wr_ucm_check_lit(glb* g, gint xatom, gint hash) {
+  gint uh=wr_lit_hash_unit(g,xatom,hash);
+  int neg;
+  gptr hb, tb;
+  if ((g->ucm_pos)==(void*)1 || (g->inkb)) return;
+  for(neg=0;neg<2;neg++) {
+    hb=wr_find_termhash_unit(g,rotp(g,neg ? g->hash_neg_groundunits : g->hash_pos_groundunits),rotp(g,xatom),uh);
+    tb=wr_ucm_find(g,xatom,neg);
+    ucm_check_lookups++;
+    if (hb && !tb) ucm_check_miss++;
+  }
+}
+#endif
+
+/* the key value 2 (unit_cut_match, unit_subsume_match): the tree in place
+   of the local unit tables, when the trees answer (not stopped, not filled
+   while a KB is built) */
+
+static int wr_ucm_replaces(glb* g, int key) {
+  return key==2 && !(g->inkb) && (g->ucm_pos)!=(void*)1 && (g->ucm_neg)!=(void*)1;
+}
+
 /* a unit of the tree of the sign neg whose atom matches xatom, or NULL */
 
 static gptr wr_ucm_find(glb* g, gint xatom, int neg) {
@@ -893,8 +950,9 @@ static gptr wr_ucm_find(glb* g, gint xatom, int neg) {
   n=ti_tokens(g,x,xatom);
   if (n<0) { wr_ucm_fail(g,1); return NULL; }
   (g->stat_ucm_lookups)++;
-  if (ti_match_first(g,x,0,n,NULL,&payload)) return (gptr)payload;
-  if (!wr_equality_atom(g,xatom)) return NULL;
+  ucm_eq_query=xatom;
+  if (ti_match_first(g,x,0,n,(g->unit_match_equal) ? wr_ucm_accept_equal : NULL,&payload)) return (gptr)payload;
+  if ((g->unit_match_equal) || !wr_equality_atom(g,xatom)) return NULL; // the tables do not swap
   // the equality literal with its two sides swapped
   ap=rotp(g,xatom);
   len=get_record_len(ap);
@@ -920,6 +978,7 @@ static gptr wr_ucm_find(glb* g, gint xatom, int neg) {
 void wr_ucm_free(glb* g) { UNUSED(g); }
 void wr_ucm_insert(glb* g, gptr cl, gptr xatom, int neg) { UNUSED(g); UNUSED(cl); UNUSED(xatom); UNUSED(neg); }
 static gptr wr_ucm_find(glb* g, gint xatom, int neg) { UNUSED(g); UNUSED(xatom); UNUSED(neg); return NULL; }
+static int wr_ucm_replaces(glb* g, int key) { UNUSED(g); UNUSED(key); return 0; }
 
 #endif
 
@@ -931,6 +990,8 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
   cvec bucket;
   int cuts=0, oldcuts;
   gint clhash;
+  // the key value 2: the unit trees in place of the local unit tables
+  int cutrep=wr_ucm_replaces(g,g->unit_cut_match), subrep=wr_ucm_replaces(g,g->unit_subsume_match);
 
 #ifdef DEBUG
   wr_printf("\nwr_derived_cl_cut_and_subsume is called \n");
@@ -950,7 +1011,10 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
     wr_print_term(g,xatom);    
 #endif    
     xatomptr=rotp(g,xatom);
-    hash=wr_lit_hash(g,xatom); uhash=wr_lit_hash_unit(g,xatom,hash); // the unit tables    
+    hash=wr_lit_hash(g,xatom); uhash=((cutrep && subrep) ? 0 : wr_lit_hash_unit(g,xatom,hash)); // the unit tables
+#ifdef GKC_UCM_CHECK
+    if (cutrep || subrep) wr_ucm_check_lit(g,xatom,hash);
+#endif
     kbhash=(r_kb_g(g) ? wr_lit_hash_kb(g,xatom) : hash); // a shared KB keeps the old hash
     if ((g->lithash_size)>i) {
       (g->lithash_atoms)[i]=xatom;
@@ -964,8 +1028,8 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
 #ifdef DEBUG      
       wr_printf("\nneg\n");
 #endif 
-      if (g->forward_subsume_derived)      
-        bucket=wr_find_termhash_unit(g,rotp(g,g->hash_neg_groundunits),xatomptr,uhash);      
+      if ((g->forward_subsume_derived) && !subrep)
+        bucket=wr_find_termhash_unit(g,rotp(g,g->hash_neg_groundunits),xatomptr,uhash);
       else
         bucket=NULL;       
       //printf("\ncpneg\n");
@@ -1007,7 +1071,7 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
         (g->stat_forward_subsumed)++;
         return -1;
       }
-      bucket=wr_find_termhash_unit(g,rotp(g,g->hash_pos_groundunits),xatomptr,uhash);      
+      bucket=(cutrep ? NULL : wr_find_termhash_unit(g,rotp(g,g->hash_pos_groundunits),xatomptr,uhash));
       if (bucket!=NULL) {         
 #ifdef DEBUG        
         wr_printf("\ncutoff by ground hash as neg!\n"); 
@@ -1061,7 +1125,7 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
 #ifdef DEBUG      
       wr_printf("\npos\n");
 #endif
-      if (g->forward_subsume_derived)   
+      if ((g->forward_subsume_derived) && !subrep)
         bucket=wr_find_termhash_unit(g,rotp(g,g->hash_pos_groundunits),xatomptr,uhash);
       else
         bucket=NULL;  
@@ -1103,7 +1167,7 @@ int wr_derived_cl_cut_and_subsume(glb* g, gptr rptr, int rpos, gptr clhashptr) {
         (g->stat_forward_subsumed)++;
         return -1;
       }
-      bucket=wr_find_termhash_unit(g,rotp(g,g->hash_neg_groundunits),xatomptr,uhash);      
+      bucket=(cutrep ? NULL : wr_find_termhash_unit(g,rotp(g,g->hash_neg_groundunits),xatomptr,uhash));
       if (bucket!=NULL) {            
 #ifdef DEBUG        
         wr_printf("\ncutoff by ground hash as pos!\n"); 

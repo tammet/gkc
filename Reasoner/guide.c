@@ -278,11 +278,17 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr, int s
       // 1: the discrimination trees have compressed paths (the same answers)
       (g->tree_compress)=(json_valueint(elem) ? 1 : 0);
     } else if (!strcmp(key,"unit_cut_match")) {
-      // 1: a stored unit of the opposite sign that matches a literal cuts it
-      (g->unit_cut_match)=(json_valueint(elem) ? 1 : 0);
+      // 1: a stored unit of the opposite sign that matches a literal cuts it,
+      // after the unit tables; 2: the tree in place of the local unit tables
+      (g->unit_cut_match)=(json_valueint(elem)==2 ? 2 : (json_valueint(elem) ? 1 : 0));
     } else if (!strcmp(key,"unit_subsume_match")) {
-      // 1: a stored unit of the same sign that matches a literal subsumes the clause
-      (g->unit_subsume_match)=(json_valueint(elem) ? 1 : 0);
+      // 1: a stored unit of the same sign that matches a literal subsumes the
+      // clause, after the unit tables; 2: the tree in place of the local unit tables
+      (g->unit_subsume_match)=(json_valueint(elem)==2 ? 2 : (json_valueint(elem) ? 1 : 0));
+    } else if (!strcmp(key,"unit_match_equal")) {
+      // 1: the unit trees accept only what the unit tables accept (an equal
+      // atom, or a variant with unit_variant_hash): the same search as the tables
+      (g->unit_match_equal)=(json_valueint(elem) ? 1 : 0);
     } else if (!strcmp(key,"ti_selftest")) {
       // 1: the self test of the term index on the input clauses, then stop;
       // 2: the same with the atoms of the unit clauses as stored terms
