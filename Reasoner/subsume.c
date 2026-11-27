@@ -957,7 +957,7 @@ static int wr_ucm_after(glb* g, int key) {
 /* a unit of the tree of the sign neg whose atom matches xatom, or NULL */
 
 #ifdef GKC_UCM_WALK_CHECK
-/* the check build: the lookup by the walk over the flatterm (ti_tokens, ti_match_first),
+/* the check build: the lookup by the walk over the preorder array (ti_preorder, ti_match_first),
    compared with the walk that reads the term on every lookup */
 long ucm_walk_check_lookups=0, ucm_walk_check_diff=0;
 static gptr wr_ucm_find_tok(glb* g, gint xatom, int neg) {
@@ -968,7 +968,7 @@ static gptr wr_ucm_find_tok(glb* g, gint xatom, int neg) {
   gint len, t;
   int i, p1, p2;
   if (!x || x==(void*)1) return NULL;
-  n=ti_tokens(g,x,xatom);
+  n=ti_preorder(g,x,xatom);
   if (n<0) { wr_ucm_fail(g,1); return NULL; }
   (g->stat_ucm_lookups)++;
   ucm_eq_query=xatom;
@@ -987,7 +987,7 @@ static gptr wr_ucm_find_tok(glb* g, gint xatom, int neg) {
   p1=RECORD_HEADER_GINTS+(g->unify_funarg1pos);
   p2=RECORD_HEADER_GINTS+(g->unify_funarg2pos);
   t=sp[p1]; sp[p1]=sp[p2]; sp[p2]=t;
-  n=ti_tokens(g,x,rpto(g,sp));
+  n=ti_preorder(g,x,rpto(g,sp));
   if (n<0) { wr_ucm_fail(g,1); return NULL; }
   (g->stat_ucm_lookups)++;
   if (ti_match_first(g,x,0,n,ucm_self ? wr_ucm_accept : NULL,&payload)) return (gptr)payload;
@@ -2200,7 +2200,7 @@ gptr wr_sci_cut_atom(glb* g, gint xatom, int neg, int usematch, int* used, vec h
     if (ures) return otp(db,(otp(db,fnode))[CLTERM_HASHNODE_CL_POS]);
     x->skipatom=yatom; x->skipcl=(otp(db,fnode))[CLTERM_HASHNODE_CL_POS];
   }
-  n=ti_tokens(g,t,xatom);
+  n=ti_preorder(g,t,xatom);
   if (n<0) { wr_sci_fail(g); *used=0; return NULL; }
   if (usematch) {
     sci_current=x;

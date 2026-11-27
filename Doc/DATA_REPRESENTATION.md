@@ -817,8 +817,8 @@ module (a perfect discrimination tree; its users: the demodulators of
 `Reasoner/rewrite.c` and the stored units of the full unit cut and
 subsumption in `Reasoner/subsume.c`). Its rules, which any new tree index should follow:
 
-* The tree stores a term as its flatterm: the preorder string of symbols
-  of the term. A symbol of that string is the encoded `gint` of a function
+* The tree stores a term as the sequence of its symbols in preorder. A
+  symbol of that sequence is the encoded `gint` of a function
   symbol, predicate or constant, the arity of a record, or a variable slot
   of the stored term. Nothing else.
 * A node finds its child by comparing `gint` values (a small array in the

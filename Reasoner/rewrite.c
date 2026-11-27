@@ -242,7 +242,7 @@ int wr_dmi_best(glb* g, gint x, gint* node, gint* rhs) {
   if (d==(void*)1) return -1;
   if (!d) { *node=0; return 0; } // no demodulator filed yet
   if ((g->varstack)[1]>2 && !(g->rw_base)) return -1; // the list tests the first candidate with these bindings
-  n=ti_tokens(g,d,x);
+  n=ti_preorder(g,d,x);
   if (n<0) { (g->stat_dmi_tree_stopped)=2; wr_dmi_fail(g); return -1; }
   if (!ti_match_best(g,d,0,n,wr_dmi_accept,g->rewrite_guard,&payload,&aux,&nv,&vals)) {
     *node=0;
@@ -323,7 +323,7 @@ static void dmi_check(glb* g, gint x, vec hashvec, gint hash) {
   (rpos literals in derived_termbuf) with the demodulators, after the
   literals of both parents are built and before the cuts, the subsumption
   and the weight check, as E does. Only a literal with a candidate is built
-  again: a walk of the tree over each subterm of its atom (one flatterm
+  again: a walk of the tree over each subterm of its atom (one preorder array
   per atom; a subterm is a slice of the symbols) finds whether a demodulator
   matches somewhere. The build is the build of the pick (wr_build_calc_term
   with build_rewrite 1, no substitution, no renaming): innermost first, and
@@ -419,9 +419,9 @@ static gint wr_demod_build_eq(glb* g, gint atom) {
   wr_demod_norm gives the normal form of a term with the demodulators, in
   the order of the build of the pick (wr_build_calc_term with build_rewrite
   1): the elements of a record left to right and innermost first, then the
-  top. The flatterm of the term (its preorder string of symbols) is made
-  once, in a frame of copied arrays; the lookup at a subterm is a walk over
-  its slice of the symbols, with no new flatterm. A subterm with no match
+  top. The symbols of the term are copied in preorder into an array once,
+  in a frame of copied arrays; the lookup at a subterm is a walk over its
+  slice of the symbols, with no new copy. A subterm with no match
   whose elements did not change is
   kept as it is (no copy). A record whose elements changed is built new and
   rewritten at its top with wr_rewrite_term; at a subterm with a match,
@@ -431,27 +431,27 @@ static gint wr_demod_build_eq(glb* g, gint atom) {
   are walked but give no match (they are in normal form already).
   Constants go to wr_rewrite_constant (the tree, one symbol).
 
-  The frames are a stack of flatterm arrays addressed by offset, since a
+  The frames are a stack of preorder arrays addressed by offset, since a
   nested normalisation may grow them.
 */
 
-static uint64_t* nt_toks=NULL;
+static uint64_t* nt_syms=NULL;
 static int32_t* nt_skip=NULL;
 static gint* nt_terms=NULL;
 static int32_t nt_cap=0, nt_top=0;
 
-/* make the flatterm of t into a new frame; returns its base, or -1 */
+/* copy the symbols of t in preorder into a new frame; returns its base, or -1 */
 
 static int32_t wr_nt_push(glb* g, ti_index* d, gint t) {
   uint64_t *tk; int32_t *sk, n, base, i; gint *tm;
-  n=ti_tokens(g,d,t);
+  n=ti_preorder(g,d,t);
   if (n<0) return -1;
   if (nt_top+n>nt_cap) {
     int32_t nc=(nt_top+n)*2+256;
-    uint64_t* a=sys_realloc(nt_toks,sizeof(uint64_t)*nc);
+    uint64_t* a=sys_realloc(nt_syms,sizeof(uint64_t)*nc);
     int32_t* b; gint* c;
     if (!a) return -1;
-    nt_toks=a;
+    nt_syms=a;
     b=sys_realloc(nt_skip,sizeof(int32_t)*nc);
     if (!b) return -1;
     nt_skip=b;
@@ -460,9 +460,9 @@ static int32_t wr_nt_push(glb* g, ti_index* d, gint t) {
     nt_terms=c;
     nt_cap=nc;
   }
-  ti_token_arrays(d,&tk,&sk,&tm);
+  ti_preorder_arrays(d,&tk,&sk,&tm);
   base=nt_top;
-  for(i=0;i<n;i++) { nt_toks[base+i]=tk[i]; nt_skip[base+i]=sk[i]; nt_terms[base+i]=tm[i]; }
+  for(i=0;i<n;i++) { nt_syms[base+i]=tk[i]; nt_skip[base+i]=sk[i]; nt_terms[base+i]=tm[i]; }
   nt_top+=n;
   return base;
 }
@@ -514,7 +514,7 @@ static gint wr_demod_norm_pos(glb* g, ti_index* d, int32_t base, int32_t i, int 
   }
   if (nel!=newel) sys_free(nel);
   // no element changed: a walk over the slice of the subterm
-  hit=ti_match_best_ext(g,d,nt_toks+base,nt_skip+base,nt_terms+base,i,nt_skip[base+i],
+  hit=ti_match_best_ext(g,d,nt_syms+base,nt_skip+base,nt_terms+base,i,nt_skip[base+i],
                         wr_dmi_accept,guardtop,&payload,&aux,&nv,&vals);
   if (!hit) return t;
   if (guardtop) (g->rewrite_guard)=1;
@@ -731,7 +731,7 @@ static void dmi_check_const(glb* g, gint x) {
       if (wr_equal_term(g,nodeptr[CLTERM_HASHNODE_TERM_POS],x,1)) { a=node; break; }
     }
   }
-  n=ti_tokens(g,d,x);
+  n=ti_preorder(g,d,x);
   if (n<0 || !ti_match_best(g,d,0,n,wr_dmi_accept,0,&payload,&aux,&nv,&vals)) payload=0;
   dmi_cc_calls++;
   if (a) dmi_cc_hits++;
@@ -1064,7 +1064,7 @@ gint wr_rewrite_constant(glb* g, gint x) {
       gint payload, aux, *vals;
       int32_t n, nv;
       if (!d) continue; // no demodulator filed yet
-      n=ti_tokens(g,d,x);
+      n=ti_preorder(g,d,x);
       if (n<0) { (g->stat_dmi_tree_stopped)=2; wr_dmi_fail(g); usetree=0; dbused=-1; continue; }
       if (!ti_match_best(g,d,0,n,wr_dmi_accept,0,&payload,&aux,&nv,&vals)) continue;
       nodeptr=otp(db,payload);

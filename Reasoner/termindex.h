@@ -56,18 +56,18 @@ int ti_insert(glb* g, ti_index* x, gint term, gint payload, gint aux);
 int ti_insert_ranked(glb* g, ti_index* x, gint term, gint payload, gint aux, int32_t rank);
 int32_t ti_last_vars(ti_index* x, gint** vars);
 int32_t ti_term_vars(glb* g, ti_index* x, gint term, gint** vars);
-void ti_token_arrays(ti_index* x, uint64_t** toks, int32_t** skip, gint** terms);
-int ti_match_best_ext(glb* g, ti_index* x, uint64_t* toks, int32_t* skip, gint* terms,
+void ti_preorder_arrays(ti_index* x, uint64_t** syms, int32_t** skip, gint** terms);
+int ti_match_best_ext(glb* g, ti_index* x, uint64_t* syms, int32_t* skip, gint* terms,
                       int32_t start, int32_t end, int (*accept)(glb*, gint), int norenaming,
                       gint* payload, gint* aux, int32_t* nv, gint** vals);
 long ti_query_tree_vars(ti_index* x);
 gint ti_rename_copy(glb* g, gint t, gint* vars, int32_t nv, gint first, gptr buf);
 int ti_failed(ti_index* x);
-int32_t ti_tokens(glb* g, ti_index* x, gint term);
-int32_t ti_token_end(ti_index* x, int32_t i);
-int ti_token_is_record(ti_index* x, int32_t i);
-int ti_token_is_var(ti_index* x, int32_t i);
-gint ti_token_term(ti_index* x, int32_t i);
+int32_t ti_preorder(glb* g, ti_index* x, gint term);
+int32_t ti_pre_end(ti_index* x, int32_t i);
+int ti_pre_is_record(ti_index* x, int32_t i);
+int ti_pre_is_var(ti_index* x, int32_t i);
+gint ti_pre_term(ti_index* x, int32_t i);
 int ti_match_best(glb* g, ti_index* x, int32_t start, int32_t end,
                   int (*accept)(glb*, gint), int norenaming,
                   gint* payload, gint* aux, int32_t* nv, gint** vals);

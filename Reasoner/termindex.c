@@ -28,8 +28,8 @@
 
 /* ====================================================
 
-  The path of a stored term is its flatterm: the preorder string of
-  symbols of the term over the positions of the unification:
+  The path of a stored term is the sequence of its symbols in preorder,
+  over the positions of the unification:
 
   * a record gives the symbol "record of n elements", then its elements
     (the function symbol first);
@@ -82,11 +82,11 @@
   greatest insert number below it, so a walk for the newest match cuts the
   subtrees that hold only older entries.
 
-  The flatterm of a query term is made once: its preorder string, the
-  subterm at each symbol and the end of each subterm (the skip array) let
-  a walk start at any subterm without making a new flatterm. The lookups
-  in the unit trees read the query term itself as they walk
-  (ti_match_first_term) and make no flatterm.
+  ti_preorder copies the symbols of a query term in preorder into an array
+  once: the symbol, the subterm at each symbol and the end of each subterm
+  (the skip array) let a walk start at any subterm without a new copy. The
+  lookups in the unit trees read the query term itself as they walk
+  (ti_match_first_term) and make no array.
 
   The module allocates with sys_malloc and holds no pointers into gkc
   records except the payloads it is given and the constants and variables
@@ -162,8 +162,8 @@ struct ti_index_s {
   uint64_t* ptok; uint8_t* pslot; int32_t pcnt, pcap;
   ti_slnode* sln; int32_t slcnt, slcap;
   ti_entry* ents; int32_t ecnt, ecap;
-  // the symbols of the last term made into a flatterm
-  uint64_t* toks; int32_t* skip; gint* terms; int32_t tcap, tn;
+  // the symbols of the last term copied in preorder (ti_preorder)
+  uint64_t* syms; int32_t* skip; gint* terms; int32_t scap, sn;
   gint* tvars; int32_t tnv;  // the variables of the last stored term, in slot order
   long qtreevars;            // variables of the tree bank found in a query term (a defect: expected 0)
   // the walk
@@ -226,7 +226,7 @@ ti_index* ti_new(gptr cells, int compress) {
   if (!x) return NULL;
   memset(x,0,sizeof(ti_index));
   x->compress=compress;
-  x->ncap=1<<10; x->xcap=1<<8; x->slcap=1<<6; x->ecap=1<<9; x->tcap=1<<8;
+  x->ncap=1<<10; x->xcap=1<<8; x->slcap=1<<6; x->ecap=1<<9; x->scap=1<<8;
   x->xnodes=sys_malloc(sizeof(ti_xnode)*x->xcap);
   if (compress) {
     x->pcap=1<<12;
@@ -239,9 +239,9 @@ ti_index* ti_new(gptr cells, int compress) {
   x->nodes=sys_malloc(sizeof(ti_node)*x->ncap);
   x->sln=sys_malloc(sizeof(ti_slnode)*x->slcap);
   x->ents=sys_malloc(sizeof(ti_entry)*x->ecap);
-  x->toks=sys_malloc(sizeof(uint64_t)*x->tcap);
-  x->skip=sys_malloc(sizeof(int32_t)*x->tcap);
-  x->terms=sys_malloc(sizeof(gint)*x->tcap);
+  x->syms=sys_malloc(sizeof(uint64_t)*x->scap);
+  x->skip=sys_malloc(sizeof(int32_t)*x->scap);
+  x->terms=sys_malloc(sizeof(gint)*x->scap);
   x->tvars=sys_malloc(sizeof(gint)*TI_MAXSLOTS);
   x->vals=cells;
   x->bestvals=sys_malloc(sizeof(gint)*TI_MAXSLOTS);
@@ -249,7 +249,7 @@ ti_index* ti_new(gptr cells, int compress) {
 #ifdef GKC_TI_TWIN_CHECK
   if (!twin_making) { twin_making=1; x->twin=ti_new(cells,!compress); twin_making=0; }
 #endif
-  if (!x->nodes || !x->xnodes || !x->sln || !x->ents || !x->toks || !x->skip || !x->terms ||
+  if (!x->nodes || !x->xnodes || !x->sln || !x->ents || !x->syms || !x->skip || !x->terms ||
       !x->tvars || !x->vals || !x->bestvals || ti_new_node(x,0)!=0) {
     ti_free(x);
     return NULL;
@@ -271,7 +271,7 @@ void ti_free(ti_index* x) {
   if (x->pslot) sys_free(x->pslot);
   if (x->sln) sys_free(x->sln);
   if (x->ents) sys_free(x->ents);
-  if (x->toks) sys_free(x->toks);
+  if (x->syms) sys_free(x->syms);
   if (x->skip) sys_free(x->skip);
   if (x->terms) sys_free(x->terms);
   if (x->tvars) sys_free(x->tvars);
@@ -396,82 +396,82 @@ static int ti_add_child(ti_index* x, int32_t node, int32_t c, uint64_t tok, int 
 
 /* ---- symbols ---- */
 
-static int ti_grow_tokens(ti_index* x) {
-  int32_t nc=x->tcap*2;
+static int ti_grow_preorder(ti_index* x) {
+  int32_t nc=x->scap*2;
   uint64_t* nt; int32_t* ns; gint* nm;
-  nt=sys_realloc(x->toks,sizeof(uint64_t)*nc);
+  nt=sys_realloc(x->syms,sizeof(uint64_t)*nc);
   if (!nt) return 0;
-  x->toks=nt;
+  x->syms=nt;
   ns=sys_realloc(x->skip,sizeof(int32_t)*nc);
   if (!ns) return 0;
   x->skip=ns;
   nm=sys_realloc(x->terms,sizeof(gint)*nc);
   if (!nm) return 0;
   x->terms=nm;
-  x->tcap=nc;
+  x->scap=nc;
   return 1;
 }
 
 /* stored: 1 for a term to store (variables to slots), 0 for a query term */
 
-static int32_t ti_tokens_aux(glb* g, ti_index* x, gint t, int32_t n, int stored) {
+static int32_t ti_preorder_aux(glb* g, ti_index* x, gint t, int32_t n, int stored) {
   gptr tp;
   int i, start, end;
   int32_t me, k;
-  if (n>=x->tcap && !ti_grow_tokens(x)) return -1;
+  if (n>=x->scap && !ti_grow_preorder(x)) return -1;
   me=n;
   x->terms[n]=t;
   if (isvar(t)) {
     if (!stored) {
       if ((g->varbanks)+decode_var(t)>=x->vals && (g->varbanks)+decode_var(t)<x->vals+TI_MAXSLOTS) (x->qtreevars)++;
-      x->toks[n]=(uint64_t)t; x->skip[n]=n+1; return n+1;
+      x->syms[n]=(uint64_t)t; x->skip[n]=n+1; return n+1;
     }
     for(k=0;k<x->tnv;k++) if (x->tvars[k]==t) break;
     if (k==x->tnv) {
       if (k>=TI_MAXSLOTS) return -1;
       x->tvars[(x->tnv)++]=t;
     }
-    x->toks[n]=(uint64_t)k;
+    x->syms[n]=(uint64_t)k;
     x->skip[n]=n+1;
     return n+1;
   }
   if (!isdatarec(t)) {
     // a constant: its encoded gint is the symbol (one encoding per value;
     // see the comment at the top of this file)
-    x->toks[n]=(uint64_t)t;
+    x->syms[n]=(uint64_t)t;
     x->skip[n]=n+1;
     return n+1;
   }
   tp=decode_record(g->db,t);
   start=wr_term_unify_startpos(g);
   end=wr_term_unify_endpos(g,tp);
-  x->toks[n]=TI_REC(end-start);
+  x->syms[n]=TI_REC(end-start);
   n++;
   for(i=start;i<end;i++) {
-    n=ti_tokens_aux(g,x,tp[i],n,stored);
+    n=ti_preorder_aux(g,x,tp[i],n,stored);
     if (n<0) return -1;
   }
   x->skip[me]=n;
   return n;
 }
 
-int32_t ti_tokens(glb* g, ti_index* x, gint term) {
+int32_t ti_preorder(glb* g, ti_index* x, gint term) {
   x->tnv=0;
-  x->tn=ti_tokens_aux(g,x,term,0,0);
-  return x->tn;
+  x->sn=ti_preorder_aux(g,x,term,0,0);
+  return x->sn;
 }
 
-int32_t ti_token_end(ti_index* x, int32_t i) { return x->skip[i]; }
+int32_t ti_pre_end(ti_index* x, int32_t i) { return x->skip[i]; }
 
-int ti_token_is_record(ti_index* x, int32_t i) { return isdatarec(x->terms[i]) ? 1 : 0; }
+int ti_pre_is_record(ti_index* x, int32_t i) { return isdatarec(x->terms[i]) ? 1 : 0; }
 
-int ti_token_is_var(ti_index* x, int32_t i) { return isvar(x->terms[i]) ? 1 : 0; }
+int ti_pre_is_var(ti_index* x, int32_t i) { return isvar(x->terms[i]) ? 1 : 0; }
 
-gint ti_token_term(ti_index* x, int32_t i) { return x->terms[i]; }
+gint ti_pre_term(ti_index* x, int32_t i) { return x->terms[i]; }
 
 /* ---- insert ---- */
 
-/* the compressed form: append the symbols [i,n) of the last term made into a flatterm
+/* the compressed form: append the symbols [i,n) of the last term copied in preorder
    to the pool; returns their start, or -1 */
 
 static int32_t ti_pool_add(ti_index* x, int32_t i, int32_t n) {
@@ -488,7 +488,7 @@ static int32_t ti_pool_add(ti_index* x, int32_t i, int32_t n) {
   }
   st=x->pcnt;
   for(j=i;j<n;j++) {
-    x->ptok[x->pcnt]=x->toks[j];
+    x->ptok[x->pcnt]=x->syms[j];
     x->pslot[x->pcnt]=(isvar(x->terms[j]) ? 1 : 0);
     (x->pcnt)++;
   }
@@ -511,7 +511,7 @@ static int32_t ti_insert_c(ti_index* x, int32_t n, int32_t e) {
   for(;;) {
     pl=x->nplen[cur]; po=x->npfx[cur];
     for(j=0;j<pl && i+j<n;j++) {
-      if (x->ptok[po+j]!=x->toks[i+j] || x->pslot[po+j]!=(isvar(x->terms[i+j]) ? 1 : 0)) break;
+      if (x->ptok[po+j]!=x->syms[i+j] || x->pslot[po+j]!=(isvar(x->terms[i+j]) ? 1 : 0)) break;
     }
     if (j<pl) {
       // split cur at its prefix symbol j: m takes the symbol j, the rest of
@@ -532,7 +532,7 @@ static int32_t ti_insert_c(ti_index* x, int32_t n, int32_t e) {
     i+=x->nplen[cur];
     TI_MAXE(x->nodes[cur].maxe,e);
     if (i>=n) return cur;
-    t=x->toks[i];
+    t=x->syms[i];
     slot=isvar(x->terms[i]);
     nx=slot ? ti_vchild(x,cur,t) : ti_child(x,cur,t);
     if (nx<0) {
@@ -565,7 +565,7 @@ int ti_insert_ranked(glb* g, ti_index* x, gint term, gint payload, gint aux, int
   if (x->twin) ti_insert_ranked(g,x->twin,term,payload,aux,rank);
 #endif
   x->tnv=0;
-  n=ti_tokens_aux(g,x,term,0,1);
+  n=ti_preorder_aux(g,x,term,0,1);
   if (n<0) { x->failed=1; return 0; }
   if (x->compress) {
     if (x->ecnt>=x->ecap) {
@@ -586,7 +586,7 @@ int ti_insert_ranked(glb* g, ti_index* x, gint term, gint payload, gint aux, int
   }
   cur=0;
   for(i=0;i<n;i++) {
-    t=x->toks[i];
+    t=x->syms[i];
     slot=isvar(x->terms[i]);
     nx=slot ? ti_vchild(x,cur,t) : ti_child(x,cur,t);
     if (nx<0) {
@@ -611,7 +611,7 @@ int ti_insert_ranked(glb* g, ti_index* x, gint term, gint payload, gint aux, int
   cur=0;
   TI_MAXE(x->nodes[0].maxe,rank);
   for(i=0;i<n;i++) {
-    t=x->toks[i];
+    t=x->syms[i];
     cur=isvar(x->terms[i]) ? ti_vchild(x,cur,t) : ti_child(x,cur,t);
     TI_MAXE(x->nodes[cur].maxe,rank);
   }
@@ -684,7 +684,7 @@ static void ti_walk(glb* g, ti_index* x, int32_t node, int32_t i, int32_t end) {
         } else if (!(k<x->nb && ti_eq(g,x->vals[k],q))) { ok=0; break; }
         i=x->skip[i];
       } else {
-        if (isvar(q) || x->toks[i]!=x->ptok[po+j]) { ok=0; break; }
+        if (isvar(q) || x->syms[i]!=x->ptok[po+j]) { ok=0; break; }
         i++;
       }
     }
@@ -704,7 +704,7 @@ static void ti_walk_node(glb* g, ti_index* x, int32_t node, int32_t i, int32_t e
   uint64_t t;
   gint q;
   if (i>=end) { ti_leaf(g,x,node); return; }
-  t=x->toks[i];
+  t=x->syms[i];
   q=x->terms[i];
   if (!isvar(q)) {
     // a record or a constant of the query: the child with the same symbol
@@ -736,7 +736,7 @@ static void ti_walk_node(glb* g, ti_index* x, int32_t node, int32_t i, int32_t e
 
 /* ---- the walk that reads the query term as it goes ----
 
-   The same tree walk as ti_walk, without a preorder string: the symbol at the
+   The same tree walk as ti_walk, without the array of the symbols: the symbol at the
    cursor is read from the query record when the walk needs it (a record
    gives its arity, a constant its gint, a variable of the query is a
    constant of the walk). A slot at its first occurrence binds the whole
@@ -789,7 +789,7 @@ static ti_cur ti_cur_enter(glb* g, ti_index* x, ti_cur c, gint q) {
   return r;
 }
 
-/* the symbol of the query term q, as ti_tokens gives it (q not a variable) */
+/* the symbol of the query term q, as ti_preorder gives it (q not a variable) */
 
 static uint64_t ti_qtok(glb* g, gint q) {
   gptr qp;
@@ -881,7 +881,7 @@ static void ti_twalk(glb* g, ti_index* x, int32_t node, ti_cur c) {
 
 /* ti_match_first on the query term itself, read as the walk goes (no symbol
    array); swapped: an equation read with its two sides in the other order.
-   The same answer as ti_tokens and ti_match_first on the same term (on the
+   The same answer as ti_preorder and ti_match_first on the same term (on the
    copy with the sides swapped). Returns 1 and sets *payload, or 0. */
 
 int ti_match_first_term(glb* g, ti_index* x, gint term, int swapped,
@@ -910,7 +910,7 @@ int ti_match_first_term(glb* g, ti_index* x, gint term, int swapped,
 }
 
 /* the newest stored term that matches the query subterm at symbols
-   [start,end) of the last ti_tokens and passes the tests: accept (when not
+   [start,end) of the last ti_preorder and passes the tests: accept (when not
    NULL) and, with norenaming, a substitution that is not a renaming.
    Returns 1 and sets *payload, *aux, *nv (the number of slots) and *vals
    (the values of the slots 0..nv-1, valid until the next call); 0 when
@@ -928,7 +928,7 @@ int ti_match_best(glb* g, ti_index* x, int32_t start, int32_t end,
 #ifdef GKC_TI_TWIN_CHECK
   if (x->twin) {
     gint tp=0, ta, *tv; int32_t tn=0, k; int tr, r=(x->bestent>=0);
-    tr=ti_match_best_ext(g,x->twin,x->toks,x->skip,x->terms,start,end,accept,norenaming,&tp,&ta,&tn,&tv);
+    tr=ti_match_best_ext(g,x->twin,x->syms,x->skip,x->terms,start,end,accept,norenaming,&tp,&ta,&tn,&tv);
     twin_lookups++;
     if (tr!=r || (r && (tp!=x->ents[x->bestent].payload || tn!=x->bestnb))) twin_diff++;
     else if (r) { for(k=0;k<tn;k++) if (!ti_eq(g,tv[k],x->bestvals[k])) { twin_diff++; break; } }
@@ -960,10 +960,10 @@ int ti_match_first(glb* g, ti_index* x, int32_t start, int32_t end,
 #ifdef GKC_TI_TWIN_CHECK
   if (x->twin) {
     gint tp=0; int tr, r=(x->bestent>=0);
-    uint64_t* st=x->twin->toks; int32_t* ss=x->twin->skip; gint* sm=x->twin->terms;
-    x->twin->toks=x->toks; x->twin->skip=x->skip; x->twin->terms=x->terms;
+    uint64_t* st=x->twin->syms; int32_t* ss=x->twin->skip; gint* sm=x->twin->terms;
+    x->twin->syms=x->syms; x->twin->skip=x->skip; x->twin->terms=x->terms;
     tr=ti_match_first(g,x->twin,start,end,accept,&tp);
-    x->twin->toks=st; x->twin->skip=ss; x->twin->terms=sm;
+    x->twin->syms=st; x->twin->skip=ss; x->twin->terms=sm;
     twin_first++;
     if (tr!=r) twin_first_diff++; // a match in one form only
     else if (r && tp!=x->ents[x->bestent].payload) twin_first_other++; // another matching entry first
@@ -974,24 +974,24 @@ int ti_match_first(glb* g, ti_index* x, int32_t start, int32_t end,
   return 1;
 }
 
-/* the arrays of the flatterm of the last ti_tokens */
+/* the arrays of the last ti_preorder: the symbols, the skips, the subterms */
 
-void ti_token_arrays(ti_index* x, uint64_t** toks, int32_t** skip, gint** terms) {
-  *toks=x->toks; *skip=x->skip; *terms=x->terms;
+void ti_preorder_arrays(ti_index* x, uint64_t** syms, int32_t** skip, gint** terms) {
+  *syms=x->syms; *skip=x->skip; *terms=x->terms;
 }
 
-/* ti_match_best on flatterm arrays of the caller (a copy of the arrays of an
-   earlier ti_tokens), so the caller keeps the symbols of a term while other
-   lookups make the flatterm of other terms */
+/* ti_match_best on preorder arrays of the caller (a copy of the arrays of an
+   earlier ti_preorder), so the caller keeps the symbols of a term while other
+   lookups copy other terms */
 
-int ti_match_best_ext(glb* g, ti_index* x, uint64_t* toks, int32_t* skip, gint* terms,
+int ti_match_best_ext(glb* g, ti_index* x, uint64_t* syms, int32_t* skip, gint* terms,
                       int32_t start, int32_t end, int (*accept)(glb*, gint), int norenaming,
                       gint* payload, gint* aux, int32_t* nv, gint** vals) {
-  uint64_t* st=x->toks; int32_t* ss=x->skip; gint* sm=x->terms;
+  uint64_t* st=x->syms; int32_t* ss=x->skip; gint* sm=x->terms;
   int r;
-  x->toks=toks; x->skip=skip; x->terms=terms;
+  x->syms=syms; x->skip=skip; x->terms=terms;
   r=ti_match_best(g,x,start,end,accept,norenaming,payload,aux,nv,vals);
-  x->toks=st; x->skip=ss; x->terms=sm;
+  x->syms=st; x->skip=ss; x->terms=sm;
   return r;
 }
 
@@ -1000,7 +1000,7 @@ int ti_match_best_ext(glb* g, ti_index* x, uint64_t* toks, int32_t* skip, gint* 
 
 int32_t ti_term_vars(glb* g, ti_index* x, gint term, gint** vars) {
   x->tnv=0;
-  if (ti_tokens_aux(g,x,term,0,1)<0) return -1;
+  if (ti_preorder_aux(g,x,term,0,1)<0) return -1;
   *vars=x->tvars;
   return x->tnv;
 }
@@ -1124,13 +1124,13 @@ static void ti_cand_walk(glb* g, ti_index* x, int32_t node, int32_t i, int32_t e
     return;
   }
   if (!isvar(q)) {
-    c=ti_child(x,node,x->toks[i]);
+    c=ti_child(x,node,x->syms[i]);
     if (c>=0) ti_cand_walk(g,x,c,i+1,end,unify);
   }
   for(c=x->nodes[node].vchild; c>=0; c=x->nodes[c].vsib) ti_cand_walk(g,x,c,x->skip[i],end,unify);
 }
 
-/* visit the candidates of the query at symbols [start,end) of the last ti_tokens */
+/* visit the candidates of the query at symbols [start,end) of the last ti_preorder */
 
 void ti_candidates(glb* g, ti_index* x, int32_t start, int32_t end, int unify, ti_visit_fn visit, void* ctx) {
   int32_t e;
@@ -1223,7 +1223,7 @@ static gint ti_test_build_rhs(glb* g, gint rc, int32_t nv, gint* vals) {
 }
 
 /* compare the tree and the plain match on the query subterm q at the
-   symbols [i,end) of the last ti_tokens */
+   symbols [i,end) of the last ti_preorder */
 
 static void ti_test_compare(glb* g, ti_index* x, ti_test* t, gint q, int32_t i, int32_t end) {
   gint vars[TI_MAXSLOTS], bvals[TI_MAXSLOTS];
@@ -1238,7 +1238,7 @@ static void ti_test_compare(glb* g, ti_index* x, ti_test* t, gint q, int32_t i, 
     int r2=ti_match_first_term(g,x,q,0,NULL,&p2);
     if (r1!=r2 || (r1 && p1!=p2)) {
       TI_TEST_DIFF(t);
-      wr_printf("the walk that reads the term finds another first entry than the walk over the preorder string on ");
+      wr_printf("the walk that reads the term finds another first entry than the walk over the preorder array on ");
       wr_print_term(g,q); wr_printf("\n");
     }
   }
@@ -1356,7 +1356,7 @@ static int ti_test_unify_any(glb* g, ti_index* x, ti_test* t, gint q) {
   gint r=ti_test_renamed(g,q);
   int32_t n, f, ok=0;
   if (r==WG_ILLEGAL) return 0;
-  n=ti_tokens(g,x,r);
+  n=ti_preorder(g,x,r);
   if (n<=0) return 0;
   t->nfound=0;
   ti_candidates(g,x,0,n,1,ti_test_cand_visit,t);
@@ -1375,7 +1375,7 @@ static void ti_test_compare_unify(glb* g, ti_index* x, ti_test* t, gint q) {
   int32_t n, j, f;
   int ok;
   if (r==WG_ILLEGAL) return;
-  n=ti_tokens(g,x,r);
+  n=ti_preorder(g,x,r);
   if (n<=0) return;
   t->nfound=0;
   ti_candidates(g,x,0,n,1,ti_test_cand_visit,t);
@@ -1399,11 +1399,11 @@ static void ti_test_compare_unify(glb* g, ti_index* x, ti_test* t, gint q) {
 static void ti_test_subterms(glb* g, ti_index* x, ti_test* t, gint a) {
   int32_t n, i;
   gint* subs; int32_t* ends;
-  n=ti_tokens(g,x,a);
+  n=ti_preorder(g,x,a);
   if (n<=0) return;
-  // ti_tokens is overwritten by nothing in the compare, but keep a copy of the slices
+  // ti_preorder is overwritten by nothing in the compare, but keep a copy of the slices
   subs=sys_malloc(sizeof(gint)*n); ends=sys_malloc(sizeof(int32_t)*n);
-  for(i=0;i<n;i++) { subs[i]=ti_token_term(x,i); ends[i]=ti_token_end(x,i); }
+  for(i=0;i<n;i++) { subs[i]=ti_pre_term(x,i); ends[i]=ti_pre_end(x,i); }
   for(i=0;i<n;i++) {
     if ((g->ti_selftest)==3) ti_test_compare_unify(g,x,t,subs[i]);
     else ti_test_compare(g,x,t,subs[i],i,ends[i]);
@@ -1494,7 +1494,7 @@ void wr_ti_selftest(glb* g) {
           q=ap[RECORD_HEADER_GINTS+(g->unify_funarg1pos)];
           e=ap[RECORD_HEADER_GINTS+(g->unify_funarg2pos)];
           queries++;
-          n=ti_tokens(g,x,q);
+          n=ti_preorder(g,x,q);
           wr_printf("TI_TEST query %d: ",queries);
           wr_print_term(g,q);
           if ((g->ti_selftest)==3) {
