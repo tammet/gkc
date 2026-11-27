@@ -968,7 +968,9 @@ gint wr_rewrite_term(glb* g, gint x) {
 #endif 
         // the tree: the copy of the right side in the tree bank, whose
         // variables are bound on the stack
+#ifdef USE_DEMOD_INDEX
         if (WR_DMI_FOUND) b=dmi_rhs;
+#endif
         if (isvar(b)) {
           b=VARVAL_DIRECT(b,(g->varbanks));          
         } else if (isdatarec(b)) {
@@ -1001,8 +1003,12 @@ gint wr_rewrite_term(glb* g, gint x) {
         } else if (isdatarec(b)) {
           // the rewriting of a derived clause (rw_base): the one-pass
           // normalisation of the instance
+#ifdef USE_DEMOD_INDEX
           if ((g->rw_base) && !(g->demod_oldform)) res=wr_demod_norm(g,b,0);
           else res=wr_build_calc_term(g,b);
+#else
+          res=wr_build_calc_term(g,b);
+#endif
           return res;
         } else {
           return wr_rewrite_constant(g,b);
