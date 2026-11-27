@@ -722,6 +722,7 @@ typedef struct glb {
   int unit_cut_match;      // strategy key unit_cut_match: 1 a stored unit of the opposite sign that matches a literal cuts it
   int unit_subsume_match;  // strategy key unit_subsume_match: 1 a stored unit of the same sign that matches a literal subsumes the clause
   int unit_match_equal;    // strategy key unit_match_equal: 1 the unit trees accept only what the unit tables accept
+  int unit_tree_units;     // strategy key unit_tree_units: 1 the unit trees hold every kept unit, 2 the active units only
   void* ucm_pos;           // the tree of the positive stored units, NULL, or 1 after a failure
   void* ucm_neg;           // the tree of the negative stored units, NULL, or 1 after a failure
   gptr ucm_scratch;        // a record for the swapped sides of an equality literal

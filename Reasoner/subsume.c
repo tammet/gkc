@@ -948,6 +948,12 @@ static int wr_ucm_replaces(glb* g, int key) {
   return key==2 && !(g->inkb) && (g->ucm_pos)!=(void*)1 && (g->ucm_neg)!=(void*)1;
 }
 
+/* the key value 1 at the pick: the tree after the local tables */
+
+static int wr_ucm_after(glb* g, int key) {
+  return key==1 && !(g->inkb) && (g->ucm_pos)!=(void*)1 && (g->ucm_neg)!=(void*)1;
+}
+
 /* a unit of the tree of the sign neg whose atom matches xatom, or NULL */
 
 static gptr wr_ucm_find(glb* g, gint xatom, int neg) {
@@ -1006,6 +1012,7 @@ void wr_ucm_free(glb* g) { UNUSED(g); }
 void wr_ucm_insert(glb* g, gptr cl, gptr xatom, int neg) { UNUSED(g); UNUSED(cl); UNUSED(xatom); UNUSED(neg); }
 static gptr wr_ucm_find(glb* g, gint xatom, int neg) { UNUSED(g); UNUSED(xatom); UNUSED(neg); return NULL; }
 static int wr_ucm_replaces(glb* g, int key) { UNUSED(g); UNUSED(key); return 0; }
+static int wr_ucm_after(glb* g, int key) { UNUSED(g); UNUSED(key); return 0; }
 static gptr wr_ucm_pick(glb* g, gint xatom, int neg, int sub) { UNUSED(g); UNUSED(xatom); UNUSED(neg); UNUSED(sub); return NULL; }
 
 #endif
@@ -1310,6 +1317,8 @@ int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucke
   gint kbhash, hash, uhash;
   // the key value 2: the unit trees in place of the local unit tables, also at the pick
   int cutrep=wr_ucm_replaces(g,g->unit_cut_match), subrep=wr_ucm_replaces(g,g->unit_subsume_match);
+  // the key value 1: the tree after the local tables, also at the pick
+  int cutaft=wr_ucm_after(g,g->unit_cut_match), subaft=wr_ucm_after(g,g->unit_subsume_match);
 
 #ifdef DEBUG
   wr_printf("\n!!!!! wr_atom_cut_and_subsume is called \n");    
@@ -1322,7 +1331,8 @@ int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucke
   if (wg_atom_meta_is_neg(db,xatommeta)) {
     //printf("\nneg\n");
     if (subsflag) {
-      bucket=(subrep ? wr_ucm_pick(g,xatom,1,1) : wr_find_termhash_unit(g,rotp(g,g->hash_neg_groundunits),xatomptr,uhash));      
+      bucket=(subrep ? wr_ucm_pick(g,xatom,1,1) : wr_find_termhash_unit(g,rotp(g,g->hash_neg_groundunits),xatomptr,uhash));
+      if (bucket==NULL && subaft) bucket=wr_ucm_pick(g,xatom,1,1);      
       //printf("\ncpneg\n");
       if (bucket!=NULL) {
   #ifdef DEBUG
@@ -1346,7 +1356,8 @@ int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucke
         }
       }                   
     }  
-    bucket=(cutrep ? wr_ucm_pick(g,xatom,0,0) : wr_find_termhash_unit(g,rotp(g,g->hash_pos_groundunits),xatomptr,uhash));      
+    bucket=(cutrep ? wr_ucm_pick(g,xatom,0,0) : wr_find_termhash_unit(g,rotp(g,g->hash_pos_groundunits),xatomptr,uhash));
+      if (bucket==NULL && cutaft) bucket=wr_ucm_pick(g,xatom,0,0);      
     if (bucket!=NULL) {         
 #ifdef DEBUG            
       wr_printf("\ncutoff by ground hash as neg!\n"); 
@@ -1375,6 +1386,7 @@ int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucke
     //printf("\npos\n");
     if (subsflag) {
       bucket=(subrep ? wr_ucm_pick(g,xatom,0,1) : wr_find_termhash_unit(g,rotp(g,g->hash_pos_groundunits),xatomptr,uhash));
+      if (bucket==NULL && subaft) bucket=wr_ucm_pick(g,xatom,0,1);
       //printf("\ncppos\n");
       if (bucket!=NULL) {
   #ifdef DEBUG
@@ -1398,7 +1410,8 @@ int wr_atom_cut_and_subsume(glb* g, gint xatom, gint xatommeta, cvec* foundbucke
         }
       }       
     }  
-    bucket=(cutrep ? wr_ucm_pick(g,xatom,1,0) : wr_find_termhash_unit(g,rotp(g,g->hash_neg_groundunits),xatomptr,uhash));      
+    bucket=(cutrep ? wr_ucm_pick(g,xatom,1,0) : wr_find_termhash_unit(g,rotp(g,g->hash_neg_groundunits),xatomptr,uhash));
+      if (bucket==NULL && cutaft) bucket=wr_ucm_pick(g,xatom,1,0);      
     if (bucket!=NULL) {            
 #ifdef DEBUG       
       wr_printf("\ncutoff by ground hash as pos!\n"); 

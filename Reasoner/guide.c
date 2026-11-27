@@ -285,6 +285,10 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr, int s
       // 1: a stored unit of the same sign that matches a literal subsumes the
       // clause, after the unit tables; 2: the tree in place of the local unit tables
       (g->unit_subsume_match)=(json_valueint(elem)==2 ? 2 : (json_valueint(elem) ? 1 : 0));
+    } else if (!strcmp(key,"unit_tree_units")) {
+      // the units of the unit trees: 1 every kept unit (at keep time), 2 the
+      // active units only (filed when the clause becomes active)
+      (g->unit_tree_units)=(json_valueint(elem)==2 ? 2 : 1);
     } else if (!strcmp(key,"unit_match_equal")) {
       // 1: the unit trees accept only what the unit tables accept (an equal
       // atom, or a variant with unit_variant_hash): the same search as the tables

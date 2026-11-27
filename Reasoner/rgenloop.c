@@ -867,6 +867,9 @@ int wr_add_cl_to_active_unithash(glb* g, gptr cl) {
     if (ruleflag) {
       xatom=rotp(g,wg_get_rule_clause_atom(db,cl,0));        
       clmeta=wg_get_rule_clause_atom_meta(db,cl,0);
+      // unit_tree_units 2: every active unit enters its unit tree (ground or not)
+      if ((g->unit_tree_units)==2 && ((g->unit_cut_match) || (g->unit_subsume_match)))
+        wr_ucm_insert(g,cl,xatom,wg_atom_meta_is_neg(db,clmeta) ? 1 : 0);
 /* 
 #ifdef DEBUGHASH
       printf("\nNB! NB! len==1, is rule clause, meta: %ld, is ground: %d\n",
@@ -877,6 +880,8 @@ int wr_add_cl_to_active_unithash(glb* g, gptr cl) {
     } else {
       // not a rule clause
       xatom=cl; 
+      if ((g->unit_tree_units)==2 && ((g->unit_cut_match) || (g->unit_subsume_match)))
+        wr_ucm_insert(g,cl,xatom,0);
       //xatom=encode_record(db,cl);           
     }   
     hash=wr_lit_hash_unit(g,rpto(g,xatom),wr_lit_hash(g,rpto(g,xatom))); // the hash of the unit tables
