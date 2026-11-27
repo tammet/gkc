@@ -730,6 +730,7 @@ typedef struct glb {
   long stat_ucm_inserted;  // units filed in the two trees
   long stat_ucm_lookups;   // walks of the unit trees (two for an equality literal without a match)
   int stat_ucm_stopped;    // the unit trees stopped: 1 no memory, 3 unify settings
+  int tree_compress;       // strategy key tree_compress: 1 the discrimination trees have compressed paths
 } glb;
 
 

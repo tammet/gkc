@@ -131,3 +131,14 @@ ti_same_cells	Test/termindex/t6_same_cells.p -strategytext '{"strategy":["unit"]
 ti_units	Test/termindex/t7_units.p -strategytext '{"strategy":["unit"],"ti_selftest":2}'	output:TI_TEST result: queries 11 wrong 0 plain_matches;;differences 0	10
 ucm_cut_two	Test/termindex/u1_cut_two.p -strategytext '{"strategy":["unit"],"max_seconds":5,"unit_cut_match":1,"unit_subsume_match":1}'	proof	10
 ucm_no_cut_repeated	Test/termindex/u2_no_cut_repeated.p -strategytext '{"strategy":["unit"],"max_seconds":5,"unit_cut_match":1,"unit_subsume_match":1}'	noproof	10
+ti_compress_split_plain	Test/termindex/t8_compress.p -strategytext '{"strategy":["unit"],"ti_selftest":1}'	output:TI_TEST result: queries 15 wrong 0 plain_matches;;differences 0	10
+ti_c_t1_backtrack	Test/termindex/t1_backtrack.p -strategytext '{"strategy":["unit"],"ti_selftest":1,"tree_compress":1}'	output:TI_TEST result: queries 7 wrong 0 plain_matches;;differences 0	10
+ti_c_t2_repeated	Test/termindex/t2_repeated.p -strategytext '{"strategy":["unit"],"ti_selftest":1,"tree_compress":1}'	output:TI_TEST result: queries 9 wrong 0 plain_matches;;differences 0	10
+ti_c_t3_children	Test/termindex/t3_children.p -strategytext '{"strategy":["unit"],"ti_selftest":1,"tree_compress":1}'	output:TI_TEST result: queries 16 wrong 0 plain_matches;;differences 0	10
+ti_c_t4_query_vars	Test/termindex/t4_query_vars.p -strategytext '{"strategy":["unit"],"ti_selftest":1,"tree_compress":1}'	output:TI_TEST result: queries 7 wrong 0 plain_matches;;differences 0	10
+ti_c_t5_mixed	Test/termindex/t5_mixed.p -strategytext '{"strategy":["unit"],"ti_selftest":1,"tree_compress":1}'	output:TI_TEST result: queries 14 wrong 0 plain_matches;;differences 0	10
+ti_c_t6_same_cells	Test/termindex/t6_same_cells.p -strategytext '{"strategy":["unit"],"ti_selftest":1,"tree_compress":1}'	output:TI_TEST result: queries 4 wrong 0 plain_matches;;differences 0	10
+ti_c_t7_units	Test/termindex/t7_units.p -strategytext '{"strategy":["unit"],"ti_selftest":2,"tree_compress":1}'	output:TI_TEST result: queries 11 wrong 0 plain_matches;;differences 0	10
+ti_c_t8_compress	Test/termindex/t8_compress.p -strategytext '{"strategy":["unit"],"ti_selftest":1,"tree_compress":1}'	output:TI_TEST result: queries 15 wrong 0 plain_matches;;differences 0	10
+ucm_c_cut_two	Test/termindex/u1_cut_two.p -strategytext '{"strategy":["unit"],"max_seconds":5,"unit_cut_match":1,"unit_subsume_match":1,"tree_compress":1}'	proof	10
+ucm_c_no_cut_repeated	Test/termindex/u2_no_cut_repeated.p -strategytext '{"strategy":["unit"],"max_seconds":5,"unit_cut_match":1,"unit_subsume_match":1,"tree_compress":1}'	noproof	10

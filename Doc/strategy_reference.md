@@ -225,6 +225,15 @@ queues; the picked clause is then not rewritten with its own entry and is
 not filed a second time at its activation. The key is independent of
 `demod_derived`. No effect with `query_focus`.
 
+### `tree_compress` (experimental)
+
+`1`: the discrimination trees of the demodulators and of the full unit cut
+and subsumption have compressed paths: a node holds the run of tokens that
+every stored term below it shares, and a new term splits that run where it
+differs. The lookups give the same answers in the same order; the trees
+are smaller and their inserts cheaper. `0` or a missing key: one node per
+token, as before.
+
 ### `unit_cut_match` (experimental)
 
 `1`: a literal of a derived clause is cut when a stored unit of the

@@ -274,6 +274,9 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr, int s
     } else if (!strcmp(key,"demod_source")) {
       // 1: an equation becomes a demodulator when picked (as today); 2: when kept
       (g->demod_source)=(json_valueint(elem)==2 ? 2 : 1);
+    } else if (!strcmp(key,"tree_compress")) {
+      // 1: the discrimination trees have compressed paths (the same answers)
+      (g->tree_compress)=(json_valueint(elem) ? 1 : 0);
     } else if (!strcmp(key,"unit_cut_match")) {
       // 1: a stored unit of the opposite sign that matches a literal cuts it
       (g->unit_cut_match)=(json_valueint(elem) ? 1 : 0);

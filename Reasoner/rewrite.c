@@ -185,7 +185,7 @@ void wr_dmi_insert(glb* g, gint term, gint node) {
   if (x==(void*)1 || (g->inkb) || !node) return;
   if (!(g->unify_samelen) || (g->unify_maxuseterms)) { (g->stat_dmi_tree_stopped)=3; wr_dmi_fail(g); return; }
   if (!x) {
-    x=ti_new((g->varbanks)+TREE_VARBANK*NROF_VARSINBANK);
+    x=ti_new((g->varbanks)+TREE_VARBANK*NROF_VARSINBANK,g->tree_compress);
     if (!x) { (g->stat_dmi_tree_stopped)=1; wr_dmi_fail(g); return; }
     (g->dmi_index)=x;
   }

@@ -50,7 +50,7 @@ typedef struct {
   long nodes, entries, bytes, steps;
   long maxchildren, maxvchildren, nodes_vchildren_gt1, skiplists;
 } ti_stat;
-ti_index* ti_new(gptr cells);
+ti_index* ti_new(gptr cells, int compress);
 void ti_free(ti_index* x);
 int ti_insert(glb* g, ti_index* x, gint term, gint payload, gint aux);
 int32_t ti_last_vars(ti_index* x, gint** vars);

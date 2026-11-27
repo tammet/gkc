@@ -872,7 +872,7 @@ void wr_ucm_insert(glb* g, gptr cl, gptr xatom, int neg) {
   if (x==(void*)1 || (g->inkb)) return;
   if (!(g->unify_samelen) || (g->unify_maxuseterms)) { wr_ucm_fail(g,3); return; }
   if (!x) {
-    x=ti_new((g->varbanks)+TREE_VARBANK*NROF_VARSINBANK);
+    x=ti_new((g->varbanks)+TREE_VARBANK*NROF_VARSINBANK,g->tree_compress);
     if (!x) { wr_ucm_fail(g,1); return; }
     *slot=x;
   }

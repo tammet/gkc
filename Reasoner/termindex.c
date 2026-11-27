@@ -149,6 +149,14 @@ typedef struct {
 struct ti_index_s {
   ti_node* nodes; int32_t ncnt, ncap;
   ti_xnode* xnodes; int32_t xcnt, xcap;
+  // the compressed form (compress 1): the prefix of each node, a run of
+  // tokens in a pool (ptok, and pslot 1 for a slot token)
+  int compress;
+#ifdef GKC_TI_TWIN_CHECK
+  struct ti_index_s* twin;   // the check build: the same tree in the other form
+#endif
+  int32_t* npfx; int32_t* nplen;
+  uint64_t* ptok; uint8_t* pslot; int32_t pcnt, pcap;
   ti_slnode* sln; int32_t slcnt, slcap;
   ti_entry* ents; int32_t ecnt, ecap;
   // the tokens of the last tokenised term
@@ -172,9 +180,20 @@ static int32_t ti_new_node(ti_index* x, uint64_t tok) {
   if (x->ncnt>=x->ncap) {
     ti_node* nn=sys_realloc(x->nodes,sizeof(ti_node)*(x->ncap)*2);
     if (!nn) return -1;
-    x->nodes=nn; x->ncap*=2;
+    x->nodes=nn;
+    if (x->compress) {
+      int32_t* a=sys_realloc(x->npfx,sizeof(int32_t)*(x->ncap)*2);
+      int32_t* b;
+      if (!a) return -1;
+      x->npfx=a;
+      b=sys_realloc(x->nplen,sizeof(int32_t)*(x->ncap)*2);
+      if (!b) return -1;
+      x->nplen=b;
+    }
+    x->ncap*=2;
   }
   n=x->ncnt++;
+  if (x->compress) { x->npfx[n]=0; x->nplen[n]=0; }
   x->nodes[n].tok=tok; x->nodes[n].maxe=-1;
   x->nodes[n].vchild=-1; x->nodes[n].vsib=-1;
   x->nodes[n].entries=-1; x->nodes[n].child=-1; x->nodes[n].ext=-1;
@@ -184,12 +203,32 @@ static int32_t ti_new_node(ti_index* x, uint64_t tok) {
 /* cells: the first cell of the variable bank of the tree (its cells are
    UNASSIGNED between walks) */
 
-ti_index* ti_new(gptr cells) {
+#ifdef GKC_TI_TWIN_CHECK
+/* the check build: every tree has a twin in the other form; every insert
+   goes to both and every lookup is compared (the entry, its bindings) */
+static long twin_lookups=0, twin_diff=0, twin_first=0, twin_first_diff=0, twin_first_other=0;
+static int twin_making=0;
+static void twin_report(void) {
+  fprintf(stderr,"TI_TWIN lookups %ld differences %ld first_lookups %ld first_differences %ld first_other_entry %ld\n",twin_lookups,twin_diff,twin_first,twin_first_diff,twin_first_other);
+}
+__attribute__((constructor)) static void twin_init(void) { atexit(twin_report); }
+#endif
+
+ti_index* ti_new(gptr cells, int compress) {
   ti_index* x=sys_malloc(sizeof(ti_index));
   if (!x) return NULL;
   memset(x,0,sizeof(ti_index));
+  x->compress=compress;
   x->ncap=1<<10; x->xcap=1<<8; x->slcap=1<<6; x->ecap=1<<9; x->tcap=1<<8;
   x->xnodes=sys_malloc(sizeof(ti_xnode)*x->xcap);
+  if (compress) {
+    x->pcap=1<<12;
+    x->npfx=sys_malloc(sizeof(int32_t)*x->ncap);
+    x->nplen=sys_malloc(sizeof(int32_t)*x->ncap);
+    x->ptok=sys_malloc(sizeof(uint64_t)*x->pcap);
+    x->pslot=sys_malloc(x->pcap);
+    if (!x->npfx || !x->nplen || !x->ptok || !x->pslot) { ti_free(x); return NULL; }
+  }
   x->nodes=sys_malloc(sizeof(ti_node)*x->ncap);
   x->sln=sys_malloc(sizeof(ti_slnode)*x->slcap);
   x->ents=sys_malloc(sizeof(ti_entry)*x->ecap);
@@ -200,6 +239,9 @@ ti_index* ti_new(gptr cells) {
   x->vals=cells;
   x->bestvals=sys_malloc(sizeof(gint)*TI_MAXSLOTS);
   x->rnd=UINT64_C(0x2545F4914F6CDD1D);
+#ifdef GKC_TI_TWIN_CHECK
+  if (!twin_making) { twin_making=1; x->twin=ti_new(cells,!compress); twin_making=0; }
+#endif
   if (!x->nodes || !x->xnodes || !x->sln || !x->ents || !x->toks || !x->skip || !x->terms ||
       !x->tvars || !x->vals || !x->bestvals || ti_new_node(x,0)!=0) {
     ti_free(x);
@@ -212,6 +254,13 @@ void ti_free(ti_index* x) {
   if (!x) return;
   if (x->nodes) sys_free(x->nodes);
   if (x->xnodes) sys_free(x->xnodes);
+#ifdef GKC_TI_TWIN_CHECK
+  if (x->twin) ti_free(x->twin);
+#endif
+  if (x->npfx) sys_free(x->npfx);
+  if (x->nplen) sys_free(x->nplen);
+  if (x->ptok) sys_free(x->ptok);
+  if (x->pslot) sys_free(x->pslot);
   if (x->sln) sys_free(x->sln);
   if (x->ents) sys_free(x->ents);
   if (x->toks) sys_free(x->toks);
@@ -415,14 +464,110 @@ gint ti_token_term(ti_index* x, int32_t i) { return x->terms[i]; }
 
 /* ---- insert ---- */
 
+/* the compressed form: append the tokens [i,n) of the last tokenised term
+   to the pool; returns their start, or -1 */
+
+static int32_t ti_pool_add(ti_index* x, int32_t i, int32_t n) {
+  int32_t st, j;
+  while (x->pcnt+(n-i)>x->pcap) {
+    uint64_t* a=sys_realloc(x->ptok,sizeof(uint64_t)*(x->pcap)*2);
+    uint8_t* b;
+    if (!a) return -1;
+    x->ptok=a;
+    b=sys_realloc(x->pslot,(x->pcap)*2);
+    if (!b) return -1;
+    x->pslot=b;
+    x->pcap*=2;
+  }
+  st=x->pcnt;
+  for(j=i;j<n;j++) {
+    x->ptok[x->pcnt]=x->toks[j];
+    x->pslot[x->pcnt]=(isvar(x->terms[j]) ? 1 : 0);
+    (x->pcnt)++;
+  }
+  return st;
+}
+
+/* the compressed form (as the index of Twee): a node holds a prefix, the
+   run of tokens that every stored term below it has after the token of the
+   node. An insert follows the tokens through the prefixes; at the first
+   token that differs from a prefix the node is split (a new node takes the
+   rest of the prefix and everything below), and the rest of the term
+   becomes the prefix of a new leaf. Returns the node of the entry, or -1. */
+
+static int32_t ti_insert_c(ti_index* x, int32_t n, int32_t e) {
+  int32_t cur=0, i=0, j, pl, po, m, nx, st;
+  uint64_t t;
+  int slot;
+  for(;;) {
+    pl=x->nplen[cur]; po=x->npfx[cur];
+    for(j=0;j<pl && i+j<n;j++) {
+      if (x->ptok[po+j]!=x->toks[i+j] || x->pslot[po+j]!=(isvar(x->terms[i+j]) ? 1 : 0)) break;
+    }
+    if (j<pl) {
+      // split cur at its prefix token j: m takes the token j, the rest of
+      // the prefix and everything below cur
+      m=ti_new_node(x,x->ptok[po+j]);
+      if (m<0) return -1;
+      x->nodes[m].maxe=x->nodes[cur].maxe;
+      x->nodes[m].vchild=x->nodes[cur].vchild;
+      x->nodes[m].entries=x->nodes[cur].entries;
+      x->nodes[m].child=x->nodes[cur].child;
+      x->nodes[m].ext=x->nodes[cur].ext;
+      x->npfx[m]=po+j+1; x->nplen[m]=pl-j-1;
+      x->nodes[cur].vchild=-1; x->nodes[cur].entries=-1;
+      x->nodes[cur].child=-1; x->nodes[cur].ext=-1;
+      x->nplen[cur]=j;
+      if (!ti_add_child(x,cur,m,x->ptok[po+j],x->pslot[po+j])) return -1;
+    }
+    i+=x->nplen[cur];
+    x->nodes[cur].maxe=e;
+    if (i>=n) return cur;
+    t=x->toks[i];
+    slot=isvar(x->terms[i]);
+    nx=slot ? ti_vchild(x,cur,t) : ti_child(x,cur,t);
+    if (nx<0) {
+      // a new leaf: the token i, and the rest of the term as its prefix
+      nx=ti_new_node(x,t);
+      if (nx<0 || !ti_add_child(x,cur,nx,t,slot)) return -1;
+      st=ti_pool_add(x,i+1,n);
+      if (st<0) return -1;
+      x->npfx[nx]=st; x->nplen[nx]=n-i-1;
+      x->nodes[nx].maxe=e;
+      return nx;
+    }
+    cur=nx;
+    i++;
+  }
+}
+
 int ti_insert(glb* g, ti_index* x, gint term, gint payload, gint aux) {
   int32_t n, i, cur, nx, e;
   uint64_t t;
   int slot;
   if (x->failed) return 0;
+#ifdef GKC_TI_TWIN_CHECK
+  if (x->twin) ti_insert(g,x->twin,term,payload,aux);
+#endif
   x->tnv=0;
   n=ti_tokens_aux(g,x,term,0,1);
   if (n<0) { x->failed=1; return 0; }
+  if (x->compress) {
+    if (x->ecnt>=x->ecap) {
+      ti_entry* ne=sys_realloc(x->ents,sizeof(ti_entry)*(x->ecap)*2);
+      if (!ne) { x->failed=1; return 0; }
+      x->ents=ne; x->ecap*=2;
+    }
+    e=x->ecnt;
+    cur=ti_insert_c(x,n,e);
+    if (cur<0) { x->failed=1; return 0; }
+    x->ecnt++;
+    x->ents[e].payload=payload;
+    x->ents[e].aux=aux;
+    x->ents[e].next=x->nodes[cur].entries;
+    x->nodes[cur].entries=e;
+    return 1;
+  }
   cur=0;
   for(i=0;i<n;i++) {
     t=x->toks[i];
@@ -486,13 +631,51 @@ static void ti_leaf(glb* g, ti_index* x, int32_t node) {
   }
 }
 
+static void ti_walk_node(glb* g, ti_index* x, int32_t node, int32_t i, int32_t end);
+
 static void ti_walk(glb* g, ti_index* x, int32_t node, int32_t i, int32_t end) {
-  int32_t c, k;
-  uint64_t t;
-  gint q;
   (x->steps)++;
   if (x->stop) return;
   if (!(x->visit) && !(x->first) && x->nodes[node].maxe<=x->best) return;
+  if (x->compress && x->nplen[node]) {
+    // the prefix of the node, with the rules of the walk: a record or
+    // constant token is compared as a gint; the first occurrence of a slot
+    // binds its cell with SETVAR, a later one compares the bound term; the
+    // bindings of the prefix are cleared as a top slice on the way back
+    int32_t po=x->npfx[node], pl=x->nplen[node], j, k, nb0=x->nb;
+    gint vc0=(g->varstack)[1], q;
+    gptr vc=((gptr)(g->varstack))+1;
+    int ok=1;
+    for(j=0;j<pl;j++) {
+      if (i>=end) { ok=0; break; }
+      q=x->terms[i];
+      if (x->pslot[po+j]) {
+        k=(int32_t)(x->ptok[po+j]);
+        if (k==x->nb) {
+          SETVAR(encode_var((x->vals)-(g->varbanks)+k),q,g->varbanks,g->varstack,vc);
+          (x->nb)++;
+        } else if (!(k<x->nb && ti_eq(g,x->vals[k],q))) { ok=0; break; }
+        i=x->skip[i];
+      } else {
+        if (isvar(q) || x->toks[i]!=x->ptok[po+j]) { ok=0; break; }
+        i++;
+      }
+    }
+    if (ok) ti_walk_node(g,x,node,i,end);
+    x->nb=nb0;
+    if (vc0!=(g->varstack)[1]) wr_clear_varstack_topslice(g,g->varstack,vc0);
+    return;
+  }
+  ti_walk_node(g,x,node,i,end);
+}
+
+/* the walk at a node after its prefix: a leaf at the end of the query
+   slice, else the child of the query token and the slot children */
+
+static void ti_walk_node(glb* g, ti_index* x, int32_t node, int32_t i, int32_t end) {
+  int32_t c, k;
+  uint64_t t;
+  gint q;
   if (i>=end) { ti_leaf(g,x,node); return; }
   t=x->toks[i];
   q=x->terms[i];
@@ -523,6 +706,7 @@ static void ti_walk(glb* g, ti_index* x, int32_t node, int32_t i, int32_t end) {
   }
 }
 
+
 /* the newest stored term that matches the query subterm at tokens
    [start,end) of the last ti_tokens and passes the tests: accept (when not
    NULL) and, with norenaming, a substitution that is not a renaming.
@@ -539,6 +723,15 @@ int ti_match_best(glb* g, ti_index* x, int32_t start, int32_t end,
   x->accept=accept; x->norenaming=norenaming; x->visit=NULL;
   x->first=0; x->stop=0;
   ti_walk(g,x,0,start,end);
+#ifdef GKC_TI_TWIN_CHECK
+  if (x->twin) {
+    gint tp=0, ta, *tv; int32_t tn=0, k; int tr, r=(x->best>=0);
+    tr=ti_match_best_ext(g,x->twin,x->toks,x->skip,x->terms,start,end,accept,norenaming,&tp,&ta,&tn,&tv);
+    twin_lookups++;
+    if (tr!=r || (r && (tp!=x->ents[x->best].payload || tn!=x->bestnb))) twin_diff++;
+    else if (r) { for(k=0;k<tn;k++) if (!ti_eq(g,tv[k],x->bestvals[k])) { twin_diff++; break; } }
+  }
+#endif
   if (x->best<0) return 0;
   *payload=x->ents[x->best].payload;
   *aux=x->ents[x->best].aux;
@@ -562,6 +755,18 @@ int ti_match_first(glb* g, ti_index* x, int32_t start, int32_t end,
   x->first=1; x->stop=0;
   ti_walk(g,x,0,start,end);
   x->first=0; x->stop=0;
+#ifdef GKC_TI_TWIN_CHECK
+  if (x->twin) {
+    gint tp=0; int tr, r=(x->best>=0);
+    uint64_t* st=x->twin->toks; int32_t* ss=x->twin->skip; gint* sm=x->twin->terms;
+    x->twin->toks=x->toks; x->twin->skip=x->skip; x->twin->terms=x->terms;
+    tr=ti_match_first(g,x->twin,start,end,accept,&tp);
+    x->twin->toks=st; x->twin->skip=ss; x->twin->terms=sm;
+    twin_first++;
+    if (tr!=r) twin_first_diff++; // a match in one form only
+    else if (r && tp!=x->ents[x->best].payload) twin_first_other++; // another matching entry first
+  }
+#endif
   if (x->best<0) return 0;
   *payload=x->ents[x->best].payload;
   return 1;
@@ -854,7 +1059,7 @@ void wr_ti_selftest(glb* g) {
   memset(&t,0,sizeof(t));
   t.cap=1024;
   t.lhs=sys_malloc(sizeof(gint)*t.cap); t.rhs=sys_malloc(sizeof(gint)*t.cap); t.rhsc=sys_malloc(sizeof(gint)*t.cap);
-  x=ti_new((g->varbanks)+TREE_VARBANK*NROF_VARSINBANK);
+  x=ti_new((g->varbanks)+TREE_VARBANK*NROF_VARSINBANK,g->tree_compress);
   if (!x || !t.lhs || !t.rhs || !t.rhsc) { wr_printf("TI_TEST result: no memory\n"); return; }
   // the clause list holds the newest clause first: take the clauses in input order
   for(cell=(dbmemsegh(db)->clauselist); cell; cell=cellptr->cdr) { cellptr=(gcell*)offsettoptr(db,cell); ncl++; }
@@ -993,6 +1198,7 @@ void ti_stats(ti_index* x, ti_stat* s) {
   }
   s->nodes=x->ncnt; s->entries=x->ecnt; s->steps=x->steps;
   s->bytes=(long)(sizeof(ti_node)*x->ncap+sizeof(ti_xnode)*x->xcap+sizeof(ti_slnode)*x->slcap+sizeof(ti_entry)*x->ecap);
+  if (x->compress) s->bytes+=(long)(2*sizeof(int32_t)*x->ncap+(sizeof(uint64_t)+1)*x->pcap);
 }
 
 #else

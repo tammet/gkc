@@ -296,6 +296,7 @@ int wr_glb_init_simple(glb* g) {
   (g->stat_ucm_inserted)=0;
   (g->stat_ucm_lookups)=0;
   (g->stat_ucm_stopped)=0;
+  (g->tree_compress)=0;
   (g->use_strong_duplicates)=0; // iff 1, then additional unique var based duplicate removal used
   (g->prohibit_nested_para)=0; // iff 1, paramodulation derivations cannot be directly nested
   (g->prohibit_unordered_para)=0; // iff 1, paramodulate only from ordered equalities
