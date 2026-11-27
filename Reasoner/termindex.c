@@ -113,16 +113,26 @@
 #define TI_SL_LEVELS 12
 #define TI_MAXSLOTS NROF_VARSINBANK // a slot is a variable of the tree bank
 
+/* A node in the compact form (32 bytes): it holds its first child with a
+   record or constant token; a node that gets a second such child gets an
+   extension (ti_xnode) with the child count, the next TI_INLINE-1
+   children and the skip list. 83-95% of the inner nodes have one child. */
+
 typedef struct {
   uint64_t tok;
   int32_t maxe;             // the greatest entry number below this node, or -1
   int32_t vchild;           // the first slot child, or -1
   int32_t vsib;             // the next slot child of the parent, or -1
-  int32_t nk;               // children with a record token or a constant with one encoding
-  int32_t k[TI_INLINE];     // the first TI_INLINE of them
-  int32_t sl;               // a skip list head (index into sln) when nk>TI_INLINE, else -1
   int32_t entries;          // the first entry (the newest), or -1
+  int32_t child;            // the first child with a record token or a constant token, or -1
+  int32_t ext;              // the extension (index into xnodes) from the second such child on, or -1
 } ti_node;
+
+typedef struct {
+  int32_t nk;               // children with a record token or a constant token
+  int32_t k[TI_INLINE-1];   // the children 2..TI_INLINE
+  int32_t sl;               // a skip list head (index into sln) when nk>TI_INLINE, else -1
+} ti_xnode;
 
 typedef struct {
   uint64_t tok;
@@ -138,6 +148,7 @@ typedef struct {
 
 struct ti_index_s {
   ti_node* nodes; int32_t ncnt, ncap;
+  ti_xnode* xnodes; int32_t xcnt, xcap;
   ti_slnode* sln; int32_t slcnt, slcap;
   ti_entry* ents; int32_t ecnt, ecap;
   // the tokens of the last tokenised term
@@ -157,7 +168,7 @@ struct ti_index_s {
 };
 
 static int32_t ti_new_node(ti_index* x, uint64_t tok) {
-  int32_t n, i;
+  int32_t n;
   if (x->ncnt>=x->ncap) {
     ti_node* nn=sys_realloc(x->nodes,sizeof(ti_node)*(x->ncap)*2);
     if (!nn) return -1;
@@ -165,9 +176,8 @@ static int32_t ti_new_node(ti_index* x, uint64_t tok) {
   }
   n=x->ncnt++;
   x->nodes[n].tok=tok; x->nodes[n].maxe=-1;
-  x->nodes[n].vchild=-1; x->nodes[n].vsib=-1; x->nodes[n].nk=0;
-  for(i=0;i<TI_INLINE;i++) x->nodes[n].k[i]=-1;
-  x->nodes[n].sl=-1; x->nodes[n].entries=-1;
+  x->nodes[n].vchild=-1; x->nodes[n].vsib=-1;
+  x->nodes[n].entries=-1; x->nodes[n].child=-1; x->nodes[n].ext=-1;
   return n;
 }
 
@@ -178,7 +188,8 @@ ti_index* ti_new(gptr cells) {
   ti_index* x=sys_malloc(sizeof(ti_index));
   if (!x) return NULL;
   memset(x,0,sizeof(ti_index));
-  x->ncap=1<<10; x->slcap=1<<6; x->ecap=1<<9; x->tcap=1<<8;
+  x->ncap=1<<10; x->xcap=1<<8; x->slcap=1<<6; x->ecap=1<<9; x->tcap=1<<8;
+  x->xnodes=sys_malloc(sizeof(ti_xnode)*x->xcap);
   x->nodes=sys_malloc(sizeof(ti_node)*x->ncap);
   x->sln=sys_malloc(sizeof(ti_slnode)*x->slcap);
   x->ents=sys_malloc(sizeof(ti_entry)*x->ecap);
@@ -189,7 +200,7 @@ ti_index* ti_new(gptr cells) {
   x->vals=cells;
   x->bestvals=sys_malloc(sizeof(gint)*TI_MAXSLOTS);
   x->rnd=UINT64_C(0x2545F4914F6CDD1D);
-  if (!x->nodes || !x->sln || !x->ents || !x->toks || !x->skip || !x->terms ||
+  if (!x->nodes || !x->xnodes || !x->sln || !x->ents || !x->toks || !x->skip || !x->terms ||
       !x->tvars || !x->vals || !x->bestvals || ti_new_node(x,0)!=0) {
     ti_free(x);
     return NULL;
@@ -200,6 +211,7 @@ ti_index* ti_new(gptr cells) {
 void ti_free(ti_index* x) {
   if (!x) return;
   if (x->nodes) sys_free(x->nodes);
+  if (x->xnodes) sys_free(x->xnodes);
   if (x->sln) sys_free(x->sln);
   if (x->ents) sys_free(x->ents);
   if (x->toks) sys_free(x->toks);
@@ -256,10 +268,15 @@ static int ti_sl_insert(ti_index* x, int32_t head, uint64_t tok, int32_t child) 
 
 static int32_t ti_child(ti_index* x, int32_t node, uint64_t tok) {
   ti_node* p=&(x->nodes[node]);
+  ti_xnode* e;
   int32_t i, m;
-  m=(p->nk<TI_INLINE) ? p->nk : TI_INLINE;
-  for(i=0;i<m;i++) if (x->nodes[p->k[i]].tok==tok) return p->k[i];
-  if (p->sl>=0) return ti_sl_find(x,p->sl,tok);
+  if (p->child<0) return -1;
+  if (x->nodes[p->child].tok==tok) return p->child;
+  if (p->ext<0) return -1;
+  e=&(x->xnodes[p->ext]);
+  m=((e->nk<TI_INLINE) ? e->nk : TI_INLINE)-1;
+  for(i=0;i<m;i++) if (x->nodes[e->k[i]].tok==tok) return e->k[i];
+  if (e->sl>=0) return ti_sl_find(x,e->sl,tok);
   return -1;
 }
 
@@ -286,19 +303,38 @@ static int ti_add_child(ti_index* x, int32_t node, int32_t c, uint64_t tok, int 
     x->nodes[node].vchild=c;
     return 1;
   }
-  if (x->nodes[node].nk<TI_INLINE) {
-    x->nodes[node].k[x->nodes[node].nk]=c;
-    (x->nodes[node].nk)++;
+  if (x->nodes[node].child<0) { x->nodes[node].child=c; return 1; }
+  if (x->nodes[node].ext<0) {
+    // the second child: the node gets its extension
+    int32_t xe, i;
+    if (x->xcnt>=x->xcap) {
+      ti_xnode* nx=sys_realloc(x->xnodes,sizeof(ti_xnode)*(x->xcap)*2);
+      if (!nx) return 0;
+      x->xnodes=nx; x->xcap*=2;
+    }
+    xe=x->xcnt++;
+    x->xnodes[xe].nk=1;
+    for(i=0;i<TI_INLINE-1;i++) x->xnodes[xe].k[i]=-1;
+    x->xnodes[xe].sl=-1;
+    x->nodes[node].ext=xe;
+  }
+  {
+    ti_xnode* e=&(x->xnodes[x->nodes[node].ext]);
+    if (e->nk<TI_INLINE) {
+      e->k[e->nk-1]=c;
+      (e->nk)++;
+      return 1;
+    }
+    if (e->sl<0) {
+      head=ti_sl_new(x,0,-1); // the head holds no token
+      if (head<0) return 0;
+      e=&(x->xnodes[x->nodes[node].ext]);
+      e->sl=head;
+    }
+    if (!ti_sl_insert(x,e->sl,tok,c)) return 0;
+    (x->xnodes[x->nodes[node].ext].nk)++;
     return 1;
   }
-  if (x->nodes[node].sl<0) {
-    head=ti_sl_new(x,0,-1); // the head holds no token
-    if (head<0) return 0;
-    x->nodes[node].sl=head;
-  }
-  if (!ti_sl_insert(x,x->nodes[node].sl,tok,c)) return 0;
-  (x->nodes[node].nk)++;
-  return 1;
 }
 
 /* ---- tokens ---- */
@@ -704,6 +740,7 @@ static void ti_test_compare(glb* g, ti_index* x, ti_test* t, gint q, int32_t i, 
   t->nfound=0;
   ti_match_all(g,x,i,end,ti_test_visit,t);
   for(j=t->n-1;j>=0;j--) {
+    if (t->rhsc[j]==WG_ILLEGAL) continue; // not filed: a variable of the right side is not in the left side
     wr_clear_varstack(g,g->varstack);
     ok=wr_match_term(g,t->lhs[j],q,1);
     (t->brute)++;
@@ -738,7 +775,7 @@ static void ti_test_compare(glb* g, ti_index* x, ti_test* t, gint q, int32_t i, 
   for(mode=0;mode<2;mode++) {
     bf=-1;
     for(j=t->n-1;j>=0;j--) {
-      if (!ti_test_accept(g,j)) continue;
+      if (!ti_test_accept(g,j) || t->rhsc[j]==WG_ILLEGAL) continue;
       wr_clear_varstack(g,g->varstack);
       ok=wr_match_term(g,t->lhs[j],q,1);
       if (ok && mode && wr_match_is_renaming(g)) ok=0;
@@ -950,11 +987,12 @@ void ti_stats(ti_index* x, ti_stat* s) {
     for(c=x->nodes[i].vchild; c>=0; c=x->nodes[c].vsib) n++;
     if (n>s->maxvchildren) s->maxvchildren=n;
     if (n>1) (s->nodes_vchildren_gt1)++;
-    if (x->nodes[i].nk>s->maxchildren) s->maxchildren=x->nodes[i].nk;
-    if (x->nodes[i].sl>=0) (s->skiplists)++;
+    n=(x->nodes[i].child<0) ? 0 : ((x->nodes[i].ext<0) ? 1 : x->xnodes[x->nodes[i].ext].nk);
+    if (n>s->maxchildren) s->maxchildren=n;
+    if (x->nodes[i].ext>=0 && x->xnodes[x->nodes[i].ext].sl>=0) (s->skiplists)++;
   }
   s->nodes=x->ncnt; s->entries=x->ecnt; s->steps=x->steps;
-  s->bytes=(long)(sizeof(ti_node)*x->ncap+sizeof(ti_slnode)*x->slcap+sizeof(ti_entry)*x->ecap);
+  s->bytes=(long)(sizeof(ti_node)*x->ncap+sizeof(ti_xnode)*x->xcap+sizeof(ti_slnode)*x->slcap+sizeof(ti_entry)*x->ecap);
 }
 
 #else
