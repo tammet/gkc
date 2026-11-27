@@ -31,7 +31,7 @@ with a repeated variable must not cut, so there is no proof.
 
 t8_compress.p tests the compressed form of the tree (strategy key
 `tree_compress` 1): prefixes split at the first, a middle and the last
-token, a node split more than once, a repeated variable in a prefix. Every
+symbol, a node split more than once, a repeated variable in a prefix. Every
 file runs on both forms (regress cases `ti_c_*` for the compressed form).
 
 t9_unify.p is the self test with `ti_selftest` 3: the candidates for

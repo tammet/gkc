@@ -28,16 +28,16 @@
 
 /* ====================================================
 
-  The path of a stored term is its preorder over the positions of the
-  unification:
+  The path of a stored term is its flatterm: the preorder string of
+  symbols of the term over the positions of the unification:
 
-  * a record gives the token "record of n elements", then its elements
+  * a record gives the symbol "record of n elements", then its elements
     (the function symbol first);
   * a constant is a gint (Doc/DATA_REPRESENTATION.md, sections 1 and 8)
-    and is its own token: the encoded gint, compared as an integer
-    (new index code compares the gint only). For the symbols
-    (interned URIs and long strings; find_create_longstr looks first into
-    an attached KB), the numbers (a 64-bit build keeps every integer and
+    and is its own symbol: the encoded gint, compared as an integer
+    (new index code compares the gint only). For the interned URIs and
+    long strings (find_create_longstr looks first into an attached KB),
+    the numbers (a 64-bit build keeps every integer and
     every 4-byte float in the gint) and the other immediate kinds this is
     the rule of wr_equal_term (unify.c:777) and WR_EQUAL_TERM (unify.h:46)
     with uniquestrflag 1, which wr_match_term_aux uses. For a short string
@@ -46,7 +46,7 @@
     new object per value (Doc/DATA_REPRESENTATION.md, section 1). The tree
     is built only in 64-bit builds, and no input syntax gives a short
     string, so the tree compares the gints. No hash is computed;
-  * a variable gives the token "slot k": the variables of a stored term
+  * a variable gives the symbol "slot k": the variables of a stored term
     are numbered 0,1,2.. in the order of their first occurrence (as E's
     variables after ClauseNormalizeVars), so variants of a term share one
     path. Slot k is variable k of the variable bank of the tree (cells
@@ -54,7 +54,7 @@
     caller renames the other terms of an entry (a right side) to that bank
     by slot number (ti_last_vars, ti_rename_copy).
 
-  The tree is a full tree (every token is a node, no cut at a depth). As in
+  The tree is a full tree (every symbol is a node, no cut at a depth). As in
   E's perfect discrimination tree (CLAUSES/ccl_pdtrees.c), the walk over a
   query term binds and clears the variables of the tree: at the first
   occurrence of slot k on the path the walk binds slot k to the query
@@ -73,18 +73,20 @@
   the build. A variable of the query term (a constant for the walk) and a
   variable of the tree are always two different cells.
 
-  The children of a node: up to TI_INLINE children with a record token or
-  a constant token in an array in the node, then a skip list sorted by
-  token; the slot children in a list of their own (few: one per slot that
+  The children of a node: up to TI_INLINE children with a record symbol or
+  a constant symbol in an array in the node, then a skip list sorted by
+  symbol; the slot children in a list of their own (few: one per slot that
   the path can bind or repeat).
 
   An entry holds a payload (gint) and its insert number; a node keeps the
   greatest insert number below it, so a walk for the newest match cuts the
   subtrees that hold only older entries.
 
-  The query term is tokenised once; its token array, the subterm of each
-  token and the end of each subterm (the skip array) let a walk start at
-  any subterm without a new tokenisation.
+  The flatterm of a query term is made once: its preorder string, the
+  subterm at each symbol and the end of each subterm (the skip array) let
+  a walk start at any subterm without making a new flatterm. The lookups
+  in the unit trees read the query term itself as they walk
+  (ti_match_first_term) and make no flatterm.
 
   The module allocates with sys_malloc and holds no pointers into gkc
   records except the payloads it is given and the constants and variables
@@ -101,20 +103,20 @@
 
 #ifdef USE_TERM_INDEX
 
-/* A token: a record gives its arity n as n<<3 (low bits 000, which no
+/* A symbol: a record gives its arity n as n<<3 (low bits 000, which no
    constant has: a gint with the low bits 000 is a record); a constant is
    its encoded gint; a variable of a stored term gives its slot number k,
-   and these tokens are kept only in the slot list of a node; a variable of
+   and these symbols are kept only in the slot list of a node; a variable of
    a query term is its own gint and is never looked up (the walk takes only
-   the slot children for it). Which kind a token is follows from its term
-   (isvar), so the tokens of the three kinds need no tag bits. */
+   the slot children for it). Which kind a symbol is follows from its term
+   (isvar), so the symbols of the three kinds need no tag bits. */
 #define TI_REC(n) (((uint64_t)(n))<<3)
-#define TI_TAG_IS_REC(t) (((t)&UINT64_C(7))==UINT64_C(0)) // a record token (a constant gint never has the low bits 000)
+#define TI_TAG_IS_REC(t) (((t)&UINT64_C(7))==UINT64_C(0)) // a record symbol (a constant gint never has the low bits 000)
 #define TI_SL_LEVELS 12
 #define TI_MAXSLOTS NROF_VARSINBANK // a slot is a variable of the tree bank
 
 /* A node in the compact form (32 bytes): it holds its first child with a
-   record or constant token; a node that gets a second such child gets an
+   record or constant symbol; a node that gets a second such child gets an
    extension (ti_xnode) with the child count, the next TI_INLINE-1
    children and the skip list. 83-95% of the inner nodes have one child. */
 
@@ -124,12 +126,12 @@ typedef struct {
   int32_t vchild;           // the first slot child, or -1
   int32_t vsib;             // the next slot child of the parent, or -1
   int32_t entries;          // the first entry (the newest), or -1
-  int32_t child;            // the first child with a record token or a constant token, or -1
+  int32_t child;            // the first child with a record symbol or a constant symbol, or -1
   int32_t ext;              // the extension (index into xnodes) from the second such child on, or -1
 } ti_node;
 
 typedef struct {
-  int32_t nk;               // children with a record token or a constant token
+  int32_t nk;               // children with a record symbol or a constant symbol
   int32_t k[TI_INLINE-1];   // the children 2..TI_INLINE
   int32_t sl;               // a skip list head (index into sln) when nk>TI_INLINE, else -1
 } ti_xnode;
@@ -151,7 +153,7 @@ struct ti_index_s {
   ti_node* nodes; int32_t ncnt, ncap;
   ti_xnode* xnodes; int32_t xcnt, xcap;
   // the compressed form (compress 1): the prefix of each node, a run of
-  // tokens in a pool (ptok, and pslot 1 for a slot token)
+  // symbols in a pool (ptok, and pslot 1 for a slot symbol)
   int compress;
 #ifdef GKC_TI_TWIN_CHECK
   struct ti_index_s* twin;   // the check build: the same tree in the other form
@@ -160,7 +162,7 @@ struct ti_index_s {
   uint64_t* ptok; uint8_t* pslot; int32_t pcnt, pcap;
   ti_slnode* sln; int32_t slcnt, slcap;
   ti_entry* ents; int32_t ecnt, ecap;
-  // the tokens of the last tokenised term
+  // the symbols of the last term made into a flatterm
   uint64_t* toks; int32_t* skip; gint* terms; int32_t tcap, tn;
   gint* tvars; int32_t tnv;  // the variables of the last stored term, in slot order
   long qtreevars;            // variables of the tree bank found in a query term (a defect: expected 0)
@@ -319,7 +321,7 @@ static int ti_sl_insert(ti_index* x, int32_t head, uint64_t tok, int32_t child) 
   return 1;
 }
 
-/* the child of node for a record token or a constant with one encoding, or -1 */
+/* the child of node for a record symbol or a constant with one encoding, or -1 */
 
 static int32_t ti_child(ti_index* x, int32_t node, uint64_t tok) {
   ti_node* p=&(x->nodes[node]);
@@ -349,7 +351,7 @@ static int32_t ti_vchild(ti_index* x, int32_t node, uint64_t k) {
   return -1;
 }
 
-/* add the child c (with the token tok) to node; returns 0 on a failed allocation */
+/* add the child c (with the symbol tok) to node; returns 0 on a failed allocation */
 
 static int ti_add_child(ti_index* x, int32_t node, int32_t c, uint64_t tok, int slot) {
   int32_t head;
@@ -381,7 +383,7 @@ static int ti_add_child(ti_index* x, int32_t node, int32_t c, uint64_t tok, int 
       return 1;
     }
     if (e->sl<0) {
-      head=ti_sl_new(x,0,-1); // the head holds no token
+      head=ti_sl_new(x,0,-1); // the head holds no symbol
       if (head<0) return 0;
       e=&(x->xnodes[x->nodes[node].ext]);
       e->sl=head;
@@ -392,7 +394,7 @@ static int ti_add_child(ti_index* x, int32_t node, int32_t c, uint64_t tok, int 
   }
 }
 
-/* ---- tokens ---- */
+/* ---- symbols ---- */
 
 static int ti_grow_tokens(ti_index* x) {
   int32_t nc=x->tcap*2;
@@ -434,7 +436,7 @@ static int32_t ti_tokens_aux(glb* g, ti_index* x, gint t, int32_t n, int stored)
     return n+1;
   }
   if (!isdatarec(t)) {
-    // a constant: its encoded gint is the token (one encoding per value;
+    // a constant: its encoded gint is the symbol (one encoding per value;
     // see the comment at the top of this file)
     x->toks[n]=(uint64_t)t;
     x->skip[n]=n+1;
@@ -469,7 +471,7 @@ gint ti_token_term(ti_index* x, int32_t i) { return x->terms[i]; }
 
 /* ---- insert ---- */
 
-/* the compressed form: append the tokens [i,n) of the last tokenised term
+/* the compressed form: append the symbols [i,n) of the last term made into a flatterm
    to the pool; returns their start, or -1 */
 
 static int32_t ti_pool_add(ti_index* x, int32_t i, int32_t n) {
@@ -494,9 +496,9 @@ static int32_t ti_pool_add(ti_index* x, int32_t i, int32_t n) {
 }
 
 /* the compressed form (as the index of Twee): a node holds a prefix, the
-   run of tokens that every stored term below it has after the token of the
-   node. An insert follows the tokens through the prefixes; at the first
-   token that differs from a prefix the node is split (a new node takes the
+   run of symbols that every stored term below it has after the symbol of the
+   node. An insert follows the symbols through the prefixes; at the first
+   symbol that differs from a prefix the node is split (a new node takes the
    rest of the prefix and everything below), and the rest of the term
    becomes the prefix of a new leaf. Returns the node of the entry, or -1. */
 
@@ -512,7 +514,7 @@ static int32_t ti_insert_c(ti_index* x, int32_t n, int32_t e) {
       if (x->ptok[po+j]!=x->toks[i+j] || x->pslot[po+j]!=(isvar(x->terms[i+j]) ? 1 : 0)) break;
     }
     if (j<pl) {
-      // split cur at its prefix token j: m takes the token j, the rest of
+      // split cur at its prefix symbol j: m takes the symbol j, the rest of
       // the prefix and everything below cur
       m=ti_new_node(x,x->ptok[po+j]);
       if (m<0) return -1;
@@ -534,7 +536,7 @@ static int32_t ti_insert_c(ti_index* x, int32_t n, int32_t e) {
     slot=isvar(x->terms[i]);
     nx=slot ? ti_vchild(x,cur,t) : ti_child(x,cur,t);
     if (nx<0) {
-      // a new leaf: the token i, and the rest of the term as its prefix
+      // a new leaf: the symbol i, and the rest of the term as its prefix
       nx=ti_new_node(x,t);
       if (nx<0 || !ti_add_child(x,cur,nx,t,slot)) return -1;
       st=ti_pool_add(x,i+1,n);
@@ -664,7 +666,7 @@ static void ti_walk(glb* g, ti_index* x, int32_t node, int32_t i, int32_t end) {
   if (!(x->visit) && !(x->first) && x->nodes[node].maxe<=x->best) return;
   if (x->compress && x->nplen[node]) {
     // the prefix of the node, with the rules of the walk: a record or
-    // constant token is compared as a gint; the first occurrence of a slot
+    // constant symbol is compared as a gint; the first occurrence of a slot
     // binds its cell with SETVAR, a later one compares the bound term; the
     // bindings of the prefix are cleared as a top slice on the way back
     int32_t po=x->npfx[node], pl=x->nplen[node], j, k, nb0=x->nb;
@@ -695,7 +697,7 @@ static void ti_walk(glb* g, ti_index* x, int32_t node, int32_t i, int32_t end) {
 }
 
 /* the walk at a node after its prefix: a leaf at the end of the query
-   slice, else the child of the query token and the slot children */
+   slice, else the child of the query symbol and the slot children */
 
 static void ti_walk_node(glb* g, ti_index* x, int32_t node, int32_t i, int32_t end) {
   int32_t c, k;
@@ -705,7 +707,7 @@ static void ti_walk_node(glb* g, ti_index* x, int32_t node, int32_t i, int32_t e
   t=x->toks[i];
   q=x->terms[i];
   if (!isvar(q)) {
-    // a record or a constant of the query: the child with the same token
+    // a record or a constant of the query: the child with the same symbol
     c=ti_child(x,node,t);
     if (c>=0) ti_walk(g,x,c,i+1,end);
   }
@@ -734,7 +736,7 @@ static void ti_walk_node(glb* g, ti_index* x, int32_t node, int32_t i, int32_t e
 
 /* ---- the walk that reads the query term as it goes ----
 
-   The same tree walk as ti_walk, without a token array: the token at the
+   The same tree walk as ti_walk, without a preorder string: the symbol at the
    cursor is read from the query record when the walk needs it (a record
    gives its arity, a constant its gint, a variable of the query is a
    constant of the walk). A slot at its first occurrence binds the whole
@@ -743,7 +745,7 @@ static void ti_walk_node(glb* g, ti_index* x, int32_t node, int32_t i, int32_t e
    visits. With swaprec set, the two sides of that equation are read in
    the other order (no copy of the record). The order of the children is
    the order of ti_walk, so ti_match_first_term finds the entry that
-   ti_match_first finds on the tokens of the same term. */
+   ti_match_first finds on the symbols of the same term. */
 
 static void ti_twalk(glb* g, ti_index* x, int32_t node, ti_cur c);
 
@@ -787,7 +789,7 @@ static ti_cur ti_cur_enter(glb* g, ti_index* x, ti_cur c, gint q) {
   return r;
 }
 
-/* the token of the query term q, as ti_tokens gives it (q not a variable) */
+/* the symbol of the query term q, as ti_tokens gives it (q not a variable) */
 
 static uint64_t ti_qtok(glb* g, gint q) {
   gptr qp;
@@ -796,7 +798,7 @@ static uint64_t ti_qtok(glb* g, gint q) {
   return TI_REC(wr_term_unify_endpos(g,qp)-wr_term_unify_startpos(g));
 }
 
-/* the cursor after the token q at c: into q for a record, else the next field */
+/* the cursor after the symbol q at c: into q for a record, else the next field */
 
 static ti_cur ti_cur_step(glb* g, ti_index* x, ti_cur c, gint q) {
   if (isdatarec(q)) {
@@ -847,7 +849,7 @@ static void ti_twalk(glb* g, ti_index* x, int32_t node, ti_cur c) {
   if (x->stop) return;
   if (!(x->visit) && !(x->first) && x->nodes[node].maxe<=x->best) return;
   if (x->compress && x->nplen[node]) {
-    // the prefix of the node, token by token against the same reader
+    // the prefix of the node, symbol by symbol against the same reader
     int32_t po=x->npfx[node], pl=x->nplen[node], j, k, nb0=x->nb, fr0=x->frn;
     gint vc0=(g->varstack)[1], q;
     gptr vc=((gptr)(g->varstack))+1;
@@ -877,7 +879,7 @@ static void ti_twalk(glb* g, ti_index* x, int32_t node, ti_cur c) {
   ti_twalk_node(g,x,node,c);
 }
 
-/* ti_match_first on the query term itself, read as the walk goes (no token
+/* ti_match_first on the query term itself, read as the walk goes (no symbol
    array); swapped: an equation read with its two sides in the other order.
    The same answer as ti_tokens and ti_match_first on the same term (on the
    copy with the sides swapped). Returns 1 and sets *payload, or 0. */
@@ -907,7 +909,7 @@ int ti_match_first_term(glb* g, ti_index* x, gint term, int swapped,
   return 1;
 }
 
-/* the newest stored term that matches the query subterm at tokens
+/* the newest stored term that matches the query subterm at symbols
    [start,end) of the last ti_tokens and passes the tests: accept (when not
    NULL) and, with norenaming, a substitution that is not a renaming.
    Returns 1 and sets *payload, *aux, *nv (the number of slots) and *vals
@@ -940,10 +942,10 @@ int ti_match_best(glb* g, ti_index* x, int32_t start, int32_t end,
   return 1;
 }
 
-/* any stored term that matches the query subterm at tokens [start,end)
+/* any stored term that matches the query subterm at symbols [start,end)
    and passes accept (when not NULL): the walk stops at the first leaf with
    an accepted entry, in the walk order (at a node the child of the query
-   token first, then the slot children from the newest), so the answer is
+   symbol first, then the slot children from the newest), so the answer is
    fixed for a given tree. Returns 1 and sets *payload, or 0. The cells of
    the tree bank are UNASSIGNED after the walk. */
 
@@ -972,15 +974,15 @@ int ti_match_first(glb* g, ti_index* x, int32_t start, int32_t end,
   return 1;
 }
 
-/* the token arrays of the last ti_tokens */
+/* the arrays of the flatterm of the last ti_tokens */
 
 void ti_token_arrays(ti_index* x, uint64_t** toks, int32_t** skip, gint** terms) {
   *toks=x->toks; *skip=x->skip; *terms=x->terms;
 }
 
-/* ti_match_best on token arrays of the caller (a copy of the arrays of an
-   earlier ti_tokens), so the caller keeps the tokens of a term while other
-   lookups tokenise other terms */
+/* ti_match_best on flatterm arrays of the caller (a copy of the arrays of an
+   earlier ti_tokens), so the caller keeps the symbols of a term while other
+   lookups make the flatterm of other terms */
 
 int ti_match_best_ext(glb* g, ti_index* x, uint64_t* toks, int32_t* skip, gint* terms,
                       int32_t start, int32_t end, int (*accept)(glb*, gint), int norenaming,
@@ -1040,7 +1042,7 @@ gint ti_rename_copy(glb* g, gint t, gint* vars, int32_t nv, gint first, gptr buf
   return encode_record(g->db,yptr);
 }
 
-/* every stored term that matches the query subterm at tokens [start,end):
+/* every stored term that matches the query subterm at symbols [start,end):
    visit is called with each payload, the number of slots and their values
    (the cells of the tree bank, bound at that moment) */
 
@@ -1061,12 +1063,12 @@ int ti_failed(ti_index* x) { return x->failed; }
   with (unify 1) or match (unify 0) the query subterm, and more: a slot of
   a stored term takes any query subterm, and with unify a variable of the
   query takes any one stored term (the walk skips one complete stored term
-  below the node, by the arity tokens). The caller tests each candidate
+  below the node, by the arity symbols). The caller tests each candidate
   with wr_unify_term or wr_match_term. */
 
 static void ti_cand_walk(glb* g, ti_index* x, int32_t node, int32_t i, int32_t end, int unify);
 
-/* from node, skip rem more complete stored terms, then go on at token i of the query */
+/* from node, skip rem more complete stored terms, then go on at symbol i of the query */
 
 static void ti_cand_skip(glb* g, ti_index* x, int32_t node, int32_t rem, int32_t i, int32_t end, int unify) {
   int32_t c, r, k, m;
@@ -1077,7 +1079,7 @@ static void ti_cand_skip(glb* g, ti_index* x, int32_t node, int32_t rem, int32_t
     if (rem==1) ti_cand_walk(g,x,c,i,end,unify);
     else ti_cand_skip(g,x,c,rem-1,i,end,unify);
   }
-  // the children with a record or constant token
+  // the children with a record or constant symbol
   for(k=-1;;k++) {
     if (k==-1) c=x->nodes[node].child;
     else {
@@ -1128,7 +1130,7 @@ static void ti_cand_walk(glb* g, ti_index* x, int32_t node, int32_t i, int32_t e
   for(c=x->nodes[node].vchild; c>=0; c=x->nodes[c].vsib) ti_cand_walk(g,x,c,x->skip[i],end,unify);
 }
 
-/* visit the candidates of the query at tokens [start,end) of the last ti_tokens */
+/* visit the candidates of the query at symbols [start,end) of the last ti_tokens */
 
 void ti_candidates(glb* g, ti_index* x, int32_t start, int32_t end, int unify, ti_visit_fn visit, void* ctx) {
   int32_t e;
@@ -1221,7 +1223,7 @@ static gint ti_test_build_rhs(glb* g, gint rc, int32_t nv, gint* vals) {
 }
 
 /* compare the tree and the plain match on the query subterm q at the
-   tokens [i,end) of the last ti_tokens */
+   symbols [i,end) of the last ti_tokens */
 
 static void ti_test_compare(glb* g, ti_index* x, ti_test* t, gint q, int32_t i, int32_t end) {
   gint vars[TI_MAXSLOTS], bvals[TI_MAXSLOTS];
@@ -1229,14 +1231,14 @@ static void ti_test_compare(glb* g, ti_index* x, ti_test* t, gint q, int32_t i, 
   gint payload, aux, *tvals;
   int32_t tnv;
   {
-    // the walk that reads the term (ti_match_first_term) against the token
+    // the walk that reads the term (ti_match_first_term) against the symbol
     // walk on the same subterm: the same first entry
     gint p1=0, p2=0;
     int r1=ti_match_first(g,x,i,end,NULL,&p1);
     int r2=ti_match_first_term(g,x,q,0,NULL,&p2);
     if (r1!=r2 || (r1 && p1!=p2)) {
       TI_TEST_DIFF(t);
-      wr_printf("the walk that reads the term finds another first entry than the token walk on ");
+      wr_printf("the walk that reads the term finds another first entry than the walk over the preorder string on ");
       wr_print_term(g,q); wr_printf("\n");
     }
   }

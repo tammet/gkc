@@ -389,7 +389,7 @@ static void walk_term(glb *g, gint x, gptr vb, int depth) {
 
   /* 3. Non-record atoms/constants: URI, smallint, fullint, fulldouble, str, ACONST_*. */
   if (!isdatarec(x)) {
-    /* The gint x is the value: use it directly as a key, a token or an
+    /* The gint x is the value: use it directly as a key, a symbol or an
        operand of ==. Do not decode it and do not hash it. */
     return;
   }

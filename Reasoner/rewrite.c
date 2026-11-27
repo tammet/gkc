@@ -323,8 +323,8 @@ static void dmi_check(glb* g, gint x, vec hashvec, gint hash) {
   (rpos literals in derived_termbuf) with the demodulators, after the
   literals of both parents are built and before the cuts, the subsumption
   and the weight check, as E does. Only a literal with a candidate is built
-  again: a walk of the tree over each subterm of its atom (one tokenisation
-  per atom; a subterm is a slice of the tokens) finds whether a demodulator
+  again: a walk of the tree over each subterm of its atom (one flatterm
+  per atom; a subterm is a slice of the symbols) finds whether a demodulator
   matches somewhere. The build is the build of the pick (wr_build_calc_term
   with build_rewrite 1, no substitution, no renaming): innermost first, and
   the right side of a rewrite is built again with rewriting on, until no
@@ -419,18 +419,19 @@ static gint wr_demod_build_eq(glb* g, gint atom) {
   wr_demod_norm gives the normal form of a term with the demodulators, in
   the order of the build of the pick (wr_build_calc_term with build_rewrite
   1): the elements of a record left to right and innermost first, then the
-  top. The term is tokenised once (a frame of copied token arrays); the
-  lookup at a subterm is a walk over its slice of the tokens, with no new
-  tokenisation. A subterm with no match whose elements did not change is
+  top. The flatterm of the term (its preorder string of symbols) is made
+  once, in a frame of copied arrays; the lookup at a subterm is a walk over
+  its slice of the symbols, with no new flatterm. A subterm with no match
+  whose elements did not change is
   kept as it is (no copy). A record whose elements changed is built new and
   rewritten at its top with wr_rewrite_term; at a subterm with a match,
   wr_rewrite_term does the rewrite. wr_rewrite_term builds the instance of
   the right side with build_subst 1 and, in this mode (rw_base), normalises
   it with wr_demod_norm again, where the parts that come from the bindings
   are walked but give no match (they are in normal form already).
-  Constants go to wr_rewrite_constant (the tree, one token).
+  Constants go to wr_rewrite_constant (the tree, one symbol).
 
-  The frames are a stack of token arrays addressed by offset, since a
+  The frames are a stack of flatterm arrays addressed by offset, since a
   nested normalisation may grow them.
 */
 
@@ -439,7 +440,7 @@ static int32_t* nt_skip=NULL;
 static gint* nt_terms=NULL;
 static int32_t nt_cap=0, nt_top=0;
 
-/* tokenise t into a new frame; returns its base, or -1 */
+/* make the flatterm of t into a new frame; returns its base, or -1 */
 
 static int32_t wr_nt_push(glb* g, ti_index* d, gint t) {
   uint64_t *tk; int32_t *sk, n, base, i; gint *tm;
@@ -466,7 +467,7 @@ static int32_t wr_nt_push(glb* g, ti_index* d, gint t) {
   return base;
 }
 
-/* the normal form of the subterm at token i of the frame base; guardtop: i
+/* the normal form of the subterm at symbol i of the frame base; guardtop: i
    is the top of a side of a positive unit equation (the completeness
    condition: no rewrite by a renaming, and a constant side is not
    rewritten) */
@@ -487,7 +488,7 @@ static gint wr_demod_norm_pos(glb* g, ti_index* d, int32_t base, int32_t i, int 
     nel=sys_malloc(sizeof(gint)*(end-start));
     if (!nel) return WG_ILLEGAL;
   }
-  // the elements, left to right; j is the token of element k
+  // the elements, left to right; j is the symbol of element k
   j=i+1;
   for(k=start;k<end;k++) {
     e=tp[k];
@@ -1057,7 +1058,7 @@ gint wr_rewrite_constant(glb* g, gint x) {
   for(dbused=0; dbused<2; dbused++) {            
 #ifdef USE_DEMOD_INDEX
     if (dbused==0 && usetree) {
-      // the local demodulators: the tree, where a constant is one token (its
+      // the local demodulators: the tree, where a constant is one symbol (its
       // gint); the newest demodulator that is not blocked and not
       // rewrite_self; no hash and no list
       gint payload, aux, *vals;

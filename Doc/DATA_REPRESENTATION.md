@@ -27,7 +27,7 @@ A large object (a long string, a URI, a record) is an offset to the object,
 and that offset is also a `gint`. So every value has the same size, and code
 can treat it as an integer:
 
-* Use the `gint` itself as a key of a table, as a token of a tree index, and
+* Use the `gint` itself as a key of a table, as a symbol of a tree index, and
   as an operand of `==`.
 * Do not decode a symbol to its string to compare it. Do not compute a hash
   of a constant where its `gint` serves. `wg_decode_uri()` and `strcmp()` are
@@ -811,16 +811,18 @@ The hash tables above hash a whole atom or term. Their purpose is to find or
 compare a term without walking it. A hash match is a candidate only; confirm
 it with `wr_equal_term()`.
 
-A discrimination tree is the opposite case: its lookup walks the term token
-by token, so a hash has no use there. `Reasoner/termindex.c` is the tree
+A discrimination tree is the opposite case: its lookup walks the term symbol
+by symbol, so a hash has no use there. `Reasoner/termindex.c` is the tree
 module (a perfect discrimination tree; its users: the demodulators of
 `Reasoner/rewrite.c` and the stored units of the full unit cut and
 subsumption in `Reasoner/subsume.c`). Its rules, which any new tree index should follow:
 
-* A token is the encoded `gint` of a symbol or constant, the arity of a
-  record, or a variable slot of the stored term. Nothing else.
+* The tree stores a term as its flatterm: the preorder string of symbols
+  of the term. A symbol of that string is the encoded `gint` of a function
+  symbol, predicate or constant, the arity of a record, or a variable slot
+  of the stored term. Nothing else.
 * A node finds its child by comparing `gint` values (a small array in the
-  node, then a skip list ordered by token). No hash of a token, no hash table
+  node, then a skip list ordered by symbol). No hash of a symbol, no hash table
   of edges.
 * A variable of a stored term is a slot, numbered by first occurrence in that
   term, so variants share one path. Slot k is variable k of the tree bank

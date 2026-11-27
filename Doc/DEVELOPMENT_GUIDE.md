@@ -473,7 +473,7 @@ When adding an index:
 7. Choose the key by the kind of index:
    * A hash table hashes a whole atom or term, to find it without a walk. A
      hash match is a candidate; confirm it with `wr_equal_term()`.
-   * A tree index is walked token by token and uses no hash. Its tokens are
+   * A tree index is walked symbol by symbol and uses no hash. Its symbols are
      the encoded `gint` of a symbol or constant, the arity of a record, and a
      variable slot. Use `Reasoner/termindex.c` (a perfect discrimination
      tree) instead of writing another tree; its rules are in
@@ -738,7 +738,7 @@ if (!strcmp(wg_decode_uri(g->db, x), wg_decode_uri(g->db, y))) { ... }
 Good:
 
 ```c
-if (!isdatarec(x) && !isvar(x)) key = x;   /* the gint is the token */
+if (!isdatarec(x) && !isvar(x)) key = x;   /* the gint is the symbol */
 if (x == y) { /* the same symbol or constant */ }
 ```
 

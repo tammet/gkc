@@ -957,7 +957,7 @@ static int wr_ucm_after(glb* g, int key) {
 /* a unit of the tree of the sign neg whose atom matches xatom, or NULL */
 
 #ifdef GKC_UCM_WALK_CHECK
-/* the check build: the lookup by the token walk (ti_tokens, ti_match_first),
+/* the check build: the lookup by the walk over the flatterm (ti_tokens, ti_match_first),
    compared with the walk that reads the term on every lookup */
 long ucm_walk_check_lookups=0, ucm_walk_check_diff=0;
 static gptr wr_ucm_find_tok(glb* g, gint xatom, int neg) {
@@ -1966,24 +1966,14 @@ int wr_derived_cl_strong_cut(glb* g, gptr rptr, int rpos, int prevcuts) {
 
   index of the unit clauses for the strong cut
 
-  A discrimination tree per sign over the stored unit clauses of
-  wr_cl_store_res_units, beside the lists of hash_pos_units and
-  hash_neg_units. The path of a unit is its atom in preorder over the
-  positions of the unification: a record gives the token "record of n
-  elements" and then its elements, a constant the token of its value hash
-  (wr_term_basehash), a variable the token SCI_STAR. Two atoms that match
-  or unify have the same tokens wherever neither has a variable, so a walk
-  over the tree finds every unit that the present test can accept.
+  With the key strong_cut at 1, the units of the strong cut are also filed
+  in two trees of the module termindex.c, one per sign, beside the lists
+  of hash_pos_units and hash_neg_units (see the comment at wr_sci_insert
+  below). The lookup by the tree gives the cutter that the lists give.
 
-  The walk collects the candidates; they are sorted in the order in which
-  the lists of strongly_cut_atom test them (the lists of the units with a
-  prefix of 1, 2 and 3 symbols, the newest unit first in a list) and get
-  the same test (wr_match_term or wr_unify_term), so the first unit that
-  passes is the cutter of the lists. Only a collision of two keys in the
-  same list can make the lists test a unit earlier.
-
-  The lists stay filled: they answer in a 32-bit build, after a failed
-  allocation, and with unify_samelen 0 or unify_maxuseterms set.
+  The lists stay filled: they answer without the key, in a 32-bit build,
+  after a failed allocation, and with unify_samelen 0 or unify_maxuseterms
+  set.
 
 ================================================ */
 
