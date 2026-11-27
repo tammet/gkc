@@ -2158,6 +2158,9 @@ void wr_show_stats(glb* g, int show_local_complex) {
     wr_printf("stat_demod_derived_dropped:   %13ld\n",g->stat_demod_derived_dropped);
     wr_printf("stat_demod_filed_kept:        %13ld\n",g->stat_demod_filed_kept);
     wr_printf("stat_demod_rw_limit:          %13ld\n",g->stat_demod_rw_limit);
+    wr_printf("stat_demod_parents_lost:      %13ld\n",g->stat_demod_parents_lost);
+    wr_printf("stat_demod_neg_trivial:       %13ld\n",g->stat_demod_neg_trivial);
+    wr_printf("stat_demod_neg_trivial_unit:  %13ld\n",g->stat_demod_neg_trivial_unit);
 #ifdef USE_TERM_INDEX
     if ((g->dmi_index) && (g->dmi_index)!=(void*)1) {
       ti_stat st;

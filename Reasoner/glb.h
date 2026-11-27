@@ -716,6 +716,9 @@ typedef struct glb {
   gptr dmi_rhsbuf;         // the chunks of the right-side copies of the demodulator tree, or NULL
   long stat_dmi_rhs_not_filed; // demodulators not filed in the tree: a variable of the right side not in the left side
   long stat_dmi_rhs_bytes; // the bytes of the right-side copies in the tree bank
+  long stat_demod_parents_lost; // demod_derived: derivation records without their demodulators (no room in cut_clvec)
+  long stat_demod_neg_trivial;  // demod_derived: rewritten derived clauses with a negative literal s!=s
+  long stat_demod_neg_trivial_unit; // the same, as the only literal (an empty clause)
 } glb;
 
 

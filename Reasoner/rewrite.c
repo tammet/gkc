@@ -643,11 +643,16 @@ int wr_demod_derived(glb* g, gptr rptr, int rpos) {
     if ((g->tmp_rewrites)!=prev) {
       rptr[(j*LIT_WIDTH)+LIT_ATOM_POS]=newatom;
       changed=1;
-      // a positive literal s=s makes the clause a tautology
-      if (!wg_atom_meta_is_neg(g->db,meta) && wr_equality_atom(g,newatom)) {
+      // a positive literal s=s makes the clause a tautology; a negative
+      // literal s!=s is false (counted; the clause keeps it)
+      if (wr_equality_atom(g,newatom)) {
         gptr tp=decode_record(g->db,newatom);
         if (wr_equal_term(g,tp[RECORD_HEADER_GINTS+(g->unify_funarg1pos)],
-                            tp[RECORD_HEADER_GINTS+(g->unify_funarg2pos)],1)) { res=-1; break; }
+                            tp[RECORD_HEADER_GINTS+(g->unify_funarg2pos)],1)) {
+          if (!wg_atom_meta_is_neg(g->db,meta)) { res=-1; break; }
+          (g->stat_demod_neg_trivial)++;
+          if (rpos==1) (g->stat_demod_neg_trivial_unit)++;
+        }
       }
     }
   }
@@ -677,15 +682,23 @@ int wr_demod_derived(glb* g, gptr rptr, int rpos) {
 
 void wr_demod_add_rewriters(glb* g, int cuts) {
   gptr cv=g->cut_clvec, rv=g->rewrite_clvec;
-  int i, k=cuts+1, n;
+  int i, k=cuts+1, n, need;
   if (!(g->demod_this_clause)) return;
   (g->demod_this_clause)=0;
-  if (cv[0]<=k+1) return; // no room
   n=(int)(rv[1]);
-  for(i=2;i<n;i++) {
-    if (cv[0]<=k+1) break; // no room
-    cv[k++]=rv[i];
+  need=k+(n-2)+2;
+  if (cv[0]<=need) {
+    // the cutters and the demodulators do not fit: a larger cut_clvec, with
+    // the cutters copied (the history builders read g->cut_clvec)
+    int len=(int)(cv[0]), nlen=need*2;
+    gptr nv=wr_vec_new(g,nlen);
+    if (!nv) { (g->stat_demod_parents_lost)++; return; }
+    for(i=1;i<k && i<len;i++) nv[i]=cv[i];
+    wr_vec_free(g,cv);
+    (g->cut_clvec)=nv;
+    cv=nv;
   }
+  for(i=2;i<n;i++) cv[k++]=rv[i];
   cv[k]=(gint)NULL;
 }
 
@@ -943,7 +956,9 @@ gint wr_rewrite_term(glb* g, gint x) {
         if (tmp<NROF_REWRITE_CLVEC_ELS-4) {
           (g->rewrite_clvec)[tmp]=(gint)ycl;
           ((g->rewrite_clvec)[1])++;          
-        }  
+        } else if (g->rw_base) {
+          (g->stat_demod_parents_lost)++; // demod_derived: no room for the demodulator
+        }
         // build the result
         // b is now the raw right side of rewrite rule before rebuilding
 #ifdef DEBUG 
@@ -1053,6 +1068,8 @@ gint wr_rewrite_constant(glb* g, gint x) {
       if (tmp<NROF_REWRITE_CLVEC_ELS-4) {
         (g->rewrite_clvec)[tmp]=(gint)ycl;
         ((g->rewrite_clvec)[1])++;
+      } else if (g->rw_base) {
+        (g->stat_demod_parents_lost)++; // demod_derived: no room for the demodulator
       }
       // rewrite again until rewrite chain terminates
       return wr_rewrite_constant(g,b);
@@ -1138,7 +1155,9 @@ gint wr_rewrite_constant(glb* g, gint x) {
         if (tmp<NROF_REWRITE_CLVEC_ELS-4) {
           (g->rewrite_clvec)[tmp]=(gint)ycl;
           ((g->rewrite_clvec)[1])++;          
-        }  
+        } else if (g->rw_base) {
+          (g->stat_demod_parents_lost)++; // demod_derived: no room for the demodulator
+        }
         // rewrite again until rewrite chain terminates
         return wr_rewrite_constant(g,b); 
       } // end of match cases: unsuccesful/successful       
