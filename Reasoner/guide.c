@@ -305,6 +305,19 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr, int s
       // 1: the unit trees accept only what the unit tables accept (an equal
       // atom, or a variant with unit_variant_hash): the same search as the tables
       (g->unit_match_equal)=(json_valueint(elem) ? 1 : 0);
+    } else if (!strcmp(key,"sos_ordering")) {
+      // the term ordering with the strategy query_focus (set of support): a
+      // missing key: as until 2026-11 (only paramodulation from the given clause
+      // uses it); "full": as in the other strategies (the stored sides,
+      // demodulators, both directions of paramodulation); "none": in no place
+      if (json_isstring(elem) && json_valuestring(elem) && !strcmp(json_valuestring(elem),"full")) {
+        (g->sos_ordering)=SOS_ORDERING_FULL;
+      } else if (json_isstring(elem) && json_valuestring(elem) && !strcmp(json_valuestring(elem),"none")) {
+        (g->sos_ordering)=SOS_ORDERING_NONE;
+      } else {
+        wr_errprint("unknown value of sos_ordering in the strategy: use full or none");
+        return -1;
+      }
     } else if (!strcmp(key,"term_ordering")) {
       // the term ordering of the equations (wr_order_eqterms): "kbo" (the
       // default, also when the key is absent) or "weight_lex" (the ordering

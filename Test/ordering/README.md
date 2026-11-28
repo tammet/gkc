@@ -43,6 +43,9 @@ The other files are minimal problems with equality. Each is unsatisfiable
   without a proof by this condition (regress cases with the expected result
   noproof); the automatic strategy proves them.
 
+* q1 and q2: the two examples of defect 3 of the study of the strategies,
+  for `query_focus` and the key `sos_ordering`.
+
 The regress cases `ord_*` run all of them with the automatic strategy, and
 some with a fixed strategy. With the strategy `query_focus` (set of
 support), v2, v3, v4, v6 and s1 to s4 end without a proof: their proofs

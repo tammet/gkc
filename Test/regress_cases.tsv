@@ -180,6 +180,11 @@ ord_v8_var_other_lit	Test/ordering/v8_var_other_lit.p	proof	10
 ord_v9_two_steps	Test/ordering/v9_two_steps.p	proof	10
 ord_u5_into_lit_test_k2	Test/ordering/u5_into_lit_test.p -strategytext '{"strategy":["negative_pref"],"query_preference":0,"para_into_ordered":2}'	output:proof found;;stat_para_lit_order_skip:                 2	10
 ord_u5_into_lit_test	Test/ordering/u5_into_lit_test.p	proof	10
+ord_q1_sos_xa_none	-strategytext '{"strategy":["query_focus"],"query_preference":1,"sos_ordering":"none"}' Test/ordering/q1_sos_xa.p	proof	10
+ord_v2_xa_sos_none	-strategytext '{"strategy":["query_focus"],"query_preference":1,"sos_ordering":"none"}' Test/ordering/v2_xa.p	proof	10
+ord_u4_sos_full	-strategytext '{"strategy":["query_focus"],"query_preference":1,"sos_ordering":"full"}' Test/ordering/u4_into_smaller_side.p	noproof	10
+ord_q2_sos_reflex	Test/ordering/q2_sos_reflex.p	proof	10
+term_ordering_sos_bad_value	Test/ordering/v2_xa.p -strategytext '{"strategy":["query_focus"],"sos_ordering":"x"}'	error:unknown value of sos_ordering	10
 ord_v1_xy	Test/ordering/v1_xy.p	proof	10
 ord_v2_xa	Test/ordering/v2_xa.p	proof	10
 ord_v3_xa_nonunit	Test/ordering/v3_xa_nonunit.p	proof	10

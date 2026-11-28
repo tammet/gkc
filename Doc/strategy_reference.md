@@ -324,6 +324,21 @@ precedence is the number of fields of a term, then the `gint` of the symbol
 (the larger `gint` is the smaller symbol). Another value is an error of the
 strategy.
 
+### `sos_ordering` (experimental)
+
+The term ordering with the strategy `query_focus` (set of support). A
+missing key keeps the behaviour of gkc until 2026-11: every equation is
+stored with both sides as sides that paramodulation starts from, no
+demodulator is filed, paramodulation into the given clause has no test of
+the ordering, and only paramodulation from the given clause uses the
+ordering (before and after the unification). `"full"`: the ordering is used
+as in the other strategies (the stored sides, the demodulators and the
+rewriting, `demod_unoriented`, and the tests of `para_into_ordered`).
+`"none"`: the ordering is used in none of these places. The structural
+condition of a variable side (`X` does not occur in the other side) stays.
+Another value is an error of the strategy. The key has no effect without
+`query_focus`.
+
 ### `order_selftest` (test only)
 
 `1`: gkc tests its term ordering (`wr_order_eqterms`, Reasoner/strat.c) on

@@ -210,7 +210,10 @@ definition as the reference.
 * Do not assume completeness when combining aggressive equality
   restrictions (`prohibit_unordered_para`, `prohibit_deep_para`, `posunitpara`).
 * The `query_focus` strategy sets the result 3 for every equation in the
-  storing of paramodulation terms and in paramodulation from the given clause.
+  storing of paramodulation terms and in paramodulation from the given clause;
+  paramodulation from the given clause computes the ordering again for each
+  side. The key `sos_ordering` (`"full"`, `"none"`) changes this; the macros
+  `WR_QF_FORCE3` and `WR_QF_NONE` (Reasoner/glb.h) mark the places.
 
 ### Complete vs. Incomplete Strategy Flags
 

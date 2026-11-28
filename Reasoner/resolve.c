@@ -539,7 +539,7 @@ static int wr_para_into_lit_ok(glb* g, gint atom, int pos) {
 
 static int wr_para_into_active_lit_ok(glb* g, gptr ycl, gint path) {
   void* db=g->db; gint yatom; int litnr;
-  if ((g->para_into_ordered)!=2 || (g->queryfocus_strat)) return 1;
+  if ((g->para_into_ordered)!=2 || WR_QF_FORCE3(g)) return 1;
   litnr=wr_decode_para_termpath_litnr(g,path);
   if (wg_rec_is_rule_clause(db,ycl)) yatom=wg_get_rule_clause_atom(db,ycl,litnr);
   else yatom=encode_record(db,ycl);
@@ -606,7 +606,7 @@ static int wr_para_varside_from_vec(glb* g, gptr xcl, gptr cl_as_active, gint xa
       if (!wr_para_partner_ok(g,ycl,nonanslen,upon,0)) continue;
       if (wr_unify_term(g,a,yterm,1)) { // uniquestrflag=1
         (g->stat_varside_tried)++;
-        if (wr_order_eqterms(g,a,b,(g->varbanks))==2) {
+        if (!WR_QF_NONE(g) && wr_order_eqterms(g,a,b,(g->varbanks))==2) {
           (g->stat_varside_skip_order)++;
         } else {
           path=wg_decode_int(db,nodeptr[CLTERM_HASHNODE_PATH_POS]);
@@ -625,6 +625,9 @@ static int wr_para_varside_from_vec(glb* g, gptr xcl, gptr cl_as_active, gint xa
 
 static int wr_para_varside_from(glb* g, gptr xcl, gptr cl_as_active, gint xatom, int litnr,
                                 gint a, gint b, int leftflag, int nonanslen) {
+  // the condition of the filing: X does not occur in the other side (also when
+  // sos_ordering "none" gives 3 to every equation)
+  if (wr_order_eqterms(g,a,b,NULL)!=3) return 1;
   if (wr_varside_in_other_lits(g,xcl,litnr,a)) { (g->stat_varside_skip_lit)++; return 1; }
   (g->stat_varside_given)++;
   if (g->para_terms_buckets) {
@@ -663,9 +666,9 @@ static int wr_para_varsides_into(glb* g, gptr xcl, gptr cl_as_active, gint xatom
       else yatom=encode_record(db,ycl);
       if (eqleftflag) b=((gint *)(otp(db,yatom)))[RECORD_HEADER_GINTS+(g->unify_funarg2pos)];
       else b=((gint *)(otp(db,yatom)))[RECORD_HEADER_GINTS+(g->unify_funarg1pos)];
-      if (wr_order_eqterms(g,yterm,b,(g->varbanks))==2) {
+      if (!WR_QF_NONE(g) && wr_order_eqterms(g,yterm,b,(g->varbanks))==2) {
         (g->stat_varside_skip_order)++;
-      } else if ((g->para_into_ordered)!=2 || (g->queryfocus_strat) || wr_para_into_lit_ok(g,xatom,origtermpath)) {
+      } else if ((g->para_into_ordered)!=2 || WR_QF_FORCE3(g) || wr_para_into_lit_ok(g,xatom,origtermpath)) {
         (g->stat_varside_steps)++;
         wr_process_paramodulate_result(g,yatom,ycl,xatom,xcl,cl_as_active,yterm,b,
                                        wr_encode_para_termpath(g,litnr,origtermpath),eqleftflag,0);
@@ -786,7 +789,7 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active, cvec re
 
       a=tptr[RECORD_HEADER_GINTS+(g->unify_funarg1pos)];
       b=tptr[RECORD_HEADER_GINTS+(g->unify_funarg2pos)];
-      if (g->queryfocus_strat) eqtermorder=3;
+      if (WR_QF_FORCE3(g)) eqtermorder=3; // query_focus (sos_ordering absent or "none")
       else 
 #ifdef EQTERM_ORDER   
             eqtermorder=wr_order_eqterms(g,a,b,NULL);
@@ -840,7 +843,8 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active, cvec re
         wr_printf("\n");
 #endif      
 #ifdef EQTERM_ORDER   
-        eqtermorder=wr_order_eqterms(g,a,b,NULL);
+        // computed again for the side: also with query_focus, unless sos_ordering is "none"
+        eqtermorder=(WR_QF_NONE(g) ? 3 : wr_order_eqterms(g,a,b,NULL));
 #else
         eqtermorder=3;
 #endif        
@@ -988,7 +992,7 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active, cvec re
                   // equality terms were initially unordered
                   // check order after unification
 #ifdef EQTERM_ORDER   
-                  eqtermorder_after=wr_order_eqterms(g,a,b,(g->varbanks));
+                  eqtermorder_after=(WR_QF_NONE(g) ? 3 : wr_order_eqterms(g,a,b,(g->varbanks)));
 #else
                   eqtermorder=3;
 #endif                        
@@ -1446,7 +1450,7 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
         // the side of an oriented equation is left out of the test: it always passes.
         // With para_into_ordered 2 also the test of the "into" literal.
         { int ok=1;
-          if ((g->para_into_ordered) && !(g->queryfocus_strat)) {
+          if ((g->para_into_ordered) && !WR_QF_FORCE3(g)) {
             if (!(eqpath & PARA_TERMPATH_ORIENTEDMASK) && wr_order_eqterms(g,yterm,b,(g->varbanks))==2) {
               ok=0; (g->stat_para_from_order_skip)++;
             }

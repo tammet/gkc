@@ -572,7 +572,7 @@ int wr_cl_store_para_terms(glb* g, gptr cl, cvec resolvability) {
       b=tptr[RECORD_HEADER_GINTS+(g->unify_funarg2pos)];                 
       atype=wg_get_encoded_type(db,a);
       btype=wg_get_encoded_type(db,b); 
-      if (g->queryfocus_strat) eqtermorder=3;
+      if (WR_QF_FORCE3(g)) eqtermorder=3; // query_focus (sos_ordering absent or "none")
       else eqtermorder=wr_order_eqterms(g,a,b,NULL);
       // eqtermorder values:
       // 0: none bigger, neither ok for para
@@ -610,7 +610,7 @@ int wr_cl_store_para_terms(glb* g, gptr cl, cvec resolvability) {
         wr_cl_store_term_rewriter(g,cl,b,btype,i,0);
         (g->have_rewrite_terms)=1;
       } else if (len==1 && eqtermorder==3 && (g->demod_unoriented) && (g->use_rewrite_terms_strat) &&
-                 !(g->queryfocus_strat)) {
+                 !WR_QF_FORCE3(g)) {
         // demod_unoriented: both sides, each rewrites with its oriented instances
         wr_cl_store_unoriented_rewriter(g,cl,a,atype,b,btype,i);
       }
@@ -633,7 +633,7 @@ void wr_demod_file_kept(glb* g, gptr cl) {
   gint atom, a, b, meta;
   gptr tptr;
   int atype, btype, eqtermorder;
-  if ((g->queryfocus_strat) || !(g->use_rewrite_terms_strat) || (g->inkb)) return;
+  if (WR_QF_FORCE3(g) || !(g->use_rewrite_terms_strat) || (g->inkb)) return;
   if (wg_in_attached_kb(cl)) return; // a KB clause: the KB keeps its own demodulators
   if ((g->hyperres_strat) && !(g->relaxed_hyperres_strat) && !wr_hyperres_satellite_cl(g,cl)) return;
   if (wg_rec_is_rule_clause(db,cl)) {
