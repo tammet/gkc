@@ -989,6 +989,8 @@ int wr_order_eqterms(glb* g, gint a, gint b, gptr vb) {
 #endif 
   wr_clear_countedvarlist(g,(g->ycountedvarlist));
   yw=wr_order_eqterms_weight_vars(g, b, (g->ycountedvarlist), vb);
+  // a full list misses variables, so the variable condition cannot be tested
+  if ((g->xcountedvarlist)[3] || (g->ycountedvarlist)[3]) return 3;
 #ifdef EQORDER_DEBUG    
   printf("\nycountedvarlist ");
   wr_show_countedvarlist(g,(g->ycountedvarlist));
@@ -1077,6 +1079,7 @@ void wr_clear_countedvarlist(glb* g, cvec varlist) {
   UNUSED(g);
   varlist[1]=4;
   varlist[2]=-1;
+  varlist[3]=0;
 }
 
 /*
@@ -1084,6 +1087,8 @@ void wr_clear_countedvarlist(glb* g, cvec varlist) {
   varlist[0]: size of cvec
   varlist[1]: ptr to next free, initially 4, increased by 2
   varlist[2]: max var stored, initially -1
+  varlist[3]: 1 when a variable could not be stored (the list was full), set by
+              wr_record_varocc; 0 after wr_clear_countedvarlist
   varlist[4]: first var stored
   varlist[5]: count of first var stored (initially 1)
   ...
@@ -1106,7 +1111,8 @@ void wr_record_varocc(glb* g, gint x, cvec varlist) {
   // here var was not found
   nxt=varlist[1];
   if ((nxt+1)>=varlist[0]) {
-    // not enough space, do not store
+    // not enough space, do not store: the list is incomplete
+    varlist[3]=1;
     return;
   }
   if (x>varlist[2]) varlist[2]=x; // update max var if needed 
@@ -1694,7 +1700,10 @@ void wr_order_selftest(glb* g) {
       rb[RECORD_HEADER_GINTS+fp+1+n]=encode_var(n);
       ra[RECORD_HEADER_GINTS+fp+1+n]=encode_smallint(1); ra[RECORD_HEADER_GINTS+fp+2+n]=encode_smallint(1);
       res=wr_order_eqterms(g,encode_record(db,ra),encode_record(db,rb),NULL);
-      wr_printf("ORD_MANYVARS a term with %d distinct variables against a heavier term without the last one: result %d (right: 3)\n",n+1,res);
+      cases++;
+      if (res!=3) wrong++;
+      wr_printf("ORD_MANYVARS a term with %d distinct variables against a heavier term without the last one: result %d (right: 3)%s\n",
+                n+1,res,(res!=3 ? " WRONG" : ""));
     }
   }
   wr_printf("ORD_TEST cases %d wrong %d; terms %d; antisymmetry %ld failures %ld; reflexive %ld failures %ld;",

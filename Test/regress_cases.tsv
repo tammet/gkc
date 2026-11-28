@@ -168,7 +168,7 @@ demod_repair_tautology	Test/demod/d2_tautology.p -strategytext '{"strategy":["un
 demod_repair_neg_trivial	Test/demod/d3_neg_trivial.p -strategytext '{"strategy":["unit"],"query_preference":0}'	output:result: proof not found.;;stat_demod_neg_removed:                   1	10
 demod_repair_neg_trivial_empty	Test/demod/d4_neg_trivial_empty.p -strategytext '{"strategy":["unit"],"query_preference":0}'	output:result: proof found;;stat_demod_empty:                         1	10
 # Test/ordering/, the self test of the term ordering (strategy key order_selftest)
-order_cases	Test/ordering/o1_cases.p -strategytext '{"strategy":["unit"],"order_selftest":1}'	output:ORD_TEST cases 30 wrong 0;;antisymmetry 2352 failures 0;;transitivity 5949 failures 0;;subterm 86 failures 0;;ground total 600 failures 0;;stability 28002 failures 0;;binding against instance 91728 failures 0;;monotony 2154 failures 0	10
+order_cases	Test/ordering/o1_cases.p -strategytext '{"strategy":["unit"],"order_selftest":1}'	output:ORD_TEST cases 31 wrong 0;;antisymmetry 2352 failures 0;;transitivity 5949 failures 0;;subterm 86 failures 0;;ground total 600 failures 0;;stability 28002 failures 0;;binding against instance 91728 failures 0;;monotony 2154 failures 0	10
 # Test/ordering/, minimal problems with equality that gkc proves (automatic mode)
 ord_u1_comm_under_fun	Test/ordering/u1_comm_under_fun.p	proof	10
 ord_u2_comm_both	Test/ordering/u2_comm_both.p	proof	10

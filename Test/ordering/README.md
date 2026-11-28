@@ -17,9 +17,10 @@ terms with variables and a variable), the agreement of a comparison under
 bindings with the comparison of the built instances, and monotony in the
 `ctx` contexts. Test/regress.py runs it (case `order_cases`).
 
-The test also prints one line `ORD_MANYVARS`: a term with more distinct
-variables than the counted variable lists of the ordering hold. Its result
-is printed and not checked by the regress case.
+The test also checks one built case, the line `ORD_MANYVARS`: a term with
+more distinct variables than the counted variable lists of the ordering
+hold. The variable condition cannot be tested then, and the result must be
+3; it counts as one of the cases.
 
 The other files are minimal problems with equality. Each is unsatisfiable
 (the status comment: E and Vampire agree).
