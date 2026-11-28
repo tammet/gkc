@@ -22,8 +22,21 @@ variables than the counted variable lists of the ordering hold. Its result
 is printed and not checked by the regress case.
 
 The other files are minimal problems with equality. Each is unsatisfiable
-(the status comment: E and Vampire agree). The regress cases `ord_*` run the
-six that gkc proves. The seven with an equation that has a variable side,
-where the proof needs a step from that side (v1, v2, v3, v5, v6, v7, v10), end
-without a proof today: gkc never uses a variable side as the side that
-paramodulation starts from. They have no regress case yet.
+(the status comment: E and Vampire agree).
+
+* u1 to u4: unorientable equations and the test of the ordering after
+  unification.
+* v1 to v10: an equation with a variable side (`X = a`, `X = Y`,
+  `X = f(Y)`). Paramodulation uses a variable side as the side it starts
+  from, in both directions (from the given clause and into it).
+* s1 to s10: the variable of such an equation also occurs in another
+  literal of its clause (positive, negative, under a function symbol, in
+  the negated conjecture). gkc leaves out the steps from such a variable
+  side, as Vampire does. With the strategy `negative_pref`, s1 and s4 end
+  without a proof by this condition (regress cases with the expected result
+  noproof); the automatic strategy proves them.
+
+The regress cases `ord_*` run all of them with the automatic strategy, and
+some with a fixed strategy. With the strategy `query_focus` (set of
+support), v2, v3, v4, v6 and s1 to s4 end without a proof: their proofs
+need a step between two clauses that are not in the set of support.

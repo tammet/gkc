@@ -530,6 +530,14 @@ typedef struct glb {
   int early_weight_known; // 1 when early_weight holds the weight values of the current clause
   int early_weight[4];    // weight, size, depth and length from the early weight check
   int stat_internlimit_discarded_para;
+  gint hash_eq_varsides;   // the variable sides of the active positive equations (X = t, X not in t; X = Y): a hash list of one bucket, or 0
+  long stat_varside_filed;      // variable sides filed for paramodulation into the given clause
+  long stat_varside_tried;      // steps from a variable side tried (a unification made)
+  long stat_varside_skip_lit;   // variable sides left out: the variable occurs in another literal of its clause
+  long stat_varside_skip_order; // steps from a variable side left out: the instance of the variable is the smaller side
+  long stat_varside_steps;      // steps from a variable side made (the results built)
+  long stat_varside_given;      // variable sides of given clauses used for paramodulation into the active clauses
+  gint para_terms_buckets;      // a cvec of the numbers of the buckets of hash_para_terms that have an entry, or 0
   int stat_given_candidates;
   int stat_given_candidates_hyper;
   int stat_given_candidates_at_endgame; 

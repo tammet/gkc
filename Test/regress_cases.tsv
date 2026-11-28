@@ -176,3 +176,26 @@ ord_u3_assoc_comm	Test/ordering/u3_assoc_comm.p	proof	10
 ord_u4_into_smaller_side	Test/ordering/u4_into_smaller_side.p	proof	10
 ord_v8_var_other_lit	Test/ordering/v8_var_other_lit.p	proof	10
 ord_v9_two_steps	Test/ordering/v9_two_steps.p	proof	10
+ord_v1_xy	Test/ordering/v1_xy.p	proof	10
+ord_v2_xa	Test/ordering/v2_xa.p	proof	10
+ord_v3_xa_nonunit	Test/ordering/v3_xa_nonunit.p	proof	10
+ord_v4_xa_diseq	Test/ordering/v4_xa_diseq.p	proof	10
+ord_v5_goal	Test/ordering/v5_goal.p	proof	10
+ord_v6_xfy	Test/ordering/v6_xfy.p	proof	10
+ord_v7_xy_nonunit	Test/ordering/v7_xy_nonunit.p	proof	10
+ord_v10_under_fun	Test/ordering/v10_under_fun.p	proof	10
+ord_s1_pos_lit	Test/ordering/s1_pos_lit.p	proof	10
+ord_s2_neg_lit	Test/ordering/s2_neg_lit.p	proof	10
+ord_s3_pos_and_neg	Test/ordering/s3_pos_and_neg.p	proof	10
+ord_s4_under_fun	Test/ordering/s4_under_fun.p	proof	10
+ord_s5_xy	Test/ordering/s5_xy.p	proof	10
+ord_s6_goal_clause	Test/ordering/s6_goal_clause.p	proof	10
+ord_s7_goal_neg	Test/ordering/s7_goal_neg.p	proof	10
+ord_s8_general_partner	Test/ordering/s8_general_partner.p	proof	10
+ord_s9_deep_goal	Test/ordering/s9_deep_goal.p	proof	10
+ord_s10_two_vars	Test/ordering/s10_two_vars.p	proof	10
+# the skip of a variable side whose variable occurs in another literal: no proof with negative_pref
+ord_s1_pos_lit_neg_pref	-strategytext '{"strategy":["negative_pref"],"query_preference":0}' Test/ordering/s1_pos_lit.p	noproof	10
+ord_s4_under_fun_neg_pref	-strategytext '{"strategy":["negative_pref"],"query_preference":0}' Test/ordering/s4_under_fun.p	noproof	10
+ord_v2_xa_unit	-strategytext '{"strategy":["unit"],"query_preference":0}' Test/ordering/v2_xa.p	proof	10
+ord_v6_xfy_unit	-strategytext '{"strategy":["unit"],"query_preference":0}' Test/ordering/v6_xfy.p	proof	10

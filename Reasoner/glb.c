@@ -474,6 +474,14 @@ int wr_glb_init_simple(glb* g) {
   (g->lithash_size)=0;
   (g->early_weight_known)=0;
   (g->stat_internlimit_discarded_para)=0;
+  (g->hash_eq_varsides)=0;
+  (g->stat_varside_filed)=0;
+  (g->stat_varside_tried)=0;
+  (g->stat_varside_skip_lit)=0;
+  (g->stat_varside_skip_order)=0;
+  (g->stat_varside_steps)=0;
+  (g->stat_varside_given)=0;
+  (g->para_terms_buckets)=0;
   (g->stat_given_candidates)=0;
   (g->stat_given_candidates_at_endgame)=0;
   (g->stat_given_candidates_hyper)=0;
@@ -739,6 +747,8 @@ int wr_glb_init_shared_complex(glb* g) {
  
   (g->hash_para_terms)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS)); 
   //wr_vec_zero(rotp(g,g->hash_para_terms)); 
+  (g->para_terms_buckets)=0; // made at the first use
+  (g->hash_eq_varsides)=0; // made at the first use
   (g->hash_eq_terms)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS)); 
   //wr_vec_zero(rotp(g,g->hash_eq_terms)); 
   (g->hash_rewrite_terms)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS)); 
@@ -872,6 +882,8 @@ int wr_glb_init_seq_shared_complex(glb* g) {
  
   (g->hash_para_terms)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS)); 
   //wr_vec_zero(rotp(g,g->hash_para_terms)); 
+  (g->para_terms_buckets)=0; // made at the first use
+  (g->hash_eq_varsides)=0; // made at the first use
   (g->hash_eq_terms)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS)); 
   //wr_vec_zero(rotp(g,g->hash_eq_terms)); 
   (g->hash_rewrite_terms)=rpto(g,wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS)); 
@@ -1291,6 +1303,8 @@ int wr_glb_free_shared_complex(glb* g) {
   //wr_clterm_hashlist_free(g,rotp(g,g->hash_units)); CP7
   wr_clterm_hashlist_free(g,rotp(g,g->hash_para_terms));
   wr_clterm_hashlist_free(g,rotp(g,g->hash_eq_terms));
+  if (g->hash_eq_varsides) { wr_clterm_hashlist_free(g,rotp(g,g->hash_eq_varsides)); (g->hash_eq_varsides)=0; }
+  if (g->para_terms_buckets) { wr_free(g,rotp(g,g->para_terms_buckets)); (g->para_terms_buckets)=0; }
   wr_clterm_hashlist_free(g,rotp(g,g->hash_rewrite_terms));
   if (g->hash_rewrite_terms_u) wr_clterm_hashlist_free(g,rotp(g,g->hash_rewrite_terms_u));
   // prop

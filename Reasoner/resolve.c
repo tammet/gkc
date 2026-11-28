@@ -479,6 +479,143 @@ void wr_factor(glb* g, gptr cl, gptr cl_as_active) {
 */
 
 
+/* paramodulation with an equation that has a variable side (X = t, X not in
+   t; or X = Y). A variable unifies with every term, so the side has no bucket
+   of its own top symbol: the active variable sides are in hash_eq_varsides,
+   and a variable side of the given clause walks every stored "into" term of
+   hash_para_terms. The step is made only when the instance of the variable
+   is not the smaller side after the unification, and not at all when the
+   variable occurs in another literal of its clause (wr_varside_in_other_lits). */
+
+/* the tests of the active clause ycl, as in the loops of the other sides */
+
+static int wr_para_partner_ok(glb* g, gptr ycl, int nonanslen, int upon, int unitonly) {
+  void* db=g->db;
+  (void)db; // the clause macros do not use it
+  if ((g->prohibit_nested_para) && (wr_get_cl_history_tag(g,ycl)==WR_HISTORY_TAG_PARA)) return 0;
+  if (upon && wr_up_unusable(g,ycl)) return 0;
+  if ((g->back_subsume) && wr_get_cl_backsubsumed(g,ycl)) return 0;
+  if ((g->res_arglen_limit) && (wg_rec_is_rule_clause(db,ycl))) {
+    if (wr_count_cl_nonans_atoms(g,ycl) > (g->res_arglen_limit)) return 0;
+  }
+  if ((g->res_shortarglen_limit) && (nonanslen>(g->res_shortarglen_limit))) {
+    if (wr_count_cl_nonans_atoms(g,ycl) > (g->res_shortarglen_limit)) return 0;
+  }
+  if (unitonly && (g->posunitpara_strat) && (wg_rec_is_rule_clause(db,ycl))) {
+    if (wr_count_cl_nonans_atoms(g,ycl)>1) return 0;
+  }
+  return 1;
+}
+
+/* 0 when the search must stop: a proof (enough answers), no memory or the time limit */
+
+static int wr_para_varside_continue(glb* g) {
+  clock_t curclock;
+  float run_seconds, run_dseconds;
+  if (g->proof_found || g->alloc_err) {
+    if (wr_enough_answers(g) || g->alloc_err) return 0;
+  }
+  if ((g->stat_derived_cl%256)==0 || (g->derived_overflow_timeout)) {
+    if (g->derived_overflow_timeout) return 0;
+    curclock=clock();
+    run_seconds = (float)(curclock - (g->run_start_clock)) / CLOCKS_PER_SEC;
+    if ((g->max_run_seconds) && (run_seconds>(g->max_run_seconds))) return 0;
+    run_dseconds = (float)(curclock - (g->run_start_clock)) / ((float)CLOCKS_PER_SEC / 10);
+    if ((g->max_run_dseconds) && (run_dseconds>(g->max_run_dseconds))) return 0;
+  }
+  return 1;
+}
+
+/* from the variable side a of the literal xatom (number litnr) of the given
+   clause xcl into the stored terms of one hash vector: the buckets of the
+   list buckets, or all buckets when buckets is NULL (an attached KB) */
+
+static int wr_para_varside_from_vec(glb* g, gptr xcl, gptr cl_as_active, gint xatom, gint a, gint b,
+                                    int leftflag, int nonanslen, vec hashvec, cvec buckets) {
+  void* db=g->db;
+  gint k, kend, hash, node, yterm, path;
+  gptr nodeptr, ycl;
+  int upon=((g->up_index)!=NULL);
+  kend=(buckets ? CVEC_NEXT(buckets) : VEC_LEN(hashvec));
+  for(k=(buckets ? CVEC_START : 1); k<kend; k++) {
+    hash=(buckets ? buckets[k] : k);
+    if (hash<1 || hash>=VEC_LEN(hashvec) || !hashvec[hash]) continue;
+    for(node=wr_clterm_hashlist_start(g,hashvec,hash); node; node=wr_clterm_hashlist_next(g,hashvec,node)) {
+      nodeptr=otp(db,node);
+      yterm=nodeptr[CLTERM_HASHNODE_TERM_POS];
+      ycl=otp(db,nodeptr[CLTERM_HASHNODE_CL_POS]);
+      if (!wr_para_partner_ok(g,ycl,nonanslen,upon,0)) continue;
+      if (wr_unify_term(g,a,yterm,1)) { // uniquestrflag=1
+        (g->stat_varside_tried)++;
+        if (wr_order_eqterms(g,a,b,(g->varbanks))==2) {
+          (g->stat_varside_skip_order)++;
+        } else {
+          (g->stat_varside_steps)++;
+          path=wg_decode_int(db,nodeptr[CLTERM_HASHNODE_PATH_POS]);
+          wr_process_paramodulate_result(g,xatom,xcl,0,ycl,cl_as_active,a,b,path,leftflag,1);
+        }
+      }
+      wr_clear_varstack(g,g->varstack);
+      if (!wr_para_varside_continue(g)) return 0;
+    }
+  }
+  return 1;
+}
+
+static int wr_para_varside_from(glb* g, gptr xcl, gptr cl_as_active, gint xatom, int litnr,
+                                gint a, gint b, int leftflag, int nonanslen) {
+  if (wr_varside_in_other_lits(g,xcl,litnr,a)) { (g->stat_varside_skip_lit)++; return 1; }
+  (g->stat_varside_given)++;
+  if (g->para_terms_buckets) {
+    if (!wr_para_varside_from_vec(g,xcl,cl_as_active,xatom,a,b,leftflag,nonanslen,
+                                  rotp(g,g->hash_para_terms),rotp(g,g->para_terms_buckets))) return 0;
+  }
+  if (r_kb_g(g)) {
+    if (!wr_para_varside_from_vec(g,xcl,cl_as_active,xatom,a,b,leftflag,nonanslen,
+                                  rotp(g,r_kb_g(g)->hash_para_terms),NULL)) return 0;
+  }
+  return 1;
+}
+
+/* into the subterm xterm (at the path litnr, origtermpath) of the given clause
+   xcl from the active variable sides */
+
+static int wr_para_varsides_into(glb* g, gptr xcl, gptr cl_as_active, gint xatom, gint xterm,
+                                 int litnr, int origtermpath, int nonanslen) {
+  void* db=g->db;
+  vec hashvec;
+  gint node, yterm, yatom, b, eqpath;
+  gptr ycl;
+  int upon=((g->up_index)!=NULL), eqlitnr, eqleftflag;
+  if (!(g->hash_eq_varsides)) return 1;
+  hashvec=rotp(g,g->hash_eq_varsides);
+  for(node=wr_clterm_hashlist_start(g,hashvec,1); node; node=wr_clterm_hashlist_next(g,hashvec,node)) {
+    yterm=(otp(db,node))[CLTERM_HASHNODE_TERM_POS];
+    ycl=otp(db,(otp(db,node))[CLTERM_HASHNODE_CL_POS]);
+    if (!wr_para_partner_ok(g,ycl,nonanslen,upon,1)) continue;
+    if (wr_unify_term(g,xterm,yterm,1)) { // uniquestrflag=1
+      (g->stat_varside_tried)++;
+      eqpath=wg_decode_int(db,otp(db,node)[CLTERM_HASHNODE_PATH_POS]);
+      eqlitnr=wr_decode_para_termpath_litnr(g,eqpath);
+      eqleftflag=wr_decode_para_termpath_pos(g,eqpath);
+      if (wg_rec_is_rule_clause(db,ycl)) yatom=wg_get_rule_clause_atom(db,ycl,eqlitnr);
+      else yatom=encode_record(db,ycl);
+      if (eqleftflag) b=((gint *)(otp(db,yatom)))[RECORD_HEADER_GINTS+(g->unify_funarg2pos)];
+      else b=((gint *)(otp(db,yatom)))[RECORD_HEADER_GINTS+(g->unify_funarg1pos)];
+      if (wr_order_eqterms(g,yterm,b,(g->varbanks))==2) {
+        (g->stat_varside_skip_order)++;
+      } else {
+        (g->stat_varside_steps)++;
+        wr_process_paramodulate_result(g,yatom,ycl,xatom,xcl,cl_as_active,yterm,b,
+                                       wr_encode_para_termpath(g,litnr,origtermpath),eqleftflag,0);
+      }
+    }
+    wr_clear_varstack(g,g->varstack);
+    if (!wr_para_varside_continue(g)) return 0;
+  }
+  return 1;
+}
+
 void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active, cvec resolvability) {
   int upon; // unit propagation is on and its table exists 
   void* db=g->db;
@@ -863,6 +1000,9 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active, cvec re
               node=wr_clterm_hashlist_next(g,hashvec,node);       
             } // end loop over nodes in the hash bucket
           }  // end loop over local and external termhashes
+        } else if (eqtermorder==3) {
+          // a variable side: into every stored term
+          if (!wr_para_varside_from(g,xcl,cl_as_active,xatom,i,a,b,!termpos,nonanslen)) return;
         } // if (atype==WG_RECORDTYPE ...
       }  // for(termpos=0; ...    
     }  // if (useflag) ...
@@ -1058,6 +1198,7 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
   xatom=atom; // atom of the subterm in the given cl, for which we search for eq unifier in hash
   xterm=term; // subterm in the given cl, for which we search for eq unifier in hash 
   xcl=cl; // given cl the subterms of which are matched with eq args in active
+  if (!wr_para_varsides_into(g,xcl,cl_as_active,xatom,xterm,litnr,origtermpath,nonanslen)) return 1;
 #ifdef DEBUG 
   wr_printf("\nin wr_paramodulate_into_subterms_all_active fun hash is: %d litnr %d origtermpath %d for fun and term:\n",
     (int)hash,litnr,origtermpath);

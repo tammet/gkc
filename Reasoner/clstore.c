@@ -586,11 +586,16 @@ int wr_cl_store_para_terms(glb* g, gptr cl, cvec resolvability) {
             //(atype==WG_RECORDTYPE || atype==WG_URITYPE || atype==WG_ANONCONSTTYPE)) {
           // ok to para from left
           if (!(g->rewrite_only_strat)) wr_cl_store_eq_arg(g,cl,a,atype,i,1);
+        } else if (eqtermorder==3 && atype==WG_VARTYPE) {
+          // a variable side (X = t with X not in t, or X = Y): its own list
+          if (!(g->rewrite_only_strat)) wr_cl_store_varside(g,cl,a,b,i,1);
         }
         if ((eqtermorder==2 || eqtermorder==3) && btype!=WG_VARTYPE) {
             //(btype==WG_RECORDTYPE || btype==WG_URITYPE || btype==WG_ANONCONSTTYPE)) {
           // ok to para from right
           if (!(g->rewrite_only_strat)) wr_cl_store_eq_arg(g,cl,b,btype,i,0);
+        } else if (eqtermorder==3 && btype==WG_VARTYPE) {
+          if (!(g->rewrite_only_strat)) wr_cl_store_varside(g,cl,b,a,i,0);
         }   
       }    
       // store equality as demodulator if everything ok
@@ -699,6 +704,69 @@ void wr_cl_store_unoriented_rewriter(glb* g, gptr cl, gint a, int atype, gint b,
 #else
   UNUSED(g); UNUSED(cl); UNUSED(a); UNUSED(atype); UNUSED(b); UNUSED(btype); UNUSED(litnr);
 #endif
+}
+
+/* a variable side of a positive equality literal of an active clause, for
+   paramodulation into the given clause: a variable unifies with every term,
+   so the side has no bucket of its own top symbol in hash_eq_terms; it goes
+   to the one bucket of hash_eq_varsides. Left out (counted) when the
+   variable occurs in another literal of the clause: the condition of
+   superposition from a variable in Vampire (checkSuperpositionFromVariable).
+   With the strategy negative_pref, Test/ordering/s1 and s4 end without a
+   proof by this condition; without it, equations like X = a | X = b
+   (frequent in the GEO and SEV problems) make millions of steps. */
+
+static int wr_varside_occurs(glb* g, gint var, gint t) {
+  void* db=g->db; gptr tp; int i, start, end;
+  if (t==var) return 1;
+  if (!isdatarec(t)) return 0;
+  tp=decode_record(db,t);
+  start=wr_term_unify_startpos(g); end=wr_term_unify_endpos(g,tp);
+  for(i=start;i<end;i++) if (wr_varside_occurs(g,var,tp[i])) return 1;
+  return 0;
+}
+
+/* 1 if the variable var occurs in a literal of cl other than the literal litnr */
+
+int wr_varside_in_other_lits(glb* g, gptr cl, int litnr, gint var) {
+  void* db=g->db; int i, n;
+  (void)db; // the clause macros do not use it
+  if (!wg_rec_is_rule_clause(db,cl)) return 0;
+  n=wg_count_clause_atoms(db,cl);
+  for(i=0;i<n;i++) {
+    if (i==litnr) continue;
+    if (wr_varside_occurs(g,var,wg_get_rule_clause_atom(db,cl,i))) return 1;
+  }
+  return 0;
+}
+
+void wr_cl_store_varside(glb* g, gptr cl, gint var, gint other, int litnr, int leftflag) {
+  vec hashvec;
+  // query_focus gives the ordering 3 to every equation: the real ordering decides
+  if (wr_order_eqterms(g,var,other,NULL)!=3) return;
+  if (wr_varside_in_other_lits(g,cl,litnr,var)) { (g->stat_varside_skip_lit)++; return; }
+  if (!(g->hash_eq_varsides)) {
+    gptr hv=wr_vec_new_zero(g,4);
+    if (!hv) return;
+    (g->hash_eq_varsides)=rpto(g,hv);
+  }
+  hashvec=rotp(g,g->hash_eq_varsides);
+  if (wr_clterm_add_hashlist_withpath(g,hashvec,1,var,cl,wr_encode_para_termpath(g,litnr,leftflag))) return;
+  (g->stat_varside_filed)++;
+}
+
+/* the bucket number hash of hash_para_terms gets its first entry: note it, so
+   that a variable side of a given clause walks only the buckets with entries */
+
+void wr_para_bucket_note(glb* g, gint hash) {
+  cvec v;
+  if (!(g->para_terms_buckets)) {
+    v=wr_cvec_new(g,1024);
+    if (!v) return;
+    (g->para_terms_buckets)=rpto(g,v);
+  }
+  v=wr_cvec_push(g,rotp(g,g->para_terms_buckets),hash);
+  if (v) (g->para_terms_buckets)=rpto(g,v);
 }
 
 int wr_cl_store_eq_arg(glb* g, gptr cl, gint term, int termtype, int litnr, int leftflag) {    
@@ -867,6 +935,7 @@ int wr_cl_store_para_subterms(glb* g, gptr cl, gint term, int depth, int litnr, 
     (int)hash,litnr,origtermpath);
 #endif      
   hashvec=rotp(g,g->hash_para_terms);  
+  if (hash>0 && hash<VEC_LEN(hashvec) && !hashvec[hash]) wr_para_bucket_note(g,hash);
   path=wr_encode_para_termpath(g,litnr,origtermpath);
   tmp=wr_clterm_add_hashlist_withpath(g,hashvec,hash,term,cl,path);
 #ifdef XDEBUG 
