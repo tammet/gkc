@@ -284,6 +284,7 @@ static int wr_dmi_accept(glb* g, gint node) {
    the cells of the tree); the walk has already refused a renaming */
 
 static gint dmu_query=0;
+#define WR_DMU_ON(g) ((g)->dmu_index && (g)->dmu_index!=(void*)1)
 
 static int wr_dmu_accept(glb* g, gint node) {
   if (!wr_dmi_accept(g,node)) return 0;
@@ -597,6 +598,13 @@ static gint wr_demod_norm_pos(glb* g, ti_index* d, int32_t base, int32_t i, int 
   // no element changed: a walk over the slice of the subterm
   hit=ti_match_best_ext(g,d,nt_syms+base,nt_skip+base,nt_terms+base,i,nt_skip[base+i],
                         wr_dmi_accept,guardtop,&payload,&aux,&nv,&vals);
+  if (!hit && WR_DMU_ON(g)) {
+    // demod_unoriented: the sides of unorientable equations, on the same arrays
+    dmu_query=t;
+    hit=ti_match_best_ext(g,(ti_index*)(g->dmu_index),nt_syms+base,nt_skip+base,nt_terms+base,i,
+                          nt_skip[base+i],wr_dmu_accept,1,&payload,&aux,&nv,&vals);
+    dmu_query=0;
+  }
   if (!hit) return t;
   if (guardtop) (g->rewrite_guard)=1;
   res=wr_rewrite_term(g,t); // the rewrite at this position (its lookup finds the same demodulator)
@@ -658,7 +666,6 @@ static void nc_report(void) { fprintf(stderr,"DEMOD_NORM_CHECK literals %ld diff
 __attribute__((constructor)) static void nc_init(void) { atexit(nc_report); }
 #endif
 
-#define WR_DMU_ON(g) ((g)->dmu_index && (g)->dmu_index!=(void*)1)
 int wr_demod_derived(glb* g, gptr rptr, int rpos) {
   ti_index* d=(ti_index*)(g->dmi_index);
   gptr vs=g->varstack;
@@ -707,10 +714,10 @@ int wr_demod_derived(glb* g, gptr rptr, int rpos) {
       if (nw!=WG_ILLEGAL && newatom!=WG_ILLEGAL && !wr_equal_term(g,nw,newatom,1)) nc_diff++;
     }
 #else
-    if (WR_DMU_ON(g)) {
-      // demod_unoriented: the full rebuild, whose lookups at every subterm
-      // also try the unorientable equations (the one-pass form looks only
-      // in the tree of the oriented demodulators)
+    if (WR_DMU_ON(g) && (!d || d==(void*)1)) {
+      // demod_unoriented with no tree of oriented demodulators yet: the full
+      // rebuild, whose lookups at every subterm also try the unorientable
+      // equations (the one-pass form needs the oriented tree for its arrays)
       (g->demod_oldform)=1;
       newatom=(eqflag ? wr_demod_build_eq(g,atom) : wr_build_calc_term(g,atom));
       (g->demod_oldform)=0;
