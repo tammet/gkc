@@ -295,6 +295,10 @@ int wr_glb_init_simple(glb* g) {
   (g->stat_demod_parents_lost)=0;
   (g->stat_demod_neg_trivial)=0;
   (g->stat_demod_neg_trivial_unit)=0;
+  (g->stat_demod_lits_merged)=0;
+  (g->stat_demod_tautologies)=0;
+  (g->stat_demod_neg_removed)=0;
+  (g->stat_demod_empty)=0;
   (g->unit_cut_match)=0;
   (g->unit_subsume_match)=0;
   (g->unit_match_equal)=0;

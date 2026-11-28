@@ -853,6 +853,63 @@ int wr_demod_derived(glb* g, gptr rptr, int rpos) {
   return 0;
 }
 
+/* after the rewriting of a derived clause that changed it (demod_this_clause):
+   the tests that the build of the half-built clause makes before the
+   rewriting (wr_process_resolve_result_aux), made again on the rewritten
+   literals, with the same tests (wr_equal_term on the atoms,
+   litmeta_negpolarities on the signs): a literal equal to an earlier one of
+   the same sign is merged into it; a literal equal to an earlier one of the
+   other sign makes the clause a tautology, which is dropped (returns -1); and
+   a negative literal s!=s is false and is removed (the pick removes it as the
+   computed value true of s=s). The literals are compacted in rptr and *rpos is
+   their new count; 0 means the empty clause, which the caller handles as a
+   proof. Returns 0 otherwise. */
+
+int wr_demod_repair(glb* g, gptr rptr, int* rpos) {
+  void* db=g->db;
+  int i, j, k=0, n=*rpos, merged;
+  gint meta, atom;
+  gptr tp;
+  for(i=0;i<n;i++) {
+    meta=rptr[(i*LIT_WIDTH)+LIT_META_POS];
+    atom=rptr[(i*LIT_WIDTH)+LIT_ATOM_POS];
+    if (wg_atom_meta_is_neg(db,meta) && wr_equality_atom(g,atom)) {
+      tp=decode_record(db,atom);
+      if (wr_equal_term(g,tp[RECORD_HEADER_GINTS+(g->unify_funarg1pos)],
+                          tp[RECORD_HEADER_GINTS+(g->unify_funarg2pos)],1)) {
+        (g->stat_demod_neg_removed)++;
+        continue;
+      }
+    }
+    merged=0;
+    for(j=0;j<k;j++) {
+      if (wr_equal_term(g,atom,rptr[(j*LIT_WIDTH)+LIT_ATOM_POS],1)) {
+        if (!litmeta_negpolarities(meta,rptr[(j*LIT_WIDTH)+LIT_META_POS])) {
+          (g->stat_demod_lits_merged)++;
+          merged=1;
+          break;
+        } else {
+          (g->stat_demod_tautologies)++;
+          return -1;
+        }
+      }
+    }
+    if (merged) continue;
+    if (k!=i) {
+      rptr[(k*LIT_WIDTH)+LIT_META_POS]=meta;
+      rptr[(k*LIT_WIDTH)+LIT_ATOM_POS]=atom;
+    }
+    k++;
+  }
+  if (k!=n) {
+    (g->early_weight_known)=0;
+    (g->lithash_n)=0;
+  }
+  *rpos=k;
+  if (!k) (g->stat_demod_empty)++;
+  return 0;
+}
+
 /* add the demodulators of the rewriting of the derived clause after the
    cuts in cut_clvec, so that its derivation record lists them */
 

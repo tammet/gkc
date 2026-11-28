@@ -728,6 +728,10 @@ typedef struct glb {
   long stat_demod_parents_lost; // demod_derived: derivation records without their demodulators (no room in cut_clvec)
   long stat_demod_neg_trivial;  // demod_derived: rewritten derived clauses with a negative literal s!=s
   long stat_demod_neg_trivial_unit; // the same, as the only literal (an empty clause)
+  long stat_demod_lits_merged;  // demod_derived: literals that the rewriting made equal to an earlier one, merged
+  long stat_demod_tautologies;  // demod_derived: rewritten clauses dropped, a literal and its negation
+  long stat_demod_neg_removed;  // demod_derived: literals s!=s removed after the rewriting
+  long stat_demod_empty;        // demod_derived: rewritten clauses that became empty (a proof)
   int unit_cut_match;      // strategy key unit_cut_match: 1 a stored unit of the opposite sign that matches a literal cuts it
   int unit_subsume_match;  // strategy key unit_subsume_match: 1 a stored unit of the same sign that matches a literal subsumes the clause
   int unit_match_equal;    // strategy key unit_match_equal: 1 the unit trees accept only what the unit tables accept

@@ -2206,6 +2206,10 @@ void wr_show_stats(glb* g, int show_local_complex) {
     wr_printf("stat_demod_parents_lost:      %13ld\n",g->stat_demod_parents_lost);
     wr_printf("stat_demod_neg_trivial:       %13ld\n",g->stat_demod_neg_trivial);
     wr_printf("stat_demod_neg_trivial_unit:  %13ld\n",g->stat_demod_neg_trivial_unit);
+    wr_printf("stat_demod_lits_merged:       %13ld\n",g->stat_demod_lits_merged);
+    wr_printf("stat_demod_tautologies:       %13ld\n",g->stat_demod_tautologies);
+    wr_printf("stat_demod_neg_removed:       %13ld\n",g->stat_demod_neg_removed);
+    wr_printf("stat_demod_empty:             %13ld\n",g->stat_demod_empty);
 #ifdef USE_TERM_INDEX
     if ((g->dmi_index) && (g->dmi_index)!=(void*)1) {
       ti_stat st;

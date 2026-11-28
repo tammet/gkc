@@ -543,6 +543,15 @@ void wr_process_resolve_result
     (g->demod_this_clause)=0;
     if (!((g->hyperres_strat) && !wr_hyperres_satellite_tmpres(g,rptr,rpos)) &&
         wr_demod_derived(g,rptr,rpos)<0) return;
+    // the repair of the literals after the rewriting; an empty clause is a proof
+    if ((g->demod_this_clause) && wr_demod_repair(g,rptr,&rpos)<0) return;
+    if (rpos==0) {
+      wr_demod_add_rewriters(g,0); // the demodulators as parents
+      g->proof_found=1;
+      g->proof_history=wr_build_resolve_history(g,xcl_as_active,ycl,cutpos1,cutpos2,g->cut_clvec);
+      wr_register_answer(g,NULL,g->proof_history);
+      return;
+    }
   }
 #endif
 #if GKC_WEIGHT_DROP_PLACE==1
@@ -906,6 +915,15 @@ void wr_process_factor_result
     (g->demod_this_clause)=0;
     if (!((g->hyperres_strat) && !wr_hyperres_satellite_tmpres(g,rptr,rpos)) &&
         wr_demod_derived(g,rptr,rpos)<0) return;
+    // the repair of the literals after the rewriting; an empty clause is a proof
+    if ((g->demod_this_clause) && wr_demod_repair(g,rptr,&rpos)<0) return;
+    if (rpos==0) {
+      wr_demod_add_rewriters(g,0); // the demodulators as parents
+      g->proof_found=1;
+      g->proof_history=wr_build_factorial_history(g,xcl_as_active,x,y,g->cut_clvec);
+      wr_register_answer(g,NULL,g->proof_history);
+      return;
+    }
   }
 #endif
 #if GKC_WEIGHT_DROP_PLACE==1
@@ -1136,6 +1154,19 @@ void wr_process_paramodulate_result
     (g->demod_this_clause)=0;
     if (!((g->hyperres_strat) && !wr_hyperres_satellite_tmpres(g,rptr,rpos)) &&
         wr_demod_derived(g,rptr,rpos)<0) return;
+    // the repair of the literals after the rewriting; an empty clause is a proof
+    if ((g->demod_this_clause) && wr_demod_repair(g,rptr,&rpos)<0) return;
+    if (rpos==0) {
+      wr_demod_add_rewriters(g,0); // the demodulators as parents
+      g->proof_found=1;
+      if (fromflag) {
+        g->proof_history=wr_build_para_history(g,xcl_as_active,ycl,cutpos1,cutpos2,g->cut_clvec,path,leftflag,fromflag);
+      } else {
+        g->proof_history=wr_build_para_history(g,xcl,xcl_as_active,cutpos2,cutpos1,g->cut_clvec,path,leftflag,fromflag);
+      }
+      wr_register_answer(g,NULL,g->proof_history);
+      return;
+    }
   }
 #endif
 #if GKC_WEIGHT_DROP_PLACE==1

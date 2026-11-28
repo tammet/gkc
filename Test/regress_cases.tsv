@@ -162,3 +162,8 @@ num_arith_int_in	Test/numbers/arith_int_in_range.txt	proof	10
 # Test/demod/, rewriting with unorientable equations (strategy key demod_unoriented)
 demod_unoriented_comm	Test/demod/u1_commutative.p -strategytext '{"strategy":["unit"],"query_preference":0,"demod_unoriented":1}'	output:result: proof found;;stat_dmu_filed:                           2	10
 demod_unoriented_sym	Test/demod/u2_symmetric_three.p -strategytext '{"strategy":["unit"],"query_preference":0,"demod_unoriented":1}'	output:result: proof found;;stat_dmu_rewrites:                        6	10
+# Test/demod/, the repair after the rewriting of a derived clause
+demod_repair_merge	Test/demod/d1_merge.p -strategytext '{"strategy":["unit"],"query_preference":0}'	output:result: proof not found.;;stat_demod_lits_merged:                   1	10
+demod_repair_tautology	Test/demod/d2_tautology.p -strategytext '{"strategy":["unit"],"query_preference":0}'	output:result: proof not found.;;stat_demod_tautologies:                   1	10
+demod_repair_neg_trivial	Test/demod/d3_neg_trivial.p -strategytext '{"strategy":["unit"],"query_preference":0}'	output:result: proof not found.;;stat_demod_neg_removed:                   1	10
+demod_repair_neg_trivial_empty	Test/demod/d4_neg_trivial_empty.p -strategytext '{"strategy":["unit"],"query_preference":0}'	output:result: proof found;;stat_demod_empty:                         1	10
