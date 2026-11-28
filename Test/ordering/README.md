@@ -20,3 +20,10 @@ bindings with the comparison of the built instances, and monotony in the
 The test also prints one line `ORD_MANYVARS`: a term with more distinct
 variables than the counted variable lists of the ordering hold. Its result
 is printed and not checked by the regress case.
+
+The other files are minimal problems with equality. Each is unsatisfiable
+(the status comment: E and Vampire agree). The regress cases `ord_*` run the
+six that gkc proves. The seven with an equation that has a variable side,
+where the proof needs a step from that side (v1, v2, v3, v5, v6, v7, v10), end
+without a proof today: gkc never uses a variable side as the side that
+paramodulation starts from. They have no regress case yet.
