@@ -1,7 +1,8 @@
 % The self test of the term ordering wr_order_eqterms (strategy key
 % order_selftest). ord(A,B,R): the result R for A against B, worked out by
 % hand from the code: 1 A greater, 2 B greater, 3 neither (also for equal
-% terms). Every symbol and every variable weighs 10. ordnot3(A,B): a pair
+% terms), under both orderings of the key term_ordering; ordw and ordk hold
+% only under weight_lex and under KBO. Every symbol and every variable weighs 10. ordnot3(A,B): a pair
 % that the order of two symbols decides, so 1 or 2. term(T) and ctx(C,H) only
 % add terms and contexts to the property tests (see Reasoner/strat.c).
 %
@@ -37,9 +38,16 @@ cnf(c21, axiom, ord(f(a,a),g(g(a)),1)).
 % equal weights and lengths, decided by the symbols
 cnf(c22, axiom, ordnot3(f(a),g(a))).
 cnf(c23, axiom, ordnot3(f(a,b),f(b,a))).
-% equal weights, decided at a deeper argument: the argument with fewer fields
-% is smaller (not by weight, as KBO would)
-cnf(c24, axiom, ord(f(g(g(g(a))),a),f(h(a,a),g(a)),2)).
+% equal weights, decided at a deeper argument. The two orderings differ:
+% ordw(A,B,R) is the result under weight_lex, ordk(A,B,R) under KBO.
+% weight_lex: the argument with fewer fields is smaller (not by weight);
+% KBO: the first arguments are compared by KBO (weight 40 against 30)
+cnf(c24, axiom, ordw(f(g(g(g(a))),a),f(h(a,a),g(a)),2)).
+cnf(c24k, axiom, ordk(f(g(g(g(a))),a),f(h(a,a),g(a)),1)).
+% the same with a variable: KBO puts the left first argument above the right
+% one, but X occurs more often on the right, so KBO gives 3
+cnf(c24v, axiom, ordw(f(g(g(g(X))),X),f(h(X,X),g(X)),2)).
+cnf(c24vk, axiom, ordk(f(g(g(g(X))),X),f(h(X,X),g(X)),3)).
 cnf(c25, axiom, ord(k(g(g(a))),k(h(a,a)),2)).
 % equal weights, a variable met in the comparison
 cnf(c26, axiom, ord(f(X,a),f(Y,a),3)).

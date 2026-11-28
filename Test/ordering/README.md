@@ -5,9 +5,14 @@ gkc orders the two sides of an equation with `wr_order_eqterms`
 sides paramodulation uses.
 
 o1_cases.p is the input of the self test of the ordering (strategy key
-`order_selftest`, see Doc/strategy_reference.md). Each `ord(A,B,R)` clause
+`order_selftest`, see Doc/strategy_reference.md). The test runs under the
+ordering of the key `term_ordering`: the regress cases `order_cases` (KBO,
+the default) and `order_cases_weight_lex`. Under KBO the test also compares
+every pair with a second, direct implementation of the definition. Each `ord(A,B,R)` clause
 states the result for `A` against `B`, worked out by hand from the code:
-1 `A` greater, 2 `B` greater, 3 neither (also for equal terms). `ordnot3`
+1 `A` greater, 2 `B` greater, 3 neither (also for equal terms). `ordw` and
+`ordk` state a result that holds only under `weight_lex` and only under KBO
+(cases c24 and c24v). `ordnot3`
 states a pair that the order of two symbols decides; the order of two
 symbols is the order of their gints, which the input does not fix. The
 test then checks properties over all terms of the file and their

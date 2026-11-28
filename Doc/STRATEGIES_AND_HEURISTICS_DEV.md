@@ -173,28 +173,44 @@ under current varbank bindings `vb`) and returns:
 
 * `1` if `a > b` (orient left-to-right),
 * `2` if `b > a` (orient right-to-left),
-* `0` if incomparable (or equal).
+* `3` if neither is greater (not comparable, or equal).
 
-Implementation overview:
+The strategy key `term_ordering` selects the ordering
+(`Doc/strategy_reference.md`):
 
-1. Variable/occurs-in checks (`wr_order_eqterms_occurs_in`) handle subterm
-   containment when one side is a variable.
-2. Constant comparisons use `wr_order_eqterms_const_lex_smaller()`.
-3. Complex terms compute variable-aware weights via
-   `wr_order_eqterms_weight_vars()` (with `xcountedvarlist` /
-   `ycountedvarlist`), breaking ties via `wr_order_eqterms_lex_order()`.
+* `"kbo"` (the default): the Knuth-Bendix ordering, `wr_kbo_cmp`. At equal
+  weights and equal head symbols, the first pair of different arguments is
+  compared by KBO itself.
+* `"weight_lex"`: the ordering coded until 2026-11. At equal weights a
+  lexicographic order without weights decides (`wr_order_eqterms_lex_order`):
+  the record length, then the symbols, then the arguments by the same
+  lexicographic order. It is a simplification ordering, but not KBO.
 
-**Important developer caveats on `wr_order_eqterms`:**
+Both orderings share:
 
-* The current ordering is an ad-hoc weight + lexicographic heuristic rather
-  than a full Knuth-Bendix Ordering (KBO) or Lexicographic Path Ordering (LPO).
-  In particular, tie-breaking and variable-count handling do not satisfy full
-  simplification-ordering / stability-under-substitution invariants in all edge
-  cases.
-* Never assume `wr_order_eqterms(g, a, b, vb) != 0` guarantees termination of
-  rewriting on non-ground equalities without the existing variable-containment
-  guards, and do not assume completeness when combining aggressive equality
+1. Variable/occurs-in checks (`wr_order_eqterms_occurs_in`) for a variable
+   side: `X` is smaller than a term that contains it, else not comparable.
+2. The weights: 10 for a variable (`EQ_ORDER_VAR_WEIGHT`), and
+   `wr_order_eqterms_const_weight()` for a symbol or a constant (10 today).
+   `wr_order_eqterms_weight_vars()` sums them and counts the variables in
+   `xcountedvarlist` / `ycountedvarlist`; a term is greater only if it has
+   every variable of the other term at least as often. A list that is full
+   gives 3.
+3. The precedence: fewer fields is smaller, then the larger `gint` is the
+   smaller symbol (`wr_order_prec_cmp()` for KBO,
+   `wr_order_eqterms_const_lex_smaller()` for constants).
+
+The strategy key `order_selftest` tests the ordering on the cases of
+`Test/ordering/o1_cases.p`: stated results, the properties of a
+simplification ordering, and under KBO a second direct implementation of the
+definition as the reference.
+
+**Developer caveats on `wr_order_eqterms`:**
+
+* Do not assume completeness when combining aggressive equality
   restrictions (`prohibit_unordered_para`, `prohibit_deep_para`, `posunitpara`).
+* The `query_focus` strategy sets the result 3 for every equation in the
+  storing of paramodulation terms and in paramodulation from the given clause.
 
 ### Complete vs. Incomplete Strategy Flags
 

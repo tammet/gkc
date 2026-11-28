@@ -305,18 +305,33 @@ serves to compare the two. It needs `unit_cut_match` or
 `unit_subsume_match`. `0` or a missing key: a tree accepts every unit that
 matches, in both orders of an equality.
 
+### `term_ordering`
+
+The term ordering of the equations (`wr_order_eqterms`, Reasoner/strat.c). It
+decides which side of an equation rewrites and which sides paramodulation
+uses. `"kbo"` (the default, also when the key is absent): the Knuth-Bendix
+ordering. `"weight_lex"`: the ordering of gkc until 2026-11, the same weights
+and precedence, but at equal weights a lexicographic order without weights
+decides. Both give every symbol, constant and variable the weight 10; the
+precedence is the number of fields of a term, then the `gint` of the symbol
+(the larger `gint` is the smaller symbol). Another value is an error of the
+strategy.
+
 ### `order_selftest` (test only)
 
 `1`: gkc tests its term ordering (`wr_order_eqterms`, Reasoner/strat.c) on
 the input clauses and stops before the search. A unit clause `ord(A,B,R)`
 states the result `R` for `A` against `B` (1: `A` greater, 2: `B` greater, 3:
-neither); `ordnot3(A,B)` states a result 1 or 2. `term(T)` adds a term and
+neither); `ordw` and `ordk` state a result under `weight_lex` and under KBO
+only; `ordnot3(A,B)` states a result 1 or 2. `term(T)` adds a term and
 `ctx(C,H)` a context (the term `C` with the hole variable `H`). Over all
 these terms and their subterms the test checks antisymmetry, transitivity,
 the subterm property, totality on ground pairs, stability under bindings of
 one variable, the agreement of a comparison under bindings with the
-comparison of the built instances, and monotony in the contexts. One line
-`ORD_TEST ...` gives the counts; see Test/ordering/.
+comparison of the built instances, and monotony in the contexts. Under KBO
+it also compares every pair, with and without a binding, with a second
+direct implementation of the definition. The lines `ORD_TEST ...` and
+`ORD_ORDERING ...` give the counts; see Test/ordering/.
 
 ### `ti_selftest` (test only)
 

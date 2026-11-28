@@ -362,9 +362,11 @@ static int wr_dmu_accept(glb* g, gint node) {
   if (!wr_dmi_accept(g,node)) return 0;
   (g->stat_dmu_tests)++;
   rhs=ti_cur_aux((ti_index*)(g->dmu_index));
-  // a permutation equation: the lexicographic part decides (the same result
-  // as wr_order_eqterms, whose weights and variable counts are equal here)
-  if (wr_dmu_perm_has(g,node)) return wr_order_eqterms_lex(g,dmu_query,rhs,g->varbanks)==2;
+  // a permutation equation under weight_lex: the lexicographic part decides
+  // (the same result as wr_order_eqterms, whose weights and variable counts
+  // are equal here); under KBO the arguments are compared by KBO itself
+  if ((g->term_ordering)==TERM_ORDER_WEIGHT_LEX && wr_dmu_perm_has(g,node))
+    return wr_order_eqterms_lex(g,dmu_query,rhs,g->varbanks)==2;
   return wr_order_eqterms(g,dmu_query,rhs,g->varbanks)==1;
 }
 

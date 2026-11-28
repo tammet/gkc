@@ -92,6 +92,8 @@
 #define TREE_VARBANK 5
 
 #define NROF_WEIGHTQUEUE_ELS 200
+#define TERM_ORDER_WEIGHT_LEX 1 // the term ordering coded until 2026-11: weights, then a lexicographic order without weights
+#define TERM_ORDER_KBO 2        // the Knuth-Bendix ordering with the same weights and precedence
 #define NROF_CLTERM_HASHVEC_ELS       1000000 // was 1000000
 #define NROF_ACTIVE_UNIT_HASHVEC_ELS  1000000 // was 1000000
 #define NROF_CLTERM_HASHNODESVEC_ELS 10000000 // 10 M used if MALLOC_HASHNODES not set
@@ -717,6 +719,7 @@ typedef struct glb {
   gptr rewrite_self;       // a clause that wr_rewrite_term does not use as a demodulator, or NULL
   int ti_selftest;          // strategy key ti_selftest: 1 the self test of the term index on the input, then stop
   int order_selftest;       // strategy key order_selftest: 1 the self test of the term ordering on the input, then stop
+  int term_ordering;        // strategy key term_ordering: TERM_ORDER_KBO (default, "kbo") or TERM_ORDER_WEIGHT_LEX ("weight_lex")
   int stat_dmi_tree_stopped; // the tree of the demodulators stopped: 1 no memory or too many variables in an insert, 2 no memory in a lookup, 3 unify settings
   int demod_derived;       // strategy key demod_derived: 1 (default) a derived clause is rewritten with the demodulators before the cuts, 0 only the picked clause
   int demod_source;        // strategy key demod_source: 1 (absent) an equation becomes a demodulator when picked, 2 when kept

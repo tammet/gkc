@@ -69,6 +69,7 @@ static int wr_order_eqterms_const_weight(glb* g, gint a);
 static int wr_order_eqterms_weight_vars(glb* g, gint x, gptr vars, gptr vb);
 static int wr_order_eqterms_lex_order(glb* g, gint x, gint y, gptr vb);
 static int wr_order_eqterms_const_lex_smaller(glb* g, gint x, gint y);
+static int wr_order_eqterms_kbo(glb* g, gint a, gint b, gptr vb);
 
 /* ====== Functions ============== */
 
@@ -925,6 +926,8 @@ int wr_order_eqterms(glb* g, gint a, gint b, gptr vb) {
   dprintf("\n");
 #endif
 
+  if ((g->term_ordering)==TERM_ORDER_KBO) return wr_order_eqterms_kbo(g,a,b,vb);
+
   if (isvar(a) && vb!=NULL) a=VARVAL_F(a,vb);
   if (isvar(b) && vb!=NULL) b=VARVAL_F(b,vb);
 
@@ -1038,6 +1041,97 @@ int wr_order_eqterms(glb* g, gint a, gint b, gptr vb) {
   #endif    
 
   return res;
+}
+
+/* ============== KBO (strategy key term_ordering "kbo") ==============
+
+   The Knuth-Bendix ordering: s > t when every variable occurs in s at least
+   as often as in t, and the weight of s is greater, or the weights are equal
+   and the head of s is greater in the precedence, or the heads are equal and
+   at the first pair of different arguments the argument of s is greater
+   (by KBO itself). The weights are the ones of weight_lex: a variable
+   EQ_ORDER_VAR_WEIGHT, a symbol or a constant wr_order_eqterms_const_weight.
+   The precedence is wr_order_prec_cmp. So the two orderings differ only in
+   the step at equal weights. A simple form: the weights and the variables of
+   the arguments are counted again at each level of the comparison. */
+
+/* the precedence of two heads, a symbol (or a constant) x with a record of
+   len fields and y with ylen fields (0 for a constant): fewer fields is
+   smaller, then the larger gint is the smaller symbol. 1: x greater, 2: y
+   greater, 0: equal. The one place of the precedence of KBO. */
+
+static int wr_order_prec_cmp(glb* g, gint x, int xlen, gint y, int ylen) {
+  if (xlen<ylen) return 2;
+  if (ylen<xlen) return 1;
+  if (x==y) return 0;
+  if (wr_order_eqterms_const_lex_smaller(g,x,y)) return 2;
+  return 1;
+}
+
+/* 0: equal, 1: a greater, 2: b greater, 3: not comparable */
+
+static int wr_kbo_cmp(glb* g, gint a, gint b, gptr vb) {
+  void* db=g->db;
+  gptr aptr, bptr;
+  gint tmp; // for VARVAL_F
+  int aw, bw, asub, bsub, alen, blen, c, i, start, end;
+  if (isvar(a) && vb!=NULL) a=VARVAL_F(a,vb);
+  if (isvar(b) && vb!=NULL) b=VARVAL_F(b,vb);
+  if (a==b) return 0;
+  if (isvar(a)) {
+    if (isdatarec(b) && wr_order_eqterms_occurs_in(g,a,b,vb)) return 2;
+    return 3;
+  }
+  if (isvar(b)) {
+    if (isdatarec(a) && wr_order_eqterms_occurs_in(g,b,a,vb)) return 1;
+    return 3;
+  }
+  if (!isdatarec(a) && !isdatarec(b)) {
+    // two constants: the weights, then the precedence
+    aw=wr_order_eqterms_const_weight(g,a); bw=wr_order_eqterms_const_weight(g,b);
+    if (aw>bw) return 1;
+    if (bw>aw) return 2;
+    return wr_order_prec_cmp(g,a,0,b,0);
+  }
+  wr_clear_countedvarlist(g,(g->xcountedvarlist));
+  aw=wr_order_eqterms_weight_vars(g,a,(g->xcountedvarlist),vb);
+  wr_clear_countedvarlist(g,(g->ycountedvarlist));
+  bw=wr_order_eqterms_weight_vars(g,b,(g->ycountedvarlist),vb);
+  // a full list misses variables, so the variable condition cannot be tested
+  if ((g->xcountedvarlist)[3] || (g->ycountedvarlist)[3]) return 3;
+  // the variable conditions, before the comparison of the arguments reuses the lists
+  bsub=wr_countedvarlist_is_subset(g,(g->ycountedvarlist),(g->xcountedvarlist)); // needed for a > b
+  asub=wr_countedvarlist_is_subset(g,(g->xcountedvarlist),(g->ycountedvarlist)); // needed for b > a
+  if (aw>bw) return (bsub ? 1 : 3);
+  if (bw>aw) return (asub ? 2 : 3);
+  // equal weights: a constant against a compound term cannot occur with
+  // weights of at least EQ_ORDER_VAR_WEIGHT, but the precedence decides it
+  if (!isdatarec(a)) return (asub ? 2 : 3);
+  if (!isdatarec(b)) return (bsub ? 1 : 3);
+  aptr=decode_record(db,a); bptr=decode_record(db,b);
+  alen=get_record_len(aptr); blen=get_record_len(bptr);
+  c=wr_order_prec_cmp(g,aptr[RECORD_HEADER_GINTS+(g->unify_funpos)],alen,
+                        bptr[RECORD_HEADER_GINTS+(g->unify_funpos)],blen);
+  if (c==1) return (bsub ? 1 : 3);
+  if (c==2) return (asub ? 2 : 3);
+  // equal heads: the first pair of different arguments
+  start=wr_term_unify_startpos(g); end=wr_term_unify_endpos(g,aptr);
+  for(i=start;i<end;i++) {
+    if (i==RECORD_HEADER_GINTS+(g->unify_funpos)) continue;
+    c=wr_kbo_cmp(g,aptr[i],bptr[i],vb);
+    if (c==0) continue;
+    if (c==1) return (bsub ? 1 : 3);
+    if (c==2) return (asub ? 2 : 3);
+    return 3;
+  }
+  return 0;
+}
+
+/* KBO with the results of wr_order_eqterms: 1 a greater, 2 b greater, 3 neither (also equal) */
+
+static int wr_order_eqterms_kbo(glb* g, gint a, gint b, gptr vb) {
+  int c=wr_kbo_cmp(g,a,b,vb);
+  return (c==0 ? 3 : c);
 }
 
 static int wr_order_eqterms_const_weight(glb* g, gint a) {
@@ -1557,6 +1651,94 @@ static int ot_proper_subterm(glb* g, gint s, gint t) {
   return 0;
 }
 
+/* the reference of the self test under KBO: the definition written directly,
+   with its own walks and an unbounded count of the variables. The weights
+   and the precedence come from the same two functions as in wr_kbo_cmp. */
+
+static gint okr_deref(glb* g, gint t, gptr vb) {
+  gint tmp;
+  if (isvar(t) && vb!=NULL) t=VARVAL_F(t,vb);
+  return t;
+}
+
+static long okr_weight(glb* g, gint t, gptr vb) {
+  gptr tp; int i, start, end; long w=0;
+  t=okr_deref(g,t,vb);
+  if (isvar(t)) return EQ_ORDER_VAR_WEIGHT;
+  if (!isdatarec(t)) return wr_order_eqterms_const_weight(g,t);
+  tp=decode_record(g->db,t);
+  start=wr_term_unify_startpos(g); end=wr_term_unify_endpos(g,tp);
+  for(i=start;i<end;i++) w+=okr_weight(g,tp[i],vb); // the symbol and the arguments
+  return w;
+}
+
+static long okr_count(glb* g, gint v, gint t, gptr vb) {
+  gptr tp; int i, start, end; long n=0;
+  t=okr_deref(g,t,vb);
+  if (t==v) return 1;
+  if (!isdatarec(t)) return 0;
+  tp=decode_record(g->db,t);
+  start=wr_term_unify_startpos(g); end=wr_term_unify_endpos(g,tp);
+  for(i=start;i<end;i++) n+=okr_count(g,v,tp[i],vb);
+  return n;
+}
+
+/* every variable of t occurs in s at least as often */
+static int okr_varcond(glb* g, gint s, gint t, gint whole, gptr vb) {
+  gptr tp; int i, start, end;
+  t=okr_deref(g,t,vb);
+  if (isvar(t)) return okr_count(g,t,s,vb)>=okr_count(g,t,whole,vb);
+  if (!isdatarec(t)) return 1;
+  tp=decode_record(g->db,t);
+  start=wr_term_unify_startpos(g); end=wr_term_unify_endpos(g,tp);
+  for(i=start;i<end;i++) if (!okr_varcond(g,s,tp[i],whole,vb)) return 0;
+  return 1;
+}
+
+static int okr_equal(glb* g, gint s, gint t, gptr vb) {
+  gptr sp, tp; int i, start, end;
+  s=okr_deref(g,s,vb); t=okr_deref(g,t,vb);
+  if (s==t) return 1;
+  if (!isdatarec(s) || !isdatarec(t)) return 0;
+  sp=decode_record(g->db,s); tp=decode_record(g->db,t);
+  if (get_record_len(sp)!=get_record_len(tp)) return 0;
+  start=wr_term_unify_startpos(g); end=wr_term_unify_endpos(g,sp);
+  for(i=start;i<end;i++) if (!okr_equal(g,sp[i],tp[i],vb)) return 0;
+  return 1;
+}
+
+/* s >kbo t */
+static int okr_gt(glb* g, gint s, gint t, gptr vb) {
+  gptr sp, tp; int i, start, end, c; long ws, wt; gint shead, thead; int slen, tlen;
+  s=okr_deref(g,s,vb); t=okr_deref(g,t,vb);
+  if (isvar(s)) return 0;
+  if (isvar(t)) return okr_count(g,t,s,vb)>0 && !okr_equal(g,s,t,vb);
+  if (!okr_varcond(g,s,t,t,vb)) return 0;
+  ws=okr_weight(g,s,vb); wt=okr_weight(g,t,vb);
+  if (ws>wt) return 1;
+  if (ws<wt) return 0;
+  sp=(isdatarec(s) ? decode_record(g->db,s) : NULL); tp=(isdatarec(t) ? decode_record(g->db,t) : NULL);
+  shead=(sp ? sp[RECORD_HEADER_GINTS+(g->unify_funpos)] : s); slen=(sp ? get_record_len(sp) : 0);
+  thead=(tp ? tp[RECORD_HEADER_GINTS+(g->unify_funpos)] : t); tlen=(tp ? get_record_len(tp) : 0);
+  c=wr_order_prec_cmp(g,shead,slen,thead,tlen);
+  if (c==1) return 1;
+  if (c==2) return 0;
+  if (!sp) return 0; // the same constant
+  start=wr_term_unify_startpos(g); end=wr_term_unify_endpos(g,sp);
+  for(i=start;i<end;i++) {
+    if (i==RECORD_HEADER_GINTS+(g->unify_funpos)) continue;
+    if (okr_equal(g,sp[i],tp[i],vb)) continue;
+    return okr_gt(g,sp[i],tp[i],vb);
+  }
+  return 0;
+}
+
+static int okr_cmp(glb* g, gint s, gint t, gptr vb) {
+  if (okr_gt(g,s,t,vb)) return 1;
+  if (okr_gt(g,t,s,vb)) return 2;
+  return 3;
+}
+
 void wr_order_selftest(glb* g) {
   void* db=g->db;
   gint cell, atom, a, b, r, sym;
@@ -1565,7 +1747,8 @@ void wr_order_selftest(glb* g) {
   int i, j, k, cases=0, wrong=0, res, res2;
   gint ctxc[64], ctxh[64]; int nctx=0;
   long anti_n=0, anti_f=0, refl_n=0, refl_f=0, tr_n=0, tr_f=0, sub_n=0, sub_f=0, gt_n=0, gt_f=0;
-  long st_n=0, st_f=0, ag_n=0, ag_f=0, mo_n=0, mo_f=0;
+  long st_n=0, st_f=0, ag_n=0, ag_f=0, mo_n=0, mo_f=0, kr_n=0, kr_f=0, krb_n=0, krb_f=0;
+  int kbo=((g->term_ordering)==TERM_ORDER_KBO);
   static int ord[OT_MAXT][OT_MAXT];
   gint vs[64]; int nv=0, ng=0; gint gr[24];
   char* str;
@@ -1585,7 +1768,10 @@ void wr_order_selftest(glb* g) {
     sym=ap[RECORD_HEADER_GINTS+(g->unify_funpos)];
     if (wg_get_encoded_type(db,sym)!=WG_URITYPE) continue;
     str=wg_decode_uri(db,sym);
-    if (!strcmp(str,"ord") && get_record_len(ap)==(g->unify_funpos)+4) {
+    if ((!strcmp(str,"ord") ||
+         (!strcmp(str,"ordw") && (g->term_ordering)==TERM_ORDER_WEIGHT_LEX) ||
+         (!strcmp(str,"ordk") && (g->term_ordering)==TERM_ORDER_KBO)) &&
+        get_record_len(ap)==(g->unify_funpos)+4) {
       a=ap[RECORD_HEADER_GINTS+(g->unify_funpos)+1];
       b=ap[RECORD_HEADER_GINTS+(g->unify_funpos)+2];
       r=ap[RECORD_HEADER_GINTS+(g->unify_funpos)+3];
@@ -1597,6 +1783,9 @@ void wr_order_selftest(glb* g) {
         wr_printf(" gives %d, expected ",res); wr_print_term(g,r); wr_printf("\n");
       }
       ot_add(g,a); ot_add(g,b);
+    } else if ((!strcmp(str,"ordw") || !strcmp(str,"ordk")) && get_record_len(ap)==(g->unify_funpos)+4) {
+      // a case of the other ordering: its terms only
+      ot_add(g,ap[RECORD_HEADER_GINTS+(g->unify_funpos)+1]); ot_add(g,ap[RECORD_HEADER_GINTS+(g->unify_funpos)+2]);
     } else if (!strcmp(str,"ordnot3") && get_record_len(ap)==(g->unify_funpos)+3) {
       // a pair decided by the order of two symbols (their gints): 1 or 2, not 3
       a=ap[RECORD_HEADER_GINTS+(g->unify_funpos)+1];
@@ -1619,6 +1808,12 @@ void wr_order_selftest(glb* g) {
   }
   // the table of all pairs
   for(i=0;i<ot_n;i++) for(j=0;j<ot_n;j++) ord[i][j]=wr_order_eqterms(g,ot_t[i],ot_t[j],NULL);
+  // KBO: the production function against the reference on all pairs
+  if (kbo) for(i=0;i<ot_n;i++) for(j=0;j<ot_n;j++) {
+    kr_n++;
+    res=okr_cmp(g,ot_t[i],ot_t[j],NULL);
+    if (res!=ord[i][j]) { kr_f++; ot_show(g,"kbo reference",ot_t[i],ot_t[j],ord[i][j],res); }
+  }
   for(i=0;i<ot_n;i++) {
     refl_n++;
     if (ord[i][i]!=3) { refl_f++; ot_show(g,"reflexive",ot_t[i],ot_t[i],ord[i][i],3); }
@@ -1664,6 +1859,12 @@ void wr_order_selftest(glb* g) {
         // the same comparison under a binding of the variable
         SETVAR(vs[k],gr[q],g->varbanks,g->varstack,vc);
         res=wr_order_eqterms(g,ot_t[i],ot_t[j],g->varbanks);
+        if (kbo) {
+          krb_n++;
+          res2=okr_cmp(g,ot_t[i],ot_t[j],g->varbanks);
+          if (res2!=res) { krb_f++; ot_show(g,"kbo reference with a binding",ot_t[i],ot_t[j],res,res2); }
+          res2=wr_order_eqterms(g,ai,bj,NULL);
+        }
         wr_clear_varstack(g,g->varstack);
         ag_n++;
         if (res!=res2) { ag_f++; ot_show(g,"binding against instance",ai,bj,res,res2); }
@@ -1712,6 +1913,9 @@ void wr_order_selftest(glb* g) {
             tr_n,tr_f,sub_n,sub_f,gt_n,gt_f);
   wr_printf(" stability %ld failures %ld; binding against instance %ld failures %ld; monotony %ld failures %ld\n",
             st_n,st_f,ag_n,ag_f,mo_n,mo_f);
+  wr_printf("ORD_ORDERING %s",(kbo ? "kbo" : "weight_lex"));
+  if (kbo) wr_printf("; kbo reference %ld failures %ld; kbo reference with a binding %ld failures %ld",kr_n,kr_f,krb_n,krb_f);
+  wr_printf("\n");
 }
 
 /*

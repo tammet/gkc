@@ -305,6 +305,18 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr, int s
       // 1: the unit trees accept only what the unit tables accept (an equal
       // atom, or a variant with unit_variant_hash): the same search as the tables
       (g->unit_match_equal)=(json_valueint(elem) ? 1 : 0);
+    } else if (!strcmp(key,"term_ordering")) {
+      // the term ordering of the equations (wr_order_eqterms): "kbo" (the
+      // default, also when the key is absent) or "weight_lex" (the ordering
+      // coded until 2026-11); another value is an error of the strategy
+      if (json_isstring(elem) && json_valuestring(elem) && !strcmp(json_valuestring(elem),"kbo")) {
+        (g->term_ordering)=TERM_ORDER_KBO;
+      } else if (json_isstring(elem) && json_valuestring(elem) && !strcmp(json_valuestring(elem),"weight_lex")) {
+        (g->term_ordering)=TERM_ORDER_WEIGHT_LEX;
+      } else {
+        wr_errprint("unknown value of term_ordering in the strategy: use kbo or weight_lex");
+        return -1;
+      }
     } else if (!strcmp(key,"order_selftest")) {
       // 1: the self test of the term ordering (wr_order_eqterms) on the input
       // clauses ord(A,B,R), term(T), ctx(C,H), then stop (Test/ordering/)
