@@ -261,7 +261,11 @@ also kept in a discrimination tree per sign, which finds what the tables
 miss. The unit is a parent of the derivation step. `0` or a missing key:
 only an equal literal (a variant with `unit_variant_hash`) is cut, as
 before. The picked clause and the units of an attached KB are not searched
-in the tree.
+in the tree. `2`: the tree in place of the local unit tables, for the
+derived clauses and at the pick: every stored unit that matches a literal
+cuts it, found by the tree alone. The tables of an attached KB are still
+asked, and when a tree has failed (no memory), only the local tables
+answer, as with `0`.
 
 ### `unit_subsume_match` (experimental)
 
