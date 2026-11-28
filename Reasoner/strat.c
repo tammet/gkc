@@ -1060,7 +1060,185 @@ int wr_order_eqterms(glb* g, gint a, gint b, gptr vb) {
    smaller, then the larger gint is the smaller symbol. 1: x greater, 2: y
    greater, 0: equal. The one place of the precedence of KBO. */
 
+/* ===== the weights and the precedence of the symbols for KBO (keys kbo_weights, kbo_precedence) =====
+
+   With "invfreqrank" or "invfreq"/"invfreqconstmin" the table g->kbo_symtab
+   gives each URI symbol of the local database its weight and its place in
+   the precedence, indexed by its id (LONGSTR_ID_POS, a dense counter of the
+   database): read without a search. wr_kbo_scheme_init builds it at the start
+   of a run from one walk of the input clauses: the occurrences of each
+   symbol (as E counts them: every occurrence in every literal, predicates
+   included), its largest arity, and the rank of its first occurrence (in
+   postorder, as E's ClauseComputeFunctionRanks). The schemes follow E
+   (che_to_weightgen.c, che_to_precgen.c):
+   * invfreqrank: the symbols with the most occurrences weigh 1, each next
+     smaller number of occurrences one more; a constant weighs 1 (E's
+     to_const_weight 1 or 0, the values of the 213 definitions of E with
+     KBO6, invfreqrank and invfreq); a variable weighs 1. Times
+     EQ_ORDER_VAR_WEIGHT, so the variable weight stays 10.
+   * invfreq: sorted by the occurrences (more is smaller), then the arity
+     (smaller is smaller), then the first occurrence (earlier is smaller).
+   * invfreqconstmin: the constants below all other symbols (among them
+     fewer occurrences is smaller), the other symbols as invfreq.
+   A symbol that is not a URI (a small integer, a built-in anonymous
+   constant) weighs EQ_ORDER_VAR_WEIGHT and is below every URI symbol in the
+   precedence, ordered among them as fields_gint. A URI symbol created after
+   the build (an id beyond the table) does not occur in the input: it gets
+   the weight of the least frequent class and a place above the table. */
+
+typedef struct { long weight; long prec; } kbo_symcell;
+
+static long* kbo_sort_freq; static long* kbo_sort_arity; static long* kbo_sort_rank; static int kbo_sort_constmin;
+
+static int kbo_prec_qcmp(const void* x, const void* y) {
+  long i=*(const long*)x, j=*(const long*)y, a, b;
+  if (kbo_sort_constmin) {
+    a=(kbo_sort_arity[i]==0); b=(kbo_sort_arity[j]==0);
+    if (a!=b) return (a ? -1 : 1); // the constants first (smallest)
+    if (a) { // two constants: fewer occurrences is smaller
+      if (kbo_sort_freq[i]!=kbo_sort_freq[j]) return (kbo_sort_freq[i]<kbo_sort_freq[j] ? -1 : 1);
+      return (kbo_sort_rank[i]<kbo_sort_rank[j] ? -1 : (kbo_sort_rank[i]>kbo_sort_rank[j]));
+    }
+  }
+  if (kbo_sort_freq[i]!=kbo_sort_freq[j]) return (kbo_sort_freq[i]>kbo_sort_freq[j] ? -1 : 1); // more is smaller
+  if (kbo_sort_arity[i]!=kbo_sort_arity[j]) return (kbo_sort_arity[i]<kbo_sort_arity[j] ? -1 : 1);
+  return (kbo_sort_rank[i]<kbo_sort_rank[j] ? -1 : (kbo_sort_rank[i]>kbo_sort_rank[j]));
+}
+
+static void kbo_count_term(glb* g, gint t, long n, long* freq, long* arity, long* rank, long* nextrank) {
+  void* db=g->db; gptr tp; int i, start, end; gint fun; long id, k;
+  if (isvar(t)) return;
+  if (!isdatarec(t)) {
+    if (wg_get_encoded_type(db,t)!=WG_URITYPE) return;
+    id=wg_decode_uri_id(db,t);
+    if (id<0 || id>=n) return;
+    freq[id]++;
+    if (!rank[id]) rank[id]=(*nextrank)++;
+    return;
+  }
+  tp=decode_record(db,t);
+  start=wr_term_unify_startpos(g); end=wr_term_unify_endpos(g,tp);
+  for(i=start;i<end;i++) if (i!=RECORD_HEADER_GINTS+(g->unify_funpos)) kbo_count_term(g,tp[i],n,freq,arity,rank,nextrank);
+  fun=tp[RECORD_HEADER_GINTS+(g->unify_funpos)];
+  if (isdatarec(fun) || wg_get_encoded_type(db,fun)!=WG_URITYPE) return;
+  id=wg_decode_uri_id(db,fun);
+  if (id<0 || id>=n) return;
+  freq[id]++;
+  k=end-start-1; // the number of arguments
+  if (k>arity[id]) arity[id]=k;
+  if (!rank[id]) rank[id]=(*nextrank)++;
+}
+
+/* builds g->kbo_symtab for the keys kbo_weights and kbo_precedence; with an
+   attached KB the keys are refused (the ids of the KB come from another
+   counter) and the default scheme of KBO is used. 0: ok or not needed. */
+
+int wr_kbo_scheme_init(glb* g, int haskb) {
+  void* db=g->db;
+  long n, i, k, m, nextrank=1, cls, lastfreq, *freq, *arity, *rank, *idx;
+  gint cell, atom; gcell* cellptr; gptr rec; int j, len;
+  kbo_symcell* tab;
+  if (g->kbo_symtab) { wr_free(g,g->kbo_symtab); (g->kbo_symtab)=NULL; (g->kbo_symtab_n)=0; }
+  if ((g->term_ordering)!=TERM_ORDER_KBO) return 0;
+  if ((g->kbo_weights)==KBO_WEIGHTS_EQUAL && (g->kbo_precedence)==KBO_PREC_FIELDS_GINT) return 0;
+  if (haskb) {
+    if (g->print_flag) wr_printf("\nkbo_weights and kbo_precedence are not used with an attached KB: KBO with equal weights and the precedence fields_gint\n");
+    (g->kbo_weights)=KBO_WEIGHTS_EQUAL; (g->kbo_precedence)=KBO_PREC_FIELDS_GINT;
+    return 0;
+  }
+  n=dbmemsegh(db)->longstr_count;
+  if (n<=0) return 0;
+  freq=wr_calloc(g,4*n,sizeof(long));
+  tab=wr_malloc(g,n*sizeof(kbo_symcell));
+  if (!freq || !tab) {
+    if (freq) wr_free(g,freq);
+    if (tab) wr_free(g,tab);
+    (g->kbo_weights)=KBO_WEIGHTS_EQUAL; (g->kbo_precedence)=KBO_PREC_FIELDS_GINT;
+    return 0;
+  }
+  arity=freq+n; rank=freq+2*n; idx=freq+3*n;
+  for(cell=(dbmemsegh(db)->clauselist); cell; cell=cellptr->cdr) {
+    cellptr=(gcell*)offsettoptr(db,cell);
+    rec=offsettoptr(db,cellptr->car);
+    if (wg_rec_is_rule_clause(db,rec)) {
+      len=wg_count_clause_atoms(db,rec);
+      for(j=0;j<len;j++) {
+        atom=wg_get_rule_clause_atom(db,rec,j);
+        kbo_count_term(g,atom,n,freq,arity,rank,&nextrank);
+      }
+    } else {
+      kbo_count_term(g,encode_record(db,rec),n,freq,arity,rank,&nextrank);
+    }
+  }
+  // the precedence: the symbols that occur, sorted; the place is the precedence (larger is greater)
+  for(i=0,m=0;i<n;i++) if (freq[i]>0) idx[m++]=i;
+  kbo_sort_freq=freq; kbo_sort_arity=arity; kbo_sort_rank=rank;
+  kbo_sort_constmin=((g->kbo_precedence)==KBO_PREC_INVFREQCONSTMIN);
+  qsort(idx,m,sizeof(long),kbo_prec_qcmp);
+  for(i=0;i<n;i++) { tab[i].prec=m+1+i; tab[i].weight=EQ_ORDER_VAR_WEIGHT; } // a symbol that does not occur
+  for(k=0;k<m;k++) tab[idx[k]].prec=k+1;
+  // the weights: the classes of the occurrences, from the most frequent (1) on
+  if ((g->kbo_weights)==KBO_WEIGHTS_INVFREQRANK) {
+    // sort by the occurrences, more first (the order of invfreq without the constants rule)
+    kbo_sort_constmin=0;
+    qsort(idx,m,sizeof(long),kbo_prec_qcmp);
+    cls=0; lastfreq=-1;
+    for(k=0;k<m;k++) {
+      if (freq[idx[k]]!=lastfreq) { cls++; lastfreq=freq[idx[k]]; }
+      tab[idx[k]].weight=(arity[idx[k]]==0 ? 1 : cls)*EQ_ORDER_VAR_WEIGHT;
+    }
+    (g->kbo_unseen_weight)=(cls+1)*EQ_ORDER_VAR_WEIGHT;
+    for(i=0;i<n;i++) if (freq[i]==0) tab[i].weight=(g->kbo_unseen_weight);
+  } else {
+    (g->kbo_unseen_weight)=EQ_ORDER_VAR_WEIGHT;
+  }
+  wr_free(g,freq);
+  (g->kbo_symtab)=tab; (g->kbo_symtab_n)=n;
+  // admissibility: no symbol of weight 0 and no constant lighter than a variable
+  for(i=0;i<n;i++) {
+    if (tab[i].weight<EQ_ORDER_VAR_WEIGHT) {
+      wr_errprint("kbo_weights: a weight below the variable weight; the equal weights are used");
+      wr_free(g,g->kbo_symtab); (g->kbo_symtab)=NULL; (g->kbo_symtab_n)=0;
+      (g->kbo_weights)=KBO_WEIGHTS_EQUAL; (g->kbo_precedence)=KBO_PREC_FIELDS_GINT;
+      return 1;
+    }
+  }
+  return 0;
+}
+
+/* the weight of a symbol or a constant under the scheme of kbo_weights */
+
+static long wr_kbo_sym_weight(glb* g, gint a) {
+  long id;
+  if (!(g->kbo_symtab) || (g->kbo_weights)!=KBO_WEIGHTS_INVFREQRANK) return EQ_ORDER_VAR_WEIGHT;
+  if (isdatarec(a) || wg_get_encoded_type(g->db,a)!=WG_URITYPE) return EQ_ORDER_VAR_WEIGHT;
+  id=wg_decode_uri_id(g->db,a);
+  if (id>=0 && id<(g->kbo_symtab_n)) return ((kbo_symcell*)(g->kbo_symtab))[id].weight;
+  return (g->kbo_unseen_weight);
+}
+
+/* the place of a URI symbol in the precedence of kbo_precedence; 0 for a symbol that is not a URI */
+
+static long wr_kbo_sym_prec(glb* g, gint a) {
+  long id;
+  if (isdatarec(a) || wg_get_encoded_type(g->db,a)!=WG_URITYPE) return 0;
+  id=wg_decode_uri_id(g->db,a);
+  if (id>=0 && id<(g->kbo_symtab_n)) return ((kbo_symcell*)(g->kbo_symtab))[id].prec;
+  return (g->kbo_symtab_n)+1+id;
+}
+
 static int wr_order_prec_cmp(glb* g, gint x, int xlen, gint y, int ylen) {
+  long px, py;
+  if ((g->kbo_symtab) && (g->kbo_precedence)!=KBO_PREC_FIELDS_GINT && (g->term_ordering)==TERM_ORDER_KBO) {
+    px=wr_kbo_sym_prec(g,x); py=wr_kbo_sym_prec(g,y);
+    if (px!=py) return (px>py ? 1 : 2);
+    if (px!=0) { // the same URI symbol: the number of fields
+      if (xlen<ylen) return 2;
+      if (ylen<xlen) return 1;
+      return 0;
+    }
+    // two symbols that are not URIs: as fields_gint
+  }
   if (xlen<ylen) return 2;
   if (ylen<xlen) return 1;
   if (x==y) return 0;
@@ -1135,6 +1313,8 @@ static int wr_order_eqterms_kbo(glb* g, gint a, gint b, gptr vb) {
 }
 
 static int wr_order_eqterms_const_weight(glb* g, gint a) {
+  // the weights of the key kbo_weights (KBO only; weight_lex keeps 10)
+  if ((g->kbo_symtab) && (g->term_ordering)==TERM_ORDER_KBO) return (int)wr_kbo_sym_weight(g,a);
 #ifdef KB_WEIGHTS_ORDER
   void* db=g->db;
   gint dtypex=wg_get_encoded_type(db,a);
@@ -1768,9 +1948,11 @@ void wr_order_selftest(glb* g) {
     sym=ap[RECORD_HEADER_GINTS+(g->unify_funpos)];
     if (wg_get_encoded_type(db,sym)!=WG_URITYPE) continue;
     str=wg_decode_uri(db,sym);
-    if ((!strcmp(str,"ord") ||
-         (!strcmp(str,"ordw") && (g->term_ordering)==TERM_ORDER_WEIGHT_LEX) ||
-         (!strcmp(str,"ordk") && (g->term_ordering)==TERM_ORDER_KBO)) &&
+    if ((((!strcmp(str,"ord") ||
+           (!strcmp(str,"ordw") && (g->term_ordering)==TERM_ORDER_WEIGHT_LEX) ||
+           (!strcmp(str,"ordk") && (g->term_ordering)==TERM_ORDER_KBO)) && !(g->kbo_symtab)) ||
+         (!strcmp(str,"ordf") && (g->kbo_symtab) && (g->kbo_weights)==KBO_WEIGHTS_INVFREQRANK &&
+          (g->kbo_precedence)==KBO_PREC_INVFREQ)) &&
         get_record_len(ap)==(g->unify_funpos)+4) {
       a=ap[RECORD_HEADER_GINTS+(g->unify_funpos)+1];
       b=ap[RECORD_HEADER_GINTS+(g->unify_funpos)+2];
@@ -1783,10 +1965,11 @@ void wr_order_selftest(glb* g) {
         wr_printf(" gives %d, expected ",res); wr_print_term(g,r); wr_printf("\n");
       }
       ot_add(g,a); ot_add(g,b);
-    } else if ((!strcmp(str,"ordw") || !strcmp(str,"ordk")) && get_record_len(ap)==(g->unify_funpos)+4) {
-      // a case of the other ordering: its terms only
+    } else if ((!strcmp(str,"ord") || !strcmp(str,"ordw") || !strcmp(str,"ordk") || !strcmp(str,"ordf")) &&
+               get_record_len(ap)==(g->unify_funpos)+4) {
+      // a case of another ordering or another scheme of KBO: its terms only
       ot_add(g,ap[RECORD_HEADER_GINTS+(g->unify_funpos)+1]); ot_add(g,ap[RECORD_HEADER_GINTS+(g->unify_funpos)+2]);
-    } else if (!strcmp(str,"ordnot3") && get_record_len(ap)==(g->unify_funpos)+3) {
+    } else if (!strcmp(str,"ordnot3") && get_record_len(ap)==(g->unify_funpos)+3 && !(g->kbo_symtab)) {
       // a pair decided by the order of two symbols (their gints): 1 or 2, not 3
       a=ap[RECORD_HEADER_GINTS+(g->unify_funpos)+1];
       b=ap[RECORD_HEADER_GINTS+(g->unify_funpos)+2];
@@ -1913,6 +2096,26 @@ void wr_order_selftest(glb* g) {
             tr_n,tr_f,sub_n,sub_f,gt_n,gt_f);
   wr_printf(" stability %ld failures %ld; binding against instance %ld failures %ld; monotony %ld failures %ld\n",
             st_n,st_f,ag_n,ag_f,mo_n,mo_f);
+  if (g->kbo_symtab) {
+    // the scheme of the weights and the precedence: admissibility and the symbols of the terms
+    gint syms[256]; int nsym=0, z, adm=1;
+    for(i=0;i<ot_n;i++) {
+      gint t=ot_t[i], hd; gptr tp;
+      hd=(isdatarec(t) ? (tp=decode_record(db,t))[RECORD_HEADER_GINTS+(g->unify_funpos)] : t);
+      if (isvar(hd) || isdatarec(hd) || wg_get_encoded_type(db,hd)!=WG_URITYPE) continue;
+      for(z=0;z<nsym;z++) if (syms[z]==hd) break;
+      if (z==nsym && nsym<256) syms[nsym++]=hd;
+    }
+    // sorted by the precedence
+    for(i=0;i<nsym;i++) for(j=i+1;j<nsym;j++) if (wr_kbo_sym_prec(g,syms[j])<wr_kbo_sym_prec(g,syms[i])) { gint t=syms[i]; syms[i]=syms[j]; syms[j]=t; }
+    for(i=0;i<(g->kbo_symtab_n);i++) if (((kbo_symcell*)(g->kbo_symtab))[i].weight<EQ_ORDER_VAR_WEIGHT) adm=0;
+    wr_printf("ORD_KBO_SCHEME weights %s precedence %s; variable weight %d; admissible %d; symbols:",
+              ((g->kbo_weights)==KBO_WEIGHTS_INVFREQRANK ? "invfreqrank" : "equal"),
+              ((g->kbo_precedence)==KBO_PREC_INVFREQ ? "invfreq" : ((g->kbo_precedence)==KBO_PREC_INVFREQCONSTMIN ? "invfreqconstmin" : "fields_gint")),
+              EQ_ORDER_VAR_WEIGHT,adm);
+    for(i=0;i<nsym;i++) wr_printf(" %s:%ld",wg_decode_uri(db,syms[i]),wr_kbo_sym_weight(g,syms[i]));
+    wr_printf(" (from the smallest in the precedence, symbol:weight)\n");
+  }
   wr_printf("ORD_ORDERING %s",(kbo ? "kbo" : "weight_lex"));
   if (kbo) wr_printf("; kbo reference %ld failures %ld; kbo reference with a binding %ld failures %ld",kr_n,kr_f,krb_n,krb_f);
   wr_printf("\n");

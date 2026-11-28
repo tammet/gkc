@@ -199,6 +199,10 @@ Both orderings share:
 3. The precedence: fewer fields is smaller, then the larger `gint` is the
    smaller symbol (`wr_order_prec_cmp()` for KBO,
    `wr_order_eqterms_const_lex_smaller()` for constants).
+   Under KBO the keys `kbo_weights` and `kbo_precedence` select E's schemes
+   (`invfreqrank`, `invfreq`, `invfreqconstmin`): `wr_kbo_scheme_init()`
+   builds a table indexed by the URI id at the start of a run, and
+   `wr_order_eqterms_const_weight()` and `wr_order_prec_cmp()` read it.
 
 The strategy key `order_selftest` tests the ordering on the cases of
 `Test/ordering/o1_cases.p`: stated results, the properties of a

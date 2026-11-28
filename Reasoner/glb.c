@@ -272,6 +272,11 @@ int wr_glb_init_simple(glb* g) {
   (g->order_selftest)=0;
   (g->term_ordering)=TERM_ORDER_KBO; // strategy key term_ordering
   (g->sos_ordering)=SOS_ORDERING_TODAY; // strategy key sos_ordering
+  (g->kbo_weights)=KBO_WEIGHTS_EQUAL; // strategy key kbo_weights
+  (g->kbo_precedence)=KBO_PREC_FIELDS_GINT; // strategy key kbo_precedence
+  (g->kbo_symtab)=NULL;
+  (g->kbo_symtab_n)=0;
+  (g->kbo_unseen_weight)=0;
   (g->stat_dmi_tree_stopped)=0;
   (g->demod_derived)=1; // strategy key demod_derived: on by default, 0 switches it off
   (g->demod_source)=1; // strategy key demod_source: 1 picked clauses, 2 kept clauses
@@ -1340,6 +1345,7 @@ void wr_hashlists_explore(glb* g) {
 */  
 
 int wr_glb_free_local_complex(glb* g) {  
+  if (g->kbo_symtab) { wr_free(g,g->kbo_symtab); (g->kbo_symtab)=NULL; (g->kbo_symtab_n)=0; }
   wr_str_free(g,(g->filename));
 
   wr_vec_free(g,g->queue_termbuf);

@@ -98,6 +98,11 @@
 #define SOS_ORDERING_FULL 1     // "full": query_focus uses the ordering as the other strategies do
 #define SOS_ORDERING_NONE 2     // "none": query_focus uses the ordering in no place
 #define WR_QF_FORCE3(g) ((g)->queryfocus_strat && (g)->sos_ordering!=SOS_ORDERING_FULL) // the places where query_focus sets 3 or leaves out a test
+#define KBO_WEIGHTS_EQUAL 0        // strategy key kbo_weights "equal": every symbol, constant and variable 10
+#define KBO_WEIGHTS_INVFREQRANK 1  // "invfreqrank" (E): a function symbol by the rank of its frequency, a constant and a variable 1 (times 10)
+#define KBO_PREC_FIELDS_GINT 0     // strategy key kbo_precedence "fields_gint": fewer fields is smaller, then the larger gint is smaller
+#define KBO_PREC_INVFREQ 1         // "invfreq" (E): a symbol with more occurrences is smaller; then the arity, then the first occurrence
+#define KBO_PREC_INVFREQCONSTMIN 2 // "invfreqconstmin" (E): as invfreq, but the constants below all other symbols
 #define WR_QF_NONE(g) ((g)->queryfocus_strat && (g)->sos_ordering==SOS_ORDERING_NONE)
 #define NROF_CLTERM_HASHVEC_ELS       1000000 // was 1000000
 #define NROF_ACTIVE_UNIT_HASHVEC_ELS  1000000 // was 1000000
@@ -726,6 +731,11 @@ typedef struct glb {
   gptr rewrite_self;       // a clause that wr_rewrite_term does not use as a demodulator, or NULL
   int ti_selftest;          // strategy key ti_selftest: 1 the self test of the term index on the input, then stop
   int order_selftest;       // strategy key order_selftest: 1 the self test of the term ordering on the input, then stop
+  int kbo_weights;          // strategy key kbo_weights: KBO_WEIGHTS_EQUAL or KBO_WEIGHTS_INVFREQRANK (only with term_ordering kbo)
+  int kbo_precedence;       // strategy key kbo_precedence: KBO_PREC_FIELDS_GINT, KBO_PREC_INVFREQ, KBO_PREC_INVFREQCONSTMIN
+  void* kbo_symtab;         // the weight and the precedence of each symbol, indexed by the URI id (wr_kbo_scheme_init), or NULL
+  long kbo_symtab_n;        // the number of entries of kbo_symtab
+  long kbo_unseen_weight;   // the weight of a symbol that does not occur in the input
   int sos_ordering;         // strategy key sos_ordering: SOS_ORDERING_TODAY (absent), _FULL ("full"), _NONE ("none")
   int term_ordering;        // strategy key term_ordering: TERM_ORDER_KBO (default, "kbo") or TERM_ORDER_WEIGHT_LEX ("weight_lex")
   int stat_dmi_tree_stopped; // the tree of the demodulators stopped: 1 no memory or too many variables in an insert, 2 no memory in a lookup, 3 unify settings

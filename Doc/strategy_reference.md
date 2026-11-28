@@ -324,6 +324,23 @@ precedence is the number of fields of a term, then the `gint` of the symbol
 (the larger `gint` is the smaller symbol). Another value is an error of the
 strategy.
 
+### `kbo_weights` and `kbo_precedence`
+
+The weights and the precedence of KBO; they apply only with `term_ordering`
+`"kbo"`. `kbo_weights`: `"equal"` (every symbol, constant and variable the
+same weight) or `"invfreqrank"` (E's scheme: the symbols with the most
+occurrences in the input weigh 1, each next smaller number of occurrences
+one more; a constant and a variable weigh 1). `kbo_precedence`:
+`"fields_gint"` (fewer fields is smaller, then the larger `gint` is the
+smaller symbol), `"invfreq"` (E: more occurrences is smaller, then the
+smaller arity, then the earlier first occurrence) or `"invfreqconstmin"`
+(as `invfreq`, but the constants below all other symbols). The occurrences
+are counted at the start of each run, over all literals of the input
+clauses, predicates included. A symbol that is not a URI (a number, a
+built-in symbol) weighs as a variable and is below every URI symbol. With an
+attached KB the two keys are not used: KBO with `"equal"` and
+`"fields_gint"`. Another value is an error of the strategy.
+
 ### `sos_ordering` (experimental)
 
 The term ordering with the strategy `query_focus` (set of support). A

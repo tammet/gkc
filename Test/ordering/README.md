@@ -27,6 +27,13 @@ more distinct variables than the counted variable lists of the ordering
 hold. The variable condition cannot be tested then, and the result must be
 3; it counts as one of the cases.
 
+o2_kbo_schemes.p is the input of the self test under E's scheme of KBO
+(`kbo_weights` "invfreqrank", `kbo_precedence` "invfreq"): the occurrences
+in the file decide the weights and the precedence; `ordf(A,B,R)` states a
+result under this scheme. The test prints the weights and the precedence of
+the symbols (`ORD_KBO_SCHEME`) and whether they are admissible. The cases of
+o1_cases.p apply only to the equal weights and the precedence fields_gint.
+
 The other files are minimal problems with equality. Each is unsatisfiable
 (the status comment: E and Vampire agree).
 

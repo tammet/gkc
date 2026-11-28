@@ -305,6 +305,30 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr, int s
       // 1: the unit trees accept only what the unit tables accept (an equal
       // atom, or a variant with unit_variant_hash): the same search as the tables
       (g->unit_match_equal)=(json_valueint(elem) ? 1 : 0);
+    } else if (!strcmp(key,"kbo_weights")) {
+      // the weights of KBO (only with term_ordering kbo): "equal" (every symbol,
+      // constant and variable the same weight) or "invfreqrank" (E's scheme)
+      if (json_isstring(elem) && json_valuestring(elem) && !strcmp(json_valuestring(elem),"equal")) {
+        (g->kbo_weights)=KBO_WEIGHTS_EQUAL;
+      } else if (json_isstring(elem) && json_valuestring(elem) && !strcmp(json_valuestring(elem),"invfreqrank")) {
+        (g->kbo_weights)=KBO_WEIGHTS_INVFREQRANK;
+      } else {
+        wr_errprint("unknown value of kbo_weights in the strategy: use equal or invfreqrank");
+        return -1;
+      }
+    } else if (!strcmp(key,"kbo_precedence")) {
+      // the precedence of KBO (only with term_ordering kbo): "fields_gint",
+      // "invfreq" or "invfreqconstmin" (E's schemes)
+      if (json_isstring(elem) && json_valuestring(elem) && !strcmp(json_valuestring(elem),"fields_gint")) {
+        (g->kbo_precedence)=KBO_PREC_FIELDS_GINT;
+      } else if (json_isstring(elem) && json_valuestring(elem) && !strcmp(json_valuestring(elem),"invfreq")) {
+        (g->kbo_precedence)=KBO_PREC_INVFREQ;
+      } else if (json_isstring(elem) && json_valuestring(elem) && !strcmp(json_valuestring(elem),"invfreqconstmin")) {
+        (g->kbo_precedence)=KBO_PREC_INVFREQCONSTMIN;
+      } else {
+        wr_errprint("unknown value of kbo_precedence in the strategy: use fields_gint, invfreq or invfreqconstmin");
+        return -1;
+      }
     } else if (!strcmp(key,"sos_ordering")) {
       // the term ordering with the strategy query_focus (set of support): a
       // missing key: as until 2026-11 (only paramodulation from the given clause

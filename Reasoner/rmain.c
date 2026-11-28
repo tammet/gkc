@@ -593,6 +593,8 @@ int wg_run_reasoner(void *db, char* inputname, char* stratfile, int informat,
       if (analyze_g) analyze_g=wr_free_analyze_g(analyze_g);
       return -1; 
     }   
+    // the weights and the precedence of KBO (keys kbo_weights, kbo_precedence), before the first comparison
+    wr_kbo_scheme_init(g,(db!=child_db) || (kb_g!=NULL));
     if (filename) {
       strncpy((g->filename),filename,MAX_FILENAME_LEN);
     } else {
