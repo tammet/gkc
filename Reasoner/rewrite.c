@@ -134,6 +134,76 @@ static void wr_dmu_drop(glb* g, void* to) {
   ti_index* u=(ti_index*)(g->dmu_index);
   if (u && u!=(void*)1) ti_free(u);
   (g->dmu_index)=to;
+  if (g->dmu_perm) { sys_free(g->dmu_perm); (g->dmu_perm)=NULL; (g->dmu_perm_n)=0; }
+}
+
+/* demod_unoriented: a permutation equation has two sides that are equal up
+   to a permutation of their variables, each variable as often in both (for
+   example f(X,Y)=f(Y,X)). Under any bindings its two instances have the same
+   weight and the same multiset of variables, so wr_order_eqterms decides
+   them by its lexicographic part alone. The nodes of their sides are kept
+   in a set: an open-addressing table of 2^k gints, [0] its size */
+
+#define DMU_PERM_VARS 64
+
+static int wr_dmu_shape(glb* g, gint a, gint b, gint* va, gint* vb, int* n) {
+  gptr ap, bp; int k, s, e;
+  if (isvar(a) || isvar(b)) {
+    if (!isvar(a) || !isvar(b) || *n>=DMU_PERM_VARS) return 0;
+    va[*n]=a; vb[*n]=b; (*n)++;
+    return 1;
+  }
+  if (!isdatarec(a) || !isdatarec(b)) return a==b;
+  ap=decode_record(g->db,a); bp=decode_record(g->db,b);
+  if (get_record_len(ap)!=get_record_len(bp)) return 0;
+  s=wr_term_unify_startpos(g); e=wr_term_unify_endpos(g,ap);
+  for(k=s;k<e;k++) if (!wr_dmu_shape(g,ap[k],bp[k],va,vb,n)) return 0;
+  return 1;
+}
+
+static int wr_dmu_is_perm(glb* g, gint a, gint b) {
+  gint va[DMU_PERM_VARS], vb[DMU_PERM_VARS];
+  int n=0, i, j, ca, cb;
+  if (!isdatarec(a) || !isdatarec(b)) return 0;
+  if (!wr_dmu_shape(g,a,b,va,vb,&n)) return 0;
+  // each variable as often in a as in b
+  for(i=0;i<n;i++) {
+    ca=0; cb=0;
+    for(j=0;j<n;j++) { if (va[j]==va[i]) ca++; if (vb[j]==va[i]) cb++; }
+    if (ca!=cb) return 0;
+  }
+  return 1;
+}
+
+static int wr_dmu_perm_has(glb* g, gint node) {
+  gptr t=(g->dmu_perm); gint m, p;
+  if (!t) return 0;
+  m=t[0]-1;
+  for(p=((node>>3)*0x9E3779B1)&m; t[1+p]; p=(p+1)&m) if (t[1+p]==node) return 1;
+  return 0;
+}
+
+static void wr_dmu_perm_add(glb* g, gint node) {
+  gptr t=(g->dmu_perm), nt; gint m, p, i, size;
+  if (!t || 2*((g->dmu_perm_n)+1)>t[0]) {
+    size=(t ? t[0]*2 : 64);
+    nt=sys_malloc(sizeof(gint)*(size+1));
+    if (!nt) return; // the full test then answers for this node
+    memset(nt,0,sizeof(gint)*(size+1));
+    nt[0]=size;
+    if (t) {
+      for(i=0;i<t[0];i++) if (t[1+i]) {
+        for(p=((t[1+i]>>3)*0x9E3779B1)&(size-1); nt[1+p]; p=(p+1)&(size-1)) {}
+        nt[1+p]=t[1+i];
+      }
+      sys_free(t);
+    }
+    (g->dmu_perm)=nt; t=nt;
+  }
+  m=t[0]-1;
+  for(p=((node>>3)*0x9E3779B1)&m; t[1+p]; p=(p+1)&m) if (t[1+p]==node) return;
+  t[1+p]=node;
+  (g->dmu_perm_n)++;
 }
 
 void wr_dmi_free(glb* g) {
@@ -247,6 +317,7 @@ int wr_dmu_insert(glb* g, gint term, gint node) {
   }
   (g->stat_dmi_rhs_bytes)+=wr_dmi_term_bytes(g,rc);
   if (!ti_insert(g,x,term,node,rc) || ti_failed(x)) { wr_dmu_drop(g,(void*)1); return 0; }
+  if (wr_dmu_is_perm(g,term,rhs)) wr_dmu_perm_add(g,node);
   (g->stat_dmu_filed)++;
   return 1;
 }
@@ -287,9 +358,14 @@ static gint dmu_query=0;
 #define WR_DMU_ON(g) ((g)->dmu_index && (g)->dmu_index!=(void*)1)
 
 static int wr_dmu_accept(glb* g, gint node) {
+  gint rhs;
   if (!wr_dmi_accept(g,node)) return 0;
   (g->stat_dmu_tests)++;
-  return wr_order_eqterms(g,dmu_query,ti_cur_aux((ti_index*)(g->dmu_index)),g->varbanks)==1;
+  rhs=ti_cur_aux((ti_index*)(g->dmu_index));
+  // a permutation equation: the lexicographic part decides (the same result
+  // as wr_order_eqterms, whose weights and variable counts are equal here)
+  if (wr_dmu_perm_has(g,node)) return wr_order_eqterms_lex(g,dmu_query,rhs,g->varbanks)==2;
+  return wr_order_eqterms(g,dmu_query,rhs,g->varbanks)==1;
 }
 
 /* demod_unoriented: the newest side of an unorientable equation with an

@@ -1292,6 +1292,12 @@ int wr_countedvarlist_is_subset(glb* g, cvec xlist, cvec ylist) {
 */
 
 
+/* the lexicographic part of wr_order_eqterms on its own: 1 if x is smaller
+   than y, 2 if y is smaller than x, 0 if equal (see wr_order_eqterms) */
+int wr_order_eqterms_lex(glb* g, gint x, gint y, gptr vb) {
+  return wr_order_eqterms_lex_order(g,x,y,vb);
+}
+
 static int wr_order_eqterms_lex_order(glb* g, gint x, gint y, gptr vb) {
   void* db;
   gptr xptr,yptr;

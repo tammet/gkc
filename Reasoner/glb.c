@@ -285,6 +285,8 @@ int wr_glb_init_simple(glb* g) {
   (g->demod_unoriented)=0;
   (g->hash_rewrite_terms_u)=0;
   (g->dmu_index)=NULL;
+  (g->dmu_perm)=NULL;
+  (g->dmu_perm_n)=0;
   (g->stat_dmu_filed)=0;
   (g->stat_dmu_tests)=0;
   (g->stat_dmu_rewrites)=0;

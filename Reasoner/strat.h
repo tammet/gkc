@@ -67,6 +67,7 @@ int wr_calc_atom_hardness_aux(glb* g, gint x, int depth, int pos,
       atom_hardnesscalc* hptr, int polarity, int haveextdb);
 
 int wr_order_eqterms(glb* g, gint a, gint b, gptr vb);
+int wr_order_eqterms_lex(glb* g, gint x, gint y, gptr vb);
 
 void wr_clear_countedvarlist(glb* g, cvec varlist);
 void wr_record_varocc(glb* g, gint x, cvec varlist);
