@@ -31,7 +31,8 @@ The other files are minimal problems with equality. Each is unsatisfiable
 (the status comment: E and Vampire agree).
 
 * u1 to u4: unorientable equations and the test of the ordering after
-  unification.
+  unification. u5: the test of the "into" literal (`para_into_ordered` 2)
+  leaves out a step into the smaller side of an equation.
 * v1 to v10: an equation with a variable side (`X = a`, `X = Y`,
   `X = f(Y)`). Paramodulation uses a variable side as the side it starts
   from, in both directions (from the given clause and into it).

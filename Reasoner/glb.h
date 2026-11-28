@@ -705,7 +705,9 @@ typedef struct glb {
   int stat_up_derived; // unit propagation: shorter clauses built
   int stat_up_backsubsumed; // unit propagation: clauses made unusable by backward subsumption
   void* up_index;          // tables of unit propagation, or NULL
-  int para_into_ordered;   // strategy key para_into_ordered: 1 the ordering test after the substitution also for paramodulation into the given clause
+  int para_into_ordered;   // strategy key para_into_ordered: 1 the ordering test after the substitution also for paramodulation into the given clause; 2 also the test of the "into" literal, both directions
+  long stat_para_from_order_skip; // para_into_ordered: steps into the given clause left out by the test of the "from" side
+  long stat_para_lit_order_skip;  // para_into_ordered 2: steps left out by the test of the "into" literal
   void* dmi_index;         // index of the demodulators of hash_rewrite_terms, NULL, or 1 after a failed allocation
   int demod_unoriented;    // strategy key demod_unoriented: 1 unorientable unit equations rewrite with their oriented instances
   gint hash_rewrite_terms_u; // demod_unoriented: the hash list of the sides of unorientable equations (the nodes of the tree), or 0

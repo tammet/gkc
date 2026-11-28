@@ -199,9 +199,16 @@ attached KB keep the hash of today.
 `1`: paramodulation with an equation of an active clause into the given
 clause is done only when the replaced side is not the smaller one in the
 term ordering after the unification, as paramodulation from the given
-clause does today. `0` or a missing key keeps today's behaviour, where
-this direction tests the ordering only before the unification. The key
-has no effect with `query_focus`, where the ordering is off.
+clause does today. The test is made only for a side of an unorientable
+equation; the side of an oriented equation always passes it. `2`: also the
+test of the "into" literal, in both directions (from the given clause and
+into it): when the term that is replaced lies in a side of an equation
+literal, that side must not be the smaller one after the unification. The
+counters `stat_para_from_order_skip` and `stat_para_lit_order_skip` give the
+steps left out by the two tests. `0` or a missing key keeps today's
+behaviour, where the "into" direction tests the ordering only before the
+unification. The key has no effect with `query_focus`, where the ordering is
+off.
 
 ### `demod_derived`
 

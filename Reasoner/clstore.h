@@ -103,6 +103,7 @@
 #define PARA_TERMPATH_POSMASK      0xFFFF
 #define PARA_TERMPATH_LITNRMASK  0xFF0000
 #define PARA_TERMPATH_LEFTMASK  0x1000000
+#define PARA_TERMPATH_ORIENTEDMASK 0x2000000 // hash_eq_terms: the side is the greater side of an oriented equation
 
 
 
@@ -119,7 +120,7 @@ void wr_show_clactivesubsume(glb* g);
 int wr_cl_store_res_terms(glb* g, gptr cl, cvec resolvability);
 int wr_cl_store_res_units(glb* g, gptr cl);
 int wr_cl_store_para_terms(glb* g, gptr cl, cvec resolvability); 
-int wr_cl_store_eq_arg(glb* g, gptr cl, gint term, int termtype, int litnr, int leftflag);
+int wr_cl_store_eq_arg(glb* g, gptr cl, gint term, int termtype, int litnr, int leftflag, int oriented);
 void wr_demod_file_kept(glb* g, gptr cl);
 int wr_cl_store_term_rewriter(glb* g, gptr cl, gint term, int termtype, int litnr, int leftflag);
 void wr_cl_store_unoriented_rewriter(glb* g, gptr cl, gint a, int atype, gint b, int btype, int litnr);

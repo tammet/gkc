@@ -2197,6 +2197,10 @@ void wr_show_stats(glb* g, int show_local_complex) {
     wr_printf("stat_dmu_tests:               %13ld\n",g->stat_dmu_tests);
     wr_printf("stat_dmu_rewrites:            %13ld\n",g->stat_dmu_rewrites);
   }
+  if (g->para_into_ordered) {
+    wr_printf("stat_para_from_order_skip:    %13ld\n",g->stat_para_from_order_skip);
+    wr_printf("stat_para_lit_order_skip:     %13ld\n",g->stat_para_lit_order_skip);
+  }
   if ((g->stat_varside_filed) || (g->stat_varside_given) || (g->stat_varside_skip_lit)) {
     // paramodulation with a variable side of an equation
     wr_printf("stat_varside_filed:           %13ld\n",g->stat_varside_filed);

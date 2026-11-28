@@ -585,7 +585,7 @@ int wr_cl_store_para_terms(glb* g, gptr cl, cvec resolvability) {
         if ((eqtermorder==1 || eqtermorder==3) && atype!=WG_VARTYPE) {
             //(atype==WG_RECORDTYPE || atype==WG_URITYPE || atype==WG_ANONCONSTTYPE)) {
           // ok to para from left
-          if (!(g->rewrite_only_strat)) wr_cl_store_eq_arg(g,cl,a,atype,i,1);
+          if (!(g->rewrite_only_strat)) wr_cl_store_eq_arg(g,cl,a,atype,i,1,eqtermorder==1);
         } else if (eqtermorder==3 && atype==WG_VARTYPE) {
           // a variable side (X = t with X not in t, or X = Y): its own list
           if (!(g->rewrite_only_strat)) wr_cl_store_varside(g,cl,a,b,i,1);
@@ -593,7 +593,7 @@ int wr_cl_store_para_terms(glb* g, gptr cl, cvec resolvability) {
         if ((eqtermorder==2 || eqtermorder==3) && btype!=WG_VARTYPE) {
             //(btype==WG_RECORDTYPE || btype==WG_URITYPE || btype==WG_ANONCONSTTYPE)) {
           // ok to para from right
-          if (!(g->rewrite_only_strat)) wr_cl_store_eq_arg(g,cl,b,btype,i,0);
+          if (!(g->rewrite_only_strat)) wr_cl_store_eq_arg(g,cl,b,btype,i,0,eqtermorder==2);
         } else if (eqtermorder==3 && btype==WG_VARTYPE) {
           if (!(g->rewrite_only_strat)) wr_cl_store_varside(g,cl,b,a,i,0);
         }   
@@ -769,7 +769,7 @@ void wr_para_bucket_note(glb* g, gint hash) {
   if (v) (g->para_terms_buckets)=rpto(g,v);
 }
 
-int wr_cl_store_eq_arg(glb* g, gptr cl, gint term, int termtype, int litnr, int leftflag) {    
+int wr_cl_store_eq_arg(glb* g, gptr cl, gint term, int termtype, int litnr, int leftflag, int oriented) {    
   gint fun, hash;
   int tmp, path;
   vec hashvec;
@@ -793,6 +793,7 @@ int wr_cl_store_eq_arg(glb* g, gptr cl, gint term, int termtype, int litnr, int 
   hash=wr_term_basehash(g,fun); 
   hashvec=rotp(g,g->hash_eq_terms);  
   path=wr_encode_para_termpath(g,litnr,leftflag);
+  if (oriented) path|=PARA_TERMPATH_ORIENTEDMASK; // the test after unification always passes for it
   tmp=wr_clterm_add_hashlist_withpath(g,hashvec,hash,term,cl,path);
 #ifdef XDEBUG 
   wr_printf("\nadding to eq_hash ended with %d\n",tmp);

@@ -263,7 +263,9 @@ int wr_glb_init_simple(glb* g) {
   (g->unit_variant_hash)=0; // strategy key unit_variant_hash: 1 the unit tables use per-literal variable numbers
   (g->unit_propagate)=0; // strategy key unit_propagate: 0 off, 1 two-literal clauses, 2 all clauses
   (g->unit_backsubsume)=0; // strategy key unit_backsubsume: 1 backward subsumption by a kept unit
-  (g->para_into_ordered)=0; // strategy key para_into_ordered: 1 the ordering test after the substitution also into the given clause
+  (g->para_into_ordered)=0; // strategy key para_into_ordered: 1 the ordering test after the substitution also into the given clause, 2 also of the "into" literal
+  (g->stat_para_from_order_skip)=0;
+  (g->stat_para_lit_order_skip)=0;
   (g->rewrite_guard)=0;
   (g->rewrite_self)=NULL;
   (g->ti_selftest)=0;

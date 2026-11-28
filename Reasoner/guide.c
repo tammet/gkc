@@ -326,8 +326,10 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr, int s
       // 2: the same with the atoms of the unit clauses as stored terms
       (g->ti_selftest)=json_valueint(elem);
     } else if (!strcmp(key,"para_into_ordered")) {
-      // 1: paramodulation into the given clause also tests the ordering after the substitution
-      (g->para_into_ordered)=(json_valueint(elem) ? 1 : 0);
+      // 1: paramodulation into the given clause also tests the ordering after the
+      // substitution (the "from" side, for an unorientable equation); 2: also the
+      // test of the "into" literal, in both directions
+      (g->para_into_ordered)=(json_valueint(elem)==2 ? 2 : (json_valueint(elem) ? 1 : 0));
     } else if (!strcmp(key,"unit_propagate")) {
       // unit propagation: 0 off, 1 cut two-literal clauses, 2 cut all clauses
       (g->unit_propagate)=json_valueint(elem);

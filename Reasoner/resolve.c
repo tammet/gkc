@@ -487,6 +487,65 @@ void wr_factor(glb* g, gptr cl, gptr cl_as_active) {
    is not the smaller side after the unification, and not at all when the
    variable occurs in another literal of its clause (wr_varside_in_other_lits). */
 
+/* para_into_ordered 2: the test of the "into" literal. When the literal atom
+   is an equation, the side that holds the position pos (the number of the
+   position in preorder, as the walks of the stored and the given terms
+   count it: every field of a term below its top except the symbol) must not
+   be smaller than the other side under the bindings of the unification. 1:
+   the step may be made. */
+
+static int wr_para_pos_count(glb* g, gint t) {
+  void* db=g->db; gptr ptr; gint yi; int len, istart, ilimit, i, n=0;
+  if (!isdatarec(t)) return 0;
+  ptr=decode_record(db,t);
+  len=get_record_len(ptr);
+  if ((g->unify_maxuseterms) && ((g->unify_maxuseterms)+(g->unify_firstuseterm))<len)
+    len=(g->unify_firstuseterm)+(g->unify_maxuseterms);
+  istart=RECORD_HEADER_GINTS+(g->unify_firstuseterm); ilimit=RECORD_HEADER_GINTS+len;
+  for(i=istart;i<ilimit;i++) {
+    yi=ptr[i];
+    if (i==istart && !isdatarec(yi)) continue;
+    n+=1+wr_para_pos_count(g,yi);
+  }
+  return n;
+}
+
+static int wr_para_into_lit_ok(glb* g, gint atom, int pos) {
+  void* db=g->db; gptr ptr; gint yi, s, t; int len, istart, ilimit, i, k=0, n;
+  if (!isdatarec(atom) || !wr_equality_atom(g,atom)) return 1;
+  ptr=decode_record(db,atom);
+  len=get_record_len(ptr);
+  if ((g->unify_maxuseterms) && ((g->unify_maxuseterms)+(g->unify_firstuseterm))<len)
+    len=(g->unify_firstuseterm)+(g->unify_maxuseterms);
+  istart=RECORD_HEADER_GINTS+(g->unify_firstuseterm); ilimit=RECORD_HEADER_GINTS+len;
+  for(i=istart;i<ilimit;i++) {
+    yi=ptr[i];
+    if (i==istart && !isdatarec(yi)) continue;
+    k++;
+    n=wr_para_pos_count(g,yi);
+    if (pos>=k && pos<=k+n) break;
+    k+=n;
+  }
+  if (i==RECORD_HEADER_GINTS+(g->unify_funarg1pos)) { s=ptr[i]; t=ptr[RECORD_HEADER_GINTS+(g->unify_funarg2pos)]; }
+  else if (i==RECORD_HEADER_GINTS+(g->unify_funarg2pos)) { s=ptr[i]; t=ptr[RECORD_HEADER_GINTS+(g->unify_funarg1pos)]; }
+  else return 1;
+  if (wr_order_eqterms(g,s,t,(g->varbanks))!=2) return 1;
+  (g->stat_para_lit_order_skip)++;
+  return 0;
+}
+
+/* the test of the "into" literal for a step from the given clause into the
+   stored term with the path path of the active clause ycl */
+
+static int wr_para_into_active_lit_ok(glb* g, gptr ycl, gint path) {
+  void* db=g->db; gint yatom; int litnr;
+  if ((g->para_into_ordered)!=2 || (g->queryfocus_strat)) return 1;
+  litnr=wr_decode_para_termpath_litnr(g,path);
+  if (wg_rec_is_rule_clause(db,ycl)) yatom=wg_get_rule_clause_atom(db,ycl,litnr);
+  else yatom=encode_record(db,ycl);
+  return wr_para_into_lit_ok(g,yatom,wr_decode_para_termpath_pos(g,path));
+}
+
 /* the tests of the active clause ycl, as in the loops of the other sides */
 
 static int wr_para_partner_ok(glb* g, gptr ycl, int nonanslen, int upon, int unitonly) {
@@ -550,9 +609,11 @@ static int wr_para_varside_from_vec(glb* g, gptr xcl, gptr cl_as_active, gint xa
         if (wr_order_eqterms(g,a,b,(g->varbanks))==2) {
           (g->stat_varside_skip_order)++;
         } else {
-          (g->stat_varside_steps)++;
           path=wg_decode_int(db,nodeptr[CLTERM_HASHNODE_PATH_POS]);
-          wr_process_paramodulate_result(g,xatom,xcl,0,ycl,cl_as_active,a,b,path,leftflag,1);
+          if (wr_para_into_active_lit_ok(g,ycl,path)) {
+            (g->stat_varside_steps)++;
+            wr_process_paramodulate_result(g,xatom,xcl,0,ycl,cl_as_active,a,b,path,leftflag,1);
+          }
         }
       }
       wr_clear_varstack(g,g->varstack);
@@ -604,7 +665,7 @@ static int wr_para_varsides_into(glb* g, gptr xcl, gptr cl_as_active, gint xatom
       else b=((gint *)(otp(db,yatom)))[RECORD_HEADER_GINTS+(g->unify_funarg1pos)];
       if (wr_order_eqterms(g,yterm,b,(g->varbanks))==2) {
         (g->stat_varside_skip_order)++;
-      } else {
+      } else if ((g->para_into_ordered)!=2 || (g->queryfocus_strat) || wr_para_into_lit_ok(g,xatom,origtermpath)) {
         (g->stat_varside_steps)++;
         wr_process_paramodulate_result(g,yatom,ycl,xatom,xcl,cl_as_active,yterm,b,
                                        wr_encode_para_termpath(g,litnr,origtermpath),eqleftflag,0);
@@ -960,7 +1021,8 @@ void wr_paramodulate_from_all_active(glb* g, gptr cl, gptr cl_as_active, cvec re
       #endif                                       
                 path=wg_decode_int(db,nodeptr[CLTERM_HASHNODE_PATH_POS]);              
                 //printf("\n path before call %d\n",(int)path);
-                wr_process_paramodulate_result(g,xatom,xcl,0,ycl,cl_as_active,a,b,path,!termpos,1);                 
+                if (wr_para_into_active_lit_ok(g,ycl,path))
+                  wr_process_paramodulate_result(g,xatom,xcl,0,ycl,cl_as_active,a,b,path,!termpos,1);                 
       #ifdef DEBUG                        
                 wr_printf("\nin wr_paramodulate_from_all_active after wr_process_paramodulate_result\n");
                 wr_printf("\na\n");
@@ -1381,9 +1443,16 @@ int wr_paramodulate_into_subterms_all_active(glb* g, gptr cl, gptr cl_as_active,
         // with the key para_into_ordered, the test after the substitution: no
         // step when the replaced side is the smaller one (not with query_focus,
         // where the ordering is off)
-        if (!(g->para_into_ordered) || (g->queryfocus_strat) ||
-            wr_order_eqterms(g,yterm,b,(g->varbanks))!=2) {
-          wr_process_paramodulate_result(g,yatom,ycl,xatom,xcl,cl_as_active,yterm,b,replpath,eqleftflag,0); // new part: commented out
+        // the side of an oriented equation is left out of the test: it always passes.
+        // With para_into_ordered 2 also the test of the "into" literal.
+        { int ok=1;
+          if ((g->para_into_ordered) && !(g->queryfocus_strat)) {
+            if (!(eqpath & PARA_TERMPATH_ORIENTEDMASK) && wr_order_eqterms(g,yterm,b,(g->varbanks))==2) {
+              ok=0; (g->stat_para_from_order_skip)++;
+            }
+            if (ok && (g->para_into_ordered)==2) ok=wr_para_into_lit_ok(g,xatom,origtermpath);
+          }
+          if (ok) wr_process_paramodulate_result(g,yatom,ycl,xatom,xcl,cl_as_active,yterm,b,replpath,eqleftflag,0); // new part: commented out
         }
 
         /*
