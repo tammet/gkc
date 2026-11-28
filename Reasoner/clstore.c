@@ -604,6 +604,10 @@ int wr_cl_store_para_terms(glb* g, gptr cl, cvec resolvability) {
         // b will rewrite to a
         wr_cl_store_term_rewriter(g,cl,b,btype,i,0);
         (g->have_rewrite_terms)=1;
+      } else if (len==1 && eqtermorder==3 && (g->demod_unoriented) && (g->use_rewrite_terms_strat) &&
+                 !(g->queryfocus_strat)) {
+        // demod_unoriented: both sides, each rewrites with its oriented instances
+        wr_cl_store_unoriented_rewriter(g,cl,a,atype,b,btype,i);
       }
     }
   }  
@@ -647,11 +651,54 @@ void wr_demod_file_kept(glb* g, gptr cl) {
     wr_cl_store_term_rewriter(g,cl,a,atype,0,1);
   } else if (eqtermorder==2 && btype!=WG_VARTYPE) {
     wr_cl_store_term_rewriter(g,cl,b,btype,0,0);
+  } else if (eqtermorder==3 && (g->demod_unoriented)) {
+    // demod_unoriented: both sides, each rewrites with its oriented instances
+    wr_cl_store_unoriented_rewriter(g,cl,a,atype,b,btype,0);
+    return;
   } else {
     return;
   }
   (g->have_rewrite_terms)=1;
   (g->stat_demod_filed_kept)++;
+}
+
+/* demod_unoriented: the sides of an unorientable positive unit equation:
+   each side that is not a variable gets a node in hash_rewrite_terms_u (a
+   list that only gives the clause and the side to the rewriting and the
+   proof) and an entry in the tree dmu_index, with the other side as its
+   right side; a side whose other side has a variable it does not have is
+   not filed (the rewriting could not bind that variable) */
+
+void wr_cl_store_unoriented_rewriter(glb* g, gptr cl, gint a, int atype, gint b, int btype, int litnr) {
+#ifdef USE_DEMOD_INDEX
+  gint fun, hash, side;
+  int k, leftflag, stype;
+  vec hashvec;
+  gptr tptr;
+  if ((g->inkb) || (g->dmu_index)==(void*)1 || (g->dmi_index)==(void*)1) return;
+  if (!(g->hash_rewrite_terms_u)) {
+    gptr hv=wr_vec_new_zero(g,NROF_CLTERM_HASHVEC_ELS);
+    if (!hv) return;
+    (g->hash_rewrite_terms_u)=rpto(g,hv);
+  }
+  hashvec=rotp(g,g->hash_rewrite_terms_u);
+  for(k=0;k<2;k++) {
+    side=(k ? b : a); stype=(k ? btype : atype); leftflag=(k ? 0 : 1);
+    if (stype==WG_VARTYPE) continue;
+    if (stype==WG_RECORDTYPE) {
+      tptr=rotp(g,side);
+      fun=tptr[RECORD_HEADER_GINTS+(g->unify_funpos)];
+    } else {
+      fun=side;
+    }
+    hash=wr_term_basehash(g,fun);
+    if (wr_clterm_add_hashlist_withpath(g,hashvec,hash,side,cl,wr_encode_para_termpath(g,litnr,leftflag))) return;
+    // the new node is the first one of its list
+    if (wr_dmu_insert(g,side,wr_clterm_hashlist_start(g,hashvec,hash))) (g->have_rewrite_terms)=1;
+  }
+#else
+  UNUSED(g); UNUSED(cl); UNUSED(a); UNUSED(atype); UNUSED(b); UNUSED(btype); UNUSED(litnr);
+#endif
 }
 
 int wr_cl_store_eq_arg(glb* g, gptr cl, gint term, int termtype, int litnr, int leftflag) {    

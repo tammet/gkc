@@ -127,8 +127,18 @@ static gint wr_dmi_term_gints(glb* g, gint t) {
   return n;
 }
 
+/* demod_unoriented: the tree of the sides of unorientable equations shares
+   the buffer of the right-side copies, so it goes when that buffer goes */
+
+static void wr_dmu_drop(glb* g, void* to) {
+  ti_index* u=(ti_index*)(g->dmu_index);
+  if (u && u!=(void*)1) ti_free(u);
+  (g->dmu_index)=to;
+}
+
 void wr_dmi_free(glb* g) {
   ti_index* x=(ti_index*)(g->dmi_index);
+  wr_dmu_drop(g,NULL);
   wr_dmi_rhs_free(g);
   if (!x) return;
   if (x==(void*)1) { (g->dmi_index)=NULL; return; }
@@ -139,6 +149,7 @@ void wr_dmi_free(glb* g) {
 static void wr_dmi_fail(glb* g) {
   wr_dmi_free(g);
   (g->dmi_index)=(void*)1; // the list answers for the rest of the run
+  if (g->demod_unoriented) (g->dmu_index)=(void*)1; // no list holds the unorientable equations
 }
 
 /* file the greater side term of a demodulator; node is its new node of
@@ -207,6 +218,39 @@ void wr_dmi_insert(glb* g, gint term, gint node) {
   }
 }
 
+/* demod_unoriented: file a side of an unorientable equation, as
+   wr_dmi_insert does for an oriented one, in the tree dmu_index; returns 1
+   when it is filed */
+
+int wr_dmu_insert(glb* g, gint term, gint node) {
+  ti_index* x=(ti_index*)(g->dmu_index);
+  gint *vars, rc, rhs;
+  gptr buf;
+  int32_t nv;
+  if (x==(void*)1 || (g->inkb) || !node) return 0;
+  if (!(g->unify_samelen) || (g->unify_maxuseterms)) { wr_dmu_drop(g,(void*)1); return 0; }
+  if (!x) {
+    x=ti_new((g->varbanks)+TREE_VARBANK*NROF_VARSINBANK,g->tree_compress);
+    if (!x) { wr_dmu_drop(g,(void*)1); return 0; }
+    (g->dmu_index)=x;
+  }
+  nv=ti_term_vars(g,x,term,&vars);
+  if (nv<0) { wr_dmu_drop(g,(void*)1); return 0; }
+  rhs=wr_dmi_rhs(g,node);
+  buf=wr_dmi_rhs_room(g,wr_dmi_term_gints(g,rhs));
+  if (!buf) { wr_dmu_drop(g,(void*)1); return 0; }
+  rc=ti_rename_copy(g,rhs,vars,nv,TREE_VARBANK*NROF_VARSINBANK,buf);
+  if (rc==WG_ILLEGAL) {
+    // a variable of the other side not in this side: never an instance to rewrite with
+    (g->stat_dmi_rhs_not_filed)++;
+    return 0;
+  }
+  (g->stat_dmi_rhs_bytes)+=wr_dmi_term_bytes(g,rc);
+  if (!ti_insert(g,x,term,node,rc) || ti_failed(x)) { wr_dmu_drop(g,(void*)1); return 0; }
+  (g->stat_dmu_filed)++;
+  return 1;
+}
+
 /* a demodulator that the rewriting may use: not blocked, not the
    excluded clause */
 
@@ -234,19 +278,58 @@ static int wr_dmi_accept(glb* g, gint node) {
    tree, or bindings already on the variable stack outside a top-slice
    rewriting) */
 
+/* demod_unoriented: a match of a side of an unorientable equation is
+   accepted when the term (the instance of the side) is greater than the
+   instance of the other side under the bindings of the match (they are in
+   the cells of the tree); the walk has already refused a renaming */
+
+static gint dmu_query=0;
+
+static int wr_dmu_accept(glb* g, gint node) {
+  if (!wr_dmi_accept(g,node)) return 0;
+  (g->stat_dmu_tests)++;
+  return wr_order_eqterms(g,dmu_query,ti_cur_aux((ti_index*)(g->dmu_index)),g->varbanks)==1;
+}
+
+/* demod_unoriented: the newest side of an unorientable equation with an
+   oriented instance that rewrites x, as wr_dmi_best gives it; 0 when there
+   is none */
+
+static int wr_dmu_best(glb* g, gint x, gint* node, gint* rhs) {
+  ti_index* u=(ti_index*)(g->dmu_index);
+  gint payload, aux, *vals;
+  gptr vc;
+  int32_t n, nv, k;
+  if (!u || u==(void*)1) return 0;
+  if ((g->varstack)[1]>2 && !(g->rw_base)) return 0;
+  n=ti_preorder(g,u,x);
+  if (n<0) { wr_dmu_drop(g,(void*)1); return 0; }
+  dmu_query=x;
+  k=ti_match_best(g,u,0,n,wr_dmu_accept,1,&payload,&aux,&nv,&vals);
+  dmu_query=0;
+  if (!k) return 0;
+  vc=((gptr)(g->varstack))+1;
+  for(k=0;k<nv;k++) SETVAR(encode_var(TREE_VARBANK*NROF_VARSINBANK+k),vals[k],g->varbanks,g->varstack,vc);
+  *node=payload;
+  *rhs=aux;
+  (g->stat_dmu_rewrites)++;
+  return 1;
+}
+
 int wr_dmi_best(glb* g, gint x, gint* node, gint* rhs) {
   ti_index* d=(ti_index*)(g->dmi_index);
   gint payload, aux, *vals;
   gptr vc;
   int32_t n, nv, k;
   if (d==(void*)1) return -1;
-  if (!d) { *node=0; return 0; } // no demodulator filed yet
+  if (!d) { *node=0; return wr_dmu_best(g,x,node,rhs); } // no oriented demodulator filed yet
   if ((g->varstack)[1]>2 && !(g->rw_base)) return -1; // the list tests the first candidate with these bindings
   n=ti_preorder(g,d,x);
   if (n<0) { (g->stat_dmi_tree_stopped)=2; wr_dmi_fail(g); return -1; }
   if (!ti_match_best(g,d,0,n,wr_dmi_accept,g->rewrite_guard,&payload,&aux,&nv,&vals)) {
     *node=0;
-    return 0;
+    // the oriented demodulators first, then the unorientable equations
+    return wr_dmu_best(g,x,node,rhs);
   }
   vc=((gptr)(g->varstack))+1;
   for(k=0;k<nv;k++) SETVAR(encode_var(TREE_VARBANK*NROF_VARSINBANK+k),vals[k],g->varbanks,g->varstack,vc);
@@ -355,8 +438,8 @@ static void dmi_check(glb* g, gint x, vec hashvec, gint hash) {
    shows a defect */
 #define WR_DEMOD_RW_LIMIT 10000
 
-#ifdef GKC_DEMOD_NORM_CHECK
-/* the earlier form, for the check build */
+/* the earlier form: the full rebuild of a literal, for the check build and
+   for demod_unoriented */
 
 /* a side of a positive unit equation: the arguments rewritten freely, the
    top with the completeness condition; a constant side is not rewritten at
@@ -411,8 +494,6 @@ static gint wr_demod_build_eq(glb* g, gint atom) {
   }
   return encode_record(g->db,yptr);
 }
-
-#endif
 
 /* ---- the one-pass normalisation of a term (demod_derived) ----
 
@@ -577,6 +658,7 @@ static void nc_report(void) { fprintf(stderr,"DEMOD_NORM_CHECK literals %ld diff
 __attribute__((constructor)) static void nc_init(void) { atexit(nc_report); }
 #endif
 
+#define WR_DMU_ON(g) ((g)->dmu_index && (g)->dmu_index!=(void*)1)
 int wr_demod_derived(glb* g, gptr rptr, int rpos) {
   ti_index* d=(ti_index*)(g->dmi_index);
   gptr vs=g->varstack;
@@ -585,7 +667,8 @@ int wr_demod_derived(glb* g, gptr rptr, int rpos) {
   int s_subst=0, s_rename=0, s_rewrite=0, s_calc=0, s_comp=0;
   gptr s_buffer=NULL;
   (g->demod_this_clause)=0;
-  if (!d || d==(void*)1 || !(g->have_rewrite_terms)) return 0;
+  if ((!d || d==(void*)1) && !WR_DMU_ON(g)) return 0;
+  if (!(g->have_rewrite_terms)) return 0;
   (g->stat_demod_derived_checked)++;
   for(j=0;j<rpos;j++) {
     atom=rptr[(j*LIT_WIDTH)+LIT_ATOM_POS];
@@ -624,7 +707,16 @@ int wr_demod_derived(glb* g, gptr rptr, int rpos) {
       if (nw!=WG_ILLEGAL && newatom!=WG_ILLEGAL && !wr_equal_term(g,nw,newatom,1)) nc_diff++;
     }
 #else
-    newatom=wr_demod_norm(g,atom,eqflag);
+    if (WR_DMU_ON(g)) {
+      // demod_unoriented: the full rebuild, whose lookups at every subterm
+      // also try the unorientable equations (the one-pass form looks only
+      // in the tree of the oriented demodulators)
+      (g->demod_oldform)=1;
+      newatom=(eqflag ? wr_demod_build_eq(g,atom) : wr_build_calc_term(g,atom));
+      (g->demod_oldform)=0;
+    } else {
+      newatom=wr_demod_norm(g,atom,eqflag);
+    }
 #endif
     (g->build_rewrite)=0;
     (g->rewrite_guard)=0;

@@ -697,6 +697,12 @@ typedef struct glb {
   void* up_index;          // tables of unit propagation, or NULL
   int para_into_ordered;   // strategy key para_into_ordered: 1 the ordering test after the substitution also for paramodulation into the given clause
   void* dmi_index;         // index of the demodulators of hash_rewrite_terms, NULL, or 1 after a failed allocation
+  int demod_unoriented;    // strategy key demod_unoriented: 1 unorientable unit equations rewrite with their oriented instances
+  gint hash_rewrite_terms_u; // demod_unoriented: the hash list of the sides of unorientable equations (the nodes of the tree), or 0
+  void* dmu_index;         // demod_unoriented: the tree of the sides of unorientable equations, NULL, or 1 after a failure
+  long stat_dmu_filed;     // demod_unoriented: sides of unorientable equations filed in their tree
+  long stat_dmu_tests;     // demod_unoriented: matches whose instance was tested with the ordering
+  long stat_dmu_rewrites;  // demod_unoriented: rewrites with an oriented instance
   int rewrite_guard;       // 1: wr_rewrite_term does not use a demodulator that matches by a renaming
   gptr rewrite_self;       // a clause that wr_rewrite_term does not use as a demodulator, or NULL
   int ti_selftest;          // strategy key ti_selftest: 1 the self test of the term index on the input, then stop

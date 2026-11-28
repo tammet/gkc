@@ -38,6 +38,7 @@
 #endif
 #ifdef USE_DEMOD_INDEX
 void wr_dmi_insert(glb* g, gint term, gint node);
+int wr_dmu_insert(glb* g, gint term, gint node);
 int wr_dmi_best(glb* g, gint x, gint* node, gint* rhs);
 int wr_match_is_renaming(glb* g);
 int wr_demod_derived(glb* g, gptr rptr, int rpos);

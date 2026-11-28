@@ -273,6 +273,11 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr, int s
       // rewritten with the demodulators before the cuts; 0: only the picked
       // clause is rewritten
       (g->demod_derived)=(json_valueint(elem) ? 1 : 0);
+    } else if (!strcmp(key,"demod_unoriented")) {
+      // 1: an unorientable positive unit equation is filed with both sides,
+      // and a side rewrites a term when the instance is oriented under the
+      // bindings of the match; 0 or a missing key: not used for rewriting
+      (g->demod_unoriented)=(json_valueint(elem) ? 1 : 0);
     } else if (!strcmp(key,"demod_source")) {
       // 1: an equation becomes a demodulator when picked (as today); 2: when kept
       (g->demod_source)=(json_valueint(elem)==2 ? 2 : 1);

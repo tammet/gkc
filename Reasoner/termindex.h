@@ -63,6 +63,7 @@ int ti_match_best_ext(glb* g, ti_index* x, uint64_t* syms, int32_t* skip, gint* 
 long ti_query_tree_vars(ti_index* x);
 gint ti_rename_copy(glb* g, gint t, gint* vars, int32_t nv, gint first, gptr buf);
 int ti_failed(ti_index* x);
+gint ti_cur_aux(ti_index* x);
 int32_t ti_preorder(glb* g, ti_index* x, gint term);
 int32_t ti_pre_end(ti_index* x, int32_t i);
 int ti_pre_is_record(ti_index* x, int32_t i);

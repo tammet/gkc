@@ -2192,6 +2192,11 @@ void wr_show_stats(glb* g, int show_local_complex) {
     }
 #endif
   }
+  if (g->demod_unoriented) {
+    wr_printf("stat_dmu_filed:               %13ld\n",g->stat_dmu_filed);
+    wr_printf("stat_dmu_tests:               %13ld\n",g->stat_dmu_tests);
+    wr_printf("stat_dmu_rewrites:            %13ld\n",g->stat_dmu_rewrites);
+  }
   if ((g->demod_derived) || (g->demod_source)==2) {
     wr_printf("stat_demod_derived_checked:   %13ld\n",g->stat_demod_derived_checked);
     wr_printf("stat_demod_derived_rewritten: %13ld\n",g->stat_demod_derived_rewritten);

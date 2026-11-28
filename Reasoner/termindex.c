@@ -171,6 +171,7 @@ struct ti_index_s {
   gint* bestvals; int32_t bestnb, best, bestent; // best: the rank of the best entry so far, bestent: the entry
   int (*accept)(glb*, gint);
   int norenaming;
+  gint cur_aux;             // the aux of the entry that accept is testing
   int first, stop;           // first: the walk stops at the first accepted entry (stop set)
   ti_visit_fn visit; void* visitctx;
   long steps;                // nodes visited by the walks
@@ -648,6 +649,7 @@ static void ti_leaf(glb* g, ti_index* x, int32_t node) {
     }
     if (!(x->first) && x->ents[e].rank<=x->best) return; // the entries of a leaf are in falling rank
     if (x->norenaming && ti_is_renaming(x)) continue;
+    x->cur_aux=x->ents[e].aux;
     if (x->accept && !(x->accept)(g,x->ents[e].payload)) continue;
     x->best=x->ents[e].rank;
     x->bestent=e;
@@ -1056,6 +1058,10 @@ void ti_match_all(glb* g, ti_index* x, int32_t start, int32_t end, ti_visit_fn v
 /* 0: the tree works; 1: a failed allocation or too many variables */
 
 int ti_failed(ti_index* x) { return x->failed; }
+
+/* the aux of the entry that the accept function of a walk is testing; the
+   bindings of the match are then in the cells of the tree */
+gint ti_cur_aux(ti_index* x) { return x->cur_aux; }
 
 /* ---- candidates for unification or matching (the uncompressed form) ----
 

@@ -218,6 +218,21 @@ rewritten. No effect with `query_focus`, which has no demodulators, in a
 tree failed. With an attached KB, the demodulators of the KB rewrite a
 derived clause through their lists.
 
+### `demod_unoriented` (experimental)
+
+`1`: a positive unit equation whose sides the ordering does not compare,
+for example `f(X,Y) = f(Y,X)`, is used for rewriting as well. Both sides go
+into a second tree of the demodulators, each with the other side as its
+right side; a side is not filed when the other side has a variable that it
+does not have. A side rewrites a term only when the term is greater than the
+other side under the bindings of the match, and never by a renaming. The
+oriented demodulators are tried first. The equation stays in use for
+paramodulation, and a rewrite lists it as a parent in the proof. Once such
+an equation is filed, the rewriting of derived clauses rebuilds each
+literal in full (the one-pass form looks only at the oriented ones). `0` or
+a missing key: such an equation is not used for rewriting. No effect with
+`query_focus`, in a 32-bit build, or for a constant.
+
 ### `demod_source` (experimental)
 
 When a positive unit equation that the term ordering orients becomes a

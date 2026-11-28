@@ -282,6 +282,12 @@ int wr_glb_init_simple(glb* g) {
   (g->rw_base)=0;
   (g->demod_oldform)=0;
   (g->dmi_rhsbuf)=NULL;
+  (g->demod_unoriented)=0;
+  (g->hash_rewrite_terms_u)=0;
+  (g->dmu_index)=NULL;
+  (g->stat_dmu_filed)=0;
+  (g->stat_dmu_tests)=0;
+  (g->stat_dmu_rewrites)=0;
   (g->stat_dmi_rhs_not_filed)=0;
   (g->stat_dmi_rhs_bytes)=0;
   (g->stat_demod_parents_lost)=0;
@@ -1279,6 +1285,7 @@ int wr_glb_free_shared_complex(glb* g) {
   wr_clterm_hashlist_free(g,rotp(g,g->hash_para_terms));
   wr_clterm_hashlist_free(g,rotp(g,g->hash_eq_terms));
   wr_clterm_hashlist_free(g,rotp(g,g->hash_rewrite_terms));
+  if (g->hash_rewrite_terms_u) wr_clterm_hashlist_free(g,rotp(g,g->hash_rewrite_terms_u));
   // prop
   if ((g->instgen_strat) || (g->propgen_strat)) {
     wr_free_prop_termhash(g,rotp(g,g->prop_hash_atoms)); 

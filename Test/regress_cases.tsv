@@ -159,3 +159,6 @@ num_real_different	Test/numbers/real_different.p	noproof	10
 num_real_above	Test/numbers/real_above_range.p	error:out of the range of a 4-byte float	10
 num_arith_int_above	Test/numbers/arith_int_above_range.txt	noproof	10
 num_arith_int_in	Test/numbers/arith_int_in_range.txt	proof	10
+# Test/demod/, rewriting with unorientable equations (strategy key demod_unoriented)
+demod_unoriented_comm	Test/demod/u1_commutative.p -strategytext '{"strategy":["unit"],"query_preference":0,"demod_unoriented":1}'	output:result: proof found;;stat_dmu_filed:                           2	10
+demod_unoriented_sym	Test/demod/u2_symmetric_three.p -strategytext '{"strategy":["unit"],"query_preference":0,"demod_unoriented":1}'	output:result: proof found;;stat_dmu_rewrites:                        6	10
