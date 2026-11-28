@@ -203,18 +203,20 @@ clause does today. `0` or a missing key keeps today's behaviour, where
 this direction tests the ordering only before the unification. The key
 has no effect with `query_focus`, where the ordering is off.
 
-### `demod_derived` (experimental)
+### `demod_derived`
 
-`1`: every derived clause (resolution, factoring, paramodulation) is
-rewritten with the demodulators right after it is built, before the unit
-cuts, the subsumption and the weight check. Rewriting is innermost first
+On by default: every derived clause (resolution, factoring, paramodulation)
+is rewritten with the demodulators right after it is built, before the unit
+cuts, the subsumption and the weight check. A missing key or `1` means this. Rewriting is innermost first
 and goes on until no demodulator applies. In a positive unit equation the
 top of a side is not rewritten by a demodulator that matches it by a
 renaming. A rewritten clause lists its demodulators as extra parents of its
 derivation step. Partial results of hyperresolution, instance generation
-and unit propagation are not rewritten. `0` or a missing key: only the
-picked clause is rewritten, as before. No effect with `query_focus`, which
-has no demodulators.
+and unit propagation are not rewritten. `0`: only the picked clause is
+rewritten. No effect with `query_focus`, which has no demodulators, in a
+32-bit build, which has no tree of the demodulators, or in a run where the
+tree failed. With an attached KB, the demodulators of the KB rewrite a
+derived clause through their lists.
 
 ### `demod_source` (experimental)
 
