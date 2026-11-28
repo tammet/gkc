@@ -267,6 +267,7 @@ int wr_glb_init_simple(glb* g) {
   (g->rewrite_guard)=0;
   (g->rewrite_self)=NULL;
   (g->ti_selftest)=0;
+  (g->order_selftest)=0;
   (g->stat_dmi_tree_stopped)=0;
   (g->demod_derived)=1; // strategy key demod_derived: on by default, 0 switches it off
   (g->demod_source)=1; // strategy key demod_source: 1 picked clauses, 2 kept clauses

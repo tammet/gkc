@@ -305,6 +305,10 @@ int wr_parse_guide_section(glb* g, cJSON *guide, int runnr, char** outstr, int s
       // 1: the unit trees accept only what the unit tables accept (an equal
       // atom, or a variant with unit_variant_hash): the same search as the tables
       (g->unit_match_equal)=(json_valueint(elem) ? 1 : 0);
+    } else if (!strcmp(key,"order_selftest")) {
+      // 1: the self test of the term ordering (wr_order_eqterms) on the input
+      // clauses ord(A,B,R), term(T), ctx(C,H), then stop (Test/ordering/)
+      (g->order_selftest)=json_valueint(elem);
     } else if (!strcmp(key,"ti_selftest")) {
       // 1: the self test of the term index on the input clauses, then stop;
       // 2: the same with the atoms of the unit clauses as stored terms

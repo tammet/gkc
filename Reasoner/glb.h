@@ -708,6 +708,7 @@ typedef struct glb {
   int rewrite_guard;       // 1: wr_rewrite_term does not use a demodulator that matches by a renaming
   gptr rewrite_self;       // a clause that wr_rewrite_term does not use as a demodulator, or NULL
   int ti_selftest;          // strategy key ti_selftest: 1 the self test of the term index on the input, then stop
+  int order_selftest;       // strategy key order_selftest: 1 the self test of the term ordering on the input, then stop
   int stat_dmi_tree_stopped; // the tree of the demodulators stopped: 1 no memory or too many variables in an insert, 2 no memory in a lookup, 3 unify settings
   int demod_derived;       // strategy key demod_derived: 1 (default) a derived clause is rewritten with the demodulators before the cuts, 0 only the picked clause
   int demod_source;        // strategy key demod_source: 1 (absent) an equation becomes a demodulator when picked, 2 when kept

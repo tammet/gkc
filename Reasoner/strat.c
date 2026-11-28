@@ -1471,6 +1471,240 @@ static int wr_order_eqterms_const_lex_smaller(glb* g, gint x, gint y) {
 }
 
 
+
+/* ============== the self test of the term ordering ==============
+
+   Strategy key order_selftest 1 (Test/ordering/). The input clauses are
+   ord(A,B,R): wr_order_eqterms(A,B) must give R (1: A greater, 2: B greater,
+   3: neither); term(T): a further term for the property tests; ctx(C,H): a
+   context, the term C with the hole H (a variable of C). The terms of the
+   property tests are every argument of ord and term and all their subterms.
+   Printed: the cases and their wrong results; then per property the
+   instances tested and the failures, with the first failures named. */
+
+#define OT_MAXT 400
+static gint ot_t[OT_MAXT];
+static int ot_n=0;
+static long ot_fail_shown=0;
+
+static void ot_add(glb* g, gint t) {
+  int i, start, end;
+  gptr tp;
+  for(i=0;i<ot_n;i++) if (ot_t[i]==t || wr_equal_term(g,ot_t[i],t,1)) break;
+  if (i==ot_n && ot_n<OT_MAXT) ot_t[ot_n++]=t;
+  if (!isdatarec(t)) return;
+  tp=decode_record(g->db,t);
+  start=wr_term_unify_startpos(g); end=wr_term_unify_endpos(g,tp);
+  for(i=start+1;i<end;i++) ot_add(g,tp[i]); // the arguments (the symbol is field start)
+}
+
+static void ot_show(glb* g, char* what, gint a, gint b, int r, int r2) {
+  if (ot_fail_shown>=30) return;
+  ot_fail_shown++;
+  wr_printf("ORD_FAIL %s: ",what); wr_print_term(g,a); wr_printf(" vs "); wr_print_term(g,b);
+  wr_printf(" gives %d (%d)\n",r,r2);
+}
+
+static int ot_ground(glb* g, gint t) {
+  int i, start, end; gptr tp;
+  if (isvar(t)) return 0;
+  if (!isdatarec(t)) return 1;
+  tp=decode_record(g->db,t);
+  start=wr_term_unify_startpos(g); end=wr_term_unify_endpos(g,tp);
+  for(i=start;i<end;i++) if (!ot_ground(g,tp[i])) return 0;
+  return 1;
+}
+
+/* the term t with every occurrence of the variable v replaced by s, built in the database */
+static gint ot_replace(glb* g, gint t, gint v, gint s) {
+  int i, start, end, len, changed=0; gptr tp, np; gint nf[64];
+  if (t==v) return s;
+  if (!isdatarec(t)) return t;
+  tp=decode_record(g->db,t);
+  start=wr_term_unify_startpos(g); end=wr_term_unify_endpos(g,tp);
+  if (end-start>64) return t;
+  for(i=start;i<end;i++) { nf[i-start]=ot_replace(g,tp[i],v,s); if (nf[i-start]!=tp[i]) changed=1; }
+  if (!changed) return t;
+  len=get_record_len(tp);
+  np=wr_create_raw_record(g,len,tp[RECORD_META_POS],NULL);
+  if (!np) return t;
+  for(i=RECORD_HEADER_GINTS;i<RECORD_HEADER_GINTS+len;i++) np[i]=tp[i];
+  for(i=start;i<end;i++) np[i]=nf[i-start];
+  return encode_record(g->db,np);
+}
+
+static void ot_vars(glb* g, gint t, gint* vs, int* n, int max) {
+  int i, k, start, end; gptr tp;
+  if (isvar(t)) { for(k=0;k<*n;k++) if (vs[k]==t) return; if (*n<max) vs[(*n)++]=t; return; }
+  if (!isdatarec(t)) return;
+  tp=decode_record(g->db,t);
+  start=wr_term_unify_startpos(g); end=wr_term_unify_endpos(g,tp);
+  for(i=start;i<end;i++) ot_vars(g,tp[i],vs,n,max);
+}
+
+static int ot_proper_subterm(glb* g, gint s, gint t) {
+  int i, start, end; gptr tp;
+  if (!isdatarec(t)) return 0;
+  tp=decode_record(g->db,t);
+  start=wr_term_unify_startpos(g); end=wr_term_unify_endpos(g,tp);
+  for(i=start+1;i<end;i++) if (tp[i]==s || wr_equal_term(g,tp[i],s,1) || ot_proper_subterm(g,s,tp[i])) return 1;
+  return 0;
+}
+
+void wr_order_selftest(glb* g) {
+  void* db=g->db;
+  gint cell, atom, a, b, r, sym;
+  gcell* cellptr;
+  gptr rec, ap;
+  int i, j, k, cases=0, wrong=0, res, res2;
+  gint ctxc[64], ctxh[64]; int nctx=0;
+  long anti_n=0, anti_f=0, refl_n=0, refl_f=0, tr_n=0, tr_f=0, sub_n=0, sub_f=0, gt_n=0, gt_f=0;
+  long st_n=0, st_f=0, ag_n=0, ag_f=0, mo_n=0, mo_f=0;
+  static int ord[OT_MAXT][OT_MAXT];
+  gint vs[64]; int nv=0, ng=0; gint gr[24];
+  char* str;
+  ot_n=0; ot_fail_shown=0;
+  for(cell=(dbmemsegh(db)->clauselist); cell; cell=cellptr->cdr) {
+    cellptr=(gcell*)offsettoptr(db,cell);
+    rec=offsettoptr(db,cellptr->car);
+    if (wg_rec_is_rule_clause(db,rec)) {
+      if (wg_count_clause_atoms(db,rec)!=1) continue;
+      if (wg_atom_meta_is_neg(db,wg_get_rule_clause_atom_meta(db,rec,0))) continue;
+      atom=wg_get_rule_clause_atom(db,rec,0);
+    } else {
+      atom=encode_record(db,rec);
+    }
+    if (!isdatarec(atom)) continue;
+    ap=decode_record(db,atom);
+    sym=ap[RECORD_HEADER_GINTS+(g->unify_funpos)];
+    if (wg_get_encoded_type(db,sym)!=WG_URITYPE) continue;
+    str=wg_decode_uri(db,sym);
+    if (!strcmp(str,"ord") && get_record_len(ap)==(g->unify_funpos)+4) {
+      a=ap[RECORD_HEADER_GINTS+(g->unify_funpos)+1];
+      b=ap[RECORD_HEADER_GINTS+(g->unify_funpos)+2];
+      r=ap[RECORD_HEADER_GINTS+(g->unify_funpos)+3];
+      cases++;
+      res=wr_order_eqterms(g,a,b,NULL);
+      if (!issmallint(r) || res!=wg_decode_int(db,r)) {
+        wrong++;
+        wr_printf("ORD_WRONG: "); wr_print_term(g,a); wr_printf(" vs "); wr_print_term(g,b);
+        wr_printf(" gives %d, expected ",res); wr_print_term(g,r); wr_printf("\n");
+      }
+      ot_add(g,a); ot_add(g,b);
+    } else if (!strcmp(str,"ordnot3") && get_record_len(ap)==(g->unify_funpos)+3) {
+      // a pair decided by the order of two symbols (their gints): 1 or 2, not 3
+      a=ap[RECORD_HEADER_GINTS+(g->unify_funpos)+1];
+      b=ap[RECORD_HEADER_GINTS+(g->unify_funpos)+2];
+      cases++;
+      res=wr_order_eqterms(g,a,b,NULL);
+      if (res==3) {
+        wrong++;
+        wr_printf("ORD_WRONG: "); wr_print_term(g,a); wr_printf(" vs "); wr_print_term(g,b);
+        wr_printf(" gives 3, expected 1 or 2\n");
+      }
+      ot_add(g,a); ot_add(g,b);
+    } else if (!strcmp(str,"term") && get_record_len(ap)==(g->unify_funpos)+2) {
+      ot_add(g,ap[RECORD_HEADER_GINTS+(g->unify_funpos)+1]);
+    } else if (!strcmp(str,"ctx") && get_record_len(ap)==(g->unify_funpos)+3 && nctx<64) {
+      ctxc[nctx]=ap[RECORD_HEADER_GINTS+(g->unify_funpos)+1];
+      ctxh[nctx]=ap[RECORD_HEADER_GINTS+(g->unify_funpos)+2];
+      nctx++;
+    }
+  }
+  // the table of all pairs
+  for(i=0;i<ot_n;i++) for(j=0;j<ot_n;j++) ord[i][j]=wr_order_eqterms(g,ot_t[i],ot_t[j],NULL);
+  for(i=0;i<ot_n;i++) {
+    refl_n++;
+    if (ord[i][i]!=3) { refl_f++; ot_show(g,"reflexive",ot_t[i],ot_t[i],ord[i][i],3); }
+    for(j=0;j<ot_n;j++) {
+      if (i==j) continue;
+      anti_n++;
+      if ((ord[i][j]==1) != (ord[j][i]==2) || (ord[i][j]==3) != (ord[j][i]==3)) {
+        anti_f++; ot_show(g,"antisymmetry",ot_t[i],ot_t[j],ord[i][j],ord[j][i]);
+      }
+      if (ot_ground(g,ot_t[i]) && ot_ground(g,ot_t[j])) {
+        gt_n++;
+        if (ord[i][j]==3) { gt_f++; ot_show(g,"ground total",ot_t[i],ot_t[j],3,0); }
+      }
+      if (ot_proper_subterm(g,ot_t[j],ot_t[i])) {
+        sub_n++;
+        if (ord[i][j]!=1) { sub_f++; ot_show(g,"subterm",ot_t[i],ot_t[j],ord[i][j],1); }
+      }
+      if (ord[i][j]!=1) continue;
+      for(k=0;k<ot_n;k++) {
+        if (ord[j][k]!=1) continue;
+        tr_n++;
+        if (ord[i][k]!=1) { tr_f++; ot_show(g,"transitivity",ot_t[i],ot_t[k],ord[i][k],1); }
+      }
+    }
+  }
+  // substitutions: one variable of the terms bound to one ground term of the terms
+  for(i=0;i<ot_n;i++) ot_vars(g,ot_t[i],vs,&nv,64);
+  for(i=0;i<ot_n && ng<8;i++) if (ot_ground(g,ot_t[i]) && isdatarec(ot_t[i])) gr[ng++]=ot_t[i];
+  for(i=0;i<ot_n && ng<10;i++) if (!isdatarec(ot_t[i]) && !isvar(ot_t[i])) gr[ng++]=ot_t[i];
+  // and terms with variables (a binding is skipped when its term has the variable itself)
+  { int ngv=0; for(i=0;i<ot_n && ng<16 && ngv<5;i++) if (isdatarec(ot_t[i]) && !ot_ground(g,ot_t[i])) { gr[ng++]=ot_t[i]; ngv++; } }
+  for(i=0;i<ot_n && ng<16;i++) if (isvar(ot_t[i])) { gr[ng++]=ot_t[i]; break; }
+  for(k=0;k<nv;k++) {
+    int q;
+    for(q=0;q<ng;q++) {
+      for(i=0;i<ot_n;i++) for(j=0;j<ot_n;j++) {
+        gint ai, bj;
+        gptr vc=((gptr)(g->varstack))+1;
+        if (i==j || gr[q]==vs[k]) continue;
+        { gint tv[64]; int ntv=0, z, occ=0; ot_vars(g,gr[q],tv,&ntv,64); for(z=0;z<ntv;z++) if (tv[z]==vs[k]) occ=1; if (occ) continue; }
+        ai=ot_replace(g,ot_t[i],vs[k],gr[q]); bj=ot_replace(g,ot_t[j],vs[k],gr[q]);
+        res2=wr_order_eqterms(g,ai,bj,NULL);
+        // the same comparison under a binding of the variable
+        SETVAR(vs[k],gr[q],g->varbanks,g->varstack,vc);
+        res=wr_order_eqterms(g,ot_t[i],ot_t[j],g->varbanks);
+        wr_clear_varstack(g,g->varstack);
+        ag_n++;
+        if (res!=res2) { ag_f++; ot_show(g,"binding against instance",ai,bj,res,res2); }
+        if (ord[i][j]==1) {
+          st_n++;
+          if (res2!=1) { st_f++; ot_show(g,"stability",ai,bj,res2,1); }
+        }
+      }
+    }
+  }
+  // monotony: a greater pair in each context
+  for(k=0;k<nctx;k++) {
+    for(i=0;i<ot_n;i++) for(j=0;j<ot_n;j++) {
+      gint ci, cj;
+      if (ord[i][j]!=1) continue;
+      ci=ot_replace(g,ctxc[k],ctxh[k],ot_t[i]); cj=ot_replace(g,ctxc[k],ctxh[k],ot_t[j]);
+      mo_n++;
+      res=wr_order_eqterms(g,ci,cj,NULL);
+      if (res!=1) { mo_f++; ot_show(g,"monotony",ci,cj,res,1); }
+    }
+  }
+  // more distinct variables than the counted variable lists hold (NROF_VARSINBANK):
+  // b has the variables 0..NROF_VARSINBANK (one more than a list holds), a has
+  // 0..NROF_VARSINBANK-1 and two constants, so a is heavier but lacks a variable
+  // of b: the right result is 3
+  {
+    int n=NROF_VARSINBANK, fp=(g->unify_funpos);
+    gptr ra=wr_create_raw_record(g,fp+1+n+2,0,NULL), rb=wr_create_raw_record(g,fp+1+n+1,0,NULL);
+    if (ra && rb && ot_n>0 && isdatarec(ot_t[0])) {
+      gint symb=((gptr)decode_record(db,ot_t[0]))[RECORD_HEADER_GINTS+fp];
+      for(i=RECORD_HEADER_GINTS;i<RECORD_HEADER_GINTS+fp;i++) { ra[i]=0; rb[i]=0; }
+      ra[RECORD_HEADER_GINTS+fp]=symb; rb[RECORD_HEADER_GINTS+fp]=symb;
+      for(i=0;i<n;i++) { ra[RECORD_HEADER_GINTS+fp+1+i]=encode_var(i); rb[RECORD_HEADER_GINTS+fp+1+i]=encode_var(i); }
+      rb[RECORD_HEADER_GINTS+fp+1+n]=encode_var(n);
+      ra[RECORD_HEADER_GINTS+fp+1+n]=encode_smallint(1); ra[RECORD_HEADER_GINTS+fp+2+n]=encode_smallint(1);
+      res=wr_order_eqterms(g,encode_record(db,ra),encode_record(db,rb),NULL);
+      wr_printf("ORD_MANYVARS a term with %d distinct variables against a heavier term without the last one: result %d (right: 3)\n",n+1,res);
+    }
+  }
+  wr_printf("ORD_TEST cases %d wrong %d; terms %d; antisymmetry %ld failures %ld; reflexive %ld failures %ld;",
+            cases,wrong,ot_n,anti_n,anti_f,refl_n,refl_f);
+  wr_printf(" transitivity %ld failures %ld; subterm %ld failures %ld; ground total %ld failures %ld;",
+            tr_n,tr_f,sub_n,sub_f,gt_n,gt_f);
+  wr_printf(" stability %ld failures %ld; binding against instance %ld failures %ld; monotony %ld failures %ld\n",
+            st_n,st_f,ag_n,ag_f,mo_n,mo_f);
+}
+
 /*
  
  ============== literal knuth bendix ordering ================

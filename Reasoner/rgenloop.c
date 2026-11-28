@@ -198,6 +198,11 @@ int wr_genloop(glb* g) {
   //printf("\n** clactivesubsume data from external:\n"); 
   //wr_show_clactivesubsume(r_kb_g(g));
 
+  if (g->order_selftest) {
+    wr_order_selftest(g);
+    fflush(stdout);
+    exit(0);
+  }
   if (g->ti_selftest) {
     wr_ti_selftest(g);
     fflush(stdout);

@@ -270,6 +270,19 @@ one of its literals (with `forward_subsume_derived`, as for the unit
 tables). Independent of `unit_cut_match`. `0` or a missing key: only an
 equal literal (a variant with `unit_variant_hash`), as before.
 
+### `order_selftest` (test only)
+
+`1`: gkc tests its term ordering (`wr_order_eqterms`, Reasoner/strat.c) on
+the input clauses and stops before the search. A unit clause `ord(A,B,R)`
+states the result `R` for `A` against `B` (1: `A` greater, 2: `B` greater, 3:
+neither); `ordnot3(A,B)` states a result 1 or 2. `term(T)` adds a term and
+`ctx(C,H)` a context (the term `C` with the hole variable `H`). Over all
+these terms and their subterms the test checks antisymmetry, transitivity,
+the subterm property, totality on ground pairs, stability under bindings of
+one variable, the agreement of a comparison under bindings with the
+comparison of the built instances, and monotony in the contexts. One line
+`ORD_TEST ...` gives the counts; see Test/ordering/.
+
 ### `ti_selftest` (test only)
 
 `1`: gkc tests its term index (the perfect discrimination tree of
