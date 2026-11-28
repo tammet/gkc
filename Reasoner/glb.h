@@ -725,7 +725,6 @@ typedef struct glb {
   int unit_match_equal;    // strategy key unit_match_equal: 1 the unit trees accept only what the unit tables accept
   int unit_tree_units;     // strategy key unit_tree_units: 1 the unit trees hold every kept unit, 2 the active units only
   int pick_full_simplify;  // strategy key pick_full_simplify: 1 the picked clause is cut by a more general unit too, repeated
-  int subsume_prefilter_fix; // strategy key subsume_prefilter_fix: 1 the meta of fact clauses and the ground flag test repaired
   void* ucm_pos;           // the tree of the positive stored units, NULL, or 1 after a failure
   void* ucm_neg;           // the tree of the negative stored units, NULL, or 1 after a failure
   gptr ucm_scratch;        // a record for the swapped sides of an equality literal

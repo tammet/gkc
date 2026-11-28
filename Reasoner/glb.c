@@ -292,7 +292,6 @@ int wr_glb_init_simple(glb* g) {
   (g->unit_match_equal)=0;
   (g->unit_tree_units)=1;
   (g->pick_full_simplify)=0;
-  (g->subsume_prefilter_fix)=0;
   (g->stat_given_subsumed)=0;
   (g->ucm_scratch)=NULL;
   (g->ucm_scratch_cap)=0;

@@ -539,11 +539,10 @@ gint wr_calc_clause_meta(glb* g, gptr xptr, gptr cl_metablock) {
   ruleflag=wg_rec_is_rule_clause(db,xptr);  
   if (!ruleflag) {
     negflag=0;
-    // subsume_prefilter_fix: the meta of the atom of a fact clause (without it
-    // the block of a fact has no prefix bits and size 0, and the prefilter of
-    // the subsumption rejects every more general clause)
-    if ((g->subsume_prefilter_fix) || (g->pick_full_simplify))
-      wr_calc_term_meta(g,rpto(g,xptr),0,0,&litmeta);
+    // the meta of the atom of the fact clause (without it the block of a fact
+    // has no prefix bits and size 0, and the prefilter of the subsumption
+    // rejects every more general clause)
+    wr_calc_term_meta(g,rpto(g,xptr),0,0,&litmeta);
     clmeta.length=1;
     clmeta.neglength=0;
     clmeta.groundlength=!litmeta.hasvars;

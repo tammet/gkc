@@ -707,14 +707,11 @@ int wr_clmetablock_can_subsume(glb* g, gptr genblock, gptr specblock) {
   gel=genblock[CLMETABLOCK_LENGTHS_POS];
   sel=specblock[CLMETABLOCK_LENGTHS_POS];
   (g->stat_clsubs_top_meta_nonpref_attempted)++;
-  if ((g->subsume_prefilter_fix) || (g->pick_full_simplify)) {
-    // subsume_prefilter_fix: the ground flag is the highest field of the
-    // word, and a ground clause can subsume a clause that is not ground, so
-    // the flag is left out of the comparison of the whole word (the other
-    // fields grow under subsumption)
-    gel&=~((gint)255<<CLMETABLOCK_ISGROUND_SHIFT);
-    sel&=~((gint)255<<CLMETABLOCK_ISGROUND_SHIFT);
-  }
+  // the ground flag is the highest field of the word, and a ground clause can
+  // subsume a clause that is not ground, so the flag is left out of the
+  // comparison of the whole word (the other fields grow under subsumption)
+  gel&=~((gint)1<<CLMETABLOCK_ISGROUND_SHIFT);
+  sel&=~((gint)1<<CLMETABLOCK_ISGROUND_SHIFT);
   /*
   wr_printf("\ngel %d sel %d",gel,sel);
   wr_printf("\n gel bits:\n");
