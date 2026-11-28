@@ -270,6 +270,37 @@ one of its literals (with `forward_subsume_derived`, as for the unit
 tables). Independent of `unit_cut_match`. `0` or a missing key: only an
 equal literal (a variant with `unit_variant_hash`), as before.
 
+### `pick_full_simplify` (experimental)
+
+`1`: the picked clause is simplified in full before it becomes the given
+clause. It is cut also by a stored unit that is more general than a
+literal (the unit tree, after the unit tables), and a picked fact clause
+that a negative unit covers gives the empty clause. The simplification is
+repeated until it changes nothing (at most 8 rounds). The subsumption of
+the picked clause by the active clauses is as before. The key fills the
+unit trees itself, so it needs no `unit_cut_match`; which units the trees
+hold is set by `unit_tree_units`. `0` or a missing key: the picked clause is
+rewritten and cut only by an equal unit (the unit tables), once.
+
+### `unit_tree_units` (experimental)
+
+Which units the unit trees hold (the trees of `unit_cut_match`,
+`unit_subsume_match` and `pick_full_simplify`). `1` or a missing key: every
+kept unit, filed when it is kept. `2`: only the active units, filed when
+their clause becomes active; a passive unit then cuts and subsumes nothing
+through a tree (the unit tables still find an equal unit). No effect
+without one of these three keys.
+
+### `unit_match_equal` (experimental)
+
+`1`: the unit trees accept only what the unit tables accept: a unit whose
+atom is equal to the literal (a variant with `unit_variant_hash`), not a
+more general one, and an equality only in the order of its sides as stored.
+The trees then give the same cuts and subsumptions as the tables; the key
+serves to compare the two. It needs `unit_cut_match` or
+`unit_subsume_match`. `0` or a missing key: a tree accepts every unit that
+matches, in both orders of an equality.
+
 ### `order_selftest` (test only)
 
 `1`: gkc tests its term ordering (`wr_order_eqterms`, Reasoner/strat.c) on
